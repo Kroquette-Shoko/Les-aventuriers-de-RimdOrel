@@ -29,14 +29,14 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 #app{display:flex;height:100%;width:100%;min-height:0;}
 
 /* ---------- Board ---------- */
-#board{flex:1;position:relative;display:flex;flex-direction:column;padding:12px 16px 200px;gap:8px;min-width:0;min-height:0;}
+#board{flex:1;position:relative;display:flex;flex-direction:column;padding:12px 16px 40px;gap:8px;min-width:0;min-height:0;}
 #board-scroll-area{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;gap:8px;overflow-y:auto;overflow-x:hidden;padding-right:2px;}
 
 .hero-row{display:flex;flex-direction:column;gap:6px;padding:8px 14px;background:var(--bg-panel);border-radius:14px;border:1px solid #2b2440;max-width:400px;width:fit-content;flex-shrink:0;}
 .draw-anim-card{
   position:fixed;width:150px;height:204px;z-index:150;pointer-events:none;
   transform-origin:top left;
-  transition:transform .5s cubic-bezier(.22,.75,.3,1), opacity .35s ease;
+  filter:drop-shadow(0 10px 24px rgba(0,0,0,.65));
 }
 .hero-row.enemy{align-self:flex-end;}
 .hero-row.self{align-self:flex-start;}
@@ -260,7 +260,7 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .card-rarity-gem.rarity-Légendaire{background:var(--gold);color:var(--gold);}
 .charges{color:var(--frost);font-size:11px;font-weight:700;position:absolute;bottom:5px;right:6px;z-index:2;}
 
-.hand-row{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:9px;justify-content:center;padding:14px 14px 6px;pointer-events:none;scrollbar-width:none;}
+.hand-row{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:9px;justify-content:center;padding:14px 14px 6px;pointer-events:none;scrollbar-width:none;background:transparent !important;box-shadow:none;border:none;}
 .hand-row::-webkit-scrollbar{height:0;width:0;background:transparent;}
 .hand-card-slot{pointer-events:auto;}
 .hand-card-slot{flex-shrink:0;transform-origin:bottom center;transition:transform .15s ease;}
@@ -281,7 +281,7 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .phase-label{font-family:'Cinzel',serif;font-size:12px;color:var(--parchment-dim);}
 
 /* ---------- Log panel ---------- */
-#log-panel{width:230px;background:var(--bg-panel);border-left:1px solid #2b2440;padding:14px 14px 200px;display:flex;flex-direction:column;min-height:0;}
+#log-panel{width:230px;background:var(--bg-panel);border-left:1px solid #2b2440;padding:14px 14px 40px;display:flex;flex-direction:column;min-height:0;}
 #log-panel h3{font-family:'Cinzel',serif;font-size:13px;margin:0 0 10px;color:var(--gold);letter-spacing:1px;}
 #log{flex:1;overflow-y:auto;font-size:11px;line-height:1.5;color:var(--parchment-dim);display:flex;flex-direction:column-reverse;}
 #log div{padding:3px 0;border-bottom:1px solid #241f38;}
@@ -683,36 +683,72 @@ function drawCard(p){
   if(p.deck.length===0) return null;
   const card = p.deck.shift();
   p.hand.push(card);
-  if(p===S.p1) playDrawAnimation(card);
+  if(p===S.p1){
+    DRAW_ANIM_PENDING_CARDS.push(card);
+    DRAW_ANIM_QUEUE.push(card);
+    DRAW_ANIM_IN_PROGRESS = true;
+    processDrawAnimQueue();
+  }
   return card;
 }
 
-function playDrawAnimation(card){
+function processDrawAnimQueue(){
+  if(DRAW_ANIM_QUEUE.length===0){
+    DRAW_ANIM_IN_PROGRESS = false;
+    render();
+    return;
+  }
+  const card = DRAW_ANIM_QUEUE.shift();
+  playDrawAnimation(card, ()=>{
+    DRAW_ANIM_PENDING_CARDS = DRAW_ANIM_PENDING_CARDS.filter(c=>c!==card);
+    processDrawAnimQueue();
+  });
+}
+
+function playDrawAnimation(card, onDone){
   const heroEl = document.getElementById('hero-p1');
   const handEl = document.getElementById('hand-p1');
-  if(!heroEl || !handEl) return;
+  if(!heroEl || !handEl){ onDone(); return; }
+
+  render(); // s'assure que cette carte reste cachée / actions bloquées dès le début
+
   const from = heroEl.getBoundingClientRect();
-  const to = handEl.getBoundingClientRect();
 
   const wrap = document.createElement('div');
   wrap.className = 'draw-anim-card';
   wrap.appendChild(cardEl(card, {isPreview:true}));
-
-  // point de départ : juste derrière le bord droit du bandeau du héros, en petit
-  const startX = from.right - 46, startY = from.top + from.height/2 - 41;
-  const endX = to.left + Math.min(to.width, 400)/2 - 30, endY = to.top - 4;
-  wrap.style.left = startX + 'px';
-  wrap.style.top = startY + 'px';
-  wrap.style.transform = 'scale(.32)';
-  wrap.style.opacity = '0';
   document.body.appendChild(wrap);
 
+  // départ : minuscule, caché juste derrière le bandeau du héros
+  const behindX = from.right - 100, behindY = from.top + from.height/2 - 30;
+  // étape 1 : sort de derrière le cadre en grossissant, vers le haut
+  const poppedX = from.right - 135, poppedY = from.top - 170;
+
+  wrap.style.left = behindX + 'px';
+  wrap.style.top = behindY + 'px';
+  wrap.style.transform = 'scale(.15) rotate(0deg)';
+  wrap.style.opacity = '0';
+
   requestAnimationFrame(()=>{
-    wrap.style.transform = `translate(${endX-startX}px, ${endY-startY}px) scale(.4) rotate(6deg)`;
+    wrap.style.transition = 'transform .4s cubic-bezier(.22,.85,.35,1), opacity .25s ease';
+    wrap.style.transform = `translate(${poppedX-behindX}px, ${poppedY-behindY}px) scale(.9) rotate(-3deg)`;
     wrap.style.opacity = '1';
   });
-  setTimeout(()=>{ wrap.style.opacity = '0'; }, 480);
-  setTimeout(()=>wrap.remove(), 650);
+
+  // étape 2 : glisse ensuite vers la main
+  setTimeout(()=>{
+    const to = document.getElementById('hand-p1').getBoundingClientRect();
+    const endX = to.left + Math.min(to.width, 420)/2 - 40, endY = to.top - 10;
+    wrap.style.transition = 'transform .48s cubic-bezier(.3,.55,.3,1), opacity .3s ease .3s';
+    wrap.style.transform = `translate(${endX-behindX}px, ${endY-behindY}px) scale(.5) rotate(5deg)`;
+    wrap.style.opacity = '0';
+  }, 400);
+
+  // fin : la vraie carte peut apparaître dans la main
+  setTimeout(()=>{
+    wrap.remove();
+    onDone();
+  }, 400+480);
 }
 
 let S = {
@@ -2162,25 +2198,31 @@ function renderZone(key){
   });
 }
 
+let DRAW_ANIM_IN_PROGRESS = false;
+let DRAW_ANIM_PENDING_CARDS = [];
+let DRAW_ANIM_QUEUE = [];
+
 function renderHand(){
   const el = document.getElementById('hand-p1');
   el.innerHTML='';
   const p = S.p1;
-  const mid = (p.hand.length-1)/2;
-  p.hand.forEach((card, idx)=>{
+  const visibleHand = p.hand.filter(c=>!DRAW_ANIM_PENDING_CARDS.includes(c));
+  const mid = (visibleHand.length-1)/2;
+  visibleHand.forEach((card, idx)=>{
+    const realIdx = p.hand.indexOf(card);
     const isLockedTrap = card.pendingTrap || card.activeTrap;
     const affordable = effectiveCost(p, card)<=availableMana(p) && S.phase==='main' && canPayExtraCost(p, card);
-    const canAct = S.active==='p1' && !S.gameOver && affordable && !isLockedTrap;
+    const canAct = S.active==='p1' && !S.gameOver && !DRAW_ANIM_IN_PROGRESS && affordable && !isLockedTrap;
     const c = cardEl(card, {
       onClick: (ev)=>{
         if(!canAct) return;
-        if(card.type==='Piège'){ setTrap('p1', idx); return; }
+        if(card.type==='Piège'){ setTrap('p1', realIdx); return; }
         if(needsTarget(card)){
-          S.pendingCard = {index:idx};
+          S.pendingCard = {index:realIdx};
           beginTargeting(ev.currentTarget);
           render();
         } else {
-          playCard('p1', idx);
+          playCard('p1', realIdx);
         }
       }
     });
@@ -2198,9 +2240,9 @@ function renderHand(){
     c.draggable = canAct;
     if(canAct){
       c.ondragstart = (ev)=>{
-        dragState = {index: idx, card};
+        dragState = {index: realIdx, card};
         ev.dataTransfer.effectAllowed = 'move';
-        ev.dataTransfer.setData('text/plain', String(idx));
+        ev.dataTransfer.setData('text/plain', String(realIdx));
         setTimeout(()=>c.classList.add('dragging'), 0);
       };
       c.ondragend = ()=>{
