@@ -1,0 +1,1366 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Spellcraft — Collection &amp; Deckbuilder</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg-void:#0b0a12;
+  --bg-panel:#171325;
+  --bg-panel-2:#1f1a30;
+  --bg-panel-3:#241f38;
+  --parchment:#efe6c8;
+  --parchment-dim:#d9cfae;
+  --ink:#1c1830;
+  --arcane:#7c5cff;
+  --gold:#d4af37;
+  --blood:#c23b3b;
+  --frost:#4fb3d9;
+  --green:#4a9d6b;
+  --grey:#8a7f6a;
+  --leather:#3b2a1e;
+  --leather-2:#4d3826;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);font-family:'Inter',sans-serif;overflow:hidden;}
+.title-font{font-family:'Cinzel',serif;}
+
+#app{display:flex;flex-direction:column;height:100vh;width:100vw;}
+
+/* ---------- Header ---------- */
+header{display:flex;align-items:center;gap:12px;padding:10px 18px;background:var(--bg-panel);border-bottom:1px solid #2b2440;flex-shrink:0;flex-wrap:wrap;}
+header h1{font-family:'Cinzel',serif;font-size:16px;margin:0;color:var(--gold);letter-spacing:.5px;flex-shrink:0;}
+header .spacer{flex:1;}
+.btn{background:var(--bg-panel-2);border:1px solid #3a3260;color:var(--parchment);border-radius:8px;padding:7px 13px;font-family:'Inter';font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;}
+.btn:hover{border-color:var(--gold);}
+.btn.primary{background:linear-gradient(180deg,var(--arcane),#5537c2);border:none;color:#fff;}
+.btn.primary:hover{filter:brightness(1.12);}
+.btn.small{padding:5px 10px;font-size:11px;}
+.deck-name-input{background:var(--bg-panel-2);border:1px solid #3a3260;color:var(--parchment);border-radius:8px;padding:7px 12px;font-family:'Cinzel',serif;font-size:13px;width:180px;}
+.save-indicator{font-size:11px;color:var(--green);opacity:0;transition:opacity .4s;}
+.save-indicator.show{opacity:1;}
+select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:var(--parchment);border-radius:8px;padding:7px 10px;font-size:12px;}
+
+/* ---------- Filter bar ---------- */
+#filter-bar{display:flex;align-items:center;gap:10px;padding:10px 18px;background:var(--bg-panel-2);border-bottom:1px solid #2b2440;flex-shrink:0;flex-wrap:wrap;}
+#search-input{background:var(--bg-void);border:1px solid #3a3260;color:var(--parchment);border-radius:20px;padding:7px 14px;font-size:12.5px;width:180px;}
+.pill-group{display:flex;gap:5px;flex-wrap:wrap;}
+.pill{padding:5px 10px;border-radius:14px;font-size:11px;background:var(--bg-void);border:1px solid #3a3260;cursor:pointer;font-weight:600;color:var(--parchment-dim);}
+.pill.active{background:var(--arcane);border-color:var(--arcane);color:#fff;}
+.pill.class-Aube.active{background:#d4af37;border-color:#d4af37;}
+.pill.class-Crépuscule.active{background:#4b0082;border-color:#4b0082;}
+.pill.class-Prima.active{background:#228b22;border-color:#228b22;}
+.pill.class-Volonté.active{background:#8b0000;border-color:#8b0000;}
+.pill.class-Arcane.active{background:#4682b4;border-color:#4682b4;}
+.pill.class-Neutre.active{background:#c0c0c0;border-color:#c0c0c0;color:#1c1830;}
+.dropdown-wrap{position:relative;}
+.dropdown-panel{position:absolute;top:34px;left:0;background:var(--bg-panel);border:1px solid #3a3260;border-radius:8px;padding:10px;z-index:40;display:none;min-width:180px;box-shadow:0 8px 20px rgba(0,0,0,.5);max-height:240px;overflow-y:auto;}
+.dropdown-panel.show{display:block;}
+.dropdown-panel label{display:flex;align-items:center;gap:6px;font-size:12px;padding:4px 2px;cursor:pointer;}
+.results-count{font-size:11.5px;color:var(--parchment-dim);margin-left:auto;white-space:nowrap;}
+.clear-filters{font-size:11px;color:var(--blood);background:none;border:none;cursor:pointer;text-decoration:underline;white-space:nowrap;}
+
+/* ---------- Main layout ---------- */
+#main{flex:1;display:flex;min-height:0;}
+#binder-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:18px;min-width:0;position:relative;overflow-y:auto;}
+#wizard-hint{align-items:center;gap:14px;margin-bottom:14px;background:var(--bg-panel-2);border:1px solid var(--gold);border-radius:10px;padding:9px 16px;font-family:'Cinzel',serif;font-size:13px;color:var(--gold);}
+#deck-col{width:320px;flex-shrink:0;background:var(--bg-panel);border-left:1px solid #2b2440;display:flex;flex-direction:column;min-height:0;}
+
+/* ---------- Binder ---------- */
+#binder-frame{
+  background:linear-gradient(160deg, var(--leather-2), var(--leather));
+  border-radius:16px;padding:22px 20px;box-shadow:0 20px 50px rgba(0,0,0,.6), inset 0 0 40px rgba(0,0,0,.4);
+  border:3px solid #241a12;
+  perspective:1400px;
+}
+#binder-pages{
+  display:flex;align-items:stretch;
+  transition:transform .18s ease;
+  transform-style:preserve-3d;
+}
+.binder-page-half{
+  display:grid;grid-template-columns:repeat(3,155px);grid-template-rows:repeat(3,217px);gap:14px;
+  padding:0 16px;
+}
+.binder-spine{
+  width:10px;flex-shrink:0;align-self:stretch;
+  background:linear-gradient(90deg, rgba(0,0,0,.55), rgba(0,0,0,.1) 35%, rgba(0,0,0,.1) 65%, rgba(0,0,0,.55));
+  box-shadow:0 0 14px rgba(0,0,0,.6);
+}
+.binder-slot{width:155px;height:217px;display:flex;align-items:center;justify-content:center;}
+.binder-slot .card{cursor:pointer;transition:transform .12s;}
+.binder-slot .card:hover{transform:translateY(-6px) scale(1.03);}
+.binder-slot-empty{width:155px;height:217px;border-radius:10px;background:rgba(0,0,0,.2);border:1px dashed rgba(255,255,255,.08);}
+.card-add-badge{position:absolute;top:2px;right:2px;background:var(--green);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 5px;z-index:5;box-shadow:0 2px 4px rgba(0,0,0,.5);}
+
+#binder-nav{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:16px;}
+.nav-arrow{background:var(--bg-panel-2);border:1px solid #3a3260;color:var(--gold);width:36px;height:36px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.nav-arrow:hover{border-color:var(--gold);}
+.nav-arrow:disabled{opacity:.3;cursor:not-allowed;}
+.page-indicator{font-family:'Cinzel',serif;font-size:13px;color:var(--parchment-dim);min-width:90px;text-align:center;}
+
+/* ---------- Card visual (identique aux autres outils) ---------- */
+.card{
+  --class-color: var(--grey);
+  width:155px;height:217px;background:#f7f2e2;color:#231d33;border-radius:11px;
+  position:relative;flex-shrink:0;
+  border:4px solid var(--class-color);
+  box-shadow:0 4px 10px rgba(0,0,0,.5);
+  display:flex;flex-direction:column;
+  user-select:none;
+}
+.card.class-Aube{--class-color:#d4af37;}
+.card.class-Crépuscule{--class-color:#4b0082;}
+.card.class-Prima{--class-color:#228b22;}
+.card.class-Volonté{--class-color:#8b0000;}
+.card.class-Arcane{--class-color:#4682b4;}
+
+.card-foil-layer{position:absolute;inset:0;border-radius:inherit;overflow:hidden;pointer-events:none;z-index:9;}
+.card-foil-layer::before{
+  content:'';position:absolute;top:-60%;left:-70%;width:70%;height:220%;
+  background:linear-gradient(115deg,
+    transparent 0%, rgba(255,90,90,.5) 14%, rgba(255,210,80,.5) 28%,
+    rgba(120,255,150,.5) 42%, rgba(80,190,255,.5) 56%, rgba(190,110,255,.5) 70%,
+    rgba(255,120,200,.5) 84%, transparent 100%);
+  transform:translateX(-40%) rotate(8deg);
+  mix-blend-mode:color-dodge;
+  opacity:.55;
+}
+.card.foil-play .card-foil-layer::before{animation:foil-sweep 1.05s ease-in-out;}
+@keyframes foil-sweep{
+  0%{transform:translateX(-160%) rotate(8deg);opacity:0;}
+  15%{opacity:.9;}
+  85%{opacity:.9;}
+  100%{transform:translateX(160%) rotate(8deg);opacity:0;}
+}
+.card.class-Neutre{--class-color:#c0c0c0;}
+.card-art{position:relative;height:42%;background:linear-gradient(135deg,#c9bd93,#a89968);background-size:cover;background-position:center;flex-shrink:0;overflow:hidden;border-radius:8px 8px 0 0;}
+.card-mana{position:absolute;top:-10px;left:-10px;width:32px;height:32px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#6fd0ff,#155a94);border:2.5px solid #0c2b45;color:#fff;font-family:'Cinzel',serif;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 7px rgba(0,0,0,.55);z-index:3;}
+.card-hero-hp{position:absolute;top:4px;right:5px;width:29px;height:29px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#7de08f,#1f7a3d);border:2px solid #0c3d1a;color:#fff;font-family:'Cinzel',serif;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;z-index:2;}
+.card-typeline{position:absolute;left:0;top:0;bottom:0;width:13px;background:rgba(15,12,20,.6);color:#f2ead2;writing-mode:vertical-rl;transform:rotate(180deg);display:flex;align-items:flex-start;justify-content:flex-start;font-size:5.5px;letter-spacing:.2px;text-transform:uppercase;padding:5px 0 20px;text-align:center;z-index:1;}
+.card-divider{height:6px;flex-shrink:0;position:relative;background:var(--class-color);display:flex;align-items:center;justify-content:center;}
+.card-set-icon{width:13px;height:13px;background:var(--gold);border:1.5px solid #7a611c;transform:rotate(45deg);box-shadow:0 2px 5px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;}
+.card-set-icon span{transform:rotate(-45deg);font-size:6px;font-weight:700;color:#3a2c05;font-family:'Cinzel',serif;}
+.card-set-logo-img{position:absolute;width:200%;height:200%;top:-50%;left:-50%;background-size:cover;background-position:center;transform:rotate(-45deg);}
+.card-body{flex:1;padding:3px 7px 3px;display:flex;flex-direction:column;min-height:0;}
+.card-name{font-family:'Cinzel',serif;font-weight:700;font-size:9.8px;text-align:center;text-decoration:underline;text-underline-offset:2.5px;color:#1c1830;line-height:1.2;margin-bottom:4px;min-height:23px;}
+.card-text{font-size:7.1px;line-height:1.22;flex:1;color:#2a2338;overflow:hidden;white-space:pre-wrap;text-align:center;}
+.card-footer{height:29px;flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:space-between;padding:0 7px 3px;overflow:hidden;border-radius:0 0 8px 8px;}
+.card-atk,.card-hp{width:24px;height:24px;border-radius:50%;background:#efe6c8;border:2px solid #1c1830;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;}
+.card-atk{color:var(--blood);}
+.card-hp{color:var(--green);}
+.card-rarity-gem{position:absolute;left:50%;bottom:5px;transform:translateX(-50%) rotate(45deg);width:10px;height:10px;border:1.7px solid rgba(0,0,0,.35);box-shadow:0 0 4px currentColor;}
+.card-rarity-gem.rarity-Basique{background:#6b6558;color:#6b6558;}
+.card-rarity-gem.rarity-Commune{background:#c7c2b3;color:#c7c2b3;}
+.card-rarity-gem.rarity-Rare{background:var(--frost);color:var(--frost);}
+.card-rarity-gem.rarity-Épique{background:var(--arcane);color:var(--arcane);}
+.card-rarity-gem.rarity-Légendaire{background:var(--gold);color:var(--gold);}
+
+/* ---------- Deck panel ---------- */
+#deck-header{padding:14px 16px;border-bottom:1px solid #2b2440;flex-shrink:0;}
+#deck-header .deck-title-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+#deck-header input{flex:1;background:var(--bg-panel-2);border:1px solid #3a3260;color:var(--parchment);border-radius:6px;padding:6px 10px;font-family:'Cinzel',serif;font-size:13px;}
+.deck-count{font-size:12px;color:var(--parchment-dim);}
+.deck-count.full{color:var(--green);}
+#hero-slot{display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg-panel-2);border-radius:8px;border:1px dashed #3a3260;margin-top:8px;font-size:11.5px;color:var(--parchment-dim);}
+#hero-slot.set{border-style:solid;border-color:var(--gold);color:var(--parchment);}
+#region-slot{display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg-panel-2);border-radius:8px;border:1px dashed #3a3260;margin-top:6px;font-size:11.5px;color:var(--parchment-dim);}
+#region-slot.set{border-style:solid;border-color:var(--green);color:var(--parchment);}
+#deck-col{display:flex;flex-direction:column;}
+#deck-empty-state{flex:1;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:20px;text-align:center;color:var(--parchment-dim);font-size:13px;}
+#deck-empty-state.show{display:flex;}
+#deck-editor{flex:1;display:flex;flex-direction:column;min-height:0;}
+#deck-editor.hide{display:none;}
+#hero-mini{width:26px;height:26px;border-radius:50%;background:var(--bg-panel-3);display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-size:11px;color:var(--gold);flex-shrink:0;}
+
+#mana-curve{display:flex;align-items:flex-end;gap:3px;height:50px;padding:10px 16px;border-bottom:1px solid #2b2440;flex-shrink:0;}
+.curve-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:2px;}
+.curve-bar{width:100%;background:var(--arcane);border-radius:2px 2px 0 0;min-height:2px;}
+.curve-label{font-size:8.5px;color:var(--parchment-dim);}
+
+#deck-list{flex:1;overflow-y:auto;padding:8px 10px;}
+.deck-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;font-size:12px;cursor:default;}
+.deck-row:hover{background:var(--bg-panel-2);}
+.deck-row .drow-cost{width:20px;height:20px;border-radius:50%;background:var(--bg-panel-3);color:var(--gold);font-weight:700;font-size:10.5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.deck-row .drow-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.deck-row .drow-count{color:var(--parchment-dim);font-size:11px;}
+.deck-row .drow-btns{display:flex;gap:2px;}
+.drow-btn{width:18px;height:18px;border-radius:4px;background:var(--bg-panel-3);border:1px solid #3a3260;color:var(--parchment);cursor:pointer;font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center;}
+.drow-btn:hover{border-color:var(--gold);}
+
+#deck-footer{padding:10px 14px;border-top:1px solid #2b2440;display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;}
+#deck-footer .btn{flex:1;}
+.empty-deck-msg{color:var(--parchment-dim);font-size:12px;font-style:italic;text-align:center;padding:20px 10px;}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(5,4,10,.88);display:none;align-items:center;justify-content:center;z-index:60;}
+.modal-overlay.show{display:flex;}
+.modal-box{background:var(--bg-panel);border:1px solid #3a3260;border-radius:12px;padding:22px;width:420px;max-width:90vw;max-height:80vh;display:flex;flex-direction:column;gap:10px;}
+.modal-box h2{font-family:'Cinzel',serif;font-size:15px;margin:0;color:var(--gold);}
+.modal-box textarea{width:100%;min-height:180px;background:var(--bg-panel-2);border:1px solid #3a3260;color:var(--parchment);border-radius:8px;padding:10px;font-family:'Menlo',monospace;font-size:11.5px;}
+.deck-list-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;background:var(--bg-panel-2);cursor:pointer;font-size:12.5px;margin-bottom:6px;}
+.deck-list-item:hover{border:1px solid var(--gold);}
+.deck-list-item .spacer{flex:1;}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;}
+.empty-state{color:var(--parchment-dim);font-size:13px;font-style:italic;padding:12px 0;text-align:center;}
+
+#card-preview{position:fixed;z-index:80;pointer-events:none;display:none;opacity:0;transition:opacity .15s ease;}
+#card-preview .card{transform:scale(2.2);transform-origin:top left;box-shadow:0 16px 34px rgba(0,0,0,.65);}
+#card-preview.show{display:block;opacity:1;}
+
+#hero-profile{position:fixed;z-index:80;pointer-events:none;display:none;opacity:0;transition:opacity .15s ease;width:480px;background:linear-gradient(160deg,var(--bg-panel),#141021);border:1px solid var(--gold);border-radius:16px;padding:20px 24px;box-shadow:0 20px 50px rgba(0,0,0,.7);}
+
+.hero-select-tile{width:300px;background:linear-gradient(160deg,var(--bg-panel),#141021);border:1px solid #3a3260;border-radius:16px;padding:16px 18px;cursor:pointer;transition:border-color .15s, transform .15s, box-shadow .15s;}
+.hero-select-tile:hover{border-color:var(--gold);transform:translateY(-4px);box-shadow:0 14px 30px rgba(0,0,0,.55);}
+.hero-select-tile .hp-portrait{width:64px;height:64px;}
+.hero-select-tile .hp-name{font-size:15px;}
+.hero-select-tile .hp-section-text, .hero-select-tile .hp-linked-empty{font-size:10.5px;}
+.hero-select-tile .hp-linked-slot{width:44px;height:72px;}
+.hero-select-tile .hp-linked-slot .mini-linked-card{border-width:1.5px;}
+.hero-select-tile .hp-linked-slot .mlc-name{font-size:5.5px;padding:2px 2px 4px;}
+.hero-select-tile .hp-linked-slot .mlc-rarity-gem{width:5px;height:5px;bottom:2px;}
+#hero-profile.show{display:block;opacity:1;}
+.hp-header{display:flex;align-items:center;gap:16px;margin-bottom:14px;}
+.hp-portrait{width:140px;height:140px;border-radius:50%;flex-shrink:0;background-size:cover;background-position:center;background-color:var(--bg-panel-2);border:4px solid var(--class-color, var(--gold));box-shadow:0 4px 14px rgba(0,0,0,.6);}
+.hp-name-row{display:flex;align-items:center;gap:8px;}
+.hp-name{font-family:'Cinzel',serif;font-size:24px;font-weight:700;color:var(--parchment);}
+.hp-class-dot{width:13px;height:13px;border-radius:50%;background:var(--class-color, var(--gold));box-shadow:0 0 6px var(--class-color, var(--gold));flex-shrink:0;}
+.hp-class-label{font-size:12px;color:var(--parchment-dim);margin-top:2px;}
+.hp-profile-block{margin-top:8px;}
+.hp-profile-title{font-family:'Cinzel',serif;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:2px;}
+.hp-health{font-size:14px;color:var(--parchment);}
+.hp-section{margin-top:14px;padding-top:12px;border-top:1px solid #2b2440;}
+.hp-section-title{font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:var(--gold);margin-bottom:5px;}
+.hp-section-text{font-size:12.5px;line-height:1.5;color:var(--parchment-dim);white-space:pre-wrap;}
+.hp-linked{margin-top:16px;padding-top:12px;border-top:1px solid #2b2440;}
+.hp-linked-title{font-family:'Cinzel',serif;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--parchment-dim);margin-bottom:8px;}
+.hp-linked-cards{display:flex;gap:14px;flex-wrap:wrap;}
+.hp-linked-slot{width:104px;height:145px;position:relative;border-radius:8px;overflow:hidden;background:#f7f2e2;box-shadow:0 4px 10px rgba(0,0,0,.5);pointer-events:auto;cursor:pointer;transition:transform .15s;}
+.hp-linked-slot:hover{transform:translateY(-4px);}
+.mini-linked-card{width:100%;height:100%;display:flex;flex-direction:column;border-radius:8px;border:3px solid var(--class-color, var(--gold));overflow:hidden;box-sizing:border-box;}
+.mini-linked-card.class-Aube{--class-color:#d4af37;}
+.mini-linked-card.class-Crépuscule{--class-color:#4b0082;}
+.mini-linked-card.class-Prima{--class-color:#228b22;}
+.mini-linked-card.class-Volonté{--class-color:#8b0000;}
+.mini-linked-card.class-Arcane{--class-color:#4682b4;}
+.mini-linked-card.class-Neutre{--class-color:#c0c0c0;}
+.mlc-art{flex:1;min-height:0;background-size:cover;background-position:center;background-color:#a89968;}
+.mlc-name{flex-shrink:0;font-family:'Cinzel',serif;font-weight:700;font-size:10.5px;text-align:center;padding:6px 5px 9px;color:#1c1830;background:#f7f2e2;line-height:1.25;}
+.mlc-rarity-gem{position:absolute;left:50%;bottom:4px;transform:translateX(-50%) rotate(45deg);width:8px;height:8px;border:1.5px solid rgba(0,0,0,.35);box-shadow:0 0 4px currentColor;}
+.mlc-rarity-gem.rarity-Basique{background:#6b6558;color:#6b6558;}
+.mlc-rarity-gem.rarity-Commune{background:#c7c2b3;color:#c7c2b3;}
+.mlc-rarity-gem.rarity-Rare{background:var(--frost);color:var(--frost);}
+.mlc-rarity-gem.rarity-Épique{background:var(--arcane);color:var(--arcane);}
+.mlc-rarity-gem.rarity-Légendaire{background:var(--gold);color:var(--gold);}
+.hp-linked-empty{font-size:12px;color:var(--parchment-dim);font-style:italic;}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header>
+    <a href="spellcraft-hub.html" class="btn small" title="Retour à l'accueil" style="text-decoration:none;">🏠 Hub</a>
+    <h1>📖 Spellcraft — Collection</h1>
+    <span class="save-indicator" id="save-indicator">✓ Sauvegardé</span>
+    <div class="spacer"></div>
+    <button class="btn" onclick="refreshCollection()">🔄 Actualiser la collection</button>
+    <button class="btn" onclick="openImportModal()">Importer une collection</button>
+    <button class="btn" onclick="openDeckListModal()">📚 Mes decks</button>
+    <button class="btn primary" onclick="newDeck()">➕ Nouveau deck</button>
+  </header>
+
+  <div id="filter-bar">
+    <input type="text" id="search-input" placeholder="🔍 Nom de carte..." oninput="onFilterChange()">
+
+    <div class="dropdown-wrap">
+      <button class="btn small" onclick="toggleDropdown('dd-class')">Classe ▾</button>
+      <div class="dropdown-panel" id="dd-class"></div>
+    </div>
+    <div class="dropdown-wrap">
+      <button class="btn small" onclick="toggleDropdown('dd-type')">Type ▾</button>
+      <div class="dropdown-panel" id="dd-type"></div>
+    </div>
+    <div class="dropdown-wrap">
+      <button class="btn small" onclick="toggleDropdown('dd-rarity')">Rareté ▾</button>
+      <div class="dropdown-panel" id="dd-rarity"></div>
+    </div>
+    <div class="dropdown-wrap">
+      <button class="btn small" onclick="toggleDropdown('dd-keyword')">Mots-clés ▾</button>
+      <div class="dropdown-panel" id="dd-keyword"></div>
+    </div>
+
+    <select class="select-mini" id="sort-select" onchange="onFilterChange()">
+      <option value="name-asc">Nom (A → Z)</option>
+      <option value="name-desc">Nom (Z → A)</option>
+      <option value="cost-asc">Coût (croissant)</option>
+      <option value="cost-desc">Coût (décroissant)</option>
+      <option value="class">Classe</option>
+      <option value="rarity">Rareté</option>
+    </select>
+
+    <button class="clear-filters" onclick="clearFilters()">Réinitialiser</button>
+    <button class="btn small" onclick="jumpToHeroPage()">🦸 Aller aux héros</button>
+    <button class="btn small" onclick="jumpToBinderStart()">📖 Retour au classeur</button>
+    <span class="results-count" id="results-count"></span>
+  </div>
+
+  <div id="main">
+    <div id="binder-col">
+      <div id="wizard-hint" style="display:none;"></div>
+      <div id="binder-frame">
+        <div id="binder-pages"></div>
+      </div>
+      <div id="binder-nav">
+        <button class="nav-arrow" id="prev-page" onclick="changePage(-1)">‹</button>
+        <span class="page-indicator" id="page-indicator">Page 1 / 1</span>
+        <button class="nav-arrow" id="next-page" onclick="changePage(1)">›</button>
+      </div>
+    </div>
+
+    <div id="deck-col">
+      <div id="deck-empty-state">
+        <p>Aucun deck actif.</p>
+        <button class="btn primary" onclick="newDeck()">➕ Nouveau deck</button>
+        <button class="btn" onclick="openDeckListModal()">📚 Charger un deck existant</button>
+      </div>
+      <div id="deck-editor">
+        <div id="deck-header">
+          <div class="deck-title-row">
+            <input type="text" id="deck-name-input" value="Deck sans nom" oninput="onDeckNameChange()">
+          </div>
+          <div class="deck-count" id="deck-count">0 / 30 cartes</div>
+          <div id="hero-slot">Clique une carte Héros dans le classeur pour la définir</div>
+          <div id="region-slot">Clique une carte Région dans le classeur pour la définir</div>
+        </div>
+        <div id="mana-curve"></div>
+        <div id="deck-list"></div>
+        <div id="deck-footer">
+          <button class="btn" onclick="clearDeck()">Vider</button>
+          <button class="btn primary" onclick="saveDeck()">💾 Sauvegarder le deck</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="card-preview"></div>
+<div id="hero-profile"></div>
+
+<div class="modal-overlay" id="import-modal" onclick="if(event.target===this) closeModal('import-modal')">
+  <div class="modal-box">
+    <h2>Importer une collection</h2>
+    <p style="font-size:11.5px;color:var(--parchment-dim);margin:0;">Colle ici le JSON exporté depuis l'éditeur de cartes ("Exporter (sauvegarde)"). Utile si la collection ne s'est pas synchronisée automatiquement.</p>
+    <textarea id="import-text" placeholder="Colle le JSON ici..."></textarea>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('import-modal')">Annuler</button>
+      <button class="btn primary" onclick="doImportCollection()">Importer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="decklist-modal" onclick="if(event.target===this) closeModal('decklist-modal')">
+  <div class="modal-box">
+    <h2>Mes decks sauvegardés</h2>
+    <div id="decklist-content"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('decklist-modal')">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="spellcraft-shared.js"></script>
+<script src="spellcraft-auth.js"></script>
+<script>
+/* ============================================================
+   RÉFÉRENTIELS
+   ============================================================ */
+/* CLASSES, RARITIES, CARD_TYPES, KEYWORDS, escapeHtml, getClassColor et migrateCard
+   viennent de spellcraft-shared.js (chargé juste avant ce script). */
+
+const PAGE_SIZE = 9;
+const SPREAD_SIZE = PAGE_SIZE * 2; // deux pages affichées côte à côte
+const DECK_SIZE = 30;
+const MAX_COPIES = 2;
+
+/* ============================================================
+   ÉTAT
+   ============================================================ */
+let collection = [];
+let currentPage = 0;
+let deckBuildStep = null; // null | 'hero' | 'region' | 'cards'
+let filters = { search:'', classes:new Set(), types:new Set(), rarities:new Set(), keywords:new Set() };
+let sortMode = 'name-asc';
+
+let currentDeck = null; // { id, name, heroId, regionId, cards:[{cardId, count}] } — null = pas de deck actif
+let savedDecks = [];
+
+/* ============================================================
+   PERSISTANCE — localStorage (partagé entre les pages du même dossier)
+   ============================================================ */
+/* storageGet/storageSet viennent de spellcraft-shared.js */
+
+async function loadAll(){
+  await refreshCollection(true);
+  try{
+    const res = await storageGet('spellcraft-decks');
+    savedDecks = res && res.value ? JSON.parse(res.value) : [];
+  }catch(e){ savedDecks = []; }
+  buildFilterDropdowns();
+  renderAll();
+}
+
+async function refreshCollection(silent){
+  collection = await loadAllCardsAcrossSets();
+  if(!silent){
+    buildFilterDropdowns();
+    renderAll();
+    flashSaved('Collection actualisée');
+  }
+}
+
+let saveTimer = null;
+function persistDecks(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async ()=>{
+    try{
+      await storageSet('spellcraft-decks', JSON.stringify(savedDecks));
+      flashSaved('✓ Deck sauvegardé');
+    }catch(e){ console.error('Erreur de sauvegarde', e); }
+  }, 200);
+}
+function flashSaved(msg){
+  const el = document.getElementById('save-indicator');
+  el.textContent = msg || '✓ Sauvegardé';
+  el.style.color = '';
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 1400);
+}
+function flashError(msg){
+  const el = document.getElementById('save-indicator');
+  el.textContent = msg;
+  el.style.color = 'var(--blood)';
+  el.classList.add('show');
+  setTimeout(()=>{ el.classList.remove('show'); el.style.color=''; }, 2200);
+}
+
+/* ============================================================
+   FILTRES
+   ============================================================ */
+function buildFilterDropdowns(){
+  buildDropdown('dd-class', CLASSES, filters.classes);
+  buildDropdown('dd-type', CARD_TYPES.filter(t=>t!=='Héros'), filters.types);
+  buildDropdown('dd-rarity', RARITIES, filters.rarities);
+  buildDropdown('dd-keyword', KEYWORDS.map(k=>k.label), filters.keywords, KEYWORDS.map(k=>k.key));
+}
+function buildDropdown(id, labels, setRef, keys){
+  const el = document.getElementById(id);
+  el.innerHTML = '';
+  labels.forEach((label, i)=>{
+    const key = keys ? keys[i] : label;
+    const wrap = document.createElement('label');
+    const checked = setRef.has(key);
+    wrap.innerHTML = `<input type="checkbox" ${checked?'checked':''}> ${label}`;
+    wrap.querySelector('input').onchange = (e)=>{
+      if(e.target.checked) setRef.add(key); else setRef.delete(key);
+      onFilterChange();
+    };
+    el.appendChild(wrap);
+  });
+}
+function toggleDropdown(id){
+  document.querySelectorAll('.dropdown-panel').forEach(p=>{
+    if(p.id!==id) p.classList.remove('show');
+  });
+  document.getElementById(id).classList.toggle('show');
+}
+document.addEventListener('click', (e)=>{
+  if(!e.target.closest('.dropdown-wrap')){
+    document.querySelectorAll('.dropdown-panel').forEach(p=>p.classList.remove('show'));
+  }
+});
+
+function onFilterChange(){
+  filters.search = document.getElementById('search-input').value.trim().toLowerCase();
+  sortMode = document.getElementById('sort-select').value;
+  currentPage = 0;
+  renderBinder();
+}
+function clearFilters(){
+  filters = { search:'', classes:new Set(), types:new Set(), rarities:new Set(), keywords:new Set() };
+  document.getElementById('search-input').value='';
+  document.getElementById('sort-select').value='name-asc';
+  sortMode='name-asc';
+  buildFilterDropdowns();
+  currentPage = 0;
+  renderBinder();
+}
+
+function jumpToHeroPage(){
+  if(currentDeck && deckBuildStep==='hero'){ flashSaved("Tu es déjà sur la sélection des héros."); return; }
+  const heroList = collection.filter(c=>c.type==='Héros' && !(c.subtypes||[]).some(s=>s.trim().toLowerCase()==='conjuration'));
+  if(heroList.length===0){ flashError("Aucun héros dans la collection pour l'instant."); return; }
+  const list = getFilteredSortedCollection();
+  const normalPages = Math.max(1, Math.ceil(list.length / SPREAD_SIZE));
+  currentPage = normalPages;
+  renderBinder('spread');
+}
+
+function jumpToBinderStart(){
+  if(currentPage===0){ flashSaved('Déjà au début du classeur.'); return; }
+  currentPage = 0;
+  renderBinder('spread');
+}
+
+function getFilteredSortedCollection(){
+  let list = collection.filter(c=>{
+    if((c.subtypes||[]).some(s=>s.trim().toLowerCase()==='conjuration')) return false;
+    if(c.type==='Héros') return false; // les héros ont leur propre page dédiée à la fin du classeur
+
+    if(currentDeck && deckBuildStep){
+      if(deckBuildStep==='region'){
+        if(c.type!=='Région') return false;
+        const hero = deckHeroCard();
+        return !hero || c.class===hero.class || c.class==='Neutre';
+      }
+      if(deckBuildStep==='cards'){
+        if(c.type==='Héros' || c.type==='Région') return false;
+        if(!classAllowedByDeck(c)) return false;
+      }
+    }
+
+    if(filters.search && !c.name.toLowerCase().includes(filters.search)) return false;
+    if(filters.classes.size && !filters.classes.has(c.class)) return false;
+    if(filters.types.size && !filters.types.has(c.type)) return false;
+    if(filters.rarities.size && !filters.rarities.has(c.rarity)) return false;
+    if(filters.keywords.size){
+      const ck = c.keywords||[];
+      let hasAny = false;
+      filters.keywords.forEach(k=>{ if(ck.includes(k)) hasAny = true; });
+      if(!hasAny) return false;
+    }
+    return true;
+  });
+
+  const costOf = c => c.cost===null || c.cost===undefined ? -1 : c.cost;
+  switch(sortMode){
+    case 'name-asc': list.sort((a,b)=>a.name.localeCompare(b.name)); break;
+    case 'name-desc': list.sort((a,b)=>b.name.localeCompare(a.name)); break;
+    case 'cost-asc': list.sort((a,b)=>costOf(a)-costOf(b) || a.name.localeCompare(b.name)); break;
+    case 'cost-desc': list.sort((a,b)=>costOf(b)-costOf(a) || a.name.localeCompare(b.name)); break;
+    case 'class': list.sort((a,b)=>(a.class||'').localeCompare(b.class||'') || a.name.localeCompare(b.name)); break;
+    case 'rarity': {
+      const order = {Basique:0, Commune:1, Rare:2, Épique:3, Légendaire:4};
+      list.sort((a,b)=>(order[a.rarity]??0)-(order[b.rarity]??0) || a.name.localeCompare(b.name));
+      break;
+    }
+  }
+  return list;
+}
+
+/* ============================================================
+   RENDU — carte visuelle
+   ============================================================ */
+function buildCardEl(card, opts={}){
+  const el = document.createElement('div');
+  el.className = `card class-${card.class||'Arcane'}`;
+  const posX = card.imagePosX ?? 50, posY = card.imagePosY ?? 50, zoom = card.imageZoom ?? 100;
+  const sizeVal = zoom>100 ? zoom+'%' : 'cover';
+  const artStyle = card.image ? `background-image:url('${card.image.replace(/'/g,"")}');background-position:${posX}% ${posY}%;background-size:${sizeVal};` : '';
+  const isHero = card.type==='Héros';
+  const isRegion = card.type==='Région';
+  const hasMana = !isHero && !isRegion;
+  const isCreature = card.type==='Créature';
+  const setInitial = card.set ? card.set.trim().charAt(0).toUpperCase() : '✦';
+  el.innerHTML = `
+    ${hasMana ? `<div class="card-mana">${card.cost ?? 0}</div>` : ''}
+    <div class="card-art" style="${artStyle}">
+      ${isHero ? `<div class="card-hero-hp">${card.hp ?? 0}</div>` : ''}
+      <div class="card-typeline">${escapeHtml(card.type||'')}${(card.subtypes&&card.subtypes.length) ? ' - '+escapeHtml(card.subtypes.join(', ')) : ''}</div>
+    </div>
+    <div class="card-divider"><div class="card-set-icon">${card.setLogo ? `<div class="card-set-logo-img" style="background-image:url('${card.setLogo.replace(/'/g,"")}')"></div>` : `<span>${escapeHtml(setInitial)}</span>`}</div></div>
+    <div class="card-body">
+      <div class="card-name">${escapeHtml(card.name || '')}</div>
+      <div class="card-text">${escapeHtml(card.text || '')}</div>
+    </div>
+    <div class="card-footer">
+      ${isCreature ? `<div class="card-atk">⚔${card.atk ?? 0}</div>` : `<div></div>`}
+      <div class="card-rarity-gem rarity-${card.rarity||'Commune'}"></div>
+      ${isCreature ? `<div class="card-hp">♥${card.hp ?? 0}</div>` : `<div></div>`}
+    </div>
+    ${card.foil ? `<div class="card-foil-layer"></div>` : ''}
+  `;
+  if(card.foil){
+    el.classList.add('foil');
+    el.addEventListener('mouseenter', ()=>triggerFoilSweep(el));
+  }
+  if(!opts.isPreview) attachHoverPreview(el, card);
+  return el;
+}
+function triggerFoilSweep(el){
+  el.classList.remove('foil-play');
+  void el.offsetWidth;
+  el.classList.add('foil-play');
+}
+setInterval(()=>{
+  document.querySelectorAll('.card.foil:not(:hover)').forEach(triggerFoilSweep);
+}, 10000);
+
+function fitCardText(cardRootEl){
+  const textEl = cardRootEl.querySelector('.card-text');
+  if(!textEl) return;
+  textEl.style.fontSize = '';
+  let size = 7.1, attempts = 0;
+  while(textEl.scrollHeight > textEl.clientHeight + 1 && attempts < 10){
+    size -= 0.4;
+    textEl.style.fontSize = size + 'px';
+    attempts++;
+  }
+}
+
+/* ============================================================
+   APERÇU AGRANDI AU SURVOL (1 seconde)
+   ============================================================ */
+let lastMouse = {x:0,y:0};
+let hoverTimer = null;
+const HOVER_DELAY = 1000;
+
+document.addEventListener('mousemove', (e)=>{ lastMouse = {x:e.clientX, y:e.clientY}; });
+
+function attachHoverPreviewDelayed(el, card, delay){
+  let timer = null;
+  el.addEventListener('mouseenter', ()=>{
+    clearTimeout(timer);
+    const startX = lastMouse.x, startY = lastMouse.y;
+    timer = setTimeout(()=>{
+      if(!el.isConnected) return;
+      showPreview(card, startX, startY);
+    }, delay);
+  });
+  el.addEventListener('mouseleave', ()=>{ clearTimeout(timer); hidePreview(); });
+}
+
+function attachHoverPreview(el, card){
+  attachHoverPreviewDelayed(el, card, HOVER_DELAY);
+}
+
+function findSpecificConjure(card){
+  for(const ab of (card.abilities||[])){
+    for(const eff of (ab.effects||[])){
+      if(eff.effectType==='conjure' && eff.conjureMode==='specific' && eff.conjureSpecificName){
+        return eff.conjureSpecificName;
+      }
+    }
+  }
+  return null;
+}
+
+function showPreview(card, x, y){
+  if(card.type==='Héros'){ showHeroProfile(card, x, y); return; }
+  const box = document.getElementById('card-preview');
+  box.innerHTML = '';
+  box.style.display = 'flex';
+  box.style.alignItems = 'center';
+  box.style.gap = '14px';
+
+  const cw = 155*2.2, ch = 217*2.2;
+  const mainSlot = document.createElement('div');
+  mainSlot.style.cssText = `width:${cw}px;height:${ch}px;position:relative;`;
+  const mainEl = buildCardEl(card, {isPreview:true});
+  mainSlot.appendChild(mainEl);
+  box.appendChild(mainSlot);
+  fitCardText(mainEl);
+
+  let extraCount = 1;
+  const conjuredName = findSpecificConjure(card);
+  if(conjuredName){
+    const conjuredCard = collection.find(c=>c.name===conjuredName);
+    if(conjuredCard){
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:6px;';
+      const arrow = document.createElement('div');
+      arrow.textContent = '→ conjure';
+      arrow.style.cssText = 'font-family:Inter,sans-serif;font-size:13px;font-weight:700;color:var(--gold);text-shadow:0 1px 2px rgba(0,0,0,.8);white-space:nowrap;';
+      const conjSlot = document.createElement('div');
+      conjSlot.style.cssText = `width:${cw}px;height:${ch}px;position:relative;`;
+      const conjEl = buildCardEl(conjuredCard, {isPreview:true});
+      conjSlot.appendChild(conjEl);
+      wrap.appendChild(arrow);
+      wrap.appendChild(conjSlot);
+      box.appendChild(wrap);
+      fitCardText(conjEl);
+      extraCount = 2;
+    }
+  }
+
+  const w = cw*extraCount + (extraCount>1 ? 40 : 0);
+  const h = extraCount>1 ? ch+26 : ch;
+  let left = x + 24, top = y - h/2;
+  if(left + w > window.innerWidth - 12) left = x - 24 - w;
+  top = Math.max(12, Math.min(top, window.innerHeight - h - 12));
+  box.style.left = left+'px'; box.style.top = top+'px';
+  box.classList.add('show');
+}
+function buildMiniLinkedCard(card){
+  const el = document.createElement('div');
+  el.className = `mini-linked-card class-${card.class||'Arcane'}`;
+  const posX = card.imagePosX ?? 50, posY = card.imagePosY ?? 50, zoom = card.imageZoom ?? 100;
+  const sizeVal = zoom>100 ? zoom+'%' : 'cover';
+  const artStyle = card.image ? `background-image:url('${card.image.replace(/'/g,"")}');background-position:${posX}% ${posY}%;background-size:${sizeVal};` : '';
+  el.innerHTML = `
+    <div class="mlc-art" style="${artStyle}"></div>
+    <div class="mlc-name">${escapeHtml(card.name||'')}</div>
+    <div class="mlc-rarity-gem rarity-${card.rarity||'Commune'}"></div>
+  `;
+  return el;
+}
+
+function fillHeroProfileContent(box, card){
+  box.innerHTML = '';
+  box.style.setProperty('--class-color', getClassColor(card.class));
+
+  const portraitStyle = card.image
+    ? `background-image:url('${card.image.replace(/'/g,"")}');background-position:${card.imagePosX??50}% ${card.imagePosY??50}%;background-size:${(card.imageZoom??100)>100?(card.imageZoom)+'%':'cover'};`
+    : '';
+
+  const header = document.createElement('div');
+  header.className = 'hp-header';
+  header.innerHTML = `
+    <div class="hp-portrait" style="${portraitStyle}"></div>
+    <div>
+      <div class="hp-name-row"><span class="hp-class-dot"></span><span class="hp-name">${escapeHtml(card.name||'')}</span></div>
+      <div class="hp-class-label">${escapeHtml(card.class||'')}</div>
+    </div>
+  `;
+  box.appendChild(header);
+
+  const profileBlock = document.createElement('div');
+  profileBlock.className = 'hp-profile-block';
+  profileBlock.innerHTML = `<div class="hp-profile-title">Profil</div><div class="hp-health">❤ ${card.hp ?? '?'} PV</div>`;
+  box.appendChild(profileBlock);
+
+  // sépare le texte généré en "Capacités" et "Règle de deck" (si présente)
+  const lines = (card.text||'').split('\n').filter(l=>l.trim());
+  const deckRuleLines = lines.filter(l=>l.startsWith('Règle de deck'));
+  const abilityLines = lines.filter(l=>!l.startsWith('Règle de deck'));
+
+  if(abilityLines.length){
+    const sec = document.createElement('div');
+    sec.className = 'hp-section';
+    sec.innerHTML = `<div class="hp-section-title">Capacités</div><div class="hp-section-text">${escapeHtml(abilityLines.join('\n'))}</div>`;
+    box.appendChild(sec);
+  }
+  if(deckRuleLines.length){
+    const sec = document.createElement('div');
+    sec.className = 'hp-section';
+    sec.innerHTML = `<div class="hp-section-title">Règle de deckbuilding</div><div class="hp-section-text">${escapeHtml(deckRuleLines.join('\n').replace(/^Règle de deck\s*:\s*/,''))}</div>`;
+    box.appendChild(sec);
+  }
+
+  const linked = collection.filter(c=>c.id!==card.id && (c.hero||'').trim().toLowerCase()===card.name.trim().toLowerCase()).slice(0,3);
+  const linkedWrap = document.createElement('div');
+  linkedWrap.className = 'hp-linked';
+  linkedWrap.innerHTML = `<div class="hp-linked-title">Cartes liées</div>`;
+  const cardsRow = document.createElement('div');
+  cardsRow.className = 'hp-linked-cards';
+  if(linked.length===0){
+    cardsRow.innerHTML = `<span class="hp-linked-empty">Aucune carte exclusive à ce héros pour l'instant.</span>`;
+  } else {
+    linked.forEach(lc=>{
+      const slot = document.createElement('div');
+      slot.className = 'hp-linked-slot';
+      slot.appendChild(buildMiniLinkedCard(lc));
+      attachHoverPreviewDelayed(slot, lc, 500);
+      cardsRow.appendChild(slot);
+    });
+  }
+  linkedWrap.appendChild(cardsRow);
+  box.appendChild(linkedWrap);
+}
+
+function showHeroProfile(card, x, y){
+  const box = document.getElementById('hero-profile');
+  fillHeroProfileContent(box, card);
+
+  const rect = { w: 480, h: box.scrollHeight || 380 };
+  let left = x + 24, top = y - rect.h/2;
+  if(left + rect.w > window.innerWidth - 12) left = x - 24 - rect.w;
+  top = Math.max(12, Math.min(top, window.innerHeight - rect.h - 12));
+  box.style.left = left+'px'; box.style.top = top+'px';
+  box.classList.add('show');
+}
+
+
+
+function hidePreview(){
+  const box = document.getElementById('card-preview');
+  if(box) box.classList.remove('show');
+  const hp = document.getElementById('hero-profile');
+  if(hp) hp.classList.remove('show');
+}
+
+
+/* ============================================================
+   BINDER (classeur paginé)
+   ============================================================ */
+const HERO_PAGE_SIZE = 6;
+
+function renderHeroSelectionGrid(animate){
+  const heroes = collection.filter(c=>c.type==='Héros' && !(c.subtypes||[]).some(s=>s.trim().toLowerCase()==='conjuration'));
+  const filtered = filters.search ? heroes.filter(h=>h.name.toLowerCase().includes(filters.search)) : heroes;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / HERO_PAGE_SIZE));
+  if(currentPage >= totalPages) currentPage = totalPages - 1;
+  if(currentPage < 0) currentPage = 0;
+
+  document.getElementById('results-count').textContent = `${filtered.length} héros`;
+  document.getElementById('page-indicator').textContent = `Page ${currentPage+1} / ${totalPages}`;
+  document.getElementById('prev-page').disabled = currentPage<=0;
+  document.getElementById('next-page').disabled = currentPage>=totalPages-1;
+
+  const doRender = ()=>{
+    const pages = document.getElementById('binder-pages');
+    pages.innerHTML = '';
+    pages.style.display = 'grid';
+    pages.style.gridTemplateColumns = 'repeat(3, 300px)';
+    pages.style.gap = '18px';
+    const start = currentPage*HERO_PAGE_SIZE;
+    const pageHeroes = filtered.slice(start, start+HERO_PAGE_SIZE);
+    if(pageHeroes.length===0){
+      pages.innerHTML = `<div class="empty-state">Aucun héros dans la collection. Crée-en un dans l'éditeur de cartes !</div>`;
+      return;
+    }
+    pageHeroes.forEach(h=>{
+      const tile = document.createElement('div');
+      tile.className = 'hero-select-tile';
+      fillHeroProfileContent(tile, h);
+      tile.onclick = ()=>onCardClick(h);
+      pages.appendChild(tile);
+    });
+  };
+
+  if(!animate){ doRender(); return; }
+  const pages = document.getElementById('binder-pages');
+  pages.style.transformOrigin = 'center center';
+  pages.style.transition = 'transform .2s ease-in, opacity .2s ease-in';
+  pages.style.transform = 'perspective(1400px) rotateY(-90deg)';
+  pages.style.opacity = '0.35';
+  setTimeout(()=>{
+    doRender();
+    const pages2 = document.getElementById('binder-pages');
+    pages2.style.transition = 'none';
+    pages2.style.transform = 'perspective(1400px) rotateY(90deg)';
+    pages2.style.opacity = '0.35';
+    requestAnimationFrame(()=>{
+      pages2.style.transition = 'transform .2s ease-out, opacity .2s ease-out';
+      pages2.style.transform = 'perspective(1400px) rotateY(0deg)';
+      pages2.style.opacity = '1';
+    });
+  }, 200);
+}
+
+function renderBinder(animate){
+  if(currentDeck && deckBuildStep==='hero'){ renderHeroSelectionGrid(animate); return; }
+  document.getElementById('binder-pages').style.display = '';
+  document.getElementById('binder-pages').style.gridTemplateColumns = '';
+  document.getElementById('binder-pages').style.gap = '';
+  const list = getFilteredSortedCollection();
+  const heroList = collection.filter(c=>c.type==='Héros' && !(c.subtypes||[]).some(s=>s.trim().toLowerCase()==='conjuration'));
+  const hasHeroPage = heroList.length>0;
+  const normalPages = Math.max(1, Math.ceil(list.length / SPREAD_SIZE));
+  const totalPages = normalPages + (hasHeroPage ? 1 : 0);
+  if(currentPage >= totalPages) currentPage = totalPages - 1;
+  if(currentPage < 0) currentPage = 0;
+  const onHeroPage = hasHeroPage && currentPage===normalPages;
+
+  document.getElementById('results-count').textContent = onHeroPage ? `${heroList.length} héros` : `${list.length} carte${list.length!==1?'s':''}`;
+  document.getElementById('page-indicator').textContent = onHeroPage ? `Page des héros` : `Feuillet ${currentPage+1} / ${normalPages}`;
+  document.getElementById('prev-page').disabled = currentPage<=0;
+  document.getElementById('next-page').disabled = currentPage>=totalPages-1;
+
+  if(onHeroPage){
+    document.getElementById('binder-pages').style.display = 'grid';
+    document.getElementById('binder-pages').style.gridTemplateColumns = 'repeat(3, 300px)';
+    document.getElementById('binder-pages').style.gap = '18px';
+    const doRenderHeroPage = ()=>{
+      const pages = document.getElementById('binder-pages');
+      pages.innerHTML = '';
+      heroList.forEach(h=>{
+        const tile = document.createElement('div');
+        tile.className = 'hero-select-tile';
+        fillHeroProfileContent(tile, h);
+        tile.onclick = ()=>onCardClick(h);
+        pages.appendChild(tile);
+      });
+    };
+    if(!animate){ doRenderHeroPage(); return; }
+    const pages = document.getElementById('binder-pages');
+    pages.style.transformOrigin = 'center center';
+    pages.style.transition = 'transform .2s ease-in, opacity .2s ease-in';
+    pages.style.transform = 'perspective(1400px) rotateY(-90deg)';
+    pages.style.opacity = '0.35';
+    setTimeout(()=>{
+      doRenderHeroPage();
+      const pages2 = document.getElementById('binder-pages');
+      pages2.style.transition = 'none';
+      pages2.style.transform = 'perspective(1400px) rotateY(90deg)';
+      pages2.style.opacity = '0.35';
+      requestAnimationFrame(()=>{
+        pages2.style.transition = 'transform .2s ease-out, opacity .2s ease-out';
+        pages2.style.transform = 'perspective(1400px) rotateY(0deg)';
+        pages2.style.opacity = '1';
+      });
+    }, 200);
+    return;
+  }
+
+  const buildHalf = (cards)=>{
+    const half = document.createElement('div');
+    half.className = 'binder-page-half';
+    for(let i=0;i<PAGE_SIZE;i++){
+      const slot = document.createElement('div');
+      slot.className = 'binder-slot';
+      if(cards[i]){
+        const card = cards[i];
+        slot.style.position='relative';
+        const el = buildCardEl(card);
+        el.onclick = ()=>onCardClick(card);
+        slot.appendChild(el);
+        fitCardText(el);
+        const count = deckCountFor(card.id);
+        const isChosenHero = currentDeck && currentDeck.heroId===card.id;
+        const isChosenRegion = currentDeck && currentDeck.regionId===card.id;
+        if(count>0 || isChosenHero || isChosenRegion){
+          const badge = document.createElement('div');
+          badge.className='card-add-badge';
+          badge.textContent = isChosenHero ? '★ héros' : isChosenRegion ? '★ région' : `x${count}`;
+          slot.appendChild(badge);
+        }
+      } else {
+        slot.innerHTML = '<div class="binder-slot-empty"></div>';
+      }
+      half.appendChild(slot);
+    }
+    return half;
+  };
+
+  const doRender = ()=>{
+    const pages = document.getElementById('binder-pages');
+    pages.innerHTML = '';
+    const start = currentPage * SPREAD_SIZE;
+    const spreadCards = list.slice(start, start+SPREAD_SIZE);
+    pages.appendChild(buildHalf(spreadCards.slice(0, PAGE_SIZE)));
+    const spine = document.createElement('div');
+    spine.className = 'binder-spine';
+    pages.appendChild(spine);
+    pages.appendChild(buildHalf(spreadCards.slice(PAGE_SIZE, SPREAD_SIZE)));
+  };
+
+  if(!animate){ doRender(); return; }
+
+  const pages = document.getElementById('binder-pages');
+
+  if(animate==='spread'){
+    pages.style.transformOrigin = 'center center';
+    pages.style.transition = 'transform .2s ease-in, opacity .2s ease-in';
+    pages.style.transform = 'perspective(1400px) rotateY(-90deg)';
+    pages.style.opacity = '0.35';
+    setTimeout(()=>{
+      doRender();
+      const pages2 = document.getElementById('binder-pages');
+      pages2.style.transition = 'none';
+      pages2.style.transform = 'perspective(1400px) rotateY(90deg)';
+      pages2.style.opacity = '0.35';
+      requestAnimationFrame(()=>{
+        pages2.style.transition = 'transform .2s ease-out, opacity .2s ease-out';
+        pages2.style.transform = 'perspective(1400px) rotateY(0deg)';
+        pages2.style.opacity = '1';
+      });
+    }, 200);
+    return;
+  }
+
+  const halves = pages.querySelectorAll('.binder-page-half');
+  const flipping = animate>0 ? halves[1] : halves[0]; // page droite pour "suivant", page gauche pour "précédent"
+  if(!flipping){ doRender(); return; }
+  const origin = animate>0 ? 'left center' : 'right center';
+  flipping.style.transformOrigin = origin;
+  flipping.style.transition = 'transform .22s ease-in, box-shadow .22s ease-in';
+  flipping.style.boxShadow = '0 0 26px rgba(0,0,0,.65)';
+  flipping.style.transform = `perspective(1200px) rotateY(${animate>0?'-95':'95'}deg)`;
+
+  setTimeout(()=>{
+    doRender();
+    const newHalves = document.getElementById('binder-pages').querySelectorAll('.binder-page-half');
+    const newFlipping = animate>0 ? newHalves[1] : newHalves[0];
+    if(newFlipping){
+      newFlipping.style.transformOrigin = origin;
+      newFlipping.style.transition = 'none';
+      newFlipping.style.boxShadow = '0 0 26px rgba(0,0,0,.65)';
+      newFlipping.style.transform = `perspective(1200px) rotateY(${animate>0?'95':'-95'}deg)`;
+      requestAnimationFrame(()=>{
+        newFlipping.style.transition = 'transform .22s ease-out, box-shadow .22s ease-out';
+        newFlipping.style.transform = 'perspective(1200px) rotateY(0deg)';
+        newFlipping.style.boxShadow = 'none';
+      });
+    }
+  }, 220);
+}
+
+function changePage(dir){
+  let totalPages;
+  if(currentDeck && deckBuildStep==='hero'){
+    const heroes = collection.filter(c=>c.type==='Héros' && !(c.subtypes||[]).some(s=>s.trim().toLowerCase()==='conjuration'));
+    const filtered = filters.search ? heroes.filter(h=>h.name.toLowerCase().includes(filters.search)) : heroes;
+    totalPages = Math.max(1, Math.ceil(filtered.length / HERO_PAGE_SIZE));
+  } else {
+    const list = getFilteredSortedCollection();
+    const heroList = collection.filter(c=>c.type==='Héros' && !(c.subtypes||[]).some(s=>s.trim().toLowerCase()==='conjuration'));
+    const normalPages = Math.max(1, Math.ceil(list.length / SPREAD_SIZE));
+    totalPages = normalPages + (heroList.length>0 ? 1 : 0);
+  }
+  const next = currentPage + dir;
+  if(next<0 || next>=totalPages) return;
+  currentPage = next;
+  renderBinder(dir);
+}
+
+function maxCopiesFor(card){
+  return card.rarity==='Légendaire' ? 1 : MAX_COPIES;
+}
+
+function deckHeroCard(){
+  return currentDeck && currentDeck.heroId ? cardById(currentDeck.heroId) : null;
+}
+
+function multiClassCount(deck, hero){
+  let count = 0;
+  (deck.cards||[]).forEach(entry=>{
+    const c = collection.find(x=>x.id===entry.cardId);
+    if(!c) return;
+    const cardClasses = [c.class, c.classSecondary].filter(Boolean);
+    if(!cardClasses.includes('Neutre') && !cardClasses.includes(hero.class)) count += entry.count;
+  });
+  return count;
+}
+
+function classAllowedByDeck(card){
+  const hero = deckHeroCard();
+  if(!hero) return true; // pas encore de héros choisi, pas de restriction pour l'instant
+  const heroClass = hero.class;
+  const cardClasses = [card.class, card.classSecondary].filter(Boolean);
+  if(cardClasses.includes('Neutre') || cardClasses.includes(heroClass)) return true;
+  const mc = hero.heroMultiClass;
+  if(mc && mc.enabled && mc.allowedClasses && cardClasses.some(c=>mc.allowedClasses.includes(c))){
+    if(mc.scope && mc.scope!=='Toutes' && card.type!==mc.scope) return false;
+    const already = multiClassCount(currentDeck, hero);
+    return already < (mc.maxCount||0);
+  }
+  return false;
+}
+
+function onCardClick(card){
+  if(!currentDeck){
+    flashError('Crée ou charge un deck avant d\'ajouter des cartes.');
+    return;
+  }
+  if(deckBuildStep==='hero'){
+    if(card.type!=='Héros') return;
+    currentDeck.heroId = card.id;
+    deckBuildStep = 'region';
+    flashSaved(`✓ ${card.name} choisi comme héros`);
+    currentPage = 0;
+    renderDeckPanel();
+    renderWizardHint();
+    renderBinder('spread');
+    return;
+  }
+  if(deckBuildStep==='region'){
+    if(card.type!=='Région') return;
+    currentDeck.regionId = card.id;
+    deckBuildStep = 'cards';
+    flashSaved(`✓ ${card.name} choisie comme région`);
+    currentPage = 0;
+    renderDeckPanel();
+    renderWizardHint();
+    renderBinder('spread');
+    return;
+  }
+  if(card.type==='Héros' || card.type==='Région') return;
+  if(!classAllowedByDeck(card)){
+    const hero = deckHeroCard();
+    flashError(`${card.name} (${card.class}) n'est pas autorisée avec ${hero.name} (${hero.class}).`);
+    return;
+  }
+  if(card.hero){
+    const hero = deckHeroCard();
+    const heroName = hero ? hero.name.trim().toLowerCase() : '';
+    if(card.hero.trim().toLowerCase() !== heroName){
+      flashError(`${card.name} est exclusive à ${card.hero}.`);
+      return;
+    }
+  }
+  addCardToDeck(card);
+  renderDeckPanel();
+  renderBinder();
+}
+
+function wizardBack(){
+  if(!currentDeck) return;
+  if(deckBuildStep==='region'){ deckBuildStep='hero'; currentDeck.heroId=null; }
+  else if(deckBuildStep==='cards'){ deckBuildStep='region'; currentDeck.regionId=null; }
+  else return;
+  currentPage = 0;
+  renderDeckPanel();
+  renderWizardHint();
+  renderBinder('spread');
+}
+
+function renderWizardHint(){
+  const el = document.getElementById('wizard-hint');
+  if(!el) return;
+  if(!currentDeck || !deckBuildStep){ el.style.display='none'; return; }
+  el.style.display='flex';
+  const labels = { hero:'Étape 1/3 — Choisis ton Héros', region:'Étape 2/3 — Choisis ta Région (de ta classe ou Neutre)', cards:'Étape 3/3 — Construis ton deck (30 cartes)' };
+  const showBack = deckBuildStep==='region' || deckBuildStep==='cards';
+  el.innerHTML = `${showBack?'<button class="btn small" onclick="wizardBack()">← Retour</button>':''}<span>${labels[deckBuildStep]}</span>`;
+}
+
+/* ============================================================
+   DECK
+   ============================================================ */
+function deckCountFor(cardId){
+  if(!currentDeck) return 0;
+  const entry = currentDeck.cards.find(c=>c.cardId===cardId);
+  return entry ? entry.count : 0;
+}
+function totalDeckCount(){
+  return currentDeck.cards.reduce((sum,c)=>sum+c.count,0);
+}
+function addCardToDeck(card){
+  if(totalDeckCount() >= DECK_SIZE){ flashError(`Le deck est déjà à ${DECK_SIZE} cartes.`); return; }
+  const max = maxCopiesFor(card);
+  const entry = currentDeck.cards.find(c=>c.cardId===card.id);
+  if(entry){
+    if(entry.count < max) entry.count++;
+    else flashError(`${card.name} : maximum ${max} exemplaire${max>1?'s':''} (${card.rarity}).`);
+  } else {
+    currentDeck.cards.push({cardId:card.id, count:1});
+  }
+}
+function removeCardFromDeck(cardId){
+  const entry = currentDeck.cards.find(c=>c.cardId===cardId);
+  if(!entry) return;
+  entry.count--;
+  if(entry.count<=0) currentDeck.cards = currentDeck.cards.filter(c=>c.cardId!==cardId);
+}
+function clearDeck(){
+  if(currentDeck.cards.length && !confirm('Vider entièrement ce deck ?')) return;
+  currentDeck.cards = [];
+  currentDeck.heroId = null;
+  currentDeck.regionId = null;
+  deckBuildStep = 'hero';
+  currentPage = 0;
+  renderDeckPanel();
+  renderWizardHint();
+  renderBinder('spread');
+}
+function newDeck(){
+  currentDeck = { id:null, name:'Deck sans nom', heroId:null, regionId:null, cards:[] };
+  document.getElementById('deck-name-input').value = currentDeck.name;
+  deckBuildStep = 'hero';
+  currentPage = 0;
+  renderDeckPanel();
+  renderWizardHint();
+  renderBinder('spread');
+}
+function onDeckNameChange(){
+  if(!currentDeck) return;
+  currentDeck.name = document.getElementById('deck-name-input').value.trim() || 'Deck sans nom';
+}
+function saveDeck(){
+  if(!currentDeck) return;
+  if(!currentDeck.heroId){ flashError('Choisis un Héros avant de sauvegarder.'); return; }
+  if(!currentDeck.regionId){ flashError('Choisis une Région avant de sauvegarder.'); return; }
+  if(!currentDeck.id) currentDeck.id = 'deck_' + Date.now();
+  const idx = savedDecks.findIndex(d=>d.id===currentDeck.id);
+  const toSave = JSON.parse(JSON.stringify(currentDeck));
+  if(idx>=0) savedDecks[idx] = toSave; else savedDecks.push(toSave);
+  persistDecks();
+}
+function loadDeck(deckId){
+  const d = savedDecks.find(x=>x.id===deckId);
+  if(!d) return;
+  currentDeck = JSON.parse(JSON.stringify(d));
+  if(currentDeck.regionId===undefined) currentDeck.regionId = null;
+  document.getElementById('deck-name-input').value = currentDeck.name;
+  deckBuildStep = 'cards';
+  currentPage = 0;
+  closeModal('decklist-modal');
+  renderDeckPanel();
+  renderWizardHint();
+  renderBinder();
+}
+function deleteDeck(deckId, ev){
+  ev.stopPropagation();
+  if(!confirm('Supprimer ce deck sauvegardé ?')) return;
+  savedDecks = savedDecks.filter(d=>d.id!==deckId);
+  persistDecks();
+  openDeckListModal();
+}
+
+function cardById(id){ return collection.find(c=>c.id===id); }
+
+function renderDeckPanel(){
+  const emptyState = document.getElementById('deck-empty-state');
+  const editor = document.getElementById('deck-editor');
+  if(!currentDeck){
+    emptyState.classList.add('show');
+    editor.classList.add('hide');
+    return;
+  }
+  emptyState.classList.remove('show');
+  editor.classList.remove('hide');
+
+  const total = totalDeckCount();
+  const countEl = document.getElementById('deck-count');
+  countEl.textContent = `${total} / ${DECK_SIZE} cartes`;
+  countEl.classList.toggle('full', total>=DECK_SIZE);
+
+  const heroSlot = document.getElementById('hero-slot');
+  const heroCard = deckHeroCard();
+  if(heroCard){
+    heroSlot.classList.add('set');
+    heroSlot.innerHTML = `<div id="hero-mini">${escapeHtml(heroCard.name[0]||'H')}</div><span id="hero-slot-name" style="cursor:pointer;text-decoration:underline dotted;">${escapeHtml(heroCard.name)} · ${escapeHtml(heroCard.class)}</span>`;
+    attachHoverPreview(document.getElementById('hero-slot-name'), heroCard);
+  } else {
+    heroSlot.classList.remove('set');
+    heroSlot.textContent = 'Clique une carte Héros dans le classeur pour la définir';
+  }
+
+  const regionSlot = document.getElementById('region-slot');
+  const regionCard = currentDeck.regionId ? cardById(currentDeck.regionId) : null;
+  if(regionCard){
+    regionSlot.classList.add('set');
+    regionSlot.innerHTML = `<div id="hero-mini" style="color:var(--green);">${escapeHtml(regionCard.name[0]||'R')}</div><span>${escapeHtml(regionCard.name)}</span>`;
+  } else {
+    regionSlot.classList.remove('set');
+    regionSlot.textContent = 'Clique une carte Région dans le classeur pour la définir';
+  }
+
+  // courbe de mana
+  const buckets = [0,0,0,0,0,0,0,0]; // 0..6, 7+
+  currentDeck.cards.forEach(entry=>{
+    const c = cardById(entry.cardId);
+    if(!c || c.cost===null || c.cost===undefined) return;
+    const idx = Math.min(c.cost, 7);
+    buckets[idx] += entry.count;
+  });
+  const maxB = Math.max(1, ...buckets);
+  const curveEl = document.getElementById('mana-curve');
+  curveEl.innerHTML = '';
+  buckets.forEach((n,i)=>{
+    const wrap = document.createElement('div');
+    wrap.className='curve-bar-wrap';
+    wrap.title = `${n} carte(s) à ${i===7?'7+':i} mana`;
+    wrap.innerHTML = `<div class="curve-bar" style="height:${n?Math.max(4,(n/maxB)*100):2}%"></div><div class="curve-label">${i===7?'7+':i}</div>`;
+    curveEl.appendChild(wrap);
+  });
+
+  // liste des cartes
+  const listEl = document.getElementById('deck-list');
+  listEl.innerHTML = '';
+  if(currentDeck.cards.length===0){
+    listEl.innerHTML = `<div class="empty-deck-msg">Clique des cartes dans le classeur pour les ajouter à ton deck.</div>`;
+    return;
+  }
+  const sorted = [...currentDeck.cards].sort((a,b)=>{
+    const ca = cardById(a.cardId), cb = cardById(b.cardId);
+    if(!ca || !cb) return 0;
+    return (ca.cost??0)-(cb.cost??0) || ca.name.localeCompare(cb.name);
+  });
+  sorted.forEach(entry=>{
+    const c = cardById(entry.cardId);
+    if(!c) return;
+    const row = document.createElement('div');
+    row.className='deck-row';
+    row.innerHTML = `
+      <div class="drow-cost">${c.cost ?? '–'}</div>
+      <div class="drow-name" title="${escapeHtml(c.name)}">${escapeHtml(c.name)}${c.rarity==='Légendaire'?' ✦':''}</div>
+      <div class="drow-count">x${entry.count}</div>
+      <div class="drow-btns">
+        <button class="drow-btn" data-act="minus">−</button>
+        <button class="drow-btn" data-act="plus">+</button>
+      </div>
+    `;
+    row.querySelector('[data-act="minus"]').onclick = ()=>{ removeCardFromDeck(c.id); renderDeckPanel(); renderBinder(); };
+    row.querySelector('[data-act="plus"]').onclick = ()=>{ addCardToDeck(c); renderDeckPanel(); renderBinder(); };
+    attachHoverPreview(row, c);
+    listEl.appendChild(row);
+  });
+}
+
+/* ============================================================
+   MODALES
+   ============================================================ */
+function openModal(id){ document.getElementById(id).classList.add('show'); }
+function closeModal(id){ document.getElementById(id).classList.remove('show'); }
+
+function openImportModal(){
+  document.getElementById('import-text').value='';
+  openModal('import-modal');
+}
+function doImportCollection(){
+  const raw = document.getElementById('import-text').value.trim();
+  if(!raw) return;
+  try{
+    const parsed = JSON.parse(raw);
+    if(!Array.isArray(parsed)) throw new Error('format invalide');
+    collection = parsed;
+    collection.forEach(migrateCard);
+    buildFilterDropdowns();
+    currentPage = 0;
+    renderAll();
+    closeModal('import-modal');
+    flashSaved('✓ Collection importée');
+  }catch(e){
+    alert('JSON invalide, vérifie le contenu collé.');
+  }
+}
+
+function openDeckListModal(){
+  const el = document.getElementById('decklist-content');
+  el.innerHTML='';
+  if(savedDecks.length===0){
+    el.innerHTML = `<div class="empty-state">Aucun deck sauvegardé pour l'instant.</div>`;
+  } else {
+    savedDecks.forEach(d=>{
+      const item = document.createElement('div');
+      item.className='deck-list-item';
+      const total = d.cards.reduce((s,c)=>s+c.count,0);
+      const hero = d.heroId ? cardById(d.heroId) : null;
+      item.innerHTML = `<span>${escapeHtml(d.name)}</span><span class="spacer"></span><span style="color:var(--parchment-dim);font-size:11px;">${hero?escapeHtml(hero.name)+' · ':''}${total} cartes</span>`;
+      item.onclick = ()=>loadDeck(d.id);
+      const del = document.createElement('button');
+      del.className='drow-btn'; del.textContent='×'; del.style.marginLeft='8px';
+      del.onclick = (ev)=>deleteDeck(d.id, ev);
+      item.appendChild(del);
+      el.appendChild(item);
+    });
+  }
+  openModal('decklist-modal');
+}
+
+/* ============================================================
+   INIT
+   ============================================================ */
+function renderAll(){
+  renderBinder();
+  renderDeckPanel();
+  renderWizardHint();
+}
+loadAll();
+initSpellcraftAuth();
+</script>
+</body>
+</html>
