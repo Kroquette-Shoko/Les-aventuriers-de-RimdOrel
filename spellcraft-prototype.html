@@ -692,9 +692,9 @@ let S = {
   attackPhaseDone:false
 };
 
-function startGame(p1Hero, p1Region, p1Deck, p2Hero, p2Region, p2Deck){
+function startGame(p1Hero, p1Region, p1Deck, p2Hero, p2Region, p2Deck, p2IsAI){
   S.p1 = newPlayer(p1Hero, p1Region, p1Deck, false);
-  S.p2 = newPlayer(p2Hero, p2Region, p2Deck, true);
+  S.p2 = newPlayer(p2Hero, p2Region, p2Deck, p2IsAI!==false);
   S.turn = 1;
   S.active = 'p1';
   S.phase = 'main';
@@ -1493,7 +1493,7 @@ function toggleAttacker(instId){
 }
 
 function enterDeclareAttackers(){
-  const p = S.p1;
+  const p = S[S.active];
   const eligible = p.board.filter(c=>!c.frozen && !c.stunned && (!c.summonSick || c.keywords.includes('charge')) && !c.hasAttacked);
   if(eligible.length===0){
     log('Aucune créature ne peut attaquer : combat automatiquement passé.');
@@ -1507,7 +1507,8 @@ function enterDeclareAttackers(){
 }
 
 function confirmAttackers(){
-  const p = S.p1;
+  const atkKey = S.active, defKey = S.active==='p1' ? 'p2' : 'p1';
+  const p = S[atkKey];
   const ids = S.selectedAttackers || [];
   S.phase = 'main';
   S.attackPhaseDone = true;
@@ -1521,14 +1522,16 @@ function confirmAttackers(){
     const c = p.board.find(x=>x.instId===id);
     if(c) c.hasAttacked = true;
   });
-  log(`Vous déclarez ${ids.length} attaquant(s).`);
-  if(ids.length){
-    const firstTarget = p.board.find(x=>x.instId===ids[0]);
-    fireTrap('p2', 'onOpponentAttack', firstTarget);
-  }
+  log(`${cardOwnerName(atkKey)} déclare ${ids.length} attaquant(s).`);
+  const firstTarget = p.board.find(x=>x.instId===ids[0]);
+  fireTrap(defKey, 'onOpponentAttack', firstTarget);
   S.phase = 'declareBlockersWait';
   render();
-  setTimeout(()=>aiDeclareBlocks('p2','p1'), 700);
+  if(S[defKey].isAI){
+    setTimeout(()=>aiDeclareBlocks(defKey, atkKey), 700);
+  }
+  // sinon (multijoueur, adversaire humain distant) : on attend simplement
+  // l'action réseau "confirmBlocks" envoyée par l'autre joueur.
 }
 
 function fireTrap(ownerKey, triggerType, target){
@@ -1708,12 +1711,13 @@ function assignBlock(attackerInstId){
 }
 function confirmBlocks(){
   S.phase='main';
-  const atkP = S.p2, defP = S.p1;
+  const atkKey = S.active, defKey = S.active==='p1' ? 'p2' : 'p1';
+  const atkP = S[atkKey], defP = S[defKey];
   Object.keys(defP.blocks||{}).forEach(attId=>{
     const attacker = atkP.board.find(c=>c.instId===attId);
-    if(attacker) fireTrap('p2', 'onAllyBlocked', attacker);
+    if(attacker) fireTrap(atkKey, 'onAllyBlocked', attacker);
   });
-  resolveCombat('p2','p1');
+  resolveCombat(atkKey, defKey);
 }
 
 /* ============================================================
@@ -2553,11 +2557,8 @@ async function renderMultiplayerCreate(){
     <p class="sub" style="margin-top:20px;">⏳ En attente que ton ami rejoigne...</p>
   `;
   mpWaitForGuest(res.id, (room)=>{
-    box.innerHTML = `
-      <h1>Partie trouvée !</h1>
-      <p class="sub">Ton ami a rejoint avec son deck.</p>
-      <p class="sub" style="opacity:.7;font-style:italic;">(Prochaine étape : la vraie partie en temps réel. Pour l'instant, cette page confirme juste que la mise en relation fonctionne.)</p>
-    `;
+    box.innerHTML = `<h1>Partie trouvée !</h1><p class="sub">Ton ami a rejoint avec son deck. Lancement de la partie...</p>`;
+    setTimeout(()=>mpStartAsHost(res.id, room.guest_deck), 800);
   });
 }
 
@@ -2606,9 +2607,9 @@ async function renderMultiplayerJoin(roomId){
       }
       box.innerHTML = `
         <h1>Tu as rejoint la partie !</h1>
-        <p class="sub">En attente du démarrage...</p>
-        <p class="sub" style="opacity:.7;font-style:italic;">(Prochaine étape : la vraie partie en temps réel. Pour l'instant, cette page confirme juste que la mise en relation fonctionne.)</p>
+        <p class="sub">En attente que l'hôte lance la partie...</p>
       `;
+      mpStartAsGuest(roomId);
     };
     list.appendChild(item);
   });
@@ -2644,7 +2645,7 @@ function renderDeckSelectStep2(){
   box.appendChild(actions);
 }
 
-function launchWithChosenDeck(p2SavedDeck){
+function launchWithChosenDeck(p2SavedDeck, p2IsAI){
   ACTIVE_CARD_POOL = LOADED_COLLECTION;
   const s1 = deckSummary(CHOSEN_P1_DECK, LOADED_COLLECTION);
   const p1Hero = buildHeroObject(s1.hero);
@@ -2665,7 +2666,7 @@ function launchWithChosenDeck(p2SavedDeck){
   }
 
   document.getElementById('deck-select-overlay').style.display='none';
-  startGame(p1Hero, p1Region, p1Deck, p2Hero, p2Region, p2Deck);
+  startGame(p1Hero, p1Region, p1Deck, p2Hero, p2Region, p2Deck, p2IsAI);
 }
 
 function launchDemo(){

@@ -61,3 +61,113 @@ function mpGetRoomIdFromUrl(){
   const params = new URLSearchParams(window.location.search);
   return params.get('room');
 }
+
+/* ============================================================
+   SYNCHRONISATION DE PARTIE EN TEMPS RÉEL (étape 2)
+   ============================================================
+   Modèle "hôte source de vérité" : le navigateur de l'hôte fait
+   tourner le moteur de jeu normal, sans aucune modification — les
+   actions de l'invité arrivent par le réseau et sont appliquées
+   exactement comme le seraient celles d'un joueur local (playCard,
+   endTurn...), simplement pour 'p2' au lieu de venir de l'IA. L'état
+   à jour est rediffusé à l'invité après chaque changement.
+
+   Le navigateur de l'invité, lui, ne fait JAMAIS tourner le moteur :
+   il affiche l'état reçu (avec p1/p2 inversés, pour que "S.p1" reste
+   toujours "mon propre côté" quel que soit le rôle réel), et envoie
+   ses actions au lieu de les exécuter localement.
+   ============================================================ */
+let MP_MODE = null; // null | 'host' | 'guest'
+let MP_ROOM_ID = null;
+let MP_CHANNEL = null;
+
+function mpSerializeState(){
+  return JSON.parse(JSON.stringify(S));
+}
+function mpBroadcastState(){
+  if(!MP_CHANNEL) return;
+  MP_CHANNEL.send({ type:'broadcast', event:'state', payload: mpSerializeState() });
+}
+function mpSwapPerspective(hostState){
+  return {
+    ...hostState,
+    p1: hostState.p2,
+    p2: hostState.p1,
+    active: hostState.active==='p1' ? 'p2' : 'p1'
+  };
+}
+
+/* ---------- CÔTÉ HÔTE ---------- */
+function mpStartAsHost(roomId, guestDeck){
+  MP_MODE = 'host';
+  MP_ROOM_ID = roomId;
+
+  MP_CHANNEL = sb.channel(`game-${roomId}`, { config:{ broadcast:{ self:false } } });
+  MP_CHANNEL.on('broadcast', {event:'action'}, ({payload})=>{ mpApplyGuestAction(payload); });
+  MP_CHANNEL.subscribe((status)=>{
+    if(status!=='SUBSCRIBED') return;
+    const realRender = render;
+    render = function(){
+      realRender();
+      if(MP_MODE==='host') mpBroadcastState();
+    };
+    launchWithChosenDeck(guestDeck, false);
+  });
+}
+
+function mpApplyGuestAction(action){
+  if(!action || S.gameOver) return;
+  switch(action.type){
+    case 'playCard': playCard('p2', action.handIndex, action.targetInfo); break;
+    case 'setTrap': setTrap('p2', action.handIndex); break;
+    case 'useHeroPower': useHeroPower('p2', action.targetInfo || {}); break;
+    case 'endTurn': if(S.active==='p2') endTurn(); break;
+    case 'enterDeclareAttackers': if(S.active==='p2') enterDeclareAttackers(); break;
+    case 'confirmAttackers':
+      if(S.active==='p2'){ S.selectedAttackers = action.selectedAttackers || []; confirmAttackers(); }
+      break;
+    case 'confirmBlocks':
+      S.p2.blocks = action.blocks || {};
+      confirmBlocks();
+      break;
+  }
+}
+
+/* ---------- CÔTÉ INVITÉ ---------- */
+function mpSendAction(type, extra){
+  if(!MP_CHANNEL) return;
+  MP_CHANNEL.send({ type:'broadcast', event:'action', payload: { type, ...extra } });
+}
+
+function mpStartAsGuest(roomId){
+  MP_MODE = 'guest';
+  MP_ROOM_ID = roomId;
+
+  // remplace les fonctions d'action par des envois réseau au lieu d'exécuter localement
+  playCard = function(key, handIndex, targetInfo){
+    if(key!=='p1') return false;
+    mpSendAction('playCard', { handIndex, targetInfo });
+    return true;
+  };
+  setTrap = function(key, handIndex){
+    if(key!=='p1') return false;
+    mpSendAction('setTrap', { handIndex });
+    return true;
+  };
+  useHeroPower = function(key, targetInfo){
+    if(key!=='p1') return;
+    mpSendAction('useHeroPower', { targetInfo });
+  };
+  endTurn = function(){ mpSendAction('endTurn'); };
+  enterDeclareAttackers = function(){ mpSendAction('enterDeclareAttackers'); };
+  confirmAttackers = function(){ mpSendAction('confirmAttackers', { selectedAttackers: S.selectedAttackers||[] }); };
+  confirmBlocks = function(){ mpSendAction('confirmBlocks', { blocks: (S.p1 && S.p1.blocks) || {} }); };
+
+  MP_CHANNEL = sb.channel(`game-${roomId}`, { config:{ broadcast:{ self:false } } });
+  MP_CHANNEL.on('broadcast', {event:'state'}, ({payload})=>{
+    S = mpSwapPerspective(payload);
+    document.getElementById('deck-select-overlay').style.display='none';
+    render();
+  });
+  MP_CHANNEL.subscribe();
+}

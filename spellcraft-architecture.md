@@ -85,7 +85,14 @@ Flux (`spellcraft-multiplayer.js`) :
 - L'invité ouvre le lien → `initGameSetup()` détecte `?room=` dans l'URL (`mpGetRoomIdFromUrl()`) et route vers `renderMultiplayerJoin()` au lieu du choix de deck normal → choisit son propre deck → `mpJoinRoom(roomId, deck)`.
 - Une fois les deux decks connus des deux côtés, **la page ne fait pour l'instant qu'afficher une confirmation** — aucun coup n'est encore synchronisé entre les deux navigateurs.
 
-**Prochaine étape (pas encore construite) :** la synchronisation de la partie elle-même, via un canal Supabase Realtime "Broadcast" (`sb.channel(...).on('broadcast', ...)`, indépendant de la réplication Postgres). Architecture prévue : le navigateur de l'hôte reste la seule source de vérité et fait tourner le moteur de jeu existant sans modification (`S`, `playCard`, `resolveCombat`...) ; les actions de l'invité arrivent par le canal et sont appliquées côté hôte exactement comme le sont aujourd'hui celles de l'IA (`playCard('p2', ...)` etc.) ; l'état à jour est rediffusé à l'invité après chaque action, qui l'affiche avec les rôles p1/p2 inversés (son propre point de vue) en réutilisant tel quel le pipeline de rendu existant.
+**Étape 2 — synchronisation en temps réel (`spellcraft-multiplayer.js`) :** implémentée. Points clés :
+- L'hôte fait tourner le moteur normal, sans modification. `render` est enveloppée pour rediffuser `S` (sérialisé en JSON) sur un canal Supabase Realtime "Broadcast" (`game-<roomId>`) après chaque appel.
+- Les actions de l'invité arrivent par ce même canal (`mpApplyGuestAction`) et sont appliquées via les fonctions existantes ciblant `'p2'`, exactement comme le ferait un joueur local.
+- L'invité ne fait jamais tourner le moteur : à réception d'un état, il l'affiche après avoir inversé p1/p2 (`mpSwapPerspective`), pour que "S.p1" reste toujours "mon propre côté" quel que soit son rôle réel. Ses propres actions (`playCard`, `endTurn`, `confirmAttackers`...) sont remplacées (monkey-patch) par des envois réseau au lieu d'exécuter la logique localement — toute l'interface de sélection (clics sur les cartes/créatures) reste inchangée puisqu'elle continue de raisonner en "p1 = moi".
+- Plusieurs fonctions auparavant câblées en dur sur `S.p1`/`S.p2` (`enterDeclareAttackers`, `confirmAttackers`, `confirmBlocks`) ont été généralisées pour raisonner sur `S.active` / le joueur défenseur, sans changer le comportement solo existant.
+- `startGame`/`launchWithChosenDeck` acceptent maintenant un paramètre `p2IsAI` (par défaut `true`, donc aucun changement en solo) pour éviter que `runAI()` se déclenche sur le tour d'un vrai joueur distant.
+
+**Statut honnête :** premier jet, pas encore testé en conditions réelles avec deux joueurs humains. Des ajustements sont probables une fois testé.
 
 ---
 
