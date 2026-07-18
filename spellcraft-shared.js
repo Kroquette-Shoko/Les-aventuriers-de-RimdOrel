@@ -173,90 +173,43 @@ async function storageSet(key, value){
 }
 
 /* ============================================================
-   SETS DE CARTES
+   SETS DE CARTES — ANCIEN SYSTÈME LOCAL (localStorage)
    ============================================================
-   Plutôt qu'un seul gros JSON ('spellcraft-cards-v2') contenant
-   toutes les cartes, la collection est découpée en sets, chacun
-   stocké séparément :
-   - 'spellcraft-sets-index'      → [{id, name}, ...]
-   - 'spellcraft-cards-set-<id>'  → [carte, carte, ...]
-
-   loadAllCardsAcrossSets() reste le point d'entrée pour le
-   deckbuilder et le jeu : il agrège tous les sets en une seule
-   liste, comme avant. L'éditeur, lui, travaille set par set.
-
-   Migration automatique : si aucun index de sets n'existe encore
-   mais que l'ancienne clé 'spellcraft-cards-v2' contient des
-   cartes, elles sont réparties en sets d'après leur champ `set`
-   existant (ou 'Édition de base' si vide), une seule fois.
+   Le catalogue de cartes vit maintenant dans Supabase (tables
+   card_sets / cards, voir spellcraft-catalog.js). Les fonctions
+   ci-dessous ne servent plus qu'à UNE CHOSE : relire les anciennes
+   données locales (si elles existent) pour les migrer vers Supabase
+   une seule fois. Rien d'autre ne doit plus les utiliser.
    ============================================================ */
-const SETS_INDEX_KEY = 'spellcraft-sets-index';
-function setCardsKey(setId){ return `spellcraft-cards-set-${setId}`; }
+const LOCAL_SETS_INDEX_KEY = 'spellcraft-sets-index';
+function localSetCardsKey(setId){ return `spellcraft-cards-set-${setId}`; }
 
 function slugifySetName(name){
   const base = (name||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'');
   return base || ('set-' + Date.now());
 }
 
-async function loadSetsIndex(){
+async function loadLocalSetsIndex(){
   try{
-    const res = await storageGet(SETS_INDEX_KEY);
+    const res = await storageGet(LOCAL_SETS_INDEX_KEY);
     return res && res.value ? JSON.parse(res.value) : [];
   }catch(e){ return []; }
 }
-async function saveSetsIndex(index){
-  await storageSet(SETS_INDEX_KEY, JSON.stringify(index));
-}
-async function loadSetCards(setId){
+async function loadLocalSetCards(setId){
   try{
-    const res = await storageGet(setCardsKey(setId));
+    const res = await storageGet(localSetCardsKey(setId));
     const cards = res && res.value ? JSON.parse(res.value) : [];
     cards.forEach(migrateCard);
     return cards;
   }catch(e){ return []; }
 }
-async function saveSetCards(setId, cards){
-  await storageSet(setCardsKey(setId), JSON.stringify(cards));
-}
-
-// migration unique depuis l'ancien format à clé unique
-async function migrateLegacyCardsToSets(){
+// ancien format à clé unique, encore plus vieux que le système de sets local
+async function loadLegacyMonolithicCards(){
   let legacy = [];
   try{
     const res = await storageGet('spellcraft-cards-v2');
     legacy = res && res.value ? JSON.parse(res.value) : [];
   }catch(e){ legacy = []; }
-  if(legacy.length===0) return [];
   legacy.forEach(migrateCard);
-  const groups = {};
-  legacy.forEach(c=>{
-    const name = (c.set && c.set.trim()) ? c.set.trim() : 'Édition de base';
-    if(!groups[name]) groups[name] = [];
-    groups[name].push(c);
-  });
-  const index = [];
-  const usedIds = new Set();
-  for(const name of Object.keys(groups)){
-    let id = slugifySetName(name);
-    while(usedIds.has(id)) id += '-2';
-    usedIds.add(id);
-    index.push({id, name});
-    await saveSetCards(id, groups[name]);
-  }
-  await saveSetsIndex(index);
-  return index;
-}
-
-// point d'entrée pour le deckbuilder et le jeu : toutes les cartes, tous sets confondus
-async function loadAllCardsAcrossSets(){
-  let index = await loadSetsIndex();
-  if(index.length===0){
-    index = await migrateLegacyCardsToSets();
-    if(index.length===0) return [];
-  }
-  let all = [];
-  for(const s of index){
-    all = all.concat(await loadSetCards(s.id));
-  }
-  return all;
+  return legacy;
 }
