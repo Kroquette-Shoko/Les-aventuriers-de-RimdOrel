@@ -97,6 +97,15 @@ function mpSwapPerspective(hostState){
   };
 }
 
+function mpSwapLogPerspective(msg){
+  // les messages du journal sont écrits côté hôte avec "Vous" / "L'adversaire" ;
+  // on inverse ces deux mots pour que le message ait du sens du point de vue de l'invité
+  return msg
+    .replace(/\bVous\b/g, '\u0000VOUS\u0000')
+    .replace(/L'adversaire/g, 'Vous')
+    .replace(/\u0000VOUS\u0000/g, "L'adversaire");
+}
+
 /* ---------- CÔTÉ HÔTE ---------- */
 function mpStartAsHost(roomId, guestDeck){
   MP_MODE = 'host';
@@ -110,6 +119,16 @@ function mpStartAsHost(roomId, guestDeck){
     render = function(){
       realRender();
       if(MP_MODE==='host') mpBroadcastState();
+    };
+    const realLog = log;
+    log = function(msg){
+      realLog(msg);
+      if(MP_MODE==='host' && MP_CHANNEL) MP_CHANNEL.send({ type:'broadcast', event:'log', payload:{ msg } });
+    };
+    const realShowCardReveal = showCardReveal;
+    showCardReveal = function(card){
+      realShowCardReveal(card);
+      if(MP_MODE==='host' && MP_CHANNEL) MP_CHANNEL.send({ type:'broadcast', event:'reveal', payload:{ card } });
     };
     launchWithChosenDeck(guestDeck, false);
   });
@@ -169,5 +188,7 @@ function mpStartAsGuest(roomId){
     document.getElementById('deck-select-overlay').style.display='none';
     render();
   });
+  MP_CHANNEL.on('broadcast', {event:'log'}, ({payload})=>{ log(mpSwapLogPerspective(payload.msg)); });
+  MP_CHANNEL.on('broadcast', {event:'reveal'}, ({payload})=>{ showCardReveal(payload.card); });
   MP_CHANNEL.subscribe();
 }

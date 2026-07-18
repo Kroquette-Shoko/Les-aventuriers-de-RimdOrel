@@ -32,7 +32,14 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 #board{flex:1;position:relative;display:flex;flex-direction:column;padding:12px 16px;gap:8px;min-width:0;min-height:0;}
 #board-scroll-area{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;gap:8px;overflow-y:auto;overflow-x:hidden;padding-right:2px;}
 
-.hero-row{display:flex;flex-direction:column;gap:10px;padding:14px 18px;background:var(--bg-panel);border-radius:14px;border:1px solid #2b2440;max-width:400px;width:fit-content;}
+.hero-row{display:flex;flex-direction:column;gap:10px;padding:14px 18px;background:var(--bg-panel);border-radius:14px;border:1px solid #2b2440;max-width:400px;width:fit-content;flex-shrink:0;}
+.draw-anim-card{
+  position:fixed;width:60px;height:82px;border-radius:6px;z-index:150;pointer-events:none;
+  background:linear-gradient(135deg,var(--gold),#8a6d1c);
+  border:2px solid #3a2c05;
+  box-shadow:0 6px 16px rgba(0,0,0,.6);
+  transition:transform .5s cubic-bezier(.2,.7,.3,1), opacity .5s ease .1s;
+}
 .hero-row.enemy{align-self:flex-end;}
 .hero-row.self{align-self:flex-start;}
 
@@ -333,8 +340,8 @@ body.targeting *{cursor:crosshair !important;}
         </div>
         <div class="lane self" id="lane-p1"></div>
         <div class="side-zone self" id="zone-p1"></div>
-        <div class="hero-row self" id="hero-p1"></div>
       </div>
+      <div class="hero-row self" id="hero-p1"></div>
     </div>
     <div id="log-panel">
       <a href="spellcraft-hub.html" style="display:inline-block;margin-bottom:10px;font-size:11px;color:var(--parchment-dim);text-decoration:none;border:1px solid #3a3260;border-radius:6px;padding:5px 10px;">🏠 Retour au hub</a>
@@ -677,7 +684,28 @@ function drawCard(p){
   if(p.deck.length===0) return null;
   const card = p.deck.shift();
   p.hand.push(card);
+  if(p===S.p1) playDrawAnimation();
   return card;
+}
+
+function playDrawAnimation(){
+  const heroEl = document.getElementById('hero-p1');
+  const handEl = document.getElementById('hand-p1');
+  if(!heroEl || !handEl) return;
+  const from = heroEl.getBoundingClientRect();
+  const to = handEl.getBoundingClientRect();
+  const card = document.createElement('div');
+  card.className = 'draw-anim-card';
+  const startX = from.right - 30, startY = from.top + from.height/2 - 20;
+  const endX = to.left + Math.min(to.width, 400)/2 - 30, endY = to.top + 20;
+  card.style.left = startX + 'px';
+  card.style.top = startY + 'px';
+  document.body.appendChild(card);
+  requestAnimationFrame(()=>{
+    card.style.transform = `translate(${endX-startX}px, ${endY-startY}px) rotate(8deg) scale(.7)`;
+    card.style.opacity = '0';
+  });
+  setTimeout(()=>card.remove(), 550);
 }
 
 let S = {
@@ -1529,9 +1557,13 @@ function confirmAttackers(){
   render();
   if(S[defKey].isAI){
     setTimeout(()=>aiDeclareBlocks(defKey, atkKey), 700);
+  } else if(S[defKey].board.length>0){
+    S.phase = 'declareBlockersMe';
+    S.pendingBlocker = null;
+    render();
+  } else {
+    resolveCombat(atkKey, defKey);
   }
-  // sinon (multijoueur, adversaire humain distant) : on attend simplement
-  // l'action réseau "confirmBlocks" envoyée par l'autre joueur.
 }
 
 function fireTrap(ownerKey, triggerType, target){
