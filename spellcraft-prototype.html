@@ -389,6 +389,7 @@ body.targeting *{cursor:crosshair !important;}
 <script src="spellcraft-shared.js"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>
+<script src="spellcraft-multiplayer.js"></script>
 <script>
 /* ============================================================
    RÉFÉRENTIEL DE CARTES — jeu de démonstration
@@ -2471,6 +2472,11 @@ async function initGameSetup(){
 
   LOADED_DECKS = LOADED_DECKS.filter(d=>deckSummary(d, LOADED_COLLECTION).valid);
 
+  const roomId = mpGetRoomIdFromUrl();
+  if(roomId){
+    renderMultiplayerJoin(roomId);
+    return;
+  }
   renderDeckSelectStep1();
 }
 
@@ -2506,13 +2512,106 @@ function renderDeckSelectStep1(){
         <div class="dp-meta">${escapeHtmlGS(sum.hero.name)} (${escapeHtmlGS(sum.hero.class)}) · ${escapeHtmlGS(sum.region.name)} · ${sum.total} cartes</div>
       </div>
     `;
-    item.onclick = ()=>{ CHOSEN_P1_DECK = d; renderDeckSelectStep2(); };
+    item.onclick = ()=>{ CHOSEN_P1_DECK = d; renderOpponentModeChoice(); };
     list.appendChild(item);
   });
   const actions = document.createElement('div');
   actions.className='dsel-actions';
   actions.innerHTML = `<button class="phase-btn secondary" onclick="launchDemo()">Jouer en mode démo à la place</button>`;
   box.appendChild(actions);
+}
+
+function renderOpponentModeChoice(){
+  const box = dsBox();
+  box.innerHTML = `
+    <h1>Contre qui ?</h1>
+    <p class="sub">Avec "${escapeHtmlGS(CHOSEN_P1_DECK.name)}", tu veux jouer...</p>
+    <div class="dsel-actions" style="flex-direction:column;gap:10px;max-width:320px;margin:16px auto 0;">
+      <button class="phase-btn" onclick="renderDeckSelectStep2()">🤖 Contre l'IA</button>
+      <button class="phase-btn secondary" onclick="renderMultiplayerCreate()">⚔️ Défier un ami</button>
+    </div>
+  `;
+}
+
+async function renderMultiplayerCreate(){
+  const box = dsBox();
+  box.innerHTML = `<h1>Défier un ami</h1><p class="sub">Création de l'invitation...</p>`;
+  const res = await mpCreateRoom(CHOSEN_P1_DECK);
+  if(res.error){
+    box.innerHTML = `<h1>Erreur</h1><p class="sub">${escapeHtmlGS(res.error)}</p><div class="dsel-actions"><button class="phase-btn secondary" onclick="renderOpponentModeChoice()">Retour</button></div>`;
+    return;
+  }
+  const link = mpInviteLink(res.id);
+  box.innerHTML = `
+    <h1>Invitation créée !</h1>
+    <p class="sub">Envoie ce lien à ton ami pour qu'il te rejoigne :</p>
+    <input type="text" readonly value="${escapeHtmlGS(link)}" onclick="this.select()" id="mp-invite-link-input"
+      style="width:100%;box-sizing:border-box;background:var(--bg-panel-2);border:1px solid #3a3260;color:var(--parchment);border-radius:8px;padding:10px 12px;font-size:12px;margin-bottom:12px;">
+    <div class="dsel-actions">
+      <button class="phase-btn secondary" onclick="mpCopyInviteLink()">📋 Copier le lien</button>
+    </div>
+    <p class="sub" style="margin-top:20px;">⏳ En attente que ton ami rejoigne...</p>
+  `;
+  mpWaitForGuest(res.id, (room)=>{
+    box.innerHTML = `
+      <h1>Partie trouvée !</h1>
+      <p class="sub">Ton ami a rejoint avec son deck.</p>
+      <p class="sub" style="opacity:.7;font-style:italic;">(Prochaine étape : la vraie partie en temps réel. Pour l'instant, cette page confirme juste que la mise en relation fonctionne.)</p>
+    `;
+  });
+}
+
+function mpCopyInviteLink(){
+  const input = document.getElementById('mp-invite-link-input');
+  input.select();
+  navigator.clipboard?.writeText(input.value).catch(()=>document.execCommand('copy'));
+}
+
+async function renderMultiplayerJoin(roomId){
+  const box = dsBox();
+  box.innerHTML = `<h1>Rejoindre la partie</h1><p class="sub">Vérification de l'invitation...</p>`;
+  const room = await mpGetRoom(roomId);
+  if(!room){
+    box.innerHTML = `<h1>Invitation introuvable</h1><p class="sub">Ce lien n'est plus valide.</p><div class="dsel-actions"><button class="phase-btn secondary" onclick="window.location.href='spellcraft-prototype.html'">Retour</button></div>`;
+    return;
+  }
+  if(room.guest_id){
+    box.innerHTML = `<h1>Invitation déjà utilisée</h1><p class="sub">Cette partie a déjà commencé avec un autre joueur.</p><div class="dsel-actions"><button class="phase-btn secondary" onclick="window.location.href='spellcraft-prototype.html'">Retour</button></div>`;
+    return;
+  }
+  if(LOADED_DECKS.length===0){
+    box.innerHTML = `<h1>Aucun deck disponible</h1><p class="sub">Construis d'abord un deck dans le classeur.</p><div class="dsel-actions"><button class="phase-btn secondary" onclick="window.location.href='spellcraft-deckbuilder.html'">Aller au deckbuilder</button></div>`;
+    return;
+  }
+  box.innerHTML = `<h1>Rejoindre la partie</h1><p class="sub">Choisis le deck avec lequel tu veux jouer.</p><div id="ds-list-join"></div>`;
+  const list = document.getElementById('ds-list-join');
+  LOADED_DECKS.forEach(d=>{
+    const sum = deckSummary(d, LOADED_COLLECTION);
+    const item = document.createElement('div');
+    item.className='deck-pick-item';
+    item.innerHTML = `
+      <div class="dp-icon">${(sum.hero.name[0]||'?')}</div>
+      <div class="dp-info">
+        <div class="dp-name">${escapeHtmlGS(d.name)}</div>
+        <div class="dp-meta">${escapeHtmlGS(sum.hero.name)} (${escapeHtmlGS(sum.hero.class)}) · ${escapeHtmlGS(sum.region.name)} · ${sum.total} cartes</div>
+      </div>
+    `;
+    item.onclick = async ()=>{
+      box.innerHTML = `<h1>Connexion...</h1>`;
+      const res = await mpJoinRoom(roomId, d);
+      if(res.error){
+        alert(res.error);
+        renderMultiplayerJoin(roomId);
+        return;
+      }
+      box.innerHTML = `
+        <h1>Tu as rejoint la partie !</h1>
+        <p class="sub">En attente du démarrage...</p>
+        <p class="sub" style="opacity:.7;font-style:italic;">(Prochaine étape : la vraie partie en temps réel. Pour l'instant, cette page confirme juste que la mise en relation fonctionne.)</p>
+      `;
+    };
+    list.appendChild(item);
+  });
 }
 
 function renderDeckSelectStep2(){

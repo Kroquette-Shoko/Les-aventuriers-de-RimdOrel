@@ -75,6 +75,18 @@ Table `user_decks` (`id` uuid, `user_id`, `name`, `data` jsonb, `created_at`, `u
 
 Fonctions dans `spellcraft-catalog.js` : `loadUserDecks()`, `saveUserDeck(deck)` (insert ou update selon que `deck.id` est déjà un uuid Supabase), `deleteUserDeck(id)`, et `migrateLocalDecksToSupabaseIfNeeded()` (migration ponctuelle des anciens decks `localStorage`, même logique que pour le catalogue). Le deckbuilder ET le jeu lisent désormais les decks via `loadUserDecks()` — plus aucune des deux pages n'utilise `localStorage` pour les decks. `spellcraft-decks` (l'ancienne clé) ne sert plus que de source pour cette migration ponctuelle.
 
+### Multijoueur — mise en relation (étape 1 sur 2)
+
+**Ce qui existe aujourd'hui : uniquement la mise en relation**, pas encore la synchronisation d'une vraie partie en temps réel. Table `game_rooms` (`spellcraft-supabase-schema-addendum-4.sql`) : `host_id`, `guest_id`, `host_deck`, `guest_deck` (snapshots jsonb des decks au moment du match), `status` (`waiting` → `active` → `finished`), `winner`.
+
+Flux (`spellcraft-multiplayer.js`) :
+- L'hôte choisit son deck → "Défier un ami" → `mpCreateRoom(deck)` crée la ligne, `mpInviteLink(id)` construit un lien du type `spellcraft-prototype.html?room=<uuid>`.
+- L'hôte attend via `mpWaitForGuest()` (sondage simple toutes les 2s sur la ligne — pas de Realtime Postgres Changes pour éviter d'avoir à activer la réplication sur la table pour cette seule étape).
+- L'invité ouvre le lien → `initGameSetup()` détecte `?room=` dans l'URL (`mpGetRoomIdFromUrl()`) et route vers `renderMultiplayerJoin()` au lieu du choix de deck normal → choisit son propre deck → `mpJoinRoom(roomId, deck)`.
+- Une fois les deux decks connus des deux côtés, **la page ne fait pour l'instant qu'afficher une confirmation** — aucun coup n'est encore synchronisé entre les deux navigateurs.
+
+**Prochaine étape (pas encore construite) :** la synchronisation de la partie elle-même, via un canal Supabase Realtime "Broadcast" (`sb.channel(...).on('broadcast', ...)`, indépendant de la réplication Postgres). Architecture prévue : le navigateur de l'hôte reste la seule source de vérité et fait tourner le moteur de jeu existant sans modification (`S`, `playCard`, `resolveCombat`...) ; les actions de l'invité arrivent par le canal et sont appliquées côté hôte exactement comme le sont aujourd'hui celles de l'IA (`playCard('p2', ...)` etc.) ; l'état à jour est rediffusé à l'invité après chaque action, qui l'affiche avec les rôles p1/p2 inversés (son propre point de vue) en réutilisant tel quel le pipeline de rendu existant.
+
 ---
 
 ## 3. Schéma d'une carte (`migrateCard`)
