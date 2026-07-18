@@ -236,6 +236,9 @@ header .spacer{flex:1;}
     <button class="btn small" onclick="createNewSet()" title="Créer un nouveau set">➕ Set</button>
     <button class="btn small" onclick="renameCurrentSet()" title="Renommer ce set">✏️</button>
     <button class="btn small" onclick="deleteCurrentSet()" title="Supprimer ce set">🗑️</button>
+    <label style="font-size:11px;color:var(--parchment-dim);display:flex;align-items:center;gap:5px;cursor:pointer;" title="Les cartes de ce set sont automatiquement données à tous les comptes">
+      <input type="checkbox" id="set-is-base-checkbox" onchange="onSetIsBaseChange()"> Set de base
+    </label>
     <button class="btn" onclick="openImportModal()">Importer</button>
     <button class="btn" onclick="openExportModal('backup')">Exporter (sauvegarde)</button>
     <button class="btn primary" onclick="openExportModal('code')">Exporter le code moteur</button>
@@ -501,6 +504,7 @@ header .spacer{flex:1;}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="spellcraft-shared.js"></script>
 <script src="spellcraft-auth.js"></script>
+<script src="spellcraft-catalog.js"></script>
 <script>
 /* ============================================================
    RÉFÉRENTIELS
@@ -751,12 +755,19 @@ let currentSetId = null;
 async function loadCards(){
   setsIndex = await loadSetsIndex();
   if(setsIndex.length===0){
-    setsIndex = await migrateLegacyCardsToSets();
+    const user = await scGetCurrentUser();
+    if(user){
+      const res = await createCardSet('Édition de base');
+      if(!res.error) setsIndex = [{id: res.id, name: res.name}];
+    }
   }
   if(setsIndex.length===0){
-    setsIndex = [{id:'edition-de-base', name:'Édition de base'}];
-    await saveSetsIndex(setsIndex);
-    await saveSetCards('edition-de-base', []);
+    // catalogue vide et personne de connecté pour en créer un : rien à afficher pour l'instant
+    currentSetId = null;
+    buildSetSelector();
+    cards = [];
+    renderGallery();
+    return;
   }
   const remembered = localStorage.getItem('spellcraft-last-set-id');
   currentSetId = (remembered && setsIndex.some(s=>s.id===remembered)) ? remembered : setsIndex[0].id;
@@ -775,49 +786,75 @@ function buildSetSelector(){
   const sel = document.getElementById('set-selector');
   if(!sel) return;
   sel.innerHTML = setsIndex.map(s=>`<option value="${escapeHtml(s.id)}" ${s.id===currentSetId?'selected':''}>${escapeHtml(s.name)}</option>`).join('');
+  const current = setsIndex.find(s=>s.id===currentSetId);
+  const checkbox = document.getElementById('set-is-base-checkbox');
+  if(checkbox) checkbox.checked = !!(current && current.is_base);
+}
+
+async function onSetIsBaseChange(){
+  if(!(await requireLoginForEdit())){
+    document.getElementById('set-is-base-checkbox').checked = !document.getElementById('set-is-base-checkbox').checked;
+    return;
+  }
+  const checkbox = document.getElementById('set-is-base-checkbox');
+  const current = setsIndex.find(s=>s.id===currentSetId);
+  if(!current) return;
+  const res = await setCardSetIsBase(currentSetId, checkbox.checked);
+  if(res.error){ alert('Erreur : ' + res.error); checkbox.checked = !checkbox.checked; return; }
+  current.is_base = checkbox.checked;
+  if(checkbox.checked) flashSaved();
+}
+
+async function requireLoginForEdit(){
+  const user = await scGetCurrentUser();
+  if(!user){ alert('Connecte-toi (en haut à droite) pour modifier le catalogue de cartes.'); return false; }
+  return true;
 }
 
 async function onSetSelectorChange(){
   const sel = document.getElementById('set-selector');
   currentSetId = sel.value;
   localStorage.setItem('spellcraft-last-set-id', currentSetId);
+  const current = setsIndex.find(s=>s.id===currentSetId);
+  const checkbox = document.getElementById('set-is-base-checkbox');
+  if(checkbox) checkbox.checked = !!(current && current.is_base);
   await loadCurrentSetCards();
 }
 
 async function createNewSet(){
+  if(!(await requireLoginForEdit())) return;
   const name = prompt('Nom du nouveau set :');
   if(!name || !name.trim()) return;
-  let id = slugifySetName(name.trim());
-  const existingIds = new Set(setsIndex.map(s=>s.id));
-  let uniqueId = id, n = 2;
-  while(existingIds.has(uniqueId)){ uniqueId = `${id}-${n}`; n++; }
-  setsIndex.push({id: uniqueId, name: name.trim()});
-  await saveSetsIndex(setsIndex);
-  await saveSetCards(uniqueId, []);
-  currentSetId = uniqueId;
+  const res = await createCardSet(name.trim());
+  if(res.error){ alert('Erreur : ' + res.error); return; }
+  setsIndex.push({id: res.id, name: res.name});
+  currentSetId = res.id;
   localStorage.setItem('spellcraft-last-set-id', currentSetId);
   buildSetSelector();
   await loadCurrentSetCards();
 }
 
 async function renameCurrentSet(){
+  if(!(await requireLoginForEdit())) return;
   const current = setsIndex.find(s=>s.id===currentSetId);
   if(!current) return;
   const name = prompt('Nouveau nom pour ce set :', current.name);
   if(!name || !name.trim()) return;
+  const res = await renameCardSet(currentSetId, name.trim());
+  if(res.error){ alert('Erreur : ' + res.error); return; }
   current.name = name.trim();
-  await saveSetsIndex(setsIndex);
   buildSetSelector();
 }
 
 async function deleteCurrentSet(){
+  if(!(await requireLoginForEdit())) return;
   if(setsIndex.length<=1){ alert('Impossible de supprimer le dernier set restant.'); return; }
   const current = setsIndex.find(s=>s.id===currentSetId);
   if(!current) return;
   if(!confirm(`Supprimer le set "${current.name}" et ses ${cards.length} carte(s) ? Cette action est irréversible.`)) return;
+  const res = await deleteCardSet(currentSetId);
+  if(res.error){ alert('Erreur : ' + res.error); return; }
   setsIndex = setsIndex.filter(s=>s.id!==currentSetId);
-  await saveSetsIndex(setsIndex);
-  localStorage.removeItem(setCardsKey(currentSetId));
   currentSetId = setsIndex[0].id;
   localStorage.setItem('spellcraft-last-set-id', currentSetId);
   buildSetSelector();
@@ -828,6 +865,7 @@ let saveTimer = null;
 function persistCards(){
   clearTimeout(saveTimer);
   saveTimer = setTimeout(async ()=>{
+    if(!(await requireLoginForEdit())) return;
     try{
       await saveSetCards(currentSetId, cards);
       flashSaved();
@@ -2547,8 +2585,18 @@ function doImport(){
 /* ============================================================
    INIT
    ============================================================ */
-loadCards();
-initSpellcraftAuth();
+async function initEditorData(){
+  const user = await scGetCurrentUser();
+  if(user) await migrateLocalCatalogToSupabaseIfNeeded();
+  await loadCards();
+}
+initSpellcraftAuth().then(initEditorData);
+sb.auth.onAuthStateChange(async (event)=>{
+  if(event==='SIGNED_IN'){
+    await migrateLocalCatalogToSupabaseIfNeeded();
+    await loadCards();
+  }
+});
 </script>
 </body>
 </html>

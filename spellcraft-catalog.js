@@ -19,7 +19,7 @@
    ============================================================ */
 
 async function loadSetsIndex(){
-  const { data, error } = await sb.from('card_sets').select('id, name').order('created_at');
+  const { data, error } = await sb.from('card_sets').select('id, name, is_base').order('created_at');
   if(error){ console.error('Erreur de chargement des sets', error); return []; }
   return data || [];
 }
@@ -39,6 +39,17 @@ async function renameCardSet(id, newName){
   const { error } = await sb.from('card_sets').update({ name: newName }).eq('id', id);
   if(error) return { error: error.message };
   return true;
+}
+
+async function setCardSetIsBase(id, isBase){
+  const { error } = await sb.from('card_sets').update({ is_base: isBase }).eq('id', id);
+  if(error) return { error: error.message };
+  if(isBase){
+    // distribue immédiatement tout le set à tous les comptes déjà existants
+    const { error: rpcError } = await sb.rpc('grant_set_to_all_users', { target_set_id: id });
+    if(rpcError) console.error('Erreur distribution du set de base', rpcError);
+  }
+  return { ok: true };
 }
 
 async function deleteCardSet(id){

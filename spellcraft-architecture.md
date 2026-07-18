@@ -60,11 +60,12 @@ Le rendu visuel d'une carte (`buildCardEl` dans l'éditeur et le deckbuilder, `c
 
 ### Collection personnelle par joueur
 
-Table `user_cards` (`user_id`, `card_id`, `quantity`). Tant qu'il n'existe pas de vrai système d'acquisition (paquets, récompenses...), **chaque compte reçoit automatiquement tout le catalogue existant**, géré entièrement côté base de données par deux déclencheurs (`spellcraft-supabase-schema-addendum-2.sql`) :
-- à la création d'un compte → il reçoit un exemplaire de chaque carte déjà existante (2, ou 1 pour les Légendaires)
-- à l'ajout d'une nouvelle carte au catalogue → elle est distribuée à tous les comptes déjà créés
+Table `user_cards` (`user_id`, `card_id`, `quantity`). Tant qu'il n'existe pas de vrai système d'acquisition (paquets, récompenses...), **les sets marqués "de base" sont automatiquement donnés à tous les comptes** — pas tout le catalogue par défaut. `card_sets.is_base` (booléen) marque un set comme tel ; coche-le via la case "Set de base" à côté du sélecteur de set dans l'éditeur. Géré côté base de données par `spellcraft-supabase-schema-addendum-3.sql` :
+- à la création d'un compte → il reçoit un exemplaire de chaque carte de chaque set marqué `is_base` (2, ou 1 pour les Légendaires)
+- à l'ajout d'une nouvelle carte dans un set de base → elle est distribuée à tous les comptes déjà créés
+- cocher "Set de base" sur un set existant → distribue immédiatement tout son contenu à tous les comptes (fonction `grant_set_to_all_users`, appelée depuis l'éditeur)
 
-Pour désactiver ce système temporaire plus tard (une fois un vrai système d'acquisition en place), il suffit de supprimer ces deux déclencheurs, sans toucher au reste du schéma.
+Les sets qui ne sont pas marqués "de base" (futures extensions) ne sont donnés à personne automatiquement — libre d'y construire un vrai système d'acquisition plus tard.
 
 Côté client, `spellcraft-catalog.js` expose `loadUserCollection()` (renvoie `{cardId: quantité}`) et `setUserCardQuantity(cardId, quantité)`. Le deckbuilder (`refreshCollection()`) filtre désormais `collection` pour ne garder que les cartes réellement possédées (`ownedCollection`), et `maxCopiesFor(card)` plafonne le nombre de copies ajoutables à un deck par la quantité possédée, pas seulement par la règle de rareté. Un badge "poss. xN" s'affiche sur chaque carte du classeur. Si le joueur n'est pas connecté, `collection` est vide et un message l'invite à se connecter plutôt que d'afficher un classeur vide sans explication.
 
