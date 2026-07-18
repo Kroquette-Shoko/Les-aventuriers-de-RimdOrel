@@ -408,10 +408,8 @@ let savedDecks = [];
 async function loadAll(){
   isLoggedInCache = !!(await scGetCurrentUser());
   await refreshCollection(true);
-  try{
-    const res = await storageGet('spellcraft-decks');
-    savedDecks = res && res.value ? JSON.parse(res.value) : [];
-  }catch(e){ savedDecks = []; }
+  if(isLoggedInCache) await migrateLocalDecksToSupabaseIfNeeded();
+  savedDecks = await loadUserDecks();
   buildFilterDropdowns();
   renderAll();
 }
@@ -420,6 +418,9 @@ sb.auth.onAuthStateChange(async (event)=>{
   if(event==='SIGNED_IN' || event==='SIGNED_OUT'){
     isLoggedInCache = event==='SIGNED_IN';
     await refreshCollection(false);
+    if(isLoggedInCache) await migrateLocalDecksToSupabaseIfNeeded();
+    savedDecks = await loadUserDecks();
+    renderAll();
   }
 });
 
@@ -434,16 +435,8 @@ async function refreshCollection(silent){
   }
 }
 
-let saveTimer = null;
-function persistDecks(){
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(async ()=>{
-    try{
-      await storageSet('spellcraft-decks', JSON.stringify(savedDecks));
-      flashSaved('✓ Deck sauvegardé');
-    }catch(e){ console.error('Erreur de sauvegarde', e); }
-  }, 200);
-}
+/* persistDecks (localStorage) a été remplacée par des sauvegardes directes
+   vers Supabase dans saveDeck()/deleteDeck() ci-dessous. */
 function flashSaved(msg){
   const el = document.getElementById('save-indicator');
   el.textContent = msg || '✓ Sauvegardé';
@@ -1214,15 +1207,15 @@ function onDeckNameChange(){
   if(!currentDeck) return;
   currentDeck.name = document.getElementById('deck-name-input').value.trim() || 'Deck sans nom';
 }
-function saveDeck(){
+async function saveDeck(){
   if(!currentDeck) return;
   if(!currentDeck.heroId){ flashError('Choisis un Héros avant de sauvegarder.'); return; }
   if(!currentDeck.regionId){ flashError('Choisis une Région avant de sauvegarder.'); return; }
-  if(!currentDeck.id) currentDeck.id = 'deck_' + Date.now();
-  const idx = savedDecks.findIndex(d=>d.id===currentDeck.id);
-  const toSave = JSON.parse(JSON.stringify(currentDeck));
-  if(idx>=0) savedDecks[idx] = toSave; else savedDecks.push(toSave);
-  persistDecks();
+  const res = await saveUserDeck(currentDeck);
+  if(res.error){ flashError('Erreur : ' + res.error); return; }
+  currentDeck.id = res.id;
+  savedDecks = await loadUserDecks();
+  flashSaved('✓ Deck sauvegardé');
 }
 function loadDeck(deckId){
   const d = savedDecks.find(x=>x.id===deckId);
@@ -1237,11 +1230,12 @@ function loadDeck(deckId){
   renderWizardHint();
   renderBinder();
 }
-function deleteDeck(deckId, ev){
+async function deleteDeck(deckId, ev){
   ev.stopPropagation();
   if(!confirm('Supprimer ce deck sauvegardé ?')) return;
+  const res = await deleteUserDeck(deckId);
+  if(res.error){ flashError('Erreur : ' + res.error); return; }
   savedDecks = savedDecks.filter(d=>d.id!==deckId);
-  persistDecks();
   openDeckListModal();
 }
 

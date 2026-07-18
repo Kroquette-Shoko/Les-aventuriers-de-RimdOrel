@@ -68,6 +68,12 @@ Pour désactiver ce système temporaire plus tard (une fois un vrai système d'a
 
 Côté client, `spellcraft-catalog.js` expose `loadUserCollection()` (renvoie `{cardId: quantité}`) et `setUserCardQuantity(cardId, quantité)`. Le deckbuilder (`refreshCollection()`) filtre désormais `collection` pour ne garder que les cartes réellement possédées (`ownedCollection`), et `maxCopiesFor(card)` plafonne le nombre de copies ajoutables à un deck par la quantité possédée, pas seulement par la règle de rareté. Un badge "poss. xN" s'affiche sur chaque carte du classeur. Si le joueur n'est pas connecté, `collection` est vide et un message l'invite à se connecter plutôt que d'afficher un classeur vide sans explication.
 
+### Decks sauvegardés (liés au compte)
+
+Table `user_decks` (`id` uuid, `user_id`, `name`, `data` jsonb, `created_at`, `updated_at`). Le contenu du deck (`heroId`, `regionId`, `cards`) vit dans la colonne `data` ; `id` est généré par Supabase et remplace l'ancien schéma local `deck_<timestamp>`.
+
+Fonctions dans `spellcraft-catalog.js` : `loadUserDecks()`, `saveUserDeck(deck)` (insert ou update selon que `deck.id` est déjà un uuid Supabase), `deleteUserDeck(id)`, et `migrateLocalDecksToSupabaseIfNeeded()` (migration ponctuelle des anciens decks `localStorage`, même logique que pour le catalogue). Le deckbuilder ET le jeu lisent désormais les decks via `loadUserDecks()` — plus aucune des deux pages n'utilise `localStorage` pour les decks. `spellcraft-decks` (l'ancienne clé) ne sert plus que de source pour cette migration ponctuelle.
+
 ---
 
 ## 3. Schéma d'une carte (`migrateCard`)

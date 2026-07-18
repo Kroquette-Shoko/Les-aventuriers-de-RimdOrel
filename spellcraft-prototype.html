@@ -388,6 +388,7 @@ body.targeting *{cursor:crosshair !important;}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="spellcraft-shared.js"></script>
 <script src="spellcraft-auth.js"></script>
+<script src="spellcraft-catalog.js"></script>
 <script>
 /* ============================================================
    RÉFÉRENTIEL DE CARTES — jeu de démonstration
@@ -2466,10 +2467,7 @@ function deckSummary(d, collection){
 
 async function initGameSetup(){
   LOADED_COLLECTION = await loadAllCardsAcrossSets();
-  try{
-    const res2 = await storageGet('spellcraft-decks');
-    LOADED_DECKS = res2 && res2.value ? JSON.parse(res2.value) : [];
-  }catch(e){ LOADED_DECKS = []; }
+  LOADED_DECKS = await loadUserDecks();
 
   LOADED_DECKS = LOADED_DECKS.filter(d=>deckSummary(d, LOADED_COLLECTION).valid);
 

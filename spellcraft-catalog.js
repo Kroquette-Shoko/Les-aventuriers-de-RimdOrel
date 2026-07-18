@@ -111,6 +111,85 @@ async function setUserCardQuantity(cardId, quantity){
 }
 
 /* ============================================================
+   DECKS SAUVEGARDÉS (liés au compte)
+   ============================================================
+   Un deck garde la forme { id, name, heroId, regionId, cards }
+   utilisée partout dans le deckbuilder et le jeu. Le contenu
+   (heroId/regionId/cards) est stocké dans la colonne jsonb `data` ;
+   `id` correspond à l'identifiant de la ligne Supabase (uuid).
+   ============================================================ */
+async function loadUserDecks(){
+  const user = await scGetCurrentUser();
+  if(!user) return [];
+  const { data, error } = await sb.from('user_decks').select('id, name, data, updated_at').order('updated_at', {ascending:false});
+  if(error){ console.error('Erreur de chargement des decks', error); return []; }
+  return (data||[]).map(row => ({
+    id: row.id,
+    name: row.name,
+    heroId: row.data?.heroId ?? null,
+    regionId: row.data?.regionId ?? null,
+    cards: row.data?.cards || []
+  }));
+}
+
+async function saveUserDeck(deck){
+  const user = await scGetCurrentUser();
+  if(!user) return { error: "Connecte-toi pour sauvegarder un deck." };
+  const payload = {
+    user_id: user.id,
+    name: deck.name || 'Deck sans nom',
+    data: { heroId: deck.heroId, regionId: deck.regionId, cards: deck.cards || [] },
+    updated_at: new Date().toISOString()
+  };
+  const isExistingRemoteId = deck.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(deck.id);
+  if(isExistingRemoteId){
+    const { error } = await sb.from('user_decks').update(payload).eq('id', deck.id);
+    if(error) return { error: error.message };
+    return { id: deck.id };
+  } else {
+    const { data, error } = await sb.from('user_decks').insert(payload).select('id').single();
+    if(error) return { error: error.message };
+    return { id: data.id };
+  }
+}
+
+async function deleteUserDeck(id){
+  const { error } = await sb.from('user_decks').delete().eq('id', id);
+  if(error) return { error: error.message };
+  return { ok: true };
+}
+
+const DECKS_MIGRATION_FLAG = 'spellcraft-decks-migrated-to-supabase';
+async function migrateLocalDecksToSupabaseIfNeeded(){
+  if(localStorage.getItem(DECKS_MIGRATION_FLAG)==='true') return { migrated: false };
+  const user = await scGetCurrentUser();
+  if(!user) return { migrated: false, reason: 'not-logged-in' };
+
+  const remote = await loadUserDecks();
+  if(remote.length>0){
+    localStorage.setItem(DECKS_MIGRATION_FLAG, 'true');
+    return { migrated: false, reason: 'remote-not-empty' };
+  }
+  let local = [];
+  try{
+    const res = await storageGet('spellcraft-decks');
+    local = res && res.value ? JSON.parse(res.value) : [];
+  }catch(e){ local = []; }
+  if(local.length===0){
+    localStorage.setItem(DECKS_MIGRATION_FLAG, 'true');
+    return { migrated: false, reason: 'nothing-to-migrate' };
+  }
+  let count = 0;
+  for(const d of local){
+    const res = await saveUserDeck(d);
+    if(!res.error) count++; else console.error('[migration decks] échec pour', d.name, res.error);
+  }
+  localStorage.setItem(DECKS_MIGRATION_FLAG, 'true');
+  console.log(`[migration decks] terminée : ${count}/${local.length} deck(s) migré(s).`);
+  return { migrated: true, count };
+}
+
+/* ============================================================
    MIGRATION PONCTUELLE — anciennes données locales → Supabase
    ============================================================
    Ne se déclenche que si l'utilisateur est connecté, que Supabase
