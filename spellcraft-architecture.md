@@ -14,6 +14,10 @@ Quatre fichiers HTML autonomes, sans build, sans dépendance externe autre que G
 | `spellcraft-card-editor.html` | Création/édition de cartes (écrit les sets, un par un) |
 | `spellcraft-deckbuilder.html` | Collection + construction de decks (lit tous les sets agrégés, écrit/lit `spellcraft-decks`) |
 | `spellcraft-prototype.html` | Moteur de jeu (lit tous les sets agrégés, et `spellcraft-decks`) |
+| `spellcraft-shared.js` | Données/fonctions communes (voir section 1) |
+| `spellcraft-auth.js` | Authentification Supabase + widget de compte (voir section "Authentification et catalogue") |
+| `spellcraft-catalog.js` | Catalogue de cartes sur Supabase (voir même section) |
+| `spellcraft-supabase-schema.sql` + `-addendum.sql` | Schéma de base de données à exécuter dans Supabase (une fois) |
 
 Un cinquième fichier, **`spellcraft-shared.js`**, est chargé par les trois outils (pas le hub) via une balise `<script src="spellcraft-shared.js"></script>` placée juste avant leur propre `<script>`. C'est la seule source de vérité pour :
 - les listes de référence (`CLASSES`, `CLASS_COLORS`, `RARITIES`, `CARD_TYPES`, `KEYWORDS`)
@@ -23,20 +27,24 @@ Un cinquième fichier, **`spellcraft-shared.js`**, est chargé par les trois out
 
 **Règle d'or : si les trois fichiers ont besoin de la même donnée ou de la même fonction, elle va dans `spellcraft-shared.js`, jamais copiée-collée trois fois.** C'est l'inverse de ce qui s'est passé jusqu'ici et qui a causé plusieurs bugs (couleurs de classe divergentes entre le deckbuilder et le reste, champs de carte oubliés lors de la traduction vers le moteur de jeu, etc.).
 
-Persistance : un wrapper `storageGet`/`storageSet` (dans `spellcraft-shared.js`, sur `localStorage`) fait office de base de données. Actuellement local à chaque navigateur — c'est le point qui devra changer en premier quand on ajoutera un vrai système de comptes.
+Persistance : le catalogue de cartes vit désormais dans **Supabase** (voir ci-dessous). Les decks et quelques préférences (dernier set ouvert, drapeau de migration) restent pour l'instant en `localStorage` via le wrapper `storageGet`/`storageSet` (dans `spellcraft-shared.js`) — ce sera la prochaine étape à migrer.
 
-### Stockage des cartes par sets
+### Authentification et catalogue de cartes (Supabase)
 
-Depuis cette passe de nettoyage, les cartes ne sont plus stockées dans un seul gros JSON (`spellcraft-cards-v2`). Elles sont réparties par **set**, chacun dans sa propre clé :
+Quatre nouveaux fichiers, chargés dans cet ordre précis par les quatre pages :
 
-- `spellcraft-sets-index` → `[{id, name}, ...]`, la liste des sets existants
-- `spellcraft-cards-set-<id>` → le tableau de cartes de ce set
+```
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="spellcraft-shared.js"></script>
+<script src="spellcraft-auth.js"></script>
+<script src="spellcraft-catalog.js"></script>
+```
 
-Fonctions disponibles dans `spellcraft-shared.js` : `loadSetsIndex`, `saveSetsIndex`, `loadSetCards(id)`, `saveSetCards(id, cards)`, `loadAllCardsAcrossSets()` (agrège tous les sets — c'est ce qu'utilisent le deckbuilder et le jeu, qui n'ont pas besoin de connaître la notion de set), et `migrateLegacyCardsToSets()` (migration automatique et unique depuis l'ancien format, déclenchée si `spellcraft-sets-index` est vide mais que `spellcraft-cards-v2` contient des cartes — réparties selon leur champ `set` existant).
-
-L'éditeur seul travaille "set par set" : un sélecteur dans l'en-tête (`#set-selector`) détermine quel set est actif, `cards` ne contient que les cartes de ce set, et `persistCards()` sauvegarde dans la clé de ce set uniquement. Le dernier set actif est retenu (clé `spellcraft-last-set-id`) pour rouvrir l'éditeur au même endroit. Créer/renommer/supprimer un set se fait depuis les boutons ➕ / ✏️ / 🗑️ à côté du sélecteur.
-
-Le deckbuilder et le jeu, eux, n'ont pas de notion de set : ils appellent `loadAllCardsAcrossSets()` et travaillent sur la liste agrégée, exactement comme avant ce changement — aucune de leurs pages n'a eu besoin d'être modifiée en profondeur pour ça, seul le point de chargement a changé.
+- **`spellcraft-auth.js`** — client Supabase (`sb`), inscription/connexion/déconnexion (email+mot de passe et Discord), widget de compte flottant (coin supérieur droit) affiché sur les quatre pages via `initSpellcraftAuth()`.
+- **`spellcraft-catalog.js`** — le catalogue de cartes (sets + cartes), stocké dans les tables Supabase `card_sets` et `cards` (schéma dans `spellcraft-supabase-schema.sql` + `spellcraft-supabase-schema-addendum.sql`, à la racine du projet, à exécuter dans le SQL Editor de Supabase). Expose les mêmes noms de fonctions que l'ancien système 100% local (`loadSetsIndex`, `loadSetCards`, `saveSetCards`, `loadAllCardsAcrossSets`...) : l'éditeur, le deckbuilder et le jeu n'ont pas eu à changer leur propre logique, seul le "où" a changé.
+- Lecture du catalogue (`select`) : publique, tout le monde peut voir toutes les cartes, connecté ou non.
+- Écriture (créer/modifier/supprimer un set ou une carte) : réservée aux utilisateurs connectés (règle RLS `auth.role() = 'authenticated'`). L'éditeur vérifie la connexion avant chaque sauvegarde (`requireLoginForEdit()`) plutôt que de laisser Supabase renvoyer une erreur silencieuse.
+- **Migration automatique et unique** : au premier chargement de l'éditeur après connexion, si Supabase n'a encore aucun set mais que d'anciennes données existent en `localStorage` (ancien système de sets local, voire le tout premier format à clé unique `spellcraft-cards-v2`), elles sont importées automatiquement dans Supabase (`migrateLocalCatalogToSupabaseIfNeeded()` dans `spellcraft-catalog.js`). Un drapeau (`spellcraft-catalog-migrated-to-supabase`) évite de recommencer à chaque visite. Les anciennes fonctions de lecture locale (renommées `loadLocalSetsIndex`, `loadLocalSetCards`, `loadLegacyMonolithicCards` dans `spellcraft-shared.js`) ne servent plus qu'à cette migration ponctuelle — rien d'autre ne doit les appeler.
 
 ---
 
@@ -49,6 +57,16 @@ Le rendu visuel d'une carte (`buildCardEl` dans l'éditeur et le deckbuilder, `c
 - Unifier ça maintenant aurait un risque de régression visuelle élevé sur des dizaines d'heures de réglages fins, pour un gain surtout esthétique (le code dupliqué ici ne cause pas les bugs qu'on a eus — c'est l'absence de schéma de données commun qui les causait).
 
 **Recommandation pour plus tard :** si un développeur reprend ce projet, la unification du rendu de carte (idéalement via des variables CSS `--card-w`/`--card-h` plutôt que des tailles en dur) est un chantier à part, à faire une fois que la stack technique (voir section 5) est stabilisée — pas avant.
+
+### Collection personnelle par joueur
+
+Table `user_cards` (`user_id`, `card_id`, `quantity`). Tant qu'il n'existe pas de vrai système d'acquisition (paquets, récompenses...), **chaque compte reçoit automatiquement tout le catalogue existant**, géré entièrement côté base de données par deux déclencheurs (`spellcraft-supabase-schema-addendum-2.sql`) :
+- à la création d'un compte → il reçoit un exemplaire de chaque carte déjà existante (2, ou 1 pour les Légendaires)
+- à l'ajout d'une nouvelle carte au catalogue → elle est distribuée à tous les comptes déjà créés
+
+Pour désactiver ce système temporaire plus tard (une fois un vrai système d'acquisition en place), il suffit de supprimer ces deux déclencheurs, sans toucher au reste du schéma.
+
+Côté client, `spellcraft-catalog.js` expose `loadUserCollection()` (renvoie `{cardId: quantité}`) et `setUserCardQuantity(cardId, quantité)`. Le deckbuilder (`refreshCollection()`) filtre désormais `collection` pour ne garder que les cartes réellement possédées (`ownedCollection`), et `maxCopiesFor(card)` plafonne le nombre de copies ajoutables à un deck par la quantité possédée, pas seulement par la règle de rareté. Un badge "poss. xN" s'affiche sur chaque carte du classeur. Si le joueur n'est pas connecté, `collection` est vide et un message l'invite à se connecter plutôt que d'afficher un classeur vide sans explication.
 
 ---
 

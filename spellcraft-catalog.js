@@ -81,6 +81,36 @@ async function loadAllCardsAcrossSets(){
 }
 
 /* ============================================================
+   COLLECTION PERSONNELLE
+   ============================================================
+   Pour l'instant, chaque compte reçoit automatiquement tout le
+   catalogue (voir spellcraft-supabase-schema-addendum-2.sql).
+   Ces fonctions lisent/modifient la table user_cards.
+   ============================================================ */
+async function loadUserCollection(){
+  const user = await scGetCurrentUser();
+  if(!user) return {};
+  const { data, error } = await sb.from('user_cards').select('card_id, quantity').eq('user_id', user.id);
+  if(error){ console.error('Erreur de chargement de la collection', error); return {}; }
+  const owned = {};
+  (data||[]).forEach(row => { owned[row.card_id] = row.quantity; });
+  return owned;
+}
+
+async function setUserCardQuantity(cardId, quantity){
+  const user = await scGetCurrentUser();
+  if(!user) return { error: 'not-logged-in' };
+  if(quantity<=0){
+    const { error } = await sb.from('user_cards').delete().eq('user_id', user.id).eq('card_id', cardId);
+    if(error) return { error: error.message };
+    return { ok: true };
+  }
+  const { error } = await sb.from('user_cards').upsert({ user_id: user.id, card_id: cardId, quantity });
+  if(error) return { error: error.message };
+  return { ok: true };
+}
+
+/* ============================================================
    MIGRATION PONCTUELLE — anciennes données locales → Supabase
    ============================================================
    Ne se déclenche que si l'utilisateur est connecté, que Supabase

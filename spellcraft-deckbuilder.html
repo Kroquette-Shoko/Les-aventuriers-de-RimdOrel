@@ -94,6 +94,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 .binder-slot .card:hover{transform:translateY(-6px) scale(1.03);}
 .binder-slot-empty{width:155px;height:217px;border-radius:10px;background:rgba(0,0,0,.2);border:1px dashed rgba(255,255,255,.08);}
 .card-add-badge{position:absolute;top:2px;right:2px;background:var(--green);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 5px;z-index:5;box-shadow:0 2px 4px rgba(0,0,0,.5);}
+.card-owned-badge{position:absolute;bottom:2px;left:2px;background:rgba(15,12,20,.75);border:1px solid var(--gold);color:var(--gold);font-size:8.5px;font-weight:700;border-radius:8px;padding:1px 5px;z-index:5;}
 
 #binder-nav{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:16px;}
 .nav-arrow{background:var(--bg-panel-2);border:1px solid #3a3260;color:var(--gold);width:36px;height:36px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
@@ -372,6 +373,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="spellcraft-shared.js"></script>
 <script src="spellcraft-auth.js"></script>
+<script src="spellcraft-catalog.js"></script>
 <script>
 /* ============================================================
    RÉFÉRENTIELS
@@ -383,6 +385,8 @@ const PAGE_SIZE = 9;
 const SPREAD_SIZE = PAGE_SIZE * 2; // deux pages affichées côte à côte
 const DECK_SIZE = 30;
 const MAX_COPIES = 2;
+let ownedCollection = {}; // { cardId: quantité possédée }
+let isLoggedInCache = false;
 
 /* ============================================================
    ÉTAT
@@ -402,6 +406,7 @@ let savedDecks = [];
 /* storageGet/storageSet viennent de spellcraft-shared.js */
 
 async function loadAll(){
+  isLoggedInCache = !!(await scGetCurrentUser());
   await refreshCollection(true);
   try{
     const res = await storageGet('spellcraft-decks');
@@ -411,8 +416,17 @@ async function loadAll(){
   renderAll();
 }
 
+sb.auth.onAuthStateChange(async (event)=>{
+  if(event==='SIGNED_IN' || event==='SIGNED_OUT'){
+    isLoggedInCache = event==='SIGNED_IN';
+    await refreshCollection(false);
+  }
+});
+
 async function refreshCollection(silent){
-  collection = await loadAllCardsAcrossSets();
+  const allCards = await loadAllCardsAcrossSets();
+  ownedCollection = await loadUserCollection();
+  collection = allCards.filter(c => (ownedCollection[c.id]||0) > 0);
   if(!silent){
     buildFilterDropdowns();
     renderAll();
@@ -864,6 +878,19 @@ function renderBinder(animate){
   document.getElementById('binder-pages').style.display = '';
   document.getElementById('binder-pages').style.gridTemplateColumns = '';
   document.getElementById('binder-pages').style.gap = '';
+
+  if(collection.length===0){
+    document.getElementById('results-count').textContent = '0 carte';
+    document.getElementById('page-indicator').textContent = '—';
+    document.getElementById('prev-page').disabled = true;
+    document.getElementById('next-page').disabled = true;
+    const pages = document.getElementById('binder-pages');
+    pages.innerHTML = isLoggedInCache
+      ? `<div class="empty-state">Ta collection est vide pour l'instant. Reviens quand des cartes t'auront été attribuées !</div>`
+      : `<div class="empty-state">🔒 Connecte-toi (en haut à droite) pour voir ta collection de cartes.</div>`;
+    return;
+  }
+
   const list = getFilteredSortedCollection();
   const heroList = collection.filter(c=>c.type==='Héros' && !(c.subtypes||[]).some(s=>s.trim().toLowerCase()==='conjuration'));
   const hasHeroPage = heroList.length>0;
@@ -935,6 +962,13 @@ function renderBinder(animate){
           badge.className='card-add-badge';
           badge.textContent = isChosenHero ? '★ héros' : isChosenRegion ? '★ région' : `x${count}`;
           slot.appendChild(badge);
+        }
+        const owned = ownedCollection[card.id];
+        if(owned!==undefined && card.type!=='Héros' && card.type!=='Région'){
+          const ownedBadge = document.createElement('div');
+          ownedBadge.className='card-owned-badge';
+          ownedBadge.textContent = `poss. x${owned}`;
+          slot.appendChild(ownedBadge);
         }
       } else {
         slot.innerHTML = '<div class="binder-slot-empty"></div>';
@@ -1026,7 +1060,9 @@ function changePage(dir){
 }
 
 function maxCopiesFor(card){
-  return card.rarity==='Légendaire' ? 1 : MAX_COPIES;
+  const ruleMax = card.rarity==='Légendaire' ? 1 : MAX_COPIES;
+  const owned = ownedCollection[card.id] ?? ruleMax; // repli permissif si l'info n'a pas pu être chargée
+  return Math.min(ruleMax, owned);
 }
 
 function deckHeroCard(){
