@@ -1,0 +1,2669 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Spellcraft — Prototype</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg-void:#0b0a12;
+  --bg-panel:#171325;
+  --bg-panel-2:#1f1a30;
+  --parchment:#efe6c8;
+  --parchment-dim:#d9cfae;
+  --ink:#1c1830;
+  --arcane:#7c5cff;
+  --gold:#d4af37;
+  --blood:#c23b3b;
+  --frost:#4fb3d9;
+  --green:#4a9d6b;
+  --aube:#d4af37; --crepuscule:#4b0082; --prima:#228b22; --volonte:#8b0000; --arcane-c:#4682b4; --neutre:#c0c0c0;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);font-family:'Inter',sans-serif;overflow:hidden;}
+.title-font{font-family:'Cinzel',serif;}
+
+#app-outer{display:flex;flex-direction:column;height:100vh;width:100vw;min-height:0;}
+#app{display:flex;flex:1;min-height:0;width:100%;}
+
+/* ---------- Board ---------- */
+#board{flex:1;position:relative;display:flex;flex-direction:column;padding:12px 16px;gap:8px;min-width:0;min-height:0;}
+#board-scroll-area{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;gap:8px;overflow-y:auto;overflow-x:hidden;padding-right:2px;}
+
+.hero-row{display:flex;flex-direction:column;gap:10px;padding:14px 18px;background:var(--bg-panel);border-radius:14px;border:1px solid #2b2440;max-width:400px;width:fit-content;}
+.hero-row.enemy{align-self:flex-end;}
+.hero-row.self{align-self:flex-start;}
+
+.hero-top{display:flex;align-items:center;gap:14px;}
+
+.hero-portrait{width:92px;height:92px;border-radius:50%;background:radial-gradient(circle at 35% 30%, var(--arcane), #2a1f55);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:700;font-size:30px;color:#fff;flex-shrink:0;border:4px solid var(--gold);position:relative;}
+.hp-badge{position:absolute;bottom:-9px;right:-12px;min-width:32px;height:32px;padding:0 6px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#e85858,#8a1f1f);border:2.5px solid #4a0f0f;color:#fff;font-family:'Cinzel',serif;font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.65);z-index:2;}
+
+.hero-info{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0;}
+.hero-name{font-family:'Cinzel',serif;font-size:17px;font-weight:600;color:var(--parchment);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+.dot.hp{background:var(--blood);}
+
+.hpbar-wrap{width:110px;height:7px;background:#2b2440;border-radius:6px;overflow:hidden;}
+.hpbar{height:100%;background:linear-gradient(90deg,var(--blood),#e06060);transition:width .3s;}
+
+.power-btn{background:var(--bg-panel-2);border:1.5px solid var(--frost);color:var(--frost);border-radius:9px;padding:9px 14px;font-family:'Inter';font-size:12.5px;font-weight:600;cursor:pointer;white-space:normal;text-align:left;line-height:1.35;width:100%;}
+.power-btn:disabled{opacity:.35;cursor:not-allowed;border-color:#444;color:#777;}
+.power-btn:not(:disabled):hover{background:var(--frost);color:var(--ink);}
+
+.region-tag{font-size:12.5px;color:var(--green);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+.mana-bar{display:flex;align-items:center;gap:10px;}
+.mana-region-thumb{width:32px;height:32px;border-radius:7px;background-size:cover;background-position:center;background-color:var(--bg-panel-2);border:2px solid var(--green);flex-shrink:0;cursor:pointer;box-shadow:0 2px 5px rgba(0,0,0,.5);}
+.mana-dots{display:flex;flex-wrap:wrap;gap:4px;align-content:center;}
+.mana-dot{width:12px;height:12px;border-radius:50%;border:1.5px solid rgba(0,0,0,.45);flex-shrink:0;}
+.mana-dot.filled{background:radial-gradient(circle at 35% 30%,#8fe0ff,#155a94);box-shadow:0 0 5px rgba(111,208,255,.7);}
+.mana-dot.empty{background:#241f38;}
+.mana-dot.fragile{background:radial-gradient(circle at 35% 30%,#d8f4ff,var(--frost));box-shadow:0 0 5px rgba(79,179,217,.75);}
+.mana-dot.reserved{outline:2px dashed var(--gold);outline-offset:1.5px;}
+
+.zone-badges{display:flex;gap:8px;margin-left:auto;flex-shrink:0;}
+.badge{display:flex;flex-direction:column;align-items:center;justify-content:center;width:46px;height:52px;border-radius:8px;background:var(--bg-panel-2);border:1px solid #3a3260;cursor:pointer;user-select:none;}
+.badge:hover{border-color:var(--gold);}
+.badge .badge-icon{font-size:17px;line-height:1;}
+.badge .badge-count{font-size:12px;font-weight:700;color:var(--parchment);}
+.badge.deck .badge-icon{color:var(--gold);}
+.badge.discard .badge-icon{color:#8a7fb0;}
+.badge.discard:not(.has-cards){opacity:.4;cursor:default;}
+
+.board-divider{display:flex;align-items:center;gap:12px;margin:0 4px;}
+.divider-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,#4a4270 15%,#4a4270 85%,transparent);}
+
+#discard-modal{position:fixed;inset:0;background:rgba(5,4,10,.88);display:none;align-items:center;justify-content:center;z-index:60;}
+#discard-modal.show{display:flex;}
+#discard-modal .modal-box{background:var(--bg-panel);border:1px solid #3a3260;border-radius:12px;padding:20px 24px;max-width:520px;max-height:70vh;display:flex;flex-direction:column;gap:12px;}
+#discard-modal h2{font-family:'Cinzel',serif;font-size:17px;color:var(--gold);margin:0;}
+#discard-list{overflow-y:auto;display:flex;flex-wrap:wrap;gap:8px;padding-right:4px;}
+#discard-modal .close-btn{align-self:flex-end;background:var(--arcane);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-family:'Cinzel',serif;font-weight:700;cursor:pointer;}
+
+#card-preview{position:fixed;z-index:80;pointer-events:none;display:none;opacity:0;transition:opacity .15s ease;}
+#card-preview .card{transform:scale(2.6);transform-origin:top left;box-shadow:0 16px 34px rgba(0,0,0,.65);}
+#card-preview.show{display:block;opacity:1;}
+
+#card-reveal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:85;opacity:0;background:rgba(5,4,10,0);transition:opacity .3s ease, background .3s ease;}
+#card-reveal.show{opacity:1;background:rgba(5,4,10,.5);}
+#card-reveal-inner .card{transform:scale(2.3);box-shadow:0 24px 60px rgba(0,0,0,.75), 0 0 70px rgba(124,92,255,.45);}
+#card-reveal.show #card-reveal-inner{animation:card-reveal-pop .3s ease-out;}
+@keyframes card-reveal-pop{0%{transform:scale(.7);opacity:0;}100%{transform:scale(1);opacity:1;}}
+
+/* ---------- Lanes ---------- */
+.lane{display:flex;gap:10px;justify-content:center;align-items:center;min-height:220px;padding:6px;background:radial-gradient(ellipse at center, #1c1730 0%, transparent 75%);border-radius:10px;flex-wrap:wrap;}
+.lane.enemy{transform:scaleY(-1);}
+.lane.enemy .card-slot{transform:scaleY(-1);}
+.slot-empty{width:150px;height:204px;border:1.5px dashed #332c50;border-radius:11px;}
+
+/* ---------- Cards ---------- */
+.card{
+  --cc: var(--neutre);
+  width:150px;height:204px;background:#f7f2e2;color:#231d33;border-radius:11px;
+  position:relative;cursor:pointer;flex-shrink:0;
+  box-shadow:0 3px 8px rgba(0,0,0,.5);
+  border:4px solid var(--cc);
+  transition:transform .12s ease, box-shadow .12s ease;
+  display:flex;flex-direction:column;overflow:hidden;
+  user-select:none;
+}
+.card.class-Aube{--cc:var(--aube);}
+.card.class-Crépuscule{--cc:var(--crepuscule);}
+.card.class-Prima{--cc:var(--prima);}
+.card.class-Volonté{--cc:var(--volonte);}
+.card.class-Arcane{--cc:var(--arcane-c);}
+.card.class-Neutre{--cc:var(--neutre);}
+
+.card-foil-layer{position:absolute;inset:0;border-radius:inherit;overflow:hidden;pointer-events:none;z-index:9;}
+.card-foil-layer::before{
+  content:'';position:absolute;top:-60%;left:-70%;width:70%;height:220%;
+  background:linear-gradient(115deg,
+    transparent 0%, rgba(255,90,90,.5) 14%, rgba(255,210,80,.5) 28%,
+    rgba(120,255,150,.5) 42%, rgba(80,190,255,.5) 56%, rgba(190,110,255,.5) 70%,
+    rgba(255,120,200,.5) 84%, transparent 100%);
+  transform:translateX(-40%) rotate(8deg);
+  mix-blend-mode:color-dodge;
+  opacity:.55;
+}
+.card.foil-play .card-foil-layer::before{animation:foil-sweep 1.05s ease-in-out;}
+@keyframes foil-sweep{
+  0%{transform:translateX(-160%) rotate(8deg);opacity:0;}
+  15%{opacity:.9;}
+  85%{opacity:.9;}
+  100%{transform:translateX(160%) rotate(8deg);opacity:0;}
+}
+.card:hover{transform:translateY(-6px);box-shadow:0 8px 16px rgba(0,0,0,.6);}
+.card.selected{outline:3px solid var(--arcane);transform:translateY(-6px);}
+.card.attacking{outline:3px solid var(--blood);}
+.card.blocked-by::after{content:"🛡";position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:14px;z-index:5;}
+.card.targetable{outline:3px solid var(--blood);animation:pulse 1s infinite;}
+.card.dragging{opacity:.35;}
+.card.trap-pending{outline:3px dashed var(--gold);outline-offset:2px;opacity:.75;cursor:default;}
+.card.trap-active{outline:3px solid var(--gold);outline-offset:2px;box-shadow:0 0 16px rgba(212,175,55,.6);cursor:default;animation:trap-armed-pulse 1.8s ease-in-out infinite;}
+.trap-wolf-icon{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:34px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.8));z-index:10;pointer-events:none;}
+@keyframes trap-armed-pulse{0%,100%{box-shadow:0 0 12px rgba(212,175,55,.45);}50%{box-shadow:0 0 22px rgba(212,175,55,.85);}}
+#lane-p1.drop-hover, #hero-p2.drop-hover{outline:3px dashed var(--gold);outline-offset:4px;border-radius:12px;}
+.card-slot.drop-hover .card{outline:3px dashed var(--gold);}
+.card.frozen{filter:hue-rotate(180deg) saturate(1.4) brightness(.9);}
+.card.stunned{filter:grayscale(.7) brightness(.75);}
+.card.summon-sick{transform:rotate(-4deg);}
+.card.summon-sick:hover{transform:rotate(-4deg) translateY(-6px);}
+.zzz{position:absolute;top:2px;right:3px;display:flex;align-items:flex-end;z-index:4;pointer-events:none;}
+.zzz span{font-family:'Cinzel',serif;font-weight:700;color:#ffd76b;text-shadow:0 1px 2px rgba(0,0,0,.7);animation:zzz-float 1.8s ease-in-out infinite;display:inline-block;}
+.zzz span:nth-child(1){font-size:9px;animation-delay:0s;}
+.zzz span:nth-child(2){font-size:12px;animation-delay:.3s;margin-left:1px;}
+.zzz span:nth-child(3){font-size:15px;animation-delay:.6s;margin-left:1px;}
+@keyframes zzz-float{
+  0%{opacity:0;transform:translateY(3px) scale(.6);}
+  30%{opacity:1;transform:translateY(0) scale(1);}
+  70%{opacity:1;transform:translateY(-3px) scale(1.12);}
+  100%{opacity:0;transform:translateY(-7px) scale(.75);}
+}
+
+.card.kw-fearful{animation:fearful-tremble 5s ease-in-out infinite;}
+@keyframes fearful-tremble{
+  0%,92%,100%{transform:translateX(0) rotate(0);}
+  93%{transform:translateX(-3px) rotate(-1.5deg);}
+  94%{transform:translateX(3px) rotate(1.5deg);}
+  95%{transform:translateX(-3px) rotate(-1.5deg);}
+  96%{transform:translateX(3px) rotate(1.5deg);}
+  97%{transform:translateX(-2px) rotate(-1deg);}
+  98%{transform:translateX(0) rotate(0);}
+}
+
+.card-armor-shield{position:absolute;inset:0;z-index:3;pointer-events:none;background:linear-gradient(135deg, rgba(255,215,110,.32), rgba(255,215,110,.04) 60%);box-shadow:inset 0 0 12px rgba(255,215,110,.6);animation:armor-glow 2.2s ease-in-out infinite;}
+@keyframes armor-glow{0%,100%{opacity:.65;}50%{opacity:1;}}
+
+.status-stack-tr{position:absolute;top:2px;left:3px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;z-index:6;pointer-events:none;}
+.card-protection-icon{font-size:12px;filter:drop-shadow(0 0 3px rgba(79,179,217,.95));animation:protection-pulse 1.6s ease-in-out infinite;}
+.card-reach-icon{font-size:11px;filter:drop-shadow(0 0 2px rgba(212,175,55,.9));}
+@keyframes protection-pulse{0%,100%{opacity:.7;transform:scale(1);}50%{opacity:1;transform:scale(1.18);}}
+
+/* Vol : la carte plane, ombre portée dessous via drop-shadow (respecte la découpe de la carte) */
+.card.kw-flying{transform:translateY(-9px);filter:drop-shadow(0 16px 7px rgba(0,0,0,.5));}
+.card.kw-flying:hover{transform:translateY(-15px);}
+
+/* Furtif : légèrement transparente, volutes de fumée à des coins différents */
+.card.kw-stealth{opacity:.78;}
+.card.kw-stealth::before, .card.kw-stealth::after{
+  content:'';position:absolute;width:20px;height:20px;border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,.6), transparent 70%);
+  filter:blur(2px);pointer-events:none;z-index:5;
+  animation:smoke-wisp 4s ease-in-out infinite;
+}
+.card.kw-stealth::before{top:-4px;left:-4px;animation-delay:0s;}
+.card.kw-stealth::after{bottom:10px;right:-4px;animation-delay:2s;}
+@keyframes smoke-wisp{
+  0%{opacity:0;transform:translateY(4px) scale(.6);}
+  30%{opacity:.75;transform:translateY(-2px) scale(1);}
+  70%{opacity:.35;transform:translateY(-10px) scale(1.35);}
+  100%{opacity:0;transform:translateY(-16px) scale(1.6);}
+}
+
+/* Perçant : petit pic acéré animé */
+.card-pierce-badge{position:absolute;bottom:3px;right:3px;font-size:12px;z-index:6;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6));animation:pierce-jab 1.4s ease-in-out infinite;}
+@keyframes pierce-jab{0%,100%{transform:translateX(0) rotate(-30deg);}50%{transform:translateX(2px) rotate(-30deg) scale(1.15);}}
+
+/* Initiative : reflet métallique qui balaie la carte */
+.card.kw-initiative::before{
+  content:'';position:absolute;top:0;left:-60%;width:35%;height:100%;
+  background:linear-gradient(115deg, transparent, rgba(255,255,255,.7), transparent);
+  transform:skewX(-20deg);pointer-events:none;z-index:5;
+  animation:initiative-shine 2.8s ease-in-out infinite;
+}
+@keyframes initiative-shine{0%{left:-60%;}55%{left:120%;}100%{left:120%;}}
+
+/* Vol de vie : lueur violette-rose périodique */
+.card.kw-lifesteal{animation:lifesteal-glow 6s ease-in-out infinite;}
+@keyframes lifesteal-glow{
+  0%,84%,100%{filter:none;}
+  90%{filter:drop-shadow(0 0 7px rgba(255,90,220,.85)) brightness(1.08);}
+  95%{filter:drop-shadow(0 0 12px rgba(200,80,255,.95)) brightness(1.15);}
+}
+
+/* Choisi pour attaquer : épées */
+.card.attack-selecting{transform:translateY(-20px);box-shadow:0 12px 22px rgba(194,59,59,.55);}
+.card.attack-selecting:hover{transform:translateY(-24px);}
+.sword-icons{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:24px;z-index:8;pointer-events:none;text-shadow:0 2px 5px rgba(0,0,0,.7);}
+.sword-icons.confirmed{font-size:28px;animation:sword-clash 1.3s ease-in-out infinite;}
+@keyframes sword-clash{0%,100%{transform:translate(-50%,-50%) rotate(-5deg);}50%{transform:translate(-50%,-50%) rotate(5deg);}}
+@keyframes pulse{0%,100%{outline-color:var(--blood);}50%{outline-color:#ff8a8a;}}
+
+.card-art{position:relative;height:42%;background:linear-gradient(135deg,#c9bd93,#a89968);background-size:cover;background-position:center;flex-shrink:0;}
+.card-cost{position:absolute;top:6px;left:6px;width:27px;height:27px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#6fd0ff,#155a94);border:2px solid #0c2b45;color:#fff;font-family:'Cinzel',serif;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;z-index:2;}
+.card-hero-hp{position:absolute;top:5px;right:6px;width:31px;height:31px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#7de08f,#1f7a3d);border:2px solid #0c3d1a;color:#fff;font-family:'Cinzel',serif;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;z-index:2;}
+.card-divider{height:7px;flex-shrink:0;position:relative;background:var(--cc);display:flex;align-items:center;justify-content:center;}
+.card-set-icon{width:15px;height:15px;background:var(--gold);border:1.5px solid #7a611c;transform:rotate(45deg);box-shadow:0 2px 5px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;}
+.card-set-icon span{transform:rotate(-45deg);font-size:6.5px;font-weight:700;color:#3a2c05;font-family:'Cinzel',serif;}
+.card-set-logo-img{position:absolute;width:200%;height:200%;top:-50%;left:-50%;background-size:cover;background-position:center;transform:rotate(-45deg);}
+.card-body{flex:1;padding:3px 7px 2px;display:flex;flex-direction:column;min-height:0;}
+.card-name{font-family:'Cinzel',serif;font-weight:700;font-size:11px;text-align:center;text-decoration:underline;text-underline-offset:2.5px;color:#1c1830;line-height:1.2;margin-bottom:3px;min-height:24px;}
+.card-kw{font-size:8px;color:var(--arcane);font-weight:700;min-height:10px;text-align:center;}
+.card-text{font-size:8.2px;line-height:1.2;flex:1;color:#2a2338;overflow:hidden;white-space:pre-wrap;text-align:center;}
+.card-footer{height:27px;flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:space-between;padding:0 7px 4px;}
+.card-atk,.card-hp{width:20px;height:20px;border-radius:50%;background:#efe6c8;border:2px solid #1c1830;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:9.5px;}
+.card-atk{color:var(--blood);}
+.card-hp{color:var(--green);}
+.card-rarity-gem{position:absolute;left:50%;bottom:5px;transform:translateX(-50%) rotate(45deg);width:10px;height:10px;border:2px solid rgba(0,0,0,.35);box-shadow:0 0 4px currentColor;}
+.card-rarity-gem.rarity-Basique{background:#6b6558;color:#6b6558;}
+.card-rarity-gem.rarity-Commune{background:#c7c2b3;color:#c7c2b3;}
+.card-rarity-gem.rarity-Rare{background:var(--frost);color:var(--frost);}
+.card-rarity-gem.rarity-Épique{background:var(--arcane);color:var(--arcane);}
+.card-rarity-gem.rarity-Légendaire{background:var(--gold);color:var(--gold);}
+.charges{color:var(--frost);font-size:11px;font-weight:700;position:absolute;bottom:5px;right:6px;z-index:2;}
+
+.hand-row{display:flex;flex-shrink:0;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:9px;justify-content:center;padding:22px 14px 10px;width:100%;box-sizing:border-box;background:transparent;scrollbar-width:none;}
+.hand-row::-webkit-scrollbar{height:0;width:0;background:transparent;}
+.hand-card-slot{flex-shrink:0;transform-origin:bottom center;transition:transform .15s ease;}
+.hand-card-slot:hover{transform:translateY(-12px) rotate(0deg) scale(1.05) !important;z-index:5;position:relative;}
+
+.side-zone{position:absolute;display:flex;flex-direction:column;gap:6px;z-index:6;}
+.side-zone.self{right:16px;top:calc(50% + 34px);}
+.side-zone.enemy{right:16px;top:50%;transform:translateY(-50%);}
+.mini-tag{width:52px;height:44px;border-radius:6px;background:var(--bg-panel-2);border:1px solid var(--frost);display:flex;align-items:center;justify-content:center;font-size:8px;text-align:center;padding:2px;position:relative;}
+.mini-tag.relic{border-color:var(--gold);}
+
+.phase-bar{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-shrink:0;}
+.phase-btn{background:linear-gradient(180deg,var(--arcane),#5537c2);color:#fff;border:none;border-radius:10px;padding:10px 22px;font-family:'Cinzel',serif;font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 4px 12px rgba(124,92,255,.4);letter-spacing:.4px;white-space:nowrap;}
+.phase-btn.small{padding:6px 14px;font-size:11px;box-shadow:none;}
+.phase-btn:hover{filter:brightness(1.15);}
+.phase-btn:disabled{opacity:.4;cursor:not-allowed;filter:none;}
+.phase-btn.secondary{background:var(--bg-panel-2);border:1px solid #3a3260;box-shadow:none;}
+.phase-label{font-family:'Cinzel',serif;font-size:12px;color:var(--parchment-dim);}
+
+/* ---------- Log panel ---------- */
+#log-panel{width:230px;background:var(--bg-panel);border-left:1px solid #2b2440;padding:14px;display:flex;flex-direction:column;}
+#log-panel h3{font-family:'Cinzel',serif;font-size:13px;margin:0 0 10px;color:var(--gold);letter-spacing:1px;}
+#log{flex:1;overflow-y:auto;font-size:11px;line-height:1.5;color:var(--parchment-dim);display:flex;flex-direction:column-reverse;}
+#log div{padding:3px 0;border-bottom:1px solid #241f38;}
+
+#overlay{position:fixed;inset:0;background:rgba(5,4,10,.88);display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;z-index:50;}
+#overlay.show{display:flex;}
+#overlay h1{font-family:'Cinzel',serif;font-size:36px;color:var(--gold);}
+#overlay button{background:var(--arcane);color:#fff;border:none;border-radius:10px;padding:12px 26px;font-family:'Cinzel',serif;font-weight:700;cursor:pointer;font-size:14px;}
+
+.tip{position:fixed;bottom:8px;left:50%;transform:translateX(-50%);font-size:11px;color:var(--parchment-dim);background:rgba(0,0,0,.4);padding:4px 12px;border-radius:20px;pointer-events:none;text-align:center;max-width:80vw;}
+
+#targeting-layer{position:fixed;inset:0;pointer-events:none;z-index:40;width:100%;height:100%;}
+#block-arrows-layer{position:fixed;inset:0;pointer-events:none;z-index:35;width:100%;height:100%;}
+.block-arrow-line{stroke:var(--blood);stroke-width:3;stroke-linecap:round;filter:drop-shadow(0 0 5px rgba(194,59,59,.75));stroke-dasharray:10 6;animation:block-arrow-dash .6s linear infinite;}
+.block-arrow-head{fill:var(--blood);filter:drop-shadow(0 0 5px rgba(194,59,59,.75));}
+@keyframes block-arrow-dash{to{stroke-dashoffset:-16;}}
+
+.dmg-popup{position:fixed;transform:translate(-50%,-50%);font-family:'Cinzel',serif;font-weight:700;font-size:24px;color:#ff5252;text-shadow:0 2px 5px rgba(0,0,0,.85);z-index:95;pointer-events:none;animation:dmg-float 1.4s ease-out forwards;}
+@keyframes dmg-float{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.5);}
+  15%{opacity:1;transform:translate(-50%,-62%) scale(1.2);}
+  100%{opacity:0;transform:translate(-50%,-150%) scale(1);}
+}
+#target-line{stroke:var(--arcane);stroke-width:3;stroke-linecap:round;filter:drop-shadow(0 0 6px var(--arcane));stroke-dasharray:11 7;animation:dash .5s linear infinite;}
+#target-origin{fill:var(--arcane);opacity:.9;}
+#target-arrow{fill:var(--arcane);filter:drop-shadow(0 0 6px var(--arcane));}
+@keyframes dash{to{stroke-dashoffset:-18;}}
+
+body.targeting *{cursor:crosshair !important;}
+
+#deck-select-box h1{font-family:'Cinzel',serif;font-size:22px;color:var(--gold);margin:0 0 6px;}
+#deck-select-box p.sub{color:var(--parchment-dim);font-size:13px;margin:0 0 20px;line-height:1.5;}
+.deck-pick-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg-panel-2);border:1px solid #3a3260;border-radius:10px;cursor:pointer;margin-bottom:10px;transition:border-color .15s;}
+.deck-pick-item:hover{border-color:var(--gold);}
+.deck-pick-item .dp-icon{width:38px;height:38px;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--arcane),#2a1f55);display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:700;color:#fff;flex-shrink:0;}
+.deck-pick-item .dp-info{flex:1;min-width:0;}
+.deck-pick-item .dp-name{font-family:'Cinzel',serif;font-size:14px;color:var(--parchment);}
+.deck-pick-item .dp-meta{font-size:11.5px;color:var(--parchment-dim);margin-top:2px;}
+.dsel-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;}
+.dsel-empty{text-align:center;padding:30px 10px;color:var(--parchment-dim);font-size:13px;line-height:1.6;}
+</style>
+</head>
+<body>
+
+<div id="app-outer">
+  <div id="app">
+    <div id="board">
+      <div id="board-scroll-area">
+        <div class="hero-row enemy" id="hero-p2"></div>
+        <div class="side-zone enemy" id="zone-p2"></div>
+        <div class="lane enemy" id="lane-p2"></div>
+        <div class="board-divider">
+          <div class="divider-line"></div>
+          <div class="phase-bar" id="phase-bar"></div>
+        </div>
+        <div class="lane self" id="lane-p1"></div>
+        <div class="side-zone self" id="zone-p1"></div>
+        <div class="hero-row self" id="hero-p1"></div>
+      </div>
+    </div>
+    <div id="log-panel">
+      <a href="spellcraft-hub.html" style="display:inline-block;margin-bottom:10px;font-size:11px;color:var(--parchment-dim);text-decoration:none;border:1px solid #3a3260;border-radius:6px;padding:5px 10px;">🏠 Retour au hub</a>
+      <h3>Journal</h3>
+      <div id="log"></div>
+    </div>
+  </div>
+  <div class="hand-row" id="hand-p1"></div>
+</div>
+
+<div class="tip" id="tip"></div>
+
+<svg id="targeting-layer">
+  <line id="target-line" x1="0" y1="0" x2="0" y2="0" style="display:none"/>
+  <circle id="target-origin" cx="0" cy="0" r="7" style="display:none"/>
+  <polygon id="target-arrow" points="0,0 0,0 0,0" style="display:none"/>
+</svg>
+
+<svg id="block-arrows-layer"></svg>
+
+<div id="card-preview"></div>
+
+<div id="card-reveal"><div id="card-reveal-inner"></div></div>
+
+
+<div id="deck-select-overlay" style="position:fixed;inset:0;background:var(--bg-void);display:flex;align-items:center;justify-content:center;z-index:90;">
+  <div id="deck-select-box" style="max-width:640px;width:90vw;max-height:85vh;overflow-y:auto;background:var(--bg-panel);border:1px solid #2b2440;border-radius:14px;padding:28px 30px;"></div>
+</div>
+
+<div id="overlay">
+  <h1 id="overlay-text"></h1>
+  <button onclick="location.reload()">Rejouer</button>
+</div>
+
+<div class="modal-overlay" id="discard-modal" style="position:fixed;inset:0;background:rgba(5,4,10,.88);display:none;align-items:center;justify-content:center;z-index:60;" onclick="if(event.target===this) closeDiscardModal()">
+  <div class="modal-box">
+    <h2 id="discard-modal-title">Défausse</h2>
+    <div id="discard-list"></div>
+    <button class="close-btn" onclick="closeDiscardModal()">Fermer</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="choice-modal" style="position:fixed;inset:0;background:rgba(5,4,10,.88);display:none;align-items:center;justify-content:center;z-index:65;">
+  <div class="modal-box">
+    <h2 id="choice-modal-title">Choisis une option</h2>
+    <div id="choice-list" style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;padding:6px 0;"></div>
+  </div>
+</div>
+<style>.modal-overlay.show{display:flex !important;}</style>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="spellcraft-shared.js"></script>
+<script src="spellcraft-auth.js"></script>
+<script>
+/* ============================================================
+   RÉFÉRENTIEL DE CARTES — jeu de démonstration
+   ============================================================
+   NOTE : ce moteur implémente les mécaniques CŒUR décrites dans le
+   document de règles (ressources, tours, combat en 2 temps, mots-clés).
+   Les capacités des cartes utilisent un système d'effets simplifié
+   (pas encore l'interpréteur générique complet de l'éditeur de cartes),
+   suffisant pour démontrer chaque brique du moteur.
+   ============================================================ */
+
+/* CLASS_COLORS et escapeHtml viennent de spellcraft-shared.js (chargé avant ce script). */
+const escapeHtmlGS = escapeHtml;
+
+const DEMO_HEROES = {
+  pyra: {
+    id:'pyra', name:'Pyra, Flamme Ardente', class:'Aube', hp:25,
+    activeText:'Inflige 2 dégâts à une cible. (2 mana)', activeCost:2, activeCooldownMax:2, activeEffect:{type:'damage', amount:2}
+  },
+  nocturne: {
+    id:'nocturne', name:'Nocturne, l\'Ombre Muette', class:'Crépuscule', hp:25,
+    activeText:'Étourdit une créature ennemie désignée. (3 mana)', activeCost:3, activeCooldownMax:3, activeEffect:{type:'stun'}
+  }
+};
+
+const DEMO_REGIONS = {
+  plaines: {
+    id:'plaines', name:'Plaines Dorées', class:'Aube',
+    text:'Gain de mana standard : +1 mana normal par tour.',
+    manaRule:'default'
+  },
+  marais: {
+    id:'marais', name:'Marais Crépusculaire', class:'Crépuscule',
+    text:'Chaque tour, gagnez aussi 1 mana fragile en plus du gain normal.',
+    manaRule:'bonusFragile'
+  }
+};
+
+const CARD_DB = [
+  // --- Aube ---
+  {id:'c1', name:'Soldat de l\'Aube', type:'Créature', class:'Aube', cost:2, atk:2, hp:2, keywords:[], text:'Une recrue loyale.'},
+  {id:'c2', name:'Éclaireur Ailé', type:'Créature', class:'Aube', cost:2, atk:2, hp:1, keywords:['flying'], text:'Vol.'},
+  {id:'c3', name:'Duelliste Vif', type:'Créature', class:'Aube', cost:2, atk:2, hp:2, keywords:['initiative'], text:'Initiative.'},
+  {id:'c4', name:'Chevalier Cuirassé', type:'Créature', class:'Aube', cost:3, atk:2, hp:3, keywords:['armor'], text:'Armure.'},
+  {id:'c5', name:'Garde Protégée', type:'Créature', class:'Aube', cost:2, atk:1, hp:4, keywords:['protection'], text:'Protection.'},
+  {id:'s1', name:'Éclair Doré', type:'Sortilège', class:'Aube', cost:2, effect:{type:'damage', amount:2}, text:'Inflige 2 dégâts à une créature ou un héros ennemi.'},
+  {id:'s1b', name:'Rayon Gelé', type:'Sortilège', class:'Aube', cost:1, effect:{type:'freeze'}, text:'Gèle une créature ennemie désignée.'},
+  {id:'r1', name:'Piège Solaire', type:'Piège', class:'Aube', cost:2, effect:{type:'damage', amount:3}, text:'Quand une créature ennemie attaque, inflige 3 dégâts à l\'attaquant.'},
+
+  // --- Crépuscule ---
+  {id:'c6', name:'Suceuse de Sang', type:'Créature', class:'Crépuscule', cost:3, atk:2, hp:3, keywords:['lifesteal'], text:'Vol de vie.'},
+  {id:'c7', name:'Assassin Furtif', type:'Créature', class:'Crépuscule', cost:2, atk:3, hp:1, keywords:['stealth'], text:'Furtif.'},
+  {id:'c8', name:'Zombie Tenace', type:'Créature', class:'Crépuscule', cost:3, atk:2, hp:2, keywords:['relentless'], text:'Tenace.'},
+  {id:'c9', name:'Guetteuse Nocturne', type:'Créature', class:'Crépuscule', cost:2, atk:1, hp:3, keywords:['reach'], text:'Portée.'},
+  {id:'s2', name:'Étreinte d\'Ombre', type:'Sortilège', class:'Crépuscule', cost:2, effect:{type:'stun'}, text:'Étourdit une créature ennemie désignée.'},
+  {id:'s2b', name:'Rappel Spectral', type:'Sortilège', class:'Crépuscule', cost:2, effect:{type:'bounce'}, text:'Renvoie une créature ennemie désignée en main.'},
+
+  // --- Volonté ---
+  {id:'c10', name:'Brute Écumante', type:'Créature', class:'Volonté', cost:3, atk:3, hp:2, keywords:['charge'], text:'Charge.'},
+  {id:'c11', name:'Colosse Perçant', type:'Créature', class:'Volonté', cost:4, atk:4, hp:5, keywords:['pierce'], text:'Perçant.'},
+  {id:'c12', name:'Berserker', type:'Créature', class:'Volonté', cost:3, atk:4, hp:2, keywords:[], text:'Frappe fort, encaisse peu.'},
+
+  // --- Prima ---
+  {id:'c13', name:'Ours Sauvage', type:'Créature', class:'Prima', cost:3, atk:3, hp:3, keywords:[], text:'Une force brute et fiable.'},
+  {id:'s3', name:'Soin Vital', type:'Sortilège', class:'Prima', cost:2, effect:{type:'heal', amount:4}, text:'Restaure 4 PV à votre héros.'},
+  {id:'s3b', name:'Croissance Sauvage', type:'Sortilège', class:'Prima', cost:2, effect:{type:'buff', atk:2, hp:2}, text:'Une créature alliée gagne +2/+2.'},
+  {id:'s3c', name:'Sagesse de la Forêt', type:'Sortilège', class:'Prima', cost:1, effect:{type:'draw', amount:1}, text:'Piochez une carte.'},
+  {id:'s3d', name:'Fouille Ancestrale', type:'Sortilège', class:'Prima', cost:2, effect:{type:'retrieve', source:'deck', criteria:'atkHigher', destination:'hand', repeat:'once'}, text:'Cherchez la créature avec la Force la plus élevée de votre deck et ajoutez-la à votre main.'},
+  {id:'s3e', name:'Vision de la Meute', type:'Sortilège', class:'Prima', cost:3, effect:{type:'discover', criteria:'cardType', cardType:'Créature'}, text:'Révélez 3 créatures de votre deck, choisissez-en une à ajouter à votre main.'},
+  {id:'s1c', name:'Rituel d\'Invocation', type:'Sortilège', class:'Aube', cost:4, effect:{type:'conjure', mode:'filter', types:['Créature'], class:'any', destination:'battlefield', costMode:'atMost', costValue:3}, text:'Conjurez une créature coûtant 3 ou moins, directement en jeu.'},
+  {id:'s2c', name:'Pillage de Cimetière', type:'Sortilège', class:'Crépuscule', cost:2, effect:{type:'explore', amount:2, owner:'own'}, text:'Explorez 2 cartes de votre deck.'},
+  {id:'c16', name:'Colonie de Limaces', type:'Créature', class:'Neutre', cost:3, atk:2, hp:2, keywords:[], onPlayEffect:{type:'summonCopy', amount:1}, text:'Début : invoque une copie supplémentaire de cette carte.'},
+  {id:'a1', name:'Amulette de Régénération', type:'Artefact', class:'Prima', cost:2, charges:3, effect:{type:'heal', amount:1}, text:'3 charges. Début de tour : restaure 1 PV.'},
+
+  // --- Neutre ---
+  {id:'c14', name:'Milicien', type:'Créature', class:'Neutre', cost:1, atk:1, hp:2, keywords:[], text:'Un défenseur basique.'},
+  {id:'c14b', name:'Éclaireur Timide', type:'Créature', class:'Neutre', cost:1, atk:2, hp:1, keywords:['fearful'], text:'Peureux.'},
+  {id:'c15', name:'Golem de Pierre', type:'Créature', class:'Neutre', cost:5, atk:5, hp:6, keywords:[], text:'Lent mais massif.'},
+  {id:'s4', name:'Étincelle', type:'Sortilège', class:'Neutre', cost:1, effect:{type:'damage', amount:1}, text:'Inflige 1 dégât à une créature ou un héros ennemi.'},
+];
+
+const KEYWORD_LABELS = {
+  charge:'Charge', flying:'Vol', reach:'Portée', pierce:'Perçant', lifesteal:'Vol de vie',
+  initiative:'Initiative', protection:'Protection', armor:'Armure', stealth:'Furtif', relentless:'Tenace',
+  fearful:'Peureux'
+};
+
+/* ============================================================
+   ÉTAT
+   ============================================================ */
+let uid = 1;
+const nextId = () => 'i' + (uid++);
+
+function shuffle(arr){
+  const a = [...arr];
+  for(let i=a.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+function buildDemoDeck(className){
+  const pool = CARD_DB.filter(c=>c.class===className || c.class==='Neutre');
+  const deck = [];
+  const clone = (c)=>({...c, subtypes:[...(c.subtypes||[])], keywords:[...(c.keywords||[])], effect: c.effect ? {...c.effect} : undefined, onPlayEffect: c.onPlayEffect ? {...c.onPlayEffect} : undefined});
+  pool.forEach(c=>{ deck.push(clone(c)); deck.push(clone(c)); });
+  return shuffle(deck);
+}
+
+/* ---- Traduction des cartes réelles (éditeur) vers le format du moteur ---- */
+/* ---- Mappage générique effet éditeur -> effet moteur (partagé sorts / pouvoirs / pièges / artefacts) ---- */
+const EFFECT_LABELS = {
+  damage: (e)=>`Inflige ${e.amount} dégâts à une cible ennemie.`,
+  heal: (e)=>`Restaure ${e.amount} PV à votre héros.`,
+  stun: ()=>`Étourdit une créature ennemie désignée.`,
+  freeze: ()=>`Gèle une créature ennemie désignée.`,
+  bounce: ()=>`Renvoie une créature ennemie désignée en main.`,
+  destroy: ()=>`Détruit une créature ennemie désignée.`,
+  silence: ()=>`Réduit une créature ennemie désignée au silence.`,
+  draw: (e)=>`Pioche ${e.amount} carte${e.amount>1?'s':''}.`,
+  buff: (e)=>`Renforce une créature alliée de +${e.atk}/+${e.hp}.`,
+  resource: (e)=>`Gagne ${e.amount} mana utilisable immédiatement.`,
+  emptyManaEffect: (e)=>`Gagne ${e.amount} mana vide (max augmenté).`,
+  fragileManaEffect: (e)=>`Gagne ${e.amount} mana fragile.`,
+  refillMana: ()=>`Recharge tout le mana disponible ce tour-ci.`,
+  discardSelf: (e)=>`Défausse ${e.amount} carte${e.amount>1?'s':''} de sa main.`,
+  setStats: (e)=>`Fixe les statistiques à ${e.atk}/${e.hp}.`,
+  upgrade: ()=>`Donne un mot-clé aléatoire à une créature alliée.`,
+  grantKeyword: (e)=>`Donne ${KEYWORD_LABELS[e.keyword]||e.keyword} à une créature alliée.`,
+  keywordChoice: ()=>`Révèle 3 mots-clés au hasard pour une créature alliée.`,
+  summonCopy: (e)=>`Invoque ${e.amount} copie(s) supplémentaire(s) de cette carte.`,
+  nextDiscount: (e)=>`Le prochain ${e.cardType} coûte ${e.amount} de moins ce tour-ci.`,
+  explore: (e)=>`Explore ${e.amount} carte(s) ${e.owner==='enemy'?'du deck adverse':'de son deck'}.`,
+  retrieve: ()=>`Cherche une carte dans le deck ou la défausse.`,
+  discover: ()=>`Révèle 3 cartes du deck, choisissez-en une.`,
+  conjure: ()=>`Conjure une carte hors du deck.`,
+  fight: ()=>`Une créature alliée et une créature ennemie se battent.`,
+  coinFlip: ()=>`Lance une pièce contre des créatures ennemies.`
+};
+const TARGETED_EFFECTS = ['damage','stun','freeze','bounce','destroy','silence'];
+
+function mapAbilityEffect(ab){
+  const eff = ab && ab.effects && ab.effects[0];
+  if(!eff) return null;
+  const amount = eff.valueFixed;
+  const built = mapAbilityEffectRaw(eff, amount);
+  if(built) built.conditions = ab.conditions || [];
+  return built;
+}
+
+function mapAbilityEffectRaw(eff, amount){
+  switch(eff.effectType){
+    case 'damage': return {type:'damage', amount: amount||2, targetOwner: eff.targetOwner};
+    case 'heal': return {type:'heal', amount: amount||2};
+    case 'stun': return {type:'stun', targetOwner: eff.targetOwner};
+    case 'freeze': return {type:'freeze', targetOwner: eff.targetOwner};
+    case 'bounce': return {type:'bounce', targetOwner: eff.targetOwner};
+    case 'destroy': return {type:'destroy', targetOwner: eff.targetOwner};
+    case 'silence': return {type:'silence', targetOwner: eff.targetOwner};
+    case 'draw': return {type:'draw', amount: amount||1, owner: eff.manaTargetOwner||'self'};
+    case 'buff': return {type:'buff', atk: amount??1, hp: eff.valueFixed2??1};
+    case 'resource': return {type:'resource', amount: amount||1, owner: eff.manaTargetOwner||'self'};
+    case 'emptyMana': return {type:'emptyManaEffect', amount: amount||1, owner: eff.manaTargetOwner||'self'};
+    case 'fragileMana': return {type:'fragileManaEffect', amount: amount||1, owner: eff.manaTargetOwner||'self'};
+    case 'refillMana': return {type:'refillMana', owner: eff.manaTargetOwner||'self'};
+    case 'discard': return {type:'discardSelf', amount: amount||1};
+    case 'setStats': return {type:'setStats', scope: eff.setStatsScope||'board', owner: eff.setStatsOwner||'ally', atk: eff.setStatsAtk??1, hp: eff.setStatsHp??1};
+    case 'upgrade': return {type:'upgrade'};
+    case 'grantKeyword': return {type:'grantKeyword', keyword: eff.grantKeywordKey||'charge', duration: eff.grantKeywordDuration||'permanent'};
+    case 'keywordChoice': return {type:'keywordChoice'};
+    case 'summonCopy': return {type:'summonCopy', amount: amount||1};
+    case 'nextDiscount': return {type:'nextDiscount', amount: amount||1, cardType: eff.nextDiscountType||'Toutes'};
+    case 'explore': return {type:'explore', amount: amount||1, owner: eff.exploreOwner||'own'};
+    case 'retrieve': return {type:'retrieve', source: eff.retrieveSource||'deck', criteria: eff.retrieveCriteria||'random',
+      value: eff.retrieveValue, cardType: eff.retrieveCardType, subtype: eff.retrieveSubtype, keyword: eff.retrieveKeyword,
+      destination: eff.retrieveDestination||'hand', repeat: eff.retrieveRepeat||'once'};
+    case 'discover': return {type:'discover', criteria: eff.discoverCriteria||'random', value: eff.discoverValue,
+      cardType: eff.discoverCardType, subtype: eff.discoverSubtype};
+    case 'conjure': return {type:'conjure', mode: eff.conjureMode||'filter', specificName: eff.conjureSpecificName,
+      types: eff.conjureTypes||['Sortilège'], class: eff.conjureClass||'any', subtype: eff.conjureSubtype,
+      costMode: eff.conjureCostMode, costValue: eff.conjureCostValue, atkMode: eff.conjureAtkMode, atkValue: eff.conjureAtkValue,
+      hpMode: eff.conjureHpMode, hpValue: eff.conjureHpValue, destination: eff.conjureDestination||'hand',
+      owner: eff.conjureTargetOwner||'self',
+      followUp: eff.followUpEnabled ? {enabled:true, type:eff.followUpType, atk:eff.followUpAtk, hp:eff.followUpHp, keyword:eff.followUpKeyword, duration:eff.followUpDuration} : null};
+    case 'fight': return {type:'fight'};
+    case 'coinFlip': return {type:'coinFlip', owner: eff.coinFlipTargetOwner||'enemy', selection: eff.coinFlipSelectionMode||'all',
+      successEffect: eff.coinFlipSuccessEffect||'destroy', successValue: eff.coinFlipSuccessValue||2};
+    default: return null; // effet personnalisé (texte libre) : non automatisable
+  }
+}
+
+function extractSimpleEffect(rawCard){
+  const abilities = rawCard.abilities || [];
+  let ab;
+  if(rawCard.type==='Sortilège') ab = abilities[0];
+  else if(rawCard.type==='Piège') ab = abilities[0];
+  else if(rawCard.type==='Artefact') ab = abilities.find(a=>a.trigger==='startOfTurn');
+  else return null;
+  return mapAbilityEffect(ab);
+}
+
+function extractCreatureOnPlay(rawCard){
+  if(rawCard.type!=='Créature') return null;
+  const ab = (rawCard.abilities||[]).find(a=>a.trigger==='onPlay');
+  return mapAbilityEffect(ab);
+}
+
+function translateCard(raw){
+  return {
+    id: raw.id, name: raw.name, type: raw.type, class: raw.class, classSecondary: raw.classSecondary||'',
+    cost: raw.cost, atk: raw.atk, hp: raw.hp, charges: raw.charges,
+    subtypes: [...(raw.subtypes||[])],
+    keywords: [...(raw.keywords||[])],
+    text: raw.text || '',
+    image: raw.image || '', imagePosX: raw.imagePosX ?? 50, imagePosY: raw.imagePosY ?? 50, imageZoom: raw.imageZoom ?? 100,
+    rarity: raw.rarity || 'Commune', foil: !!raw.foil,
+    set: raw.set || '', setLogo: raw.setLogo || '',
+    extraCostEnabled: !!raw.extraCostEnabled, extraCostType: raw.extraCostType||'sacrificeCreature', extraCostAmount: raw.extraCostAmount||1, extraCostCustom: raw.extraCostCustom||'',
+    trapTrigger: raw.type==='Piège' ? ((raw.abilities||[])[0]?.trigger || 'onOpponentAttack') : undefined,
+    effect: extractSimpleEffect(raw),
+    onPlayEffect: extractCreatureOnPlay(raw)
+  };
+}
+
+function normalizeCardForPool(raw){
+  if(raw.abilities !== undefined) return translateCard(raw);
+  return {...raw, subtypes:[...(raw.subtypes||[])], keywords:[...(raw.keywords||[])], effect: raw.effect ? {...raw.effect} : undefined, onPlayEffect: raw.onPlayEffect ? {...raw.onPlayEffect} : undefined};
+}
+
+function buildHeroObject(rawHeroCard){
+  const ab = (rawHeroCard.abilities||[]).find(a=>a.trigger==='activated');
+  let activeEffect=null, activeCost=0, activeCooldownMax=0, activeText='Aucun pouvoir actif sur cette carte.';
+  if(ab){
+    activeCost = ab.activationCost||2;
+    activeCooldownMax = ab.activationCooldown||0;
+    activeEffect = mapAbilityEffect(ab);
+    if(activeEffect && EFFECT_LABELS[activeEffect.type]){
+      activeText = `${EFFECT_LABELS[activeEffect.type](activeEffect)} (${activeCost} mana)`;
+    } else {
+      activeText = 'Pouvoir défini mais pas encore pris en charge par ce prototype.';
+      activeEffect = null;
+    }
+  }
+  const startAb = (rawHeroCard.abilities||[]).find(a=>a.trigger==='gameStart');
+  const gameStartEffect = startAb ? mapAbilityEffect(startAb) : null;
+  return { id: rawHeroCard.id, name: rawHeroCard.name, class: rawHeroCard.class, hp: rawHeroCard.hp||20,
+    activeText, activeCost, activeCooldownMax, activeEffect, gameStartEffect,
+    image: rawHeroCard.image||'', imagePosX: rawHeroCard.imagePosX ?? 50, imagePosY: rawHeroCard.imagePosY ?? 50, imageZoom: rawHeroCard.imageZoom ?? 100 };
+}
+
+function buildRegionObject(rawRegionCard){
+  const flavor = rawRegionCard.manaRule || rawRegionCard.text || 'Gain de mana standard.';
+  const manaRule = flavor.toLowerCase().includes('fragile') ? 'bonusFragile' : 'default';
+  const startAb = (rawRegionCard.abilities||[]).find(a=>a.trigger==='gameStart');
+  const gameStartEffect = startAb ? mapAbilityEffect(startAb) : null;
+  return { id: rawRegionCard.id, name: rawRegionCard.name, class: rawRegionCard.class, text: flavor, manaRule, gameStartEffect,
+    image: rawRegionCard.image||'', imagePosX: rawRegionCard.imagePosX ?? 50, imagePosY: rawRegionCard.imagePosY ?? 50, imageZoom: rawRegionCard.imageZoom ?? 100 };
+}
+
+function buildDeckFromSaved(saved, collection){
+  const cardList = [];
+  (saved.cards||[]).forEach(entry=>{
+    const raw = collection.find(c=>c.id===entry.cardId);
+    if(!raw) return;
+    for(let i=0;i<entry.count;i++) cardList.push(translateCard(raw));
+  });
+  return shuffle(cardList);
+}
+
+function newPlayer(heroObj, regionObj, deckArray, isAI){
+  const p = {
+    hero: heroObj, region: regionObj, isAI,
+    hp: heroObj.hp,
+    manaNormalMax:0, manaNormal:0, manaFragile:0,
+    heroCooldown:0, pendingDiscount:null,
+    hand:[], deck:[...deckArray], board:[], relics:[], discard:[],
+    attackers:[], blocks:{}, hpLostThisTurn:0, hpGainedThisTurn:0
+  };
+  for(let i=0;i<4;i++) drawCard(p);
+  return p;
+}
+
+function drawCard(p){
+  if(p.deck.length===0) return null;
+  const card = p.deck.shift();
+  p.hand.push(card);
+  return card;
+}
+
+let S = {
+  turn:1,
+  active:'p1',
+  phase:'main', // main | declareAttackers | declareBlockers | resolving
+  p1:null, p2:null,
+  gameOver:false,
+  selectedAttacker:null,
+  pendingCard:null,
+  pendingBlocker:null,
+  attackPhaseDone:false
+};
+
+function startGame(p1Hero, p1Region, p1Deck, p2Hero, p2Region, p2Deck){
+  S.p1 = newPlayer(p1Hero, p1Region, p1Deck, false);
+  S.p2 = newPlayer(p2Hero, p2Region, p2Deck, true);
+  S.turn = 1;
+  S.active = 'p1';
+  S.phase = 'main';
+  log(`La partie commence. Vous incarnez ${p1Hero.name}, avec ${p1Region.name} comme région.`);
+
+  suppressDamagePopups = true;
+  triggerGameStart(S.p1, 'p1');
+  triggerGameStart(S.p2, 'p2');
+  suppressDamagePopups = false;
+
+  startTurn('p1', true);
+}
+
+function triggerGameStart(p, key){
+  [p.hero, p.region].forEach(source=>{
+    const eff = source && source.gameStartEffect;
+    if(!eff) return;
+    if(effectNeedsTarget(eff)){
+      if(eff.type==='damage'){
+        const oppKey = key==='p1' ? 'p2' : 'p1';
+        applySpellEffect(eff, p, key, {isHeroTarget:true, player:S[oppKey], key:oppKey});
+      } else {
+        log(`${source.name} : capacité de début de partie sans cible valable (aucune créature en jeu), ignorée.`);
+      }
+    } else {
+      applySpellEffect(eff, p, key, {});
+    }
+    log(`${source.name} déclenche sa capacité de début de partie.`);
+  });
+}
+
+let ACTIVE_CARD_POOL = CARD_DB;
+
+function startDemoGame(){
+  ACTIVE_CARD_POOL = CARD_DB;
+  startGame(
+    DEMO_HEROES.pyra, DEMO_REGIONS.plaines, buildDemoDeck('Aube'),
+    DEMO_HEROES.nocturne, DEMO_REGIONS.marais, buildDemoDeck('Crépuscule')
+  );
+}
+
+/* ============================================================
+   LOG
+   ============================================================ */
+function log(msg){
+  const div = document.createElement('div');
+  div.textContent = msg;
+  document.getElementById('log').prepend(div);
+}
+function cardOwnerName(key){ return key==='p1' ? 'Vous' : 'L\'adversaire'; }
+
+/* ============================================================
+   RESSOURCES — mana normal / fragile / vide
+   ============================================================ */
+function applyManaGain(p, key){
+  p.manaNormalMax = Math.min(10, p.manaNormalMax+1);
+  p.manaNormal = p.manaNormalMax;
+  const region = p.region;
+  if(region.manaRule==='bonusFragile'){
+    p.manaFragile += 1;
+    log(`${cardOwnerName(key)} : ${region.name} octroie 1 mana fragile supplémentaire.`);
+  }
+}
+function availableMana(p){ return p.manaNormal + p.manaFragile; }
+function spendMana(p, amount){
+  let remaining = amount;
+  const fromNormal = Math.min(p.manaNormal, remaining);
+  p.manaNormal -= fromNormal; remaining -= fromNormal;
+  const fromFragile = Math.min(p.manaFragile, remaining);
+  p.manaFragile -= fromFragile; remaining -= fromFragile;
+}
+function gainEmptyMana(p, key, amount){
+  p.manaNormalMax = Math.min(10, p.manaNormalMax+amount);
+  log(`${cardOwnerName(key)} gagne ${amount} mana vide (maximum augmenté, indisponible ce tour-ci).`);
+}
+function gainFragileMana(p, key, amount){
+  p.manaFragile += amount;
+  log(`${cardOwnerName(key)} gagne ${amount} mana fragile.`);
+}
+
+/* ============================================================
+   TOUR
+   ============================================================ */
+function modifyHp(p, delta){
+  p.hp += delta;
+  if(delta<0) p.hpLostThisTurn = (p.hpLostThisTurn||0) + (-delta);
+  else if(delta>0) p.hpGainedThisTurn = (p.hpGainedThisTurn||0) + delta;
+}
+
+function startTurn(key, first){
+  const p = S[key];
+  applyManaGain(p, key);
+  p.hpLostThisTurn = 0;
+  p.hpGainedThisTurn = 0;
+
+  // pièges actifs jamais déclenchés : se désarment au retour du tour de leur propriétaire
+  p.hand.forEach(card=>{
+    if(card.activeTrap){
+      card.activeTrap = false;
+      card.reservedMana = undefined;
+      log(`${cardOwnerName(key)} : ${card.name} n'a pas été déclenché et se désarme.`);
+    }
+  });
+
+  // reliques : tick de début de tour
+  p.relics.forEach(r=>{
+    if(r.effect && r.effect.type==='heal' && conditionsMet(r.effect.conditions, p, key)){
+      modifyHp(p, r.effect.amount);
+      log(`${cardOwnerName(key)} : ${r.name} restaure ${r.effect.amount} PV.`);
+    }
+    r.charges--;
+  });
+  p.discard.push(...p.relics.filter(r=>r.charges<=0));
+  p.relics = p.relics.filter(r=>r.charges>0);
+
+  drawCard(p);
+
+  p.board.forEach(c=>{
+    c.frozen=false;
+    c.stunned=false;
+    c.summonSick=false;
+    c.protectedActive=false;
+    if(c._tempKeywords && c._tempKeywords.length){
+      c.keywords = c.keywords.filter(k=>!c._tempKeywords.includes(k));
+      c._tempKeywords = [];
+    }
+    c.hasAttacked=false;
+  });
+
+  if(p.heroCooldown>0) p.heroCooldown--;
+
+  S.phase = 'main';
+  S.attackPhaseDone = false;
+  S.selectedAttacker=null; S.pendingCard=null; S.pendingBlocker=null;
+  log(`--- Tour ${S.turn} : ${key==='p1'?'Votre tour':'Tour de l\'adversaire'} ---`);
+  render();
+
+  if(p.isAI) setTimeout(runAI, 700);
+}
+
+function resolveTrapReservations(key){
+  const p = S[key];
+  p.hand.forEach(card=>{
+    if(!card.pendingTrap) return;
+    if(availableMana(p) >= card.reservedMana){
+      card.pendingTrap = false;
+      card.activeTrap = true;
+      log(`${cardOwnerName(key)} : ${card.name} est maintenant armé et actif.`);
+    } else {
+      card.pendingTrap = false;
+      card.reservedMana = undefined;
+      log(`${cardOwnerName(key)} : mana insuffisant en fin de tour, ${card.name} ne s'active pas.`);
+    }
+  });
+}
+
+function endTurn(){
+  if(S.gameOver) return;
+  resolveTrapReservations(S.active);
+  fireTrap(S.active==='p1' ? 'p2' : 'p1', 'onOpponentEndTurn', null);
+  S[S.active].pendingDiscount = null;
+  S.selectedAttacker = null;
+  S.pendingCard = null;
+  endTargeting();
+  if(S.active==='p1'){
+    S.active='p2';
+    startTurn('p2');
+  } else {
+    S.turn++;
+    S.active='p1';
+    startTurn('p1');
+  }
+}
+
+/* ============================================================
+   DÉGÂTS / MORT
+   ============================================================ */
+let suppressDamagePopups = false;
+
+function dealDamageToHero(targetPlayer, targetKey, amount, sourcePlayer){
+  modifyHp(targetPlayer, -amount);
+  if(!suppressDamagePopups) spawnDamageNumber(document.querySelector(`#hero-${targetKey} .hero-portrait`), amount);
+  if(targetPlayer.hp<=0){
+    endGame(targetKey==='p1' ? 'p2' : 'p1');
+  }
+}
+
+function spawnDamageNumber(anchorEl, amount){
+  if(!anchorEl || !amount) return;
+  const r = anchorEl.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'dmg-popup';
+  el.textContent = '-' + amount;
+  el.style.left = (r.left + r.width/2) + 'px';
+  el.style.top = (r.top + r.height*0.35) + 'px';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 1450);
+}
+
+function lungeToward(el, targetEl, duration){
+  if(!el || !el.animate || !targetEl) return;
+  const a = el.getBoundingClientRect(), b = targetEl.getBoundingClientRect();
+  const dx = (b.left+b.width/2) - (a.left+a.width/2);
+  const dy = (b.top+b.height/2) - (a.top+a.height/2);
+  const len = Math.hypot(dx,dy) || 1;
+  const ux = dx/len, uy = dy/len;
+  const dist = 16;
+  el.animate([
+    { transform:'translate(0,0)' },
+    { transform:`translate(${-ux*6}px, ${-uy*6}px)`, offset:0.22 },
+    { transform:`translate(${ux*dist}px, ${uy*dist}px)`, offset:0.5 },
+    { transform:'translate(0,0)' }
+  ], { duration: duration||650, easing:'ease-in-out' });
+}
+
+function applyDamage(dealer, dealerP, dealerKey, target, targetP, targetKey){
+  const dmg = dealer.curAtk;
+  if(target.keywords.includes('armor') && !target.armorUsed){
+    target.armorUsed = true;
+    log(`${target.name} absorbe les dégâts grâce à Armure.`);
+    return 0;
+  }
+  target.curHp -= dmg;
+  if(!suppressDamagePopups) spawnDamageNumber(document.querySelector(`[data-inst-id="${target.instId}"]`), dmg);
+  if(dealer.keywords.includes('lifesteal')){
+    modifyHp(dealerP, dmg);
+    log(`${dealer.name} soigne son héros de ${dmg} PV (Vol de vie).`);
+  }
+  if(dealer.keywords.includes('pierce') && target.curHp<0){
+    const excess = -target.curHp;
+    dealDamageToHero(targetP, targetKey, excess, dealerP);
+    log(`Perçant : ${excess} dégâts excédentaires passent au héros ennemi.`);
+  }
+  return dmg;
+}
+
+function cleanupDeaths(){
+  ['p1','p2'].forEach(key=>{
+    const p = S[key];
+    const survivors = [];
+    p.board.forEach(c=>{
+      if(c.curHp<=0){
+        if(c.keywords.includes('relentless')){
+          c.curHp = c.hp;
+          c.keywords = c.keywords.filter(k=>k!=='relentless');
+          log(`${c.name} revient en jeu grâce à Tenace.`);
+          survivors.push(c);
+        } else {
+          p.discard.push(c);
+          log(`${c.name} meurt.`);
+        }
+      } else {
+        survivors.push(c);
+      }
+    });
+    p.board = survivors;
+  });
+}
+
+/* ============================================================
+   JOUER UNE CARTE
+   ============================================================ */
+function needsTarget(card){
+  if(card.type==='Sortilège') return effectNeedsTarget(card.effect);
+  return false;
+}
+function effectNeedsTarget(effect){
+  return !!effect && TARGETED_EFFECTS.includes(effect.type);
+}
+
+function instantiateCreature(card){
+  const kw = card.keywords||[];
+  return {
+    ...card, instId: nextId(),
+    curAtk: card.atk, curHp: card.hp,
+    keywords:[...kw],
+    summonSick: !kw.includes('charge'),
+    hasAttacked:false, frozen:false, stunned:false, armorUsed:false,
+    protectedActive: kw.includes('protection')
+  };
+}
+
+function effectiveCost(p, card){
+  let cost = card.cost;
+  if(p.pendingDiscount && (p.pendingDiscount.cardType==='Toutes' || p.pendingDiscount.cardType===card.type)){
+    cost = Math.max(0, cost - p.pendingDiscount.amount);
+  }
+  return cost;
+}
+
+let cardRevealTimer = null;
+function showCardReveal(card){
+  const box = document.getElementById('card-reveal');
+  const inner = document.getElementById('card-reveal-inner');
+  inner.innerHTML = '';
+  inner.appendChild(cardEl(card, {isPreview:true}));
+  box.classList.add('show');
+  clearTimeout(cardRevealTimer);
+  cardRevealTimer = setTimeout(()=>{ box.classList.remove('show'); }, 2000);
+}
+
+function setTrap(key, handIndex){
+  const p = S[key];
+  const card = p.hand[handIndex];
+  if(!card || card.type!=='Piège') return false;
+  if(card.pendingTrap || card.activeTrap) return false; // déjà en cours
+  if(p.hand.some(c=>c!==card && (c.pendingTrap || c.activeTrap))) return false; // un seul piège à la fois
+  const cost = effectiveCost(p, card);
+  if(availableMana(p) < cost) return false;
+  if(!canPayExtraCost(p, card)) return false;
+  payExtraCost(key, p, card);
+  card.pendingTrap = true;
+  card.reservedMana = cost;
+  log(`${cardOwnerName(key)} réserve ${cost} mana pour poser ${card.name} (confirmé en fin de tour).`);
+  triggerOpponentPlayTraps(key, card, null);
+  render();
+  return true;
+}
+
+function canPayExtraCost(p, card){
+  if(!card.extraCostEnabled) return true;
+  switch(card.extraCostType){
+    case 'sacrificeCreature': return p.board.length>=1;
+    case 'discardCard': return p.hand.filter(c=>c!==card).length>=1;
+    default: return true; // loseLife et custom sont toujours payables
+  }
+}
+function payExtraCost(key, p, card){
+  if(!card.extraCostEnabled) return;
+  switch(card.extraCostType){
+    case 'sacrificeCreature': {
+      if(p.board.length===0) return;
+      const weakest = [...p.board].sort((a,b)=>(a.curAtk+a.curHp)-(b.curAtk+b.curHp))[0];
+      weakest.curHp = 0;
+      log(`${cardOwnerName(key)} sacrifie ${weakest.name} pour payer le coût additionnel de ${card.name}.`);
+      cleanupDeaths();
+      break;
+    }
+    case 'discardCard': {
+      const pool = p.hand.filter(c=>c!==card);
+      if(pool.length===0) return;
+      const pick = pool[Math.floor(Math.random()*pool.length)];
+      p.hand = p.hand.filter(c=>c!==pick);
+      p.discard.push(pick);
+      log(`${cardOwnerName(key)} défausse ${pick.name} pour payer le coût additionnel de ${card.name}.`);
+      break;
+    }
+    case 'loseLife': {
+      const amt = card.extraCostAmount||1;
+      modifyHp(p, -amt);
+      log(`${cardOwnerName(key)} perd ${amt} PV pour payer le coût additionnel de ${card.name}.`);
+      break;
+    }
+    // 'custom' : pas de traduction mécanique possible, aucun effet appliqué
+  }
+}
+
+function triggerOpponentPlayTraps(key, card, inst){
+  const oppKey = key==='p1' ? 'p2' : 'p1';
+  if(card.type==='Créature') fireTrap(oppKey, 'onOpponentPlayCreature', inst||null);
+  else if(card.type==='Sortilège') fireTrap(oppKey, 'onOpponentSpell', null);
+  fireTrap(oppKey, 'onOpponentPlayCard', inst||null);
+}
+
+function playCard(key, handIndex, targetInfo){
+  const p = S[key];
+  const card = p.hand[handIndex];
+  if(!card) return false;
+  const cost = effectiveCost(p, card);
+  if(availableMana(p) < cost) return false;
+  if(!canPayExtraCost(p, card)) return false;
+
+  if(card.type==='Créature'){
+    if(p.board.length>=8) return false;
+    spendMana(p, cost);
+    p.hand.splice(handIndex,1);
+    payExtraCost(key, p, card);
+    if(p.pendingDiscount && (p.pendingDiscount.cardType==='Toutes' || p.pendingDiscount.cardType===card.type)) p.pendingDiscount = null;
+    const inst = instantiateCreature(card);
+    p.board.push(inst);
+    log(`${cardOwnerName(key)} invoque ${card.name}.`);
+    if(card.onPlayEffect){
+      if(card.onPlayEffect.type==='summonCopy'){
+        const n = card.onPlayEffect.amount||1;
+        let made = 0;
+        for(let i=0;i<n && p.board.length<8;i++){ p.board.push(instantiateCreature(card)); made++; }
+        log(`${cardOwnerName(key)} invoque ${made} copie(s) supplémentaire(s) de ${card.name}.`);
+      } else if(card.onPlayEffect.targetOwner==='self' && TARGETED_EFFECTS.includes(card.onPlayEffect.type)){
+        applySpellEffect(card.onPlayEffect, p, key, {isHeroTarget:false, creature:inst, player:p});
+      } else if(!effectNeedsTarget(card.onPlayEffect)){
+        applySpellEffect(card.onPlayEffect, p, key, {});
+      }
+      // les capacités "à l'entrée en jeu" ciblant l'adversaire ne sont pas encore prises en charge pour les créatures
+    }
+    triggerOpponentPlayTraps(key, card, inst);
+  }
+  else if(card.type==='Sortilège'){
+    if(needsTarget(card) && !targetInfo) return 'needs-target';
+    spendMana(p, cost);
+    p.hand.splice(handIndex,1);
+    payExtraCost(key, p, card);
+    if(p.pendingDiscount && (p.pendingDiscount.cardType==='Toutes' || p.pendingDiscount.cardType===card.type)) p.pendingDiscount = null;
+    showCardReveal(card);
+    applySpellEffect(card.effect, p, key, targetInfo || {});
+    p.discard.push(card);
+    triggerOpponentPlayTraps(key, card, null);
+  }
+  else if(card.type==='Piège'){
+    return setTrap(key, handIndex);
+  }
+  else if(card.type==='Artefact'){
+    if(p.relics.length>=2) return false;
+    spendMana(p, cost);
+    p.hand.splice(handIndex,1);
+    payExtraCost(key, p, card);
+    if(p.pendingDiscount && (p.pendingDiscount.cardType==='Toutes' || p.pendingDiscount.cardType===card.type)) p.pendingDiscount = null;
+    p.relics.push({...card, instId:nextId()});
+    log(`${cardOwnerName(key)} active ${card.name}.`);
+    triggerOpponentPlayTraps(key, card, null);
+  }
+  render();
+  return true;
+}
+
+function matchesNumericFilter(value, mode, target){
+  if(value===null || value===undefined || !mode || mode==='any') return mode==='any' || !mode;
+  const t = parseInt(target);
+  if(mode==='exact') return value===t;
+  if(mode==='atLeast') return value>=t;
+  if(mode==='atMost') return value<=t;
+  return true;
+}
+
+function findMatchingCards(pool, effect){
+  let list = pool.slice();
+  const val = effect.value!==undefined ? parseInt(effect.value) : null;
+  switch(effect.criteria){
+    case 'costExact': list = list.filter(c=>c.cost===val); break;
+    case 'costLess': list = list.filter(c=>c.cost!=null && c.cost<=val); break;
+    case 'costMore': list = list.filter(c=>c.cost!=null && c.cost>=val); break;
+    case 'atkHigher': list = list.filter(c=>c.type==='Créature').sort((a,b)=>(b.atk||0)-(a.atk||0)); break;
+    case 'atkLower': list = list.filter(c=>c.type==='Créature').sort((a,b)=>(a.atk||0)-(b.atk||0)); break;
+    case 'hpHigher': list = list.filter(c=>c.type==='Créature').sort((a,b)=>(b.hp||0)-(a.hp||0)); break;
+    case 'hpLower': list = list.filter(c=>c.type==='Créature').sort((a,b)=>(a.hp||0)-(b.hp||0)); break;
+    case 'cardType': list = list.filter(c=>c.type===effect.cardType); break;
+    case 'subtype': list = list.filter(c=>(c.subtypes||[]).includes(effect.subtype)); break;
+    case 'hasKeyword': list = list.filter(c=>(c.keywords||[]).includes(effect.keyword)); break;
+    case 'random': default: break;
+  }
+  return list;
+}
+
+function pickRandomAlly(p){
+  if(p.board.length===0) return null;
+  return p.board[Math.floor(Math.random()*p.board.length)];
+}
+
+function ownerTargets(effect, caster, casterKey, targetKey){
+  const opp = S[targetKey];
+  if(effect.owner==='enemy') return [{p:opp, key:targetKey}];
+  if(effect.owner==='both') return [{p:caster, key:casterKey}, {p:opp, key:targetKey}];
+  return [{p:caster, key:casterKey}];
+}
+
+function conditionsMet(conditions, caster, casterKey){
+  if(!conditions || conditions.length===0) return true;
+  return conditions.every(cond=>evalCondition(cond, caster, casterKey));
+}
+
+function evalCondition(cond, caster, casterKey){
+  const oppKey = casterKey==='p1' ? 'p2' : 'p1';
+  const val = parseInt(cond.value);
+  switch(cond.conditionType){
+    case 'healthBelow': return caster.hp < (val||0);
+    case 'healthChange': {
+      const target = cond.healthChangeOwner==='enemy' ? S[oppKey] : caster;
+      const amount = cond.healthChangeDirection==='gained' ? (target.hpGainedThisTurn||0) : (target.hpLostThisTurn||0);
+      return cond.healthChangeMode==='exact' ? amount===(val||0) : amount>=(val||0);
+    }
+    case 'handSizeAtLeast': return caster.hand.length >= (val||0);
+    case 'boardEmpty': return S[oppKey].board.length===0;
+    case 'controlsSubtype': return caster.board.some(c=>(c.subtypes||[]).includes(cond.value));
+    case 'handHasStatAtLeast': return caster.hand.some(c=>c.type==='Créature' && (c.atk||0)>=(val||0));
+    case 'turnAtLeast': return S.turn >= (val||0);
+    case 'chance': return Math.random() < (val||0)/100;
+    case 'monoColorDeck': {
+      const allCards = [...caster.hand, ...caster.deck, ...caster.discard, ...caster.board];
+      const classes = new Set(allCards.map(c=>c.class).filter(c=>c && c!=='Neutre'));
+      return classes.size<=1;
+    }
+    case 'manaNotFromRegion':
+    case 'custom':
+      return true; // non interprétable par ce prototype, considéré comme rempli
+    default: return true;
+  }
+}
+
+function applySpellEffect(effect, caster, casterKey, target){
+  if(!effect) return;
+  if(!conditionsMet(effect.conditions, caster, casterKey)){
+    log(`${cardOwnerName(casterKey)} : condition non remplie, l'effet ne se déclenche pas.`);
+    render();
+    return;
+  }
+  const targetKey = casterKey==='p1' ? 'p2' : 'p1';
+  switch(effect.type){
+    case 'damage': {
+      const amt = effect.amount;
+      if(target.isHeroTarget) dealDamageToHero(target.player, target.key, amt, caster);
+      else {
+        target.creature.curHp -= amt;
+        spawnDamageNumber(document.querySelector(`[data-inst-id="${target.creature.instId}"]`), amt);
+      }
+      log(`${cardOwnerName(casterKey)} inflige ${amt} dégâts.`);
+      cleanupDeaths();
+      break;
+    }
+    case 'heal':
+      modifyHp(caster, effect.amount);
+      log(`${cardOwnerName(casterKey)} récupère ${effect.amount} PV.`);
+      break;
+    case 'stun':
+      if(!target.isHeroTarget){
+        target.creature.stunned = true;
+        log(`${cardOwnerName(casterKey)} étourdit une créature ennemie.`);
+      }
+      break;
+    case 'freeze':
+      if(!target.isHeroTarget){
+        target.creature.frozen = true;
+        log(`${cardOwnerName(casterKey)} gèle une créature ennemie.`);
+      }
+      break;
+    case 'destroy':
+      if(!target.isHeroTarget){
+        target.creature.curHp = -9999;
+        log(`${cardOwnerName(casterKey)} détruit une créature ennemie.`);
+        cleanupDeaths();
+      }
+      break;
+    case 'silence':
+      if(!target.isHeroTarget){
+        target.creature.keywords = [];
+        log(`${cardOwnerName(casterKey)} réduit une créature ennemie au silence.`);
+      }
+      break;
+    case 'bounce':
+      if(!target.isHeroTarget){
+        const opp = S[targetKey];
+        const c = target.creature;
+        opp.board = opp.board.filter(x=>x.instId!==c.instId);
+        opp.hand.push({ id:c.id, name:c.name, type:c.type, class:c.class, classSecondary:c.classSecondary,
+          cost:c.cost, atk:c.atk, hp:c.hp, charges:c.charges, keywords:[...(c.keywords||[])], text:c.text, effect:c.effect });
+        log(`${cardOwnerName(casterKey)} renvoie ${c.name} en main.`);
+      }
+      break;
+    case 'draw': {
+      const targets = ownerTargets(effect, caster, casterKey, casterKey==='p1'?'p2':'p1');
+      targets.forEach(({p,key})=>{
+        for(let i=0;i<effect.amount;i++) drawCard(p);
+        log(`${cardOwnerName(key)} pioche ${effect.amount} carte${effect.amount>1?'s':''}.`);
+      });
+      break;
+    }
+    case 'buff': {
+      const allies = caster.board;
+      if(allies.length>0){
+        const c = allies[Math.floor(Math.random()*allies.length)];
+        c.curAtk = Math.max(0, c.curAtk + effect.atk); c.curHp += effect.hp;
+        const s1 = (effect.atk>=0?'+':'')+effect.atk, s2 = (effect.hp>=0?'+':'')+effect.hp;
+        log(`${cardOwnerName(casterKey)} modifie ${c.name} de ${s1}/${s2}.`);
+        cleanupDeaths();
+      } else {
+        log(`${cardOwnerName(casterKey)} n'a aucune créature à renforcer.`);
+      }
+      break;
+    }
+    case 'resource': {
+      const targets = ownerTargets(effect, caster, casterKey, casterKey==='p1'?'p2':'p1');
+      targets.forEach(({p,key})=>{
+        p.manaNormal += effect.amount;
+        log(`${cardOwnerName(key)} gagne ${effect.amount} mana utilisable immédiatement.`);
+      });
+      break;
+    }
+    case 'emptyManaEffect': {
+      const targets = ownerTargets(effect, caster, casterKey, casterKey==='p1'?'p2':'p1');
+      targets.forEach(({p,key})=>gainEmptyMana(p, key, effect.amount));
+      break;
+    }
+    case 'fragileManaEffect': {
+      const targets = ownerTargets(effect, caster, casterKey, casterKey==='p1'?'p2':'p1');
+      targets.forEach(({p,key})=>gainFragileMana(p, key, effect.amount));
+      break;
+    }
+    case 'refillMana': {
+      const targets = ownerTargets(effect, caster, casterKey, casterKey==='p1'?'p2':'p1');
+      targets.forEach(({p,key})=>{
+        p.manaNormal = p.manaNormalMax;
+        log(`${cardOwnerName(key)} recharge tout son mana disponible.`);
+      });
+      break;
+    }
+    case 'discardSelf': {
+      let n = Math.min(effect.amount, caster.hand.length);
+      for(let i=0;i<n;i++){
+        const idx = Math.floor(Math.random()*caster.hand.length);
+        caster.discard.push(caster.hand.splice(idx,1)[0]);
+      }
+      log(`${cardOwnerName(casterKey)} défausse ${n} carte${n>1?'s':''}.`);
+      break;
+    }
+    case 'setStats': {
+      const ownerP = effect.owner==='enemy' ? S[targetKey] : caster;
+      if(effect.scope==='board'){
+        ownerP.board.forEach(c=>{ c.curAtk=effect.atk; c.curHp=effect.hp; });
+      } else if(effect.scope==='hand'){
+        ownerP.hand.forEach(c=>{ if(c.type==='Créature'){ c.atk=effect.atk; c.hp=effect.hp; } });
+      } else if(effect.scope==='deck'){
+        ownerP.deck.forEach(c=>{ if(c.type==='Créature'){ c.atk=effect.atk; c.hp=effect.hp; } });
+      }
+      log(`${cardOwnerName(casterKey)} fixe des statistiques à ${effect.atk}/${effect.hp}.`);
+      cleanupDeaths();
+      break;
+    }
+    case 'upgrade': {
+      const c = pickRandomAlly(caster);
+      if(c){
+        const pool = Object.keys(KEYWORD_LABELS).filter(k=>!c.keywords.includes(k));
+        if(pool.length>0){
+          const kw = pool[Math.floor(Math.random()*pool.length)];
+          c.keywords.push(kw);
+          log(`${c.name} gagne aléatoirement ${KEYWORD_LABELS[kw]}.`);
+        }
+      } else log(`${cardOwnerName(casterKey)} n'a aucune créature à améliorer.`);
+      break;
+    }
+    case 'grantKeyword': {
+      const c = pickRandomAlly(caster);
+      if(c){
+        if(!c.keywords.includes(effect.keyword)) c.keywords.push(effect.keyword);
+        if(effect.duration==='thisTurn'){ c._tempKeywords = c._tempKeywords||[]; c._tempKeywords.push(effect.keyword); }
+        log(`${c.name} obtient ${KEYWORD_LABELS[effect.keyword]||effect.keyword}${effect.duration==='thisTurn'?' ce tour-ci':''}.`);
+      } else log(`${cardOwnerName(casterKey)} n'a aucune créature à qui donner ce mot-clé.`);
+      break;
+    }
+    case 'keywordChoice': {
+      const c = pickRandomAlly(caster);
+      if(!c){ log(`${cardOwnerName(casterKey)} n'a aucune créature disponible.`); break; }
+      const allKw = Object.keys(KEYWORD_LABELS).filter(k=>!c.keywords.includes(k));
+      const options = shuffle(allKw).slice(0,3);
+      if(options.length===0){ log('Aucun mot-clé disponible.'); break; }
+      if(casterKey==='p2' || options.length===1){
+        c.keywords.push(options[0]);
+        log(`${c.name} obtient ${KEYWORD_LABELS[options[0]]}.`);
+      } else {
+        openKeywordChoice(c, options);
+        return;
+      }
+      break;
+    }
+    case 'nextDiscount':
+      caster.pendingDiscount = {cardType: effect.cardType, amount: effect.amount};
+      log(`${cardOwnerName(casterKey)} : le prochain ${effect.cardType==='Toutes'?'achat':effect.cardType} coûte ${effect.amount} de moins ce tour-ci.`);
+      break;
+    case 'explore': {
+      const targetP = effect.owner==='enemy' ? S[targetKey] : caster;
+      let n = 0;
+      for(let i=0;i<effect.amount;i++){
+        if(targetP.deck.length===0) break;
+        targetP.discard.push(targetP.deck.shift());
+        n++;
+      }
+      log(`${cardOwnerName(casterKey)} explore ${n} carte${n>1?'s':''} ${effect.owner==='enemy'?'du deck adverse':'de son deck'}.`);
+      break;
+    }
+    case 'retrieve': {
+      const doOnce = ()=>{
+        const source = effect.source==='discard' ? caster.discard : caster.deck;
+        const matches = findMatchingCards(source, effect);
+        if(matches.length===0) return false;
+        const chosen = effect.criteria==='random' ? matches[Math.floor(Math.random()*matches.length)] : matches[0];
+        const idx = source.indexOf(chosen);
+        if(idx>=0) source.splice(idx,1);
+        if(effect.destination==='battlefield' && chosen.type==='Créature' && caster.board.length<8){
+          caster.board.push(instantiateCreature(chosen));
+        } else {
+          caster.hand.push(chosen);
+        }
+        log(`${cardOwnerName(casterKey)} récupère ${chosen.name}.`);
+        return true;
+      };
+      if(effect.repeat==='asManyAsPossible'){
+        let cont = true, guard = 0;
+        while(cont && guard<25){ cont = doOnce(); guard++; }
+      } else {
+        if(!doOnce()) log(`${cardOwnerName(casterKey)} ne trouve rien à récupérer.`);
+      }
+      break;
+    }
+    case 'discover': {
+      const matches = findMatchingCards(caster.deck, effect);
+      const options = effect.criteria==='random' ? shuffle(matches).slice(0,3) : matches.slice(0,3);
+      if(options.length===0){ log(`${cardOwnerName(casterKey)} ne trouve rien à réveler.`); break; }
+      if(casterKey==='p2' || options.length===1){
+        pickDiscoverOption(caster, casterKey, options[0]);
+      } else {
+        openDiscoverChoice(caster, casterKey, options);
+        return;
+      }
+      break;
+    }
+    case 'conjure': {
+      let chosenRaw = null;
+      if(effect.mode==='specific'){
+        chosenRaw = ACTIVE_CARD_POOL.find(c=>c.name===effect.specificName);
+      } else {
+        let pool = ACTIVE_CARD_POOL.filter(c=>(effect.types||[]).includes(c.type));
+        if(effect.class && effect.class!=='any') pool = pool.filter(c=>c.class===effect.class || c.classSecondary===effect.class);
+        if(effect.subtype) pool = pool.filter(c=>(c.subtypes||[]).includes(effect.subtype));
+        pool = pool.filter(c=>matchesNumericFilter(c.cost, effect.costMode, effect.costValue));
+        pool = pool.filter(c=>matchesNumericFilter(c.atk, effect.atkMode, effect.atkValue));
+        pool = pool.filter(c=>matchesNumericFilter(c.hp, effect.hpMode, effect.hpValue));
+        if(pool.length>0) chosenRaw = pool[Math.floor(Math.random()*pool.length)];
+      }
+      if(!chosenRaw){ log(`${cardOwnerName(casterKey)} ne trouve rien à conjurer.`); break; }
+      const baseCard = normalizeCardForPool(chosenRaw);
+      const targets = ownerTargets(effect, caster, casterKey, casterKey==='p1'?'p2':'p1');
+      targets.forEach(({p,key})=>{
+        let card = {...baseCard, keywords:[...(baseCard.keywords||[])], subtypes:[...(baseCard.subtypes||[])]};
+        if(effect.followUp && effect.followUp.enabled){
+          if(effect.followUp.type==='buff') card = {...card, atk:(card.atk||0)+effect.followUp.atk, hp:(card.hp||0)+effect.followUp.hp};
+          else if(effect.followUp.type==='grantKeyword') card = {...card, keywords:[...(card.keywords||[]), effect.followUp.keyword]};
+        }
+        if(effect.destination==='battlefield' && card.type==='Créature' && p.board.length<8){
+          p.board.push(instantiateCreature(card));
+        } else {
+          p.hand.push(card);
+        }
+        log(`${cardOwnerName(key)} conjure ${card.name}.`);
+      });
+      break;
+    }
+    case 'fight': {
+      const a = pickRandomAlly(caster), b = pickRandomAlly(S[targetKey]);
+      if(!a || !b){ log('Pas assez de créatures pour un combat forcé.'); break; }
+      a.curHp -= b.curAtk; b.curHp -= a.curAtk;
+      log(`${cardOwnerName(casterKey)} force ${a.name} et ${b.name} à se battre.`);
+      cleanupDeaths();
+      break;
+    }
+    case 'coinFlip': {
+      const ownerP = effect.owner==='enemy' ? S[targetKey] : caster;
+      const zap = (c)=>{
+        if(effect.successEffect==='destroy') c.curHp = -9999;
+        else c.curHp -= (effect.successValue||1);
+      };
+      if(effect.selection==='all'){
+        ownerP.board.slice().forEach(c=>{ if(Math.random()<0.5){ zap(c); log(`Pile ou face : ${c.name} tire un résultat défavorable.`); } });
+      } else {
+        const c = pickRandomAlly(ownerP);
+        if(c && Math.random()<0.5){ zap(c); log(`Pile ou face : ${c.name} tire un résultat défavorable.`); }
+      }
+      cleanupDeaths();
+      break;
+    }
+  }
+  render();
+}
+
+/* ============================================================
+   POUVOIR DE HÉROS
+   ============================================================ */
+function useHeroPower(key, targetInfo){
+  const p = S[key];
+  const hero = p.hero;
+  if(!hero.activeEffect || availableMana(p) < hero.activeCost || p.heroCooldown>0) return;
+  const needsT = effectNeedsTarget(hero.activeEffect);
+  if(needsT && !targetInfo) return 'needs-target';
+  spendMana(p, hero.activeCost);
+  p.heroCooldown = hero.activeCooldownMax;
+  applySpellEffect(hero.activeEffect, p, key, targetInfo || {});
+  log(`${cardOwnerName(key)} active son pouvoir de héros.`);
+  render();
+}
+
+/* ============================================================
+   PHASE DE COMBAT
+   ============================================================ */
+function toggleAttacker(instId){
+  if(S.phase!=='declareAttackers') return;
+  const idx = S.selectedAttackers.indexOf(instId);
+  if(idx>=0) S.selectedAttackers.splice(idx,1);
+  else S.selectedAttackers.push(instId);
+  render();
+}
+
+function enterDeclareAttackers(){
+  const p = S.p1;
+  const eligible = p.board.filter(c=>!c.frozen && !c.stunned && (!c.summonSick || c.keywords.includes('charge')) && !c.hasAttacked);
+  if(eligible.length===0){
+    log('Aucune créature ne peut attaquer : combat automatiquement passé.');
+    S.attackPhaseDone = true;
+    render();
+    return;
+  }
+  S.phase = 'declareAttackers';
+  S.selectedAttackers = [];
+  render();
+}
+
+function confirmAttackers(){
+  const p = S.p1;
+  const ids = S.selectedAttackers || [];
+  S.phase = 'main';
+  S.attackPhaseDone = true;
+  if(ids.length===0){
+    log('Vous ne déclarez aucun attaquant. Pas de combat ce tour-ci.');
+    render();
+    return;
+  }
+  p.attackers = ids;
+  ids.forEach(id=>{
+    const c = p.board.find(x=>x.instId===id);
+    if(c) c.hasAttacked = true;
+  });
+  log(`Vous déclarez ${ids.length} attaquant(s).`);
+  if(ids.length){
+    const firstTarget = p.board.find(x=>x.instId===ids[0]);
+    fireTrap('p2', 'onOpponentAttack', firstTarget);
+  }
+  S.phase = 'declareBlockersWait';
+  render();
+  setTimeout(()=>aiDeclareBlocks('p2','p1'), 700);
+}
+
+function fireTrap(ownerKey, triggerType, target){
+  const p = S[ownerKey];
+  const idx = p.hand.findIndex(c=>c.activeTrap && (c.trapTrigger||'onOpponentAttack')===triggerType);
+  if(idx<0) return;
+  const trap = p.hand[idx];
+  if(trap.effect && !conditionsMet(trap.effect.conditions, p, ownerKey)) return; // condition non remplie : le piège reste armé, retentera plus tard
+  p.hand.splice(idx,1);
+  p.discard.push(trap);
+  log(`${cardOwnerName(ownerKey)} déclenche ${trap.name} ! (${trap.reservedMana||trap.cost} mana réservé consommé)`);
+  trap.activeTrap = false; trap.reservedMana = undefined;
+  showCardReveal(trap);
+  if(target && trap.effect){
+    switch(trap.effect.type){
+      case 'damage':
+        target.curHp -= trap.effect.amount;
+        spawnDamageNumber(document.querySelector(`[data-inst-id="${target.instId}"]`), trap.effect.amount);
+        log(`${trap.name} inflige ${trap.effect.amount} dégâts à ${target.name}.`);
+        break;
+      case 'stun':
+        target.stunned = true;
+        log(`${trap.name} étourdit ${target.name}.`);
+        break;
+      case 'freeze':
+        target.frozen = true;
+        log(`${trap.name} gèle ${target.name}.`);
+        break;
+      case 'destroy':
+        target.curHp = -9999;
+        log(`${trap.name} détruit ${target.name}.`);
+        break;
+      case 'silence':
+        target.keywords = [];
+        log(`${trap.name} réduit ${target.name} au silence.`);
+        break;
+    }
+    cleanupDeaths();
+  } else if(trap.effect && ['damage','stun','freeze','destroy','silence'].includes(trap.effect.type)){
+    log(`${trap.name} n'a pas de cible valable dans ce contexte et ne produit pas d'effet.`);
+  }
+  render();
+}
+
+function aiDeclareBlocks(defKey, atkKey){
+  const defP = S[defKey], atkP = S[atkKey];
+  defP.blocks = {};
+  const used = new Set();
+  atkP.attackers.forEach(attId=>{
+    const attacker = atkP.board.find(c=>c.instId===attId);
+    if(!attacker) return;
+    const eligible = defP.board.filter(b=>{
+      if(used.has(b.instId) || b.frozen || b.stunned || b.keywords.includes('fearful')) return false;
+      if(attacker.keywords.includes('flying') && !(b.keywords.includes('flying')||b.keywords.includes('reach'))) return false;
+      return true;
+    });
+    if(eligible.length===0) return;
+    let choice = eligible.find(b=>b.curAtk>=attacker.curHp && b.curHp>attacker.curAtk);
+    if(!choice && defP.hp<=10) choice = [...eligible].sort((a,b)=>b.curAtk-a.curAtk)[0];
+    if(choice){ defP.blocks[attId]=choice.instId; used.add(choice.instId); }
+  });
+  log(`L'adversaire déclare ses blocages.`);
+  Object.keys(defP.blocks).forEach(attId=>{
+    const attacker = atkP.board.find(c=>c.instId===attId);
+    if(attacker) fireTrap(atkKey, 'onAllyBlocked', attacker);
+  });
+  resolveCombat(atkKey, defKey);
+}
+
+function resolveCombat(atkKey, defKey){
+  const atkP = S[atkKey], defP = S[defKey];
+  // ordre gauche à droite = ordre d'apparition sur le plateau (identique au rendu du couloir)
+  const orderedAttackerIds = atkP.board.map(c=>c.instId).filter(id=>(atkP.attackers||[]).includes(id));
+
+  suppressDamagePopups = true;
+  const events = [];
+  orderedAttackerIds.forEach(attId=>{
+    const attacker = atkP.board.find(c=>c.instId===attId);
+    if(!attacker) return;
+    const blockerId = defP.blocks[attId];
+    if(blockerId){
+      const blocker = defP.board.find(c=>c.instId===blockerId);
+      if(blocker){
+        const res = resolveOneCombat(attacker, atkP, atkKey, blocker, defP, defKey);
+        events.push({type:'clash', attackerInstId:attId, blockerInstId:blockerId, dmgToBlocker:res.dmgToBlocker, dmgToAttacker:res.dmgToAttacker});
+      }
+    } else {
+      const dmg = attacker.curAtk;
+      dealDamageToHero(defP, defKey, dmg, atkP);
+      if(attacker.keywords.includes('lifesteal')) modifyHp(atkP, dmg);
+      log(`${attacker.name} frappe le héros pour ${dmg}.`);
+      events.push({type:'hero', attackerInstId:attId, defKey, dmg});
+    }
+  });
+  suppressDamagePopups = false;
+
+  playCombatSequence(events, ()=>{
+    cleanupDeaths();
+    atkP.attackers = [];
+    defP.blocks = {};
+    S.phase='main';
+    render();
+    if(atkKey==='p2' && !S.gameOver){
+      setTimeout(()=>{ if(!S.gameOver) endTurn(); }, 400);
+    }
+  });
+}
+
+const COMBAT_STAGGER_MS = 950;
+
+function playCombatSequence(events, onDone){
+  if(events.length===0){ onDone(); return; }
+  events.forEach((ev,i)=>{ setTimeout(()=>playOneCombatEvent(ev), i*COMBAT_STAGGER_MS); });
+  setTimeout(onDone, events.length*COMBAT_STAGGER_MS + 1200);
+}
+
+function playOneCombatEvent(ev){
+  const attEl = document.querySelector(`[data-inst-id="${ev.attackerInstId}"]`);
+  if(ev.type==='clash'){
+    const blkEl = document.querySelector(`[data-inst-id="${ev.blockerInstId}"]`);
+    lungeToward(attEl, blkEl, 420);
+    lungeToward(blkEl, attEl, 420);
+    setTimeout(()=>{
+      if(ev.dmgToBlocker) spawnDamageNumber(blkEl, ev.dmgToBlocker);
+      if(ev.dmgToAttacker) spawnDamageNumber(attEl, ev.dmgToAttacker);
+    }, 320);
+  } else if(ev.type==='hero'){
+    const heroEl = document.querySelector(`#hero-${ev.defKey} .hero-portrait`);
+    lungeToward(attEl, heroEl, 420);
+    setTimeout(()=>{ spawnDamageNumber(heroEl, ev.dmg); }, 320);
+  }
+}
+
+function resolveOneCombat(attacker, atkP, atkKey, blocker, defP, defKey){
+  log(`${attacker.name} affronte ${blocker.name}.`);
+  const initA = attacker.keywords.includes('initiative');
+  const initB = blocker.keywords.includes('initiative');
+  let dmgToBlocker = 0, dmgToAttacker = 0;
+  if(initA && !initB){
+    dmgToBlocker = applyDamage(attacker, atkP, atkKey, blocker, defP, defKey);
+    if(blocker.curHp>0) dmgToAttacker = applyDamage(blocker, defP, defKey, attacker, atkP, atkKey);
+  } else if(initB && !initA){
+    dmgToAttacker = applyDamage(blocker, defP, defKey, attacker, atkP, atkKey);
+    if(attacker.curHp>0) dmgToBlocker = applyDamage(attacker, atkP, atkKey, blocker, defP, defKey);
+  } else {
+    dmgToBlocker = applyDamage(attacker, atkP, atkKey, blocker, defP, defKey);
+    dmgToAttacker = applyDamage(blocker, defP, defKey, attacker, atkP, atkKey);
+  }
+  return {dmgToBlocker, dmgToAttacker};
+}
+
+/* ============================================================
+   BLOCAGE — quand c'est l'IA qui attaque
+   ============================================================ */
+function beginPlayerBlock(myCreatureInstId){
+  if(S.phase!=='declareBlockersMe') return;
+  S.pendingBlocker = myCreatureInstId;
+  updateTip();
+}
+function assignBlock(attackerInstId){
+  if(S.phase!=='declareBlockersMe' || !S.pendingBlocker) return;
+  const blocker = S.p1.board.find(c=>c.instId===S.pendingBlocker);
+  const attacker = S.p2.board.find(c=>c.instId===attackerInstId);
+  if(!blocker || !attacker) return;
+  if(blocker.keywords.includes('fearful')){
+    log(`${blocker.name} est Peureux et ne peut pas bloquer.`);
+    S.pendingBlocker=null; render(); return;
+  }
+  if(attacker.keywords.includes('flying') && !(blocker.keywords.includes('flying')||blocker.keywords.includes('reach'))){
+    log(`${blocker.name} ne peut pas bloquer une créature volante (il faut Vol ou Portée).`);
+    S.pendingBlocker=null; render(); return;
+  }
+  Object.keys(S.p1.blocks).forEach(k=>{ if(S.p1.blocks[k]===blocker.instId) delete S.p1.blocks[k]; });
+  S.p1.blocks[attackerInstId] = blocker.instId;
+  S.pendingBlocker=null;
+  render();
+}
+function confirmBlocks(){
+  S.phase='main';
+  const atkP = S.p2, defP = S.p1;
+  Object.keys(defP.blocks||{}).forEach(attId=>{
+    const attacker = atkP.board.find(c=>c.instId===attId);
+    if(attacker) fireTrap('p2', 'onAllyBlocked', attacker);
+  });
+  resolveCombat('p2','p1');
+}
+
+/* ============================================================
+   IA — tour complet
+   ============================================================ */
+function runAI(){
+  if(S.gameOver) return;
+  const p = S.p2, opp = S.p1;
+
+  let played = true;
+  while(played){
+    played = false;
+    const options = p.hand
+      .map((c,idx)=>({c,idx}))
+      .filter(o=>o.c.type==='Créature' && o.c.cost<=availableMana(p) && canPayExtraCost(p, o.c))
+      .sort((a,b)=>b.c.cost-a.c.cost);
+    if(options.length){ playCard('p2', options[0].idx); played = true; }
+  }
+
+  const spellIdx = p.hand.findIndex(c=>c.type==='Sortilège' && c.cost<=availableMana(p) && canPayExtraCost(p, c));
+  if(spellIdx>=0){
+    const card = p.hand[spellIdx];
+    const eff = card.effect;
+    if(eff){
+      if(eff.type==='heal'){
+        if(p.hp < p.hero.hp*0.6) playCard('p2', spellIdx);
+      } else if(effectNeedsTarget(eff)){
+        const validTarget = opp.board.find(c=>isTargetableCreature(c, false));
+        if(validTarget) playCard('p2', spellIdx, {isHeroTarget:false, creature:validTarget, player:opp});
+        else if(eff.type==='damage') playCard('p2', spellIdx, {isHeroTarget:true, player:opp, key:'p1'});
+      } else {
+        // effet sans cible (pioche, renforcement, mana, défausse...) : toujours bénéfique à jouer
+        playCard('p2', spellIdx);
+      }
+    }
+  }
+  const relicIdx = p.hand.findIndex(c=>c.type==='Artefact' && c.cost<=availableMana(p) && canPayExtraCost(p, c));
+  if(relicIdx>=0 && p.relics.length<2) playCard('p2', relicIdx);
+  const trapIdx = p.hand.findIndex(c=>c.type==='Piège' && effectiveCost(p,c)<=availableMana(p) && canPayExtraCost(p, c));
+  if(trapIdx>=0 && !p.hand.some(c=>c.pendingTrap||c.activeTrap)) setTrap('p2', trapIdx);
+
+  const hero = p.hero;
+  if(hero.activeEffect && availableMana(p)>=hero.activeCost && p.heroCooldown===0){
+    if(effectNeedsTarget(hero.activeEffect)){
+      const validTarget = opp.board.find(c=>isTargetableCreature(c, true));
+      if(validTarget) useHeroPower('p2', {isHeroTarget:false, creature:validTarget, player:opp});
+      else if(hero.activeEffect.type==='damage') useHeroPower('p2', {isHeroTarget:true, player:opp, key:'p1'});
+    } else {
+      useHeroPower('p2', {});
+    }
+  }
+
+  render();
+  setTimeout(()=>{
+    const eligible = p.board.filter(c=>!c.frozen && !c.stunned && (!c.summonSick || c.keywords.includes('charge')) && !c.hasAttacked);
+    if(eligible.length===0){ endTurn(); return; }
+    p.attackers = eligible.map(c=>c.instId);
+    eligible.forEach(c=>c.hasAttacked=true);
+    log(`L'adversaire déclare ${eligible.length} attaquant(s).`);
+    fireTrap('p1', 'onOpponentAttack', eligible[0]);
+    render();
+    if(S.p1.board.length>0){
+      S.phase='declareBlockersMe';
+      S.pendingBlocker=null;
+      render();
+    } else {
+      resolveCombat('p2','p1');
+    }
+  }, 700);
+}
+
+/* ============================================================
+   FIN DE PARTIE
+   ============================================================ */
+function endGame(winnerKey){
+  S.gameOver = true;
+  const overlay = document.getElementById('overlay');
+  document.getElementById('overlay-text').textContent = winnerKey==='p1' ? 'Victoire !' : 'Défaite...';
+  overlay.classList.add('show');
+}
+
+/* ============================================================
+   RENDU
+   ============================================================ */
+function cardEl(card, opts={}){
+  const el = document.createElement('div');
+  el.className = `card class-${card.class||'Neutre'}`;
+  if(opts.selected) el.classList.add('selected');
+  if(opts.attacking) el.classList.add('attacking');
+  if(opts.targetable) el.classList.add('targetable');
+  const inPlay = !!opts.inPlay;
+  if(inPlay && card.frozen) el.classList.add('frozen');
+  if(inPlay && card.stunned) el.classList.add('stunned');
+  const isSick = inPlay && card.summonSick && !card.keywords?.includes('charge');
+  if(inPlay && opts.attackSelecting) el.classList.add('attack-selecting');
+  if(isSick) el.classList.add('summon-sick');
+  const kw = card.keywords || [];
+  if(inPlay){
+    if(kw.includes('fearful')) el.classList.add('kw-fearful');
+    if(kw.includes('flying')) el.classList.add('kw-flying');
+    if(kw.includes('stealth')) el.classList.add('kw-stealth');
+    if(kw.includes('initiative')) el.classList.add('kw-initiative');
+    if(kw.includes('lifesteal')) el.classList.add('kw-lifesteal');
+  }
+
+  const hasArmorShield = inPlay && kw.includes('armor') && !card.armorUsed;
+  const hasProtection = inPlay && kw.includes('protection') && card.protectedActive;
+  const hasReach = inPlay && kw.includes('reach');
+  const hasPierce = inPlay && kw.includes('pierce');
+
+  const kwText = kw.map(k=>KEYWORD_LABELS[k]).filter(Boolean).join(', ');
+  const isHero = card.type==='Héros';
+  const isRegion = card.type==='Région';
+  const isCreature = card.type==='Créature';
+  const posX = card.imagePosX ?? 50, posY = card.imagePosY ?? 50, zoom = card.imageZoom ?? 100;
+  const sizeVal = zoom>100 ? zoom+'%' : 'cover';
+  const artStyle = card.image ? `background-image:url('${card.image.replace(/'/g,"")}');background-position:${posX}% ${posY}%;background-size:${sizeVal};` : '';
+  const setInitial = card.set ? card.set.trim().charAt(0).toUpperCase() : '✦';
+
+  el.innerHTML = `
+    <div class="card-art" style="${artStyle}">
+      ${(isHero || isRegion) ? '' : `<div class="card-cost">${card.cost ?? 0}</div>`}
+      ${isHero ? `<div class="card-hero-hp">${card.curHp ?? card.hp ?? 0}</div>` : ''}
+    </div>
+    <div class="card-divider"><div class="card-set-icon">${card.setLogo ? `<div class="card-set-logo-img" style="background-image:url('${card.setLogo.replace(/'/g,"")}')"></div>` : `<span>${escapeHtmlGS(setInitial)}</span>`}</div></div>
+    <div class="card-body">
+      <div class="card-name">${escapeHtmlGS(card.name||'')}</div>
+      <div class="card-kw">${escapeHtmlGS(kwText)}</div>
+      <div class="card-text">${escapeHtmlGS(card.text||'')}</div>
+    </div>
+    <div class="card-footer">
+      ${isCreature ? `<div class="card-atk">⚔${card.curAtk ?? card.atk ?? 0}</div>` : `<div></div>`}
+      <div class="card-rarity-gem rarity-${card.rarity||'Commune'}" title="${card.rarity||'Commune'}"></div>
+      ${isCreature ? `<div class="card-hp">♥${card.curHp ?? card.hp ?? 0}</div>` : `<div></div>`}
+    </div>
+    ${card.charges!==undefined ? `<div class="charges">${card.charges}x</div>` : ''}
+    ${isSick ? `<div class="zzz"><span>Z</span><span>Z</span><span>Z</span></div>` : ''}
+    ${hasArmorShield ? `<div class="card-armor-shield" title="Armure"></div>` : ''}
+    ${(hasProtection || hasReach) ? `<div class="status-stack-tr">
+        ${hasProtection ? `<span class="card-protection-icon" title="Protection">🛡</span>` : ''}
+        ${hasReach ? `<span class="card-reach-icon" title="Portée">🏹</span>` : ''}
+      </div>` : ''}
+    ${hasPierce ? `<div class="card-pierce-badge" title="Perçant">🔻</div>` : ''}
+    ${inPlay && opts.attackConfirmed ? `<div class="sword-icons confirmed">⚔️</div>` : ''}
+    ${card.foil ? `<div class="card-foil-layer"></div>` : ''}
+  `;
+  if(opts.onClick) el.onclick = opts.onClick;
+  if(!opts.isPreview) attachHoverPreview(el, card);
+  if(card.foil){
+    el.classList.add('foil');
+    el.addEventListener('mouseenter', ()=>triggerFoilSweep(el));
+  }
+  return el;
+}
+function triggerFoilSweep(el){
+  el.classList.remove('foil-play');
+  void el.offsetWidth;
+  el.classList.add('foil-play');
+}
+setInterval(()=>{
+  document.querySelectorAll('.card.foil:not(:hover)').forEach(triggerFoilSweep);
+}, 10000);
+
+function render(){
+  renderHero('p1'); renderHero('p2');
+  renderLane('p1'); renderLane('p2');
+  renderZone('p1'); renderZone('p2');
+  renderHand();
+  renderPhaseBar();
+  updateTip();
+  requestAnimationFrame(drawBlockArrows);
+}
+
+function drawBlockArrows(){
+  const svg = document.getElementById('block-arrows-layer');
+  if(!svg) return;
+  svg.innerHTML = '';
+  ['p1','p2'].forEach(defKey=>{
+    const defP = S[defKey];
+    if(!defP || !defP.blocks) return;
+    Object.entries(defP.blocks).forEach(([attackerInstId, blockerInstId])=>{
+      const attWrap = document.querySelector(`[data-inst-id="${attackerInstId}"]`);
+      const blkWrap = document.querySelector(`[data-inst-id="${blockerInstId}"]`);
+      if(!attWrap || !blkWrap) return;
+      const a = attWrap.getBoundingClientRect();
+      const b = blkWrap.getBoundingClientRect();
+      const x1 = b.left + b.width/2, y1 = b.top + b.height/2;
+      const x2 = a.left + a.width/2, y2 = a.top + a.height/2;
+      const angle = Math.atan2(y2-y1, x2-x1);
+      const shorten = 44;
+      const ex = x2 - Math.cos(angle)*shorten, ey = y2 - Math.sin(angle)*shorten;
+
+      const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+      line.setAttribute('x2', ex); line.setAttribute('y2', ey);
+      line.setAttribute('class', 'block-arrow-line');
+      svg.appendChild(line);
+
+      const backX = x2 - Math.cos(angle)*20, backY = y2 - Math.sin(angle)*20;
+      const perpX = Math.cos(angle+Math.PI/2)*8, perpY = Math.sin(angle+Math.PI/2)*8;
+      const arrow = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+      arrow.setAttribute('points', `${ex+Math.cos(angle)*20},${ey+Math.sin(angle)*20} ${backX+perpX},${backY+perpY} ${backX-perpX},${backY-perpY}`);
+      arrow.setAttribute('class', 'block-arrow-head');
+      svg.appendChild(arrow);
+    });
+  });
+}
+
+function regionPreviewCard(region){
+  return { type:'Région', name:region.name, class:region.class, text:region.text||'', rarity:'Commune', keywords:[],
+    image:region.image||'', imagePosX:region.imagePosX, imagePosY:region.imagePosY, imageZoom:region.imageZoom };
+}
+
+function renderHero(key){
+  const p = S[key];
+  const hero = p.hero;
+  const region = p.region;
+  const el = document.getElementById(`hero-${key}`);
+
+  const reservedAmount = p.hand.reduce((sum,c)=>c.pendingTrap ? sum+(c.reservedMana||0) : sum, 0);
+  const normalDots = Array.from({length:p.manaNormalMax}, (_,i)=>{
+    const filled = i<p.manaNormal;
+    const reserved = filled && reservedAmount>0 && i >= (p.manaNormal - reservedAmount);
+    return `<span class="mana-dot ${filled?'filled':'empty'}${reserved?' reserved':''}"></span>`;
+  }).join('');
+  const fragileDots = Array.from({length:p.manaFragile}, ()=>`<span class="mana-dot fragile"></span>`).join('');
+  const regionThumbStyle = region.image ? `background-image:url('${region.image.replace(/'/g,"")}');background-position:${region.imagePosX}% ${region.imagePosY}%;background-size:${region.imageZoom>100?region.imageZoom+'%':'cover'};` : '';
+  const heroPortraitStyle = hero.image ? `background-image:url('${hero.image.replace(/'/g,"")}');background-position:${hero.imagePosX}% ${hero.imagePosY}%;background-size:${hero.imageZoom>100?hero.imageZoom+'%':'cover'};` : '';
+
+  el.innerHTML = `
+    <div class="hero-top">
+      <div class="hero-portrait" style="${heroPortraitStyle}">${hero.image ? '' : hero.name[0]}<span class="hp-badge">${p.hp}</span></div>
+      <div class="hero-info">
+        <div class="hero-name">${hero.name}</div>
+        <div class="region-tag">${region.name}</div>
+      </div>
+      <div class="zone-badges">
+        <div class="badge deck" title="Cartes restantes"><span class="badge-icon">🂠</span><span class="badge-count">${p.deck.length}</span></div>
+        <div class="badge discard ${p.discard.length>0?'has-cards':''}" title="Défausse" onclick="openDiscardModal('${key}')"><span class="badge-icon">🪦</span><span class="badge-count">${p.discard.length}</span></div>
+      </div>
+    </div>
+    <div class="mana-bar">
+      <div class="mana-region-thumb" id="region-thumb-${key}" style="${regionThumbStyle}" title="${region.name}"></div>
+      <div class="mana-dots">${normalDots}${fragileDots}</div>
+    </div>
+  `;
+  attachHoverPreview(document.getElementById(`region-thumb-${key}`), regionPreviewCard(region));
+
+  if(key==='p1'){
+    const btn = document.createElement('button');
+    btn.className='power-btn';
+    btn.textContent = hero.activeText;
+    const needsT = effectNeedsTarget(hero.activeEffect);
+    const usable = !!hero.activeEffect && availableMana(p)>=hero.activeCost && p.heroCooldown===0 && S.active==='p1' && S.phase==='main' && !S.gameOver;
+    btn.disabled = !usable;
+    btn.onclick = ()=>{
+      if(needsT){ S.pendingCard = {isHeroPower:true}; beginTargeting(btn); updateTip(); }
+      else useHeroPower('p1', {});
+    };
+    el.appendChild(btn);
+  }
+  if(S.pendingCard && key==='p2'){
+    const eff = S.pendingCard.isHeroPower ? S.p1.hero.activeEffect : S.p1.hand[S.pendingCard.index]?.effect;
+    const wantsHero = eff && eff.type==='damage';
+    if(wantsHero){
+      el.style.cursor='crosshair';
+      el.onclick = ()=>resolvePendingTarget({isHeroTarget:true, player:S.p2, key:'p2'});
+    }
+  }
+}
+
+function renderLane(key){
+  const el = document.getElementById(`lane-${key}`);
+  el.innerHTML='';
+  const p = S[key];
+  p.board.slice(0,8).forEach(c=>{
+      const attackSelecting = (S.phase==='declareAttackers' && key==='p1' && (S.selectedAttackers||[]).includes(c.instId));
+      const attackConfirmed = (S[key].attackers||[]).includes(c.instId) && S.phase!=='declareAttackers';
+      let attacking = attackSelecting || attackConfirmed;
+      let targetable = shouldHighlightCreature(key, c);
+      const cardWrap = document.createElement('div');
+      cardWrap.className = 'card-slot';
+      cardWrap.style.position='relative';
+      cardWrap.dataset.instId = c.instId;
+      const el2 = cardEl(c, { attacking, attackSelecting, attackConfirmed, targetable, inPlay:true, onClick: (ev)=>onCreatureClick(key, c, ev) });
+      cardWrap.appendChild(el2);
+      // badge blocage
+      if(key==='p1'){
+        const blockedAttacker = Object.keys(S.p1.blocks||{}).find(attId=>S.p1.blocks[attId]===c.instId);
+        if(blockedAttacker){
+          const tag=document.createElement('div');
+          tag.style.cssText='position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:12px;z-index:5;';
+          tag.textContent='🛡';
+          cardWrap.appendChild(tag);
+        }
+      }
+      if(key==='p2' && S.p1.blocks && S.p1.blocks[c.instId]){
+        const tag=document.createElement('div');
+        tag.style.cssText='position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:12px;z-index:5;';
+        tag.textContent='🔒';
+        cardWrap.appendChild(tag);
+      }
+      el.appendChild(cardWrap);
+  });
+}
+
+function isTargetableCreature(c, isHeroPower){
+  if(c.keywords.includes('protection') && c.protectedActive) return false;
+  if(!isHeroPower && c.keywords.includes('stealth') && !c.hasAttacked) return false;
+  return true;
+}
+
+function shouldHighlightCreature(key, c){
+  if(S.phase==='declareBlockersMe' && key==='p2') return true;
+  if(S.pendingCard && key==='p2'){
+    const eff = S.pendingCard.isHeroPower ? S.p1.hero.activeEffect : S.p1.hand[S.pendingCard.index]?.effect;
+    if(!effectNeedsTarget(eff)) return false;
+    return isTargetableCreature(c, !!S.pendingCard.isHeroPower);
+  }
+  return false;
+}
+
+function onCreatureClick(key, c, ev){
+  if(S.gameOver) return;
+
+  // ciblage sort/pouvoir
+  if(S.pendingCard && key==='p2'){
+    if(!isTargetableCreature(c, !!S.pendingCard.isHeroPower)){
+      const reason = c.keywords.includes('protection') && c.protectedActive ? 'Protection' : 'Furtif';
+      log(`${c.name} ne peut pas être ciblée (${reason}).`);
+      return;
+    }
+    resolvePendingTarget({isHeroTarget:false, creature:c, player:S.p2});
+    return;
+  }
+
+  // déclaration des attaquants
+  if(S.phase==='declareAttackers' && key==='p1'){
+    if(!c.frozen && !c.stunned && (!c.summonSick || c.keywords.includes('charge'))){
+      toggleAttacker(c.instId);
+    }
+    return;
+  }
+
+  // blocage : je clique ma créature (bloqueur), puis l'attaquant adverse
+  if(S.phase==='declareBlockersMe'){
+    if(key==='p1'){
+      if(c.keywords.includes('fearful')){
+        log(`${c.name} est Peureux et ne peut pas bloquer.`);
+        return;
+      }
+      if(!c.frozen && !c.stunned){ beginPlayerBlock(c.instId); }
+      return;
+    }
+    if(key==='p2' && S.pendingBlocker){
+      assignBlock(c.instId);
+      return;
+    }
+  }
+}
+
+/* ============================================================
+   CIBLAGE (sorts / pouvoirs) — ligne fléchée
+   ============================================================ */
+function resolvePendingTarget(targetInfo){
+  const pc = S.pendingCard;
+  S.pendingCard = null;
+  endTargeting();
+  if(pc.isHeroPower) useHeroPower('p1', targetInfo);
+  else playCard('p1', pc.index, targetInfo);
+}
+
+/* ============================================================
+   ZONES (pièges / reliques) + MAIN
+   ============================================================ */
+function renderZone(key){
+  const el = document.getElementById(`zone-${key}`);
+  el.innerHTML='';
+  const p = S[key];
+  if(key==='p2'){
+    const hasActiveTrap = p.hand.some(c=>c.activeTrap);
+    const hasPendingTrap = p.hand.some(c=>c.pendingTrap);
+    if(hasActiveTrap){
+      const t = document.createElement('div');
+      t.className='mini-tag';
+      t.title = "L'adversaire a un piège armé";
+      t.textContent = '🪤 Armé';
+      el.appendChild(t);
+    } else if(hasPendingTrap){
+      const t = document.createElement('div');
+      t.className='mini-tag';
+      t.style.opacity='.6';
+      t.title = 'Réservation en attente de confirmation en fin de tour';
+      t.textContent = '⏳ En attente';
+      el.appendChild(t);
+    }
+  }
+  p.relics.forEach(r=>{
+    const t = document.createElement('div');
+    t.className='mini-tag relic';
+    t.textContent = `${r.name.split(' ')[0]} (${r.charges})`;
+    el.appendChild(t);
+  });
+}
+
+function renderHand(){
+  const el = document.getElementById('hand-p1');
+  el.innerHTML='';
+  const p = S.p1;
+  const mid = (p.hand.length-1)/2;
+  p.hand.forEach((card, idx)=>{
+    const isLockedTrap = card.pendingTrap || card.activeTrap;
+    const affordable = effectiveCost(p, card)<=availableMana(p) && S.phase==='main' && canPayExtraCost(p, card);
+    const canAct = S.active==='p1' && !S.gameOver && affordable && !isLockedTrap;
+    const c = cardEl(card, {
+      onClick: (ev)=>{
+        if(!canAct) return;
+        if(card.type==='Piège'){ setTrap('p1', idx); return; }
+        if(needsTarget(card)){
+          S.pendingCard = {index:idx};
+          beginTargeting(ev.currentTarget);
+          render();
+        } else {
+          playCard('p1', idx);
+        }
+      }
+    });
+    if(isLockedTrap){
+      c.classList.add(card.activeTrap ? 'trap-active' : 'trap-pending');
+      if(card.activeTrap){
+        const wolfIcon = document.createElement('div');
+        wolfIcon.className = 'trap-wolf-icon';
+        wolfIcon.textContent = '🪤';
+        c.appendChild(wolfIcon);
+      }
+    } else if(!affordable){
+      c.style.opacity='.45';
+    }
+    c.draggable = canAct;
+    if(canAct){
+      c.ondragstart = (ev)=>{
+        dragState = {index: idx, card};
+        ev.dataTransfer.effectAllowed = 'move';
+        ev.dataTransfer.setData('text/plain', String(idx));
+        setTimeout(()=>c.classList.add('dragging'), 0);
+      };
+      c.ondragend = ()=>{
+        c.classList.remove('dragging');
+        clearDropHighlights();
+        dragState = null;
+      };
+    }
+    const slot = document.createElement('div');
+    slot.className = 'hand-card-slot';
+    const offset = idx - mid;
+    const rotateDeg = Math.max(-10, Math.min(10, offset * 2));
+    const liftY = Math.min(10, Math.abs(offset) * 2.5);
+    slot.style.transform = `rotate(${rotateDeg}deg) translateY(${liftY}px)`;
+    slot.appendChild(c);
+    el.appendChild(slot);
+  });
+}
+
+function renderPhaseBar(){
+  const bar = document.getElementById('phase-bar');
+  bar.innerHTML='';
+  if(S.gameOver) return;
+
+  const btn = document.createElement('button');
+  btn.className='phase-btn';
+
+  if(S.active!=='p1'){
+    if(S.phase==='declareBlockersMe'){
+      btn.textContent='Valider les blocages';
+      btn.onclick = confirmBlocks;
+      bar.appendChild(btn);
+      const lbl = document.createElement('span');
+      lbl.className='phase-label';
+      lbl.textContent = "Clique une de tes créatures puis l'attaquant qu'elle bloque.";
+      bar.appendChild(lbl);
+    } else {
+      btn.textContent='Tour adverse';
+      btn.disabled = true;
+      bar.appendChild(btn);
+    }
+    return;
+  }
+
+  if(S.phase==='main'){
+    if(!S.attackPhaseDone){
+      btn.textContent='⚔ Passer au combat';
+      btn.onclick = enterDeclareAttackers;
+    } else {
+      btn.textContent='Finir le tour';
+      btn.onclick = endTurn;
+    }
+    bar.appendChild(btn);
+  } else if(S.phase==='declareAttackers'){
+    btn.textContent = (S.selectedAttackers&&S.selectedAttackers.length) ? `Valider ${S.selectedAttackers.length} attaquant(s)` : 'Passer (aucun attaquant)';
+    btn.onclick = confirmAttackers;
+    bar.appendChild(btn);
+    const cancel = document.createElement('button');
+    cancel.className='phase-btn secondary small';
+    cancel.textContent='Annuler';
+    cancel.onclick = ()=>{ S.phase='main'; render(); };
+    bar.appendChild(cancel);
+  } else if(S.phase==='declareBlockersWait'){
+    btn.textContent="L'adversaire choisit ses blocages...";
+    btn.disabled = true;
+    bar.appendChild(btn);
+  }
+}
+
+function updateTip(){
+  const tip = document.getElementById('tip');
+  if(S.gameOver){ tip.textContent=''; return; }
+  if(S.active!=='p1'){
+    if(S.phase==='declareBlockersMe') tip.textContent = S.pendingBlocker ? "Clique l'attaquant à bloquer." : "Clique une de tes créatures pour la faire bloquer.";
+    else tip.textContent = "Tour de l'adversaire...";
+    return;
+  }
+  if(S.pendingCard){ tip.textContent = 'Choisissez une cible ennemie.'; return; }
+  if(S.phase==='declareAttackers'){ tip.textContent = 'Clique tes créatures pour les désigner comme attaquantes.'; return; }
+  tip.textContent = 'Jouez des cartes, puis passez à l\'attaque ou finissez votre tour.';
+}
+
+/* ============================================================
+   CIBLAGE VISUEL — ligne fléchée qui suit la souris
+   ============================================================ */
+let targetSource = null;
+let targetMouse = null;
+let lastMouse = {x:0,y:0};
+
+function elCenter(el){
+  const r = el.getBoundingClientRect();
+  return {x:r.left+r.width/2, y:r.top+r.height/2};
+}
+function beginTargeting(el){
+  clearTimeout(hoverTimer);
+  hidePreview();
+  targetSource = elCenter(el);
+  targetMouse = {...targetSource};
+  document.body.classList.add('targeting');
+  drawTargetLine();
+}
+function endTargeting(){
+  targetSource = null; targetMouse = null;
+  document.body.classList.remove('targeting');
+  document.getElementById('target-line').style.display='none';
+  document.getElementById('target-origin').style.display='none';
+  document.getElementById('target-arrow').style.display='none';
+}
+function drawTargetLine(){
+  if(!targetSource || !targetMouse) return;
+  const {x:x1,y:y1} = targetSource;
+  const {x:x2,y:y2} = targetMouse;
+  const line = document.getElementById('target-line');
+  const origin = document.getElementById('target-origin');
+  const arrow = document.getElementById('target-arrow');
+  const angle = Math.atan2(y2-y1, x2-x1);
+  const shorten = 14;
+  const ex = x2 - Math.cos(angle)*shorten, ey = y2 - Math.sin(angle)*shorten;
+  line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+  line.setAttribute('x2', ex); line.setAttribute('y2', ey);
+  line.style.display='block';
+  origin.setAttribute('cx', x1); origin.setAttribute('cy', y1);
+  origin.style.display='block';
+  const backX = x2 - Math.cos(angle)*16, backY = y2 - Math.sin(angle)*16;
+  const perpX = Math.cos(angle+Math.PI/2)*7, perpY = Math.sin(angle+Math.PI/2)*7;
+  arrow.setAttribute('points', `${x2},${y2} ${backX+perpX},${backY+perpY} ${backX-perpX},${backY-perpY}`);
+  arrow.style.display='block';
+}
+document.addEventListener('mousemove', (e)=>{
+  lastMouse = {x:e.clientX, y:e.clientY};
+  if(!targetSource) return;
+  targetMouse = {x:e.clientX, y:e.clientY};
+  drawTargetLine();
+});
+document.addEventListener('keydown', (e)=>{
+  if(e.key==='Escape'){
+    if(document.getElementById('discard-modal').classList.contains('show')) closeDiscardModal();
+    else cancelTargeting();
+  }
+});
+document.addEventListener('contextmenu', (e)=>{
+  if(targetSource){ e.preventDefault(); cancelTargeting(); }
+});
+function cancelTargeting(){
+  if(!S.pendingCard) return;
+  S.pendingCard = null;
+  endTargeting();
+  render();
+}
+
+/* ============================================================
+   MODALE DÉFAUSSE
+   ============================================================ */
+function openDiscardModal(key){
+  const p = S[key];
+  if(p.discard.length===0) return;
+  document.getElementById('discard-modal-title').textContent =
+    `Défausse — ${key==='p1' ? 'Vous' : 'L\'adversaire'} (${p.discard.length} carte${p.discard.length>1?'s':''})`;
+  const counts = {};
+  p.discard.forEach(c=>{ counts[c.name] = counts[c.name] || {card:c, n:0}; counts[c.name].n++; });
+  const list = document.getElementById('discard-list');
+  list.innerHTML='';
+  Object.values(counts).forEach(({card,n})=>{
+    const el = cardEl(card, {isPreview:true});
+    el.style.cursor='default';
+    if(n>1){
+      const badge = document.createElement('div');
+      badge.className='charges';
+      badge.style.cssText='position:absolute;bottom:4px;right:5px;background:var(--arcane);color:#fff;border-radius:8px;padding:0 5px;';
+      badge.textContent = `x${n}`;
+      el.appendChild(badge);
+    }
+    list.appendChild(el);
+  });
+  document.getElementById('discard-modal').classList.add('show');
+}
+function closeDiscardModal(){ document.getElementById('discard-modal').classList.remove('show'); }
+
+/* ============================================================
+   MODALE DE CHOIX — Réveler / Choix de mot-clé
+   ============================================================ */
+function openDiscoverChoice(caster, casterKey, options){
+  document.getElementById('choice-modal-title').textContent = 'Réveler — choisis une carte à ajouter à ta main';
+  const list = document.getElementById('choice-list');
+  list.innerHTML = '';
+  options.forEach(card=>{
+    const el = cardEl(card, {isPreview:true});
+    el.style.cursor = 'pointer';
+    el.onclick = ()=>{
+      document.getElementById('choice-modal').classList.remove('show');
+      pickDiscoverOption(caster, casterKey, card);
+    };
+    list.appendChild(el);
+  });
+  document.getElementById('choice-modal').classList.add('show');
+}
+function pickDiscoverOption(caster, casterKey, chosen){
+  const idx = caster.deck.indexOf(chosen);
+  if(idx>=0) caster.deck.splice(idx,1);
+  caster.hand.push(chosen);
+  log(`${cardOwnerName(casterKey)} choisit ${chosen.name} (Réveler).`);
+  render();
+}
+
+function openKeywordChoice(creature, options){
+  document.getElementById('choice-modal-title').textContent = `Choisis un mot-clé pour ${creature.name}`;
+  const list = document.getElementById('choice-list');
+  list.innerHTML = '';
+  options.forEach(kw=>{
+    const btn = document.createElement('button');
+    btn.className = 'phase-btn';
+    btn.style.minWidth = '120px';
+    btn.textContent = KEYWORD_LABELS[kw] || kw;
+    btn.onclick = ()=>{
+      document.getElementById('choice-modal').classList.remove('show');
+      creature.keywords.push(kw);
+      log(`${creature.name} obtient ${KEYWORD_LABELS[kw]||kw}.`);
+      render();
+    };
+    list.appendChild(btn);
+  });
+  document.getElementById('choice-modal').classList.add('show');
+}
+
+/* ============================================================
+   APERÇU AGRANDI AU SURVOL
+   ============================================================ */
+let hoverTimer = null;
+const HOVER_DELAY = 500;
+function actionInProgress(){ return !!(S.pendingCard) || S.phase==='declareAttackers' || S.phase==='declareBlockersMe'; }
+function attachHoverPreview(el, card){
+  el.addEventListener('mouseenter', ()=>{
+    clearTimeout(hoverTimer);
+    const startX = lastMouse.x, startY = lastMouse.y;
+    hoverTimer = setTimeout(()=>{
+      if(actionInProgress()) return;
+      if(!el.isConnected) return;
+      showPreview(card, startX, startY);
+    }, HOVER_DELAY);
+  });
+  el.addEventListener('mouseleave', ()=>{ clearTimeout(hoverTimer); hidePreview(); });
+}
+function findSpecificConjureGame(card){
+  const effects = [card.effect, card.onPlayEffect].filter(Boolean);
+  for(const eff of effects){
+    if(eff.type==='conjure' && eff.mode==='specific' && eff.specificName) return eff.specificName;
+  }
+  return null;
+}
+
+function showPreview(card, x, y){
+  const box = document.getElementById('card-preview');
+  box.innerHTML='';
+  box.style.display='flex'; box.style.alignItems='center'; box.style.gap='16px';
+
+  const cw = 150*2.2, ch = 204*2.2;
+  const mainSlot = document.createElement('div');
+  mainSlot.style.cssText = `width:${cw}px;height:${ch}px;position:relative;`;
+  mainSlot.appendChild(cardEl(card, {isPreview:true}));
+  box.appendChild(mainSlot);
+
+  let extraCount = 1;
+  const conjuredName = findSpecificConjureGame(card);
+  if(conjuredName){
+    const rawConjured = ACTIVE_CARD_POOL.find(c=>c.name===conjuredName);
+    if(rawConjured){
+      const conjuredCard = normalizeCardForPool(rawConjured);
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:6px;';
+      const arrow = document.createElement('div');
+      arrow.textContent = '→ conjure';
+      arrow.style.cssText = 'font-family:Cinzel,serif;font-size:14px;font-weight:700;color:var(--gold);text-shadow:0 1px 3px rgba(0,0,0,.85);white-space:nowrap;';
+      const conjSlot = document.createElement('div');
+      conjSlot.style.cssText = `width:${cw}px;height:${ch}px;position:relative;`;
+      conjSlot.appendChild(cardEl(conjuredCard, {isPreview:true}));
+      wrap.appendChild(arrow);
+      wrap.appendChild(conjSlot);
+      box.appendChild(wrap);
+      extraCount = 2;
+    }
+  }
+
+  const w = cw*extraCount + (extraCount>1 ? 48 : 0);
+  const h = extraCount>1 ? ch+30 : ch;
+  let left = x + 24, top = y - h/2;
+  if(left + w > window.innerWidth - 12) left = x - 24 - w;
+  top = Math.max(12, Math.min(top, window.innerHeight - h - 12));
+  box.style.left = left+'px'; box.style.top = top+'px';
+  box.classList.add('show');
+}
+function hidePreview(){ document.getElementById('card-preview').classList.remove('show'); }
+
+/* ============================================================
+   SÉLECTION DE DECK — connecté à la collection / aux decks sauvegardés
+   ============================================================ */
+let LOADED_COLLECTION = [];
+let LOADED_DECKS = [];
+let CHOSEN_P1_DECK = null;
+
+function deckSummary(d, collection){
+  const hero = collection.find(c=>c.id===d.heroId);
+  const region = collection.find(c=>c.id===d.regionId);
+  const total = (d.cards||[]).reduce((s,c)=>s+c.count,0);
+  return { hero, region, total, valid: !!hero && !!region && total>0 };
+}
+
+/* storageGet/storageSet viennent de spellcraft-shared.js */
+
+async function initGameSetup(){
+  LOADED_COLLECTION = await loadAllCardsAcrossSets();
+  try{
+    const res2 = await storageGet('spellcraft-decks');
+    LOADED_DECKS = res2 && res2.value ? JSON.parse(res2.value) : [];
+  }catch(e){ LOADED_DECKS = []; }
+
+  LOADED_DECKS = LOADED_DECKS.filter(d=>deckSummary(d, LOADED_COLLECTION).valid);
+
+  renderDeckSelectStep1();
+}
+
+function dsBox(){ return document.getElementById('deck-select-box'); }
+
+function renderDeckSelectStep1(){
+  const box = dsBox();
+  const hubLink = '<a href="spellcraft-hub.html" style="display:inline-block;margin-bottom:14px;font-size:11px;color:var(--parchment-dim);text-decoration:none;border:1px solid #3a3260;border-radius:6px;padding:5px 10px;">🏠 Retour au hub</a>';
+  if(LOADED_DECKS.length===0){
+    box.innerHTML = hubLink + `
+      <h1>🃏 Spellcraft</h1>
+      <div class="dsel-empty">
+        Aucun deck valide trouvé (un deck sauvegardé a besoin d'un Héros, d'une Région et d'au moins une carte).<br><br>
+        Construis-en un dans le <strong>classeur / deckbuilder</strong>, puis reviens ici — ou lance directement une partie de démonstration.
+      </div>
+      <div class="dsel-actions">
+        <button class="phase-btn secondary" onclick="window.location.href='spellcraft-deckbuilder.html'">Aller au deckbuilder</button>
+        <button class="phase-btn" onclick="launchDemo()">Jouer en mode démo</button>
+      </div>
+    `;
+    return;
+  }
+  box.innerHTML = hubLink + `<h1>Choisis ton deck</h1><p class="sub">Sélectionne le deck avec lequel tu veux jouer.</p><div id="ds-list"></div>`;
+  const list = document.getElementById('ds-list');
+  LOADED_DECKS.forEach(d=>{
+    const sum = deckSummary(d, LOADED_COLLECTION);
+    const item = document.createElement('div');
+    item.className='deck-pick-item';
+    item.innerHTML = `
+      <div class="dp-icon">${(sum.hero.name[0]||'?')}</div>
+      <div class="dp-info">
+        <div class="dp-name">${escapeHtmlGS(d.name)}</div>
+        <div class="dp-meta">${escapeHtmlGS(sum.hero.name)} (${escapeHtmlGS(sum.hero.class)}) · ${escapeHtmlGS(sum.region.name)} · ${sum.total} cartes</div>
+      </div>
+    `;
+    item.onclick = ()=>{ CHOSEN_P1_DECK = d; renderDeckSelectStep2(); };
+    list.appendChild(item);
+  });
+  const actions = document.createElement('div');
+  actions.className='dsel-actions';
+  actions.innerHTML = `<button class="phase-btn secondary" onclick="launchDemo()">Jouer en mode démo à la place</button>`;
+  box.appendChild(actions);
+}
+
+function renderDeckSelectStep2(){
+  const box = dsBox();
+  const others = LOADED_DECKS.filter(d=>d.id!==CHOSEN_P1_DECK.id);
+  if(others.length===0){
+    // un seul deck dispo : l'adversaire prend un deck de démo
+    launchWithChosenDeck(null);
+    return;
+  }
+  box.innerHTML = `<h1>Deck de l'adversaire</h1><p class="sub">Contre quel deck veux-tu jouer ?</p><div id="ds-list2"></div>`;
+  const list = document.getElementById('ds-list2');
+  others.forEach(d=>{
+    const sum = deckSummary(d, LOADED_COLLECTION);
+    const item = document.createElement('div');
+    item.className='deck-pick-item';
+    item.innerHTML = `
+      <div class="dp-icon">${(sum.hero.name[0]||'?')}</div>
+      <div class="dp-info">
+        <div class="dp-name">${escapeHtmlGS(d.name)}</div>
+        <div class="dp-meta">${escapeHtmlGS(sum.hero.name)} (${escapeHtmlGS(sum.hero.class)}) · ${escapeHtmlGS(sum.region.name)} · ${sum.total} cartes</div>
+      </div>
+    `;
+    item.onclick = ()=>launchWithChosenDeck(d);
+    list.appendChild(item);
+  });
+  const actions = document.createElement('div');
+  actions.className='dsel-actions';
+  actions.innerHTML = `<button class="phase-btn secondary" onclick="launchWithChosenDeck(null)">Adversaire de démo à la place</button>`;
+  box.appendChild(actions);
+}
+
+function launchWithChosenDeck(p2SavedDeck){
+  ACTIVE_CARD_POOL = LOADED_COLLECTION;
+  const s1 = deckSummary(CHOSEN_P1_DECK, LOADED_COLLECTION);
+  const p1Hero = buildHeroObject(s1.hero);
+  const p1Region = buildRegionObject(s1.region);
+  const p1Deck = buildDeckFromSaved(CHOSEN_P1_DECK, LOADED_COLLECTION);
+
+  let p2Hero, p2Region, p2Deck;
+  if(p2SavedDeck){
+    const s2 = deckSummary(p2SavedDeck, LOADED_COLLECTION);
+    p2Hero = buildHeroObject(s2.hero);
+    p2Region = buildRegionObject(s2.region);
+    p2Deck = buildDeckFromSaved(p2SavedDeck, LOADED_COLLECTION);
+  } else {
+    p2Hero = DEMO_HEROES.nocturne;
+    p2Region = DEMO_REGIONS.marais;
+    p2Deck = buildDemoDeck('Crépuscule');
+    log('Aucun second deck disponible : l\'adversaire joue un deck de démonstration.');
+  }
+
+  document.getElementById('deck-select-overlay').style.display='none';
+  startGame(p1Hero, p1Region, p1Deck, p2Hero, p2Region, p2Deck);
+}
+
+function launchDemo(){
+  document.getElementById('deck-select-overlay').style.display='none';
+  startDemoGame();
+}
+
+
+/* ============================================================
+   INIT
+   ============================================================ */
+/* ============================================================
+   GLISSER-DÉPOSER — jouer une carte en la faisant glisser
+   ============================================================ */
+let dragState = null; // {index, card} de la carte en cours de glissement depuis la main
+
+function clearDropHighlights(){
+  document.querySelectorAll('.drop-hover').forEach(el=>el.classList.remove('drop-hover'));
+}
+
+function setupDragAndDrop(){
+  const laneP1 = document.getElementById('lane-p1');
+  const laneP2 = document.getElementById('lane-p2');
+  const heroP2 = document.getElementById('hero-p2');
+  const handP1 = document.getElementById('hand-p1');
+
+  // déposer sur son propre plateau : joue une carte qui n'a pas besoin de cible
+  laneP1.addEventListener('dragover', (ev)=>{
+    if(!dragState || needsTarget(dragState.card)) return;
+    ev.preventDefault();
+    laneP1.classList.add('drop-hover');
+  });
+  laneP1.addEventListener('dragleave', ()=>laneP1.classList.remove('drop-hover'));
+  laneP1.addEventListener('drop', (ev)=>{
+    laneP1.classList.remove('drop-hover');
+    if(!dragState || needsTarget(dragState.card)) return;
+    ev.preventDefault();
+    if(dragState.card.type==='Piège') setTrap('p1', dragState.index);
+    else playCard('p1', dragState.index);
+    dragState = null;
+  });
+
+  // déposer sur une créature ennemie : joue un sort/effet ciblé sur elle
+  laneP2.addEventListener('dragover', (ev)=>{
+    if(!dragState || !effectNeedsTarget(dragState.card.effect)) return;
+    ev.preventDefault();
+    const slot = ev.target.closest('.card-slot');
+    clearDropHighlights();
+    if(slot) slot.classList.add('drop-hover');
+  });
+  laneP2.addEventListener('dragleave', clearDropHighlights);
+  laneP2.addEventListener('drop', (ev)=>{
+    clearDropHighlights();
+    if(!dragState || !effectNeedsTarget(dragState.card.effect)) return;
+    const slot = ev.target.closest('.card-slot');
+    if(!slot) return;
+    ev.preventDefault();
+    const creature = S.p2.board.find(c=>c.instId===slot.dataset.instId);
+    if(!creature) return;
+    if(!isTargetableCreature(creature, false)){
+      log(`${creature.name} ne peut pas être ciblée (Protection ou Furtif).`);
+      dragState = null;
+      return;
+    }
+    playCard('p1', dragState.index, {isHeroTarget:false, creature, player:S.p2});
+    dragState = null;
+  });
+
+  // déposer sur le héros ennemi : joue un sort de dégâts directement sur lui
+  heroP2.addEventListener('dragover', (ev)=>{
+    if(!dragState) return;
+    const eff = dragState.card.effect;
+    if(!(eff && eff.type==='damage')) return;
+    ev.preventDefault();
+    heroP2.classList.add('drop-hover');
+  });
+  heroP2.addEventListener('dragleave', ()=>heroP2.classList.remove('drop-hover'));
+  heroP2.addEventListener('drop', (ev)=>{
+    heroP2.classList.remove('drop-hover');
+    if(!dragState) return;
+    const eff = dragState.card.effect;
+    if(!(eff && eff.type==='damage')) return;
+    ev.preventDefault();
+    playCard('p1', dragState.index, {isHeroTarget:true, player:S.p2, key:'p2'});
+    dragState = null;
+  });
+
+  // déposer sur la main : annule simplement l'action (la carte n'a jamais quitté la main)
+  handP1.addEventListener('dragover', (ev)=>{ if(dragState) ev.preventDefault(); });
+  handP1.addEventListener('drop', (ev)=>{ if(dragState){ ev.preventDefault(); dragState = null; } });
+}
+setupDragAndDrop();
+
+initGameSetup();
+initSpellcraftAuth();
+</script>
+</body>
+</html>
