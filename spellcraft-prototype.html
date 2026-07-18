@@ -291,7 +291,7 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 #overlay h1{font-family:'Cinzel',serif;font-size:36px;color:var(--gold);}
 #overlay button{background:var(--arcane);color:#fff;border:none;border-radius:10px;padding:12px 26px;font-family:'Cinzel',serif;font-weight:700;cursor:pointer;font-size:14px;}
 
-.tip{display:none;}
+.tip{position:fixed;transform:translate(-50%,-100%);font-size:11px;color:var(--parchment-dim);background:rgba(0,0,0,.6);padding:5px 12px;border-radius:20px;pointer-events:none;text-align:center;max-width:280px;z-index:45;transition:left .15s ease, top .15s ease;}
 
 #targeting-layer{position:fixed;inset:0;pointer-events:none;z-index:40;width:100%;height:100%;}
 #block-arrows-layer{position:fixed;inset:0;pointer-events:none;z-index:35;width:100%;height:100%;}
@@ -2314,6 +2314,7 @@ function renderPhaseBar(){
 
 function updateTip(){
   const tip = document.getElementById('tip');
+  positionTipAboveHero();
   if(S.gameOver){ tip.textContent=''; return; }
   if(S.active!=='p1'){
     if(S.phase==='declareBlockersMe') tip.textContent = S.pendingBlocker ? "Clique l'attaquant à bloquer." : "Clique une de tes créatures pour la faire bloquer.";
@@ -2323,6 +2324,15 @@ function updateTip(){
   if(S.pendingCard){ tip.textContent = 'Choisissez une cible ennemie.'; return; }
   if(S.phase==='declareAttackers'){ tip.textContent = 'Clique tes créatures pour les désigner comme attaquantes.'; return; }
   tip.textContent = 'Jouez des cartes, puis passez à l\'attaque ou finissez votre tour.';
+}
+
+function positionTipAboveHero(){
+  const tip = document.getElementById('tip');
+  const heroEl = document.getElementById('hero-p1');
+  if(!tip || !heroEl) return;
+  const r = heroEl.getBoundingClientRect();
+  tip.style.left = (r.left + r.width/2) + 'px';
+  tip.style.top = (r.top - 10) + 'px';
 }
 
 /* ============================================================

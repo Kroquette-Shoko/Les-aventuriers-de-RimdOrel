@@ -49,6 +49,15 @@ async function scSignOut(){
   await sb.auth.signOut();
 }
 
+async function scSignInWithDiscord(){
+  await sb.auth.signInWithOAuth({
+    provider: 'discord',
+    options: { redirectTo: window.location.href }
+  });
+  // La page redirige vers Discord puis revient automatiquement ;
+  // renderAuthWidget() se met à jour tout seul via onAuthStateChange.
+}
+
 async function scGetCurrentUser(){
   const { data } = await sb.auth.getSession();
   return data.session ? data.session.user : null;
@@ -71,9 +80,10 @@ function injectAuthStyles(){
   style.id = 'sc-auth-style';
   style.textContent = `
     #sc-auth-widget{position:fixed;top:12px;right:16px;z-index:200;font-family:'Inter',sans-serif;}
-    .sc-auth-account{display:flex;align-items:center;gap:8px;background:#171325;border:1px solid #3a3260;border-radius:20px;padding:6px 8px 6px 14px;box-shadow:0 4px 10px rgba(0,0,0,.4);}
-    .sc-auth-name{font-size:12px;color:#efe6c8;white-space:nowrap;}
-    .sc-auth-btn{background:#241f38;border:1px solid #3a3260;color:#efe6c8;border-radius:14px;padding:6px 12px;font-size:11.5px;font-weight:600;cursor:pointer;white-space:nowrap;}
+    #sc-auth-widget.sc-auth-inline{position:static;}
+    .sc-auth-account{display:flex;align-items:center;gap:9px;background:#171325;border:1px solid #3a3260;border-radius:22px;padding:7px 10px 7px 16px;box-shadow:0 4px 10px rgba(0,0,0,.4);}
+    .sc-auth-name{font-size:13px;color:#efe6c8;white-space:nowrap;font-weight:600;}
+    .sc-auth-btn{background:#241f38;border:1px solid #3a3260;color:#efe6c8;border-radius:16px;padding:7px 14px;font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;}
     .sc-auth-btn:hover{border-color:#d4af37;}
     .sc-auth-btn.primary{background:linear-gradient(180deg,#7c5cff,#5537c2);border:none;color:#fff;}
     .sc-auth-btn.primary:hover{filter:brightness(1.12);}
@@ -90,6 +100,10 @@ function injectAuthStyles(){
     .sc-auth-info.show{display:block;}
     .sc-auth-toggle{font-size:12px;color:#d9cfae;text-align:center;cursor:pointer;text-decoration:underline;}
     .sc-auth-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:4px;}
+    .sc-auth-separator{display:flex;align-items:center;gap:10px;color:#6b6558;font-size:11px;text-transform:uppercase;letter-spacing:.5px;}
+    .sc-auth-separator::before,.sc-auth-separator::after{content:'';flex:1;height:1px;background:#3a3260;}
+    .sc-auth-discord{display:flex;align-items:center;justify-content:center;gap:8px;background:#5865F2;border:none;color:#fff;width:100%;box-sizing:border-box;padding:10px;}
+    .sc-auth-discord:hover{filter:brightness(1.1);}
   `;
   document.head.appendChild(style);
 }
@@ -124,6 +138,11 @@ function renderAuthModal(){
       <button class="sc-auth-btn" onclick="scCloseAuthModal()">Annuler</button>
       <button class="sc-auth-btn primary" onclick="scSubmitAuthForm()">${isSignup ? 'Créer le compte' : 'Se connecter'}</button>
     </div>
+    <div class="sc-auth-separator"><span>ou</span></div>
+    <button class="sc-auth-btn sc-auth-discord" onclick="scSignInWithDiscord()">
+      <svg width="16" height="16" viewBox="0 0 127.14 96.36" fill="currentColor"><path d="M107.7,8.07A105.15,105.15,0,0,0,81.47,0a72.06,72.06,0,0,0-3.36,6.83A97.68,97.68,0,0,0,49,6.83,72.37,72.37,0,0,0,45.64,0,105.89,105.89,0,0,0,19.39,8.09C2.79,32.65-1.71,56.6.54,80.21h0A105.73,105.73,0,0,0,32.71,96.36,77.7,77.7,0,0,0,39.6,85.25a68.42,68.42,0,0,1-10.85-5.18c.91-.66,1.8-1.34,2.66-2a75.57,75.57,0,0,0,64.32,0c.87.71,1.76,1.39,2.66,2a68.68,68.68,0,0,1-10.87,5.19,77,77,0,0,0,6.89,11.1A105.25,105.25,0,0,0,126.6,80.22h0C129.24,52.84,122.09,29.11,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53s5-12.74,11.43-12.74S54,46,53.89,53,48.84,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.25,60,73.25,53s5-12.74,11.44-12.74S96.23,46,96.12,53,91.08,65.69,84.69,65.69Z"/></svg>
+      Continuer avec Discord
+    </button>
   `;
 }
 
@@ -175,7 +194,13 @@ async function initSpellcraftAuth(){
   if(!document.getElementById('sc-auth-widget')){
     const widget = document.createElement('div');
     widget.id = 'sc-auth-widget';
-    document.body.appendChild(widget);
+    const slot = document.getElementById('sc-auth-slot');
+    if(slot){
+      widget.classList.add('sc-auth-inline');
+      slot.appendChild(widget);
+    } else {
+      document.body.appendChild(widget);
+    }
   }
   if(!document.getElementById('sc-auth-modal-overlay')){
     const overlay = document.createElement('div');
