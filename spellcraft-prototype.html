@@ -378,6 +378,7 @@ body.targeting *{cursor:crosshair !important;}
 
 <div id="overlay">
   <h1 id="overlay-text"></h1>
+  <p id="overlay-currency" style="font-size:15px;color:var(--gold);margin:0 0 18px;"></p>
   <button onclick="location.reload()">Rejouer</button>
 </div>
 
@@ -402,6 +403,7 @@ body.targeting *{cursor:crosshair !important;}
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>
 <script src="spellcraft-multiplayer.js"></script>
+<script src="spellcraft-economy.js"></script>
 <script>
 /* ============================================================
    RÉFÉRENTIEL DE CARTES — jeu de démonstration
@@ -815,6 +817,7 @@ let S = {
 };
 
 function startGame(p1Hero, p1Region, p1Deck, p2Hero, p2Region, p2Deck, p2IsAI){
+  matchCurrencyGranted = false;
   S.p1 = newPlayer(p1Hero, p1Region, p1Deck, false);
   S.p2 = newPlayer(p2Hero, p2Region, p2Deck, p2IsAI!==false);
   S.turn = 1;
@@ -2399,11 +2402,22 @@ function render(){
   requestAnimationFrame(drawBlockArrows);
 }
 
+let matchCurrencyGranted = false;
+
 function renderGameOverOverlay(){
   const overlay = document.getElementById('overlay');
   if(!S.gameOver){ overlay.classList.remove('show'); return; }
   document.getElementById('overlay-text').textContent = S.winnerKey==='p1' ? 'Victoire !' : 'Défaite...';
   overlay.classList.add('show');
+  if(!matchCurrencyGranted){
+    matchCurrencyGranted = true;
+    grantMatchCurrency(S.winnerKey==='p1').then(result=>{
+      if(result){
+        const el = document.getElementById('overlay-currency');
+        if(el) el.textContent = `+${result.amount} 🔶 (solde : ${result.balance})`;
+      }
+    });
+  }
 }
 
 function drawBlockArrows(){
