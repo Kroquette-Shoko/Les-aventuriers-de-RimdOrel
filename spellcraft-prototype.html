@@ -266,9 +266,12 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .hand-card-slot{flex-shrink:0;transform-origin:bottom center;transition:transform .15s ease;}
 .hand-card-slot:hover{transform:translateY(-8px) rotate(0deg) scale(1.05) !important;z-index:5;position:relative;}
 
-.side-zone{position:absolute;display:flex;flex-direction:column;gap:6px;z-index:6;}
-.side-zone.self{right:16px;top:calc(50% + 34px);}
+.side-zone{position:absolute;display:flex;flex-direction:column;gap:8px;z-index:6;}
+.side-zone.self{right:16px;top:calc(50% + 100px);}
 .side-zone.enemy{right:16px;top:50%;transform:translateY(-50%);}
+.relic-slot{width:78px;height:106px;position:relative;overflow:hidden;border-radius:8px;box-shadow:0 4px 10px rgba(0,0,0,.5);cursor:default;}
+.relic-slot .card{transform:scale(.52);transform-origin:top left;}
+.relic-charges-badge{position:absolute;bottom:3px;right:3px;background:rgba(15,12,20,.8);border:1px solid var(--gold);color:var(--gold);font-size:9.5px;font-weight:700;border-radius:9px;padding:1px 6px;z-index:2;}
 .mini-tag{width:52px;height:44px;border-radius:6px;background:var(--bg-panel-2);border:1px solid var(--frost);display:flex;align-items:center;justify-content:center;font-size:8px;text-align:center;padding:2px;position:relative;}
 .mini-tag.relic{border-color:var(--gold);}
 
@@ -2106,7 +2109,7 @@ function isTargetableCreature(c, isHeroPower){
 }
 
 function shouldHighlightCreature(key, c){
-  if(S.phase==='declareBlockersMe' && key==='p2') return true;
+  if(S.phase==='declareBlockersMe' && key==='p2') return (S.p2.attackers||[]).includes(c.instId);
   if(S.pendingCard && key==='p2'){
     const eff = S.pendingCard.isHeroPower ? S.p1.hero.activeEffect : S.p1.hand[S.pendingCard.index]?.effect;
     if(!effectNeedsTarget(eff)) return false;
@@ -2191,10 +2194,14 @@ function renderZone(key){
     }
   }
   p.relics.forEach(r=>{
-    const t = document.createElement('div');
-    t.className='mini-tag relic';
-    t.textContent = `${r.name.split(' ')[0]} (${r.charges})`;
-    el.appendChild(t);
+    const slot = document.createElement('div');
+    slot.className = 'relic-slot';
+    slot.appendChild(cardEl(r));
+    const badge = document.createElement('div');
+    badge.className = 'relic-charges-badge';
+    badge.textContent = `⚡${r.charges}`;
+    slot.appendChild(badge);
+    el.appendChild(slot);
   });
 }
 
@@ -2275,10 +2282,6 @@ function renderPhaseBar(){
       btn.textContent='Valider les blocages';
       btn.onclick = confirmBlocks;
       bar.appendChild(btn);
-      const lbl = document.createElement('span');
-      lbl.className='phase-label';
-      lbl.textContent = "Clique une de tes créatures puis l'attaquant qu'elle bloque.";
-      bar.appendChild(lbl);
     } else {
       btn.textContent='Tour adverse';
       btn.disabled = true;
