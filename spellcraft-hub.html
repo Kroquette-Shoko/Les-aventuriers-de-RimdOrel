@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Spellcraft</title>
+<title>Les aventuriers de Rimd'Orël</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@400;500;600;700&display=swap');
 
@@ -26,10 +26,12 @@ html,body{margin:0;min-height:100%;background:var(--bg-void);color:var(--parchme
 
 #sc-auth-slot-wrap{width:100%;max-width:1200px;display:flex;justify-content:flex-end;margin-bottom:6px;}
 
-header{text-align:center;margin-bottom:8px;}
-header .sigil{font-size:30px;margin-bottom:4px;filter:drop-shadow(0 0 14px rgba(124,92,255,.5));}
-header h1{font-family:'Cinzel',serif;font-weight:900;font-size:34px;margin:0;color:var(--gold);letter-spacing:2px;text-shadow:0 2px 10px rgba(0,0,0,.6);}
-header p{color:var(--parchment-dim);font-size:13px;margin:8px 0 0;letter-spacing:.5px;}
+#board-title{
+  position:absolute;top:0.5%;left:50%;transform:translateX(-50%);z-index:5;
+  font-family:'Cinzel',serif;font-weight:900;font-size:clamp(14px,2.1vw,26px);color:var(--gold);
+  letter-spacing:1px;text-shadow:0 2px 3px rgba(0,0,0,.85), 0 0 22px rgba(0,0,0,.7);
+  pointer-events:none;white-space:nowrap;text-align:center;
+}
 
 /* ---------- Le panneau d'affichage ---------- */
 #board{
@@ -56,21 +58,21 @@ header p{color:var(--parchment-dim);font-size:13px;margin:8px 0 0;letter-spacing
 .poster-center:hover{transform:scale(1.04) translateY(-4px);}
 
 /* Panneau de gauche : Boutique */
-.poster-left{left:6.5%;top:44%;width:17%;height:27%;transform:rotate(-3deg);}
+.poster-left{left:7.5%;top:44%;width:15%;height:24%;transform:rotate(-3deg);}
 .poster-left:hover{transform:rotate(0deg) scale(1.05) translateY(-4px);}
 
 /* Panneau de droite : Collection & Deck */
-.poster-right{left:76.5%;top:44%;width:17%;height:27%;transform:rotate(3deg);}
+.poster-right{left:77.5%;top:44%;width:15%;height:24%;transform:rotate(3deg);}
 .poster-right:hover{transform:rotate(0deg) scale(1.05) translateY(-4px);}
 
 /* Sur le mur, au-dessus de la Boutique : Cartomancer (même taille que Succès/Quête) */
 .poster-wall-left{left:7%;top:6%;width:14%;height:19%;transform:rotate(-4deg);}
 .poster-wall-left:hover{transform:rotate(0deg) scale(1.08) translateY(-4px);}
 
-/* Sous Recherche de partie, plus petites : Succès et Quête */
-.poster-below-1{left:33%;top:60%;width:14%;height:19%;transform:rotate(-4deg);}
+/* Sous Recherche de partie, plus petites : Quête et Succès */
+.poster-below-1{left:33%;top:54%;width:14%;height:19%;transform:rotate(-4deg);}
 .poster-below-1:hover{transform:rotate(0deg) scale(1.08) translateY(-4px);}
-.poster-below-2{left:53%;top:60%;width:14%;height:19%;transform:rotate(4deg);}
+.poster-below-2{left:53%;top:54%;width:14%;height:19%;transform:rotate(4deg);}
 .poster-below-2:hover{transform:rotate(0deg) scale(1.08) translateY(-4px);}
 
 .poster-label{
@@ -112,13 +114,9 @@ footer strong{color:var(--parchment);}
 <div id="app">
   <div id="sc-auth-slot-wrap"><div id="sc-auth-slot"></div></div>
 
-  <header>
-    <div class="sigil">🃏</div>
-    <h1>Spellcraft</h1>
-    <p>Trois outils, un seul univers — crée, construis, joue.</p>
-  </header>
-
   <div id="board">
+    <div id="board-title">Les aventuriers de Rimd'Orël</div>
+
     <a class="poster poster-center" href="spellcraft-prototype.html" title="Affronter l'IA ou un ami">
       <img src="images/hub-poster-jouer.png" alt="Recherche de partie">
       <span class="poster-label">Jouer</span>
