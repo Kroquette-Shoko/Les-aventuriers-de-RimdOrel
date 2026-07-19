@@ -537,7 +537,6 @@ const EFFECT_LABELS = {
   grantKeyword: (e)=>`Donne ${KEYWORD_LABELS[e.keyword]||e.keyword} à une créature alliée.`,
   keywordChoice: ()=>`Révèle 3 mots-clés au hasard pour une créature alliée.`,
   summonCopy: (e)=>`Invoque ${e.amount} copie(s) supplémentaire(s) de cette carte.`,
-  nextDiscount: (e)=>`Le prochain ${e.cardType} coûte ${e.amount} de moins ce tour-ci.`,
   reduceCostAura: (e)=>`Réduit durablement de ${e.amount} le coût des cartes ${e.cardType && e.cardType!=='any' ? 'de type '+e.cardType : ''}${e.subtype ? ' du sous-type '+e.subtype : ''}.`,
   explore: (e)=>`Explore ${e.amount} carte(s) ${e.owner==='enemy'?'du deck adverse':'de son deck'}.`,
   retrieve: ()=>`Cherche une carte dans le deck ou la défausse.`,
@@ -588,7 +587,6 @@ function mapAbilityEffectRaw(eff, amount){
     case 'grantKeyword': return {type:'grantKeyword', keyword: eff.grantKeywordKey||'charge', duration: eff.grantKeywordDuration||'permanent'};
     case 'keywordChoice': return {type:'keywordChoice'};
     case 'summonCopy': return {type:'summonCopy', amount: amount||1};
-    case 'nextDiscount': return {type:'nextDiscount', amount: amount||1, cardType: eff.nextDiscountType||'Toutes'};
     case 'reduceCost': return {type:'reduceCostAura', owner: eff.reduceCostOwner||'ally', cardType: eff.reduceCostType||'any', subtype: (eff.reduceCostSubtype||'').trim(), amount: eff.reduceCostAmount??1};
     case 'explore': return {type:'explore', amount: amount||1, owner: eff.exploreOwner||'own'};
     case 'retrieve': return {type:'retrieve', source: eff.retrieveSource||'deck', criteria: eff.retrieveCriteria||'random',
@@ -1858,10 +1856,6 @@ function applySpellEffect(effect, caster, casterKey, target){
       }
       break;
     }
-    case 'nextDiscount':
-      caster.pendingDiscount = {cardType: effect.cardType, amount: effect.amount};
-      log(`${cardOwnerName(casterKey)} : le prochain ${effect.cardType==='Toutes'?'achat':effect.cardType} coûte ${effect.amount} de moins ce tour-ci.`);
-      break;
     case 'reduceCostAura': {
       const targetP = effect.owner==='enemy' ? S[targetKey] : caster;
       const targetPKey = effect.owner==='enemy' ? targetKey : casterKey;

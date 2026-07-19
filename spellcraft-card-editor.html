@@ -610,7 +610,6 @@ const EFFECT_TYPES = [
   {key:'bounce', label:'Renvoi en main', needsTarget:true, needsValue:false},
   {key:'grantMana', label:'Donne du mana', needsTarget:false, needsValue:true, isGrantMana:true},
   {key:'refillMana', label:'Recharge le mana disponible ce tour-ci', needsTarget:false, needsValue:false},
-  {key:'nextDiscount', label:'Réduction du prochain achat ce tour-ci', needsTarget:false, needsValue:true, isNextDiscount:true},
   {key:'discard', label:'Défausser (depuis la main)', needsTarget:false, needsValue:true},
   {key:'explore', label:'Explorer (mise en défausse depuis le deck)', needsTarget:false, needsValue:true, isExplore:true},
   {key:'destroy', label:'Destruction', needsTarget:true, needsValue:false},
@@ -1624,10 +1623,6 @@ function buildEffectRow(ab, eff){
     row.appendChild(makeSelectField('Retire', [{key:'abilities',label:'Les capacités'},{key:'buffs',label:'Les bonus de stats'},{key:'both',label:'Les deux'}], eff.silenceMode||'both', v=>{ eff.silenceMode=v; onFormChange(); }));
   }
 
-  if(def.isNextDiscount){
-    row.appendChild(makeSelectField('Type de carte concerné', CARD_TYPES.map(t=>({key:t,label:t})), eff.nextDiscountType, v=>{ eff.nextDiscountType=v; onFormChange(); }));
-  }
-
   if(def.isGrantKeyword){
     row.appendChild(makeSelectField('Mot-clé', KEYWORDS.map(k=>({key:k.key,label:k.label})), eff.grantKeywordKey, v=>{ eff.grantKeywordKey=v; onFormChange(); }));
     row.appendChild(makeSelectField('Durée', [{key:'permanent',label:'Permanent'},{key:'thisTurn',label:'Ce tour-ci seulement'}], eff.grantKeywordDuration, v=>{ eff.grantKeywordDuration=v; onFormChange(); }));
@@ -1998,10 +1993,6 @@ function buildEffectClause(eff){
       if(eff.manaTargetOwner==='enemy') return `votre adversaire recharge tout son mana disponible ce tour-ci`;
       if(eff.manaTargetOwner==='both') return `chaque joueur recharge tout son mana disponible ce tour-ci`;
       return `rechargez tout votre mana disponible ce tour-ci`;
-    }
-    case 'nextDiscount': {
-      const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic');
-      return `le prochain ${eff.nextDiscountType.toLowerCase()} que vous jouez ce tour-ci coûte ${val} de moins`;
     }
     case 'grantKeyword': {
       const kw = KEYWORDS.find(k=>k.key===eff.grantKeywordKey);
