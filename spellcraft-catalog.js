@@ -108,6 +108,32 @@ async function loadUserCollection(){
   return owned;
 }
 
+// Comme loadUserCollection, mais inclut aussi le nombre d'exemplaires Foil
+// séparément — utilisé par la boutique. Ne pas utiliser à la place de
+// loadUserCollection() ailleurs, la forme du résultat est différente.
+async function loadUserCollectionWithFoil(){
+  const user = await scGetCurrentUser();
+  if(!user) return {};
+  const { data, error } = await sb.from('user_cards').select('card_id, quantity, quantity_foil').eq('user_id', user.id);
+  if(error){ console.error('Erreur de chargement de la collection', error); return {}; }
+  const owned = {};
+  (data||[]).forEach(row => { owned[row.card_id] = { quantity: row.quantity, foil: row.quantity_foil||0 }; });
+  return owned;
+}
+
+/* ============================================================
+   PROFIL — monnaie (or) et fragments
+   ============================================================ */
+async function loadUserProfile(){
+  const user = await scGetCurrentUser();
+  if(!user) return null;
+  const { data, error } = await sb.from('profiles')
+    .select('currency, fragments_aube, fragments_crepuscule, fragments_volonte, fragments_prima, fragments_arcane')
+    .eq('id', user.id).single();
+  if(error){ console.error('Erreur de chargement du profil', error); return null; }
+  return data;
+}
+
 async function setUserCardQuantity(cardId, quantity){
   const user = await scGetCurrentUser();
   if(!user) return { error: 'not-logged-in' };
