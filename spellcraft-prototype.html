@@ -186,6 +186,7 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .status-stack-tr{position:absolute;top:2px;left:3px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;z-index:6;pointer-events:none;}
 .card-protection-icon{font-size:12px;filter:drop-shadow(0 0 3px rgba(79,179,217,.95));animation:protection-pulse 1.6s ease-in-out infinite;}
 .card-reach-icon{font-size:11px;filter:drop-shadow(0 0 2px rgba(212,175,55,.9));}
+.card-toxic-icon{font-size:12px;filter:drop-shadow(0 0 3px rgba(90,180,90,.9));}
 @keyframes protection-pulse{0%,100%{opacity:.7;transform:scale(1);}50%{opacity:1;transform:scale(1.18);}}
 
 /* Vol : la carte plane, ombre portée dessous via drop-shadow (respecte la découpe de la carte) */
@@ -445,7 +446,8 @@ const CARD_DB = [
   {id:'c2', name:'Éclaireur Ailé', type:'Créature', class:'Aube', cost:2, atk:2, hp:1, keywords:['flying'], text:'Vol.'},
   {id:'c3', name:'Duelliste Vif', type:'Créature', class:'Aube', cost:2, atk:2, hp:2, keywords:['initiative'], text:'Initiative.'},
   {id:'c4', name:'Chevalier Cuirassé', type:'Créature', class:'Aube', cost:3, atk:2, hp:3, keywords:['armor'], text:'Armure.'},
-  {id:'c5', name:'Garde Protégée', type:'Créature', class:'Aube', cost:2, atk:1, hp:4, keywords:['protection'], text:'Protection.'},
+  {id:'c5', name:'Garde du Rempart', type:'Créature', class:'Aube', cost:2, atk:1, hp:6, keywords:['protecteur'], text:'Protecteur.'},
+  {id:'c5b', name:'Vipère Rampante', type:'Créature', class:'Crépuscule', cost:2, atk:1, hp:2, keywords:['toxic'], text:'Toxique.'},
   {id:'s1', name:'Éclair Doré', type:'Sortilège', class:'Aube', cost:2, effect:{type:'damage', amount:2}, text:'Inflige 2 dégâts à une créature ou un héros ennemi.'},
   {id:'s1b', name:'Rayon Gelé', type:'Sortilège', class:'Aube', cost:1, effect:{type:'freeze'}, text:'Gèle une créature ennemie désignée.'},
   {id:'r1', name:'Piège Solaire', type:'Piège', class:'Aube', cost:2, effect:{type:'damage', amount:3}, text:'Quand une créature ennemie attaque, inflige 3 dégâts à l\'attaquant.'},
@@ -484,8 +486,8 @@ const CARD_DB = [
 
 const KEYWORD_LABELS = {
   charge:'Charge', flying:'Vol', reach:'Portée', pierce:'Perçant', lifesteal:'Vol de vie',
-  initiative:'Initiative', protection:'Protection', armor:'Armure', stealth:'Furtif', relentless:'Tenace',
-  fearful:'Peureux'
+  initiative:'Initiative', armor:'Armure', stealth:'Furtif', relentless:'Tenace',
+  fearful:'Peureux', protecteur:'Protecteur', toxic:'Toxique'
 };
 
 /* ============================================================
@@ -542,7 +544,7 @@ const EFFECT_LABELS = {
   fight: ()=>`Une créature alliée et une créature ennemie se battent.`,
   coinFlip: ()=>`Lance une pièce contre des créatures ennemies.`
 };
-const TARGETED_EFFECTS = ['damage','stun','freeze','bounce','destroy','silence'];
+const TARGETED_EFFECTS = ['damage','heal','stun','freeze','bounce','destroy','silence','weaken'];
 
 function mapAbilityEffect(ab){
   const eff = ab && ab.effects && ab.effects[0];
@@ -1070,6 +1072,10 @@ function applyDamage(dealer, dealerP, dealerKey, target, targetP, targetKey){
   }
   target.curHp -= dmg;
   if(!suppressDamagePopups) spawnDamageNumber(document.querySelector(`[data-inst-id="${target.instId}"]`), dmg);
+  if(dealer.keywords.includes('toxic') && dmg>0){
+    target.curHp = Math.min(target.curHp, 0);
+    log(`${target.name} est empoisonnée par Toxique et meurt.`);
+  }
   if(dealer.keywords.includes('lifesteal')){
     modifyHp(dealerP, dmg);
     log(`${dealer.name} soigne son héros de ${dmg} PV (Vol de vie).`);
@@ -1220,8 +1226,7 @@ function instantiateCreature(card){
     curAtk: card.atk, curHp: card.hp,
     keywords:[...kw],
     summonSick: !kw.includes('charge'),
-    hasAttacked:false, frozen:false, stunned:false, armorUsed:false,
-    protectedActive: kw.includes('protection')
+    hasAttacked:false, frozen:false, stunned:false, armorUsed:false
   };
 }
 
@@ -1618,8 +1623,17 @@ function applySpellEffect(effect, caster, casterKey, target){
       break;
     }
     case 'heal':
-      modifyHp(caster, effect.amount);
-      log(`${cardOwnerName(casterKey)} récupère ${effect.amount} PV.`);
+      if(target && target.isHeroTarget){
+        modifyHp(target.player, effect.amount);
+        log(`${cardOwnerName(casterKey)} restaure ${effect.amount} PV à un héros.`);
+      } else if(target && target.creature){
+        target.creature.curHp = Math.min(target.creature.hp, target.creature.curHp + effect.amount);
+        log(`${cardOwnerName(casterKey)} restaure ${effect.amount} PV à ${target.creature.name}.`);
+        fireWatchTrigger('watchHealed', target.player===S.p1?'p1':'p2');
+      } else {
+        modifyHp(caster, effect.amount);
+        log(`${cardOwnerName(casterKey)} récupère ${effect.amount} PV.`);
+      }
       break;
     case 'stun':
       if(!target.isHeroTarget){
@@ -1675,16 +1689,15 @@ function applySpellEffect(effect, caster, casterKey, target){
       break;
     }
     case 'buff': {
-      const allies = caster.board;
-      if(allies.length>0){
-        const c = allies[Math.floor(Math.random()*allies.length)];
+      const c = (target && target.creature) ? target.creature : (caster.board.length>0 ? caster.board[Math.floor(Math.random()*caster.board.length)] : null);
+      if(c){
         c.curAtk = Math.max(0, c.curAtk + effect.atk); c.curHp += effect.hp;
         const s1 = (effect.atk>=0?'+':'')+effect.atk, s2 = (effect.hp>=0?'+':'')+effect.hp;
         log(`${cardOwnerName(casterKey)} modifie ${c.name} de ${s1}/${s2}.`);
         if(effect.atk>0 || effect.hp>0) fireWatchTrigger('watchBuffed', casterKey);
         cleanupDeaths();
       } else {
-        log(`${cardOwnerName(casterKey)} n'a aucune créature à renforcer.`);
+        log(`${cardOwnerName(casterKey)} n'a aucune créature à modifier.`);
       }
       break;
     }
@@ -1843,6 +1856,7 @@ function applySpellEffect(effect, caster, casterKey, target){
         n++;
       }
       log(`${cardOwnerName(casterKey)} explore ${n} carte${n>1?'s':''} ${effect.owner==='enemy'?'du deck adverse':'de son deck'}.`);
+      if(n>0) fireWatchTrigger('watchExplore', casterKey);
       break;
     }
     case 'retrieve': {
@@ -1861,7 +1875,14 @@ function applySpellEffect(effect, caster, casterKey, target){
           caster.hand.push(chosen);
         }
         log(`${cardOwnerName(casterKey)} récupère ${chosen.name}.`);
-        if(effect.source==='discard') firePermanentTriggers(casterKey, 'onReturnFromGraveyard');
+        if(effect.source==='discard'){
+          firePermanentTriggers(casterKey, 'onReturnFromGraveyard');
+          fireWatchTrigger('watchFromDiscard', casterKey);
+          fireWatchTrigger('watchRetrieveDiscard', casterKey);
+        } else {
+          fireWatchTrigger('watchFromDeck', casterKey);
+          fireWatchTrigger('watchRetrieveDeck', casterKey);
+        }
         return true;
       };
       if(effect.repeat==='asManyAsPossible'){
@@ -1914,6 +1935,7 @@ function applySpellEffect(effect, caster, casterKey, target){
           p.hand.push(card);
         }
         log(`${cardOwnerName(key)} conjure ${card.name}.`);
+        fireWatchTrigger('watchConjured', key);
       });
       break;
     }
@@ -1973,7 +1995,7 @@ function toggleAttacker(instId){
 
 function enterDeclareAttackers(){
   const p = S[S.active];
-  const eligible = p.board.filter(c=>!c.frozen && !c.stunned && (!c.summonSick || c.keywords.includes('charge')) && !c.hasAttacked);
+  const eligible = p.board.filter(c=>!c.frozen && !c.stunned && !c.keywords.includes('protecteur') && (!c.summonSick || c.keywords.includes('charge')) && !c.hasAttacked);
   if(eligible.length===0){
     log('Aucune créature ne peut attaquer : combat automatiquement passé.');
     S.attackPhaseDone = true;
@@ -2256,7 +2278,7 @@ function runAI(){
 
   render();
   setTimeout(()=>{
-    const eligible = p.board.filter(c=>!c.frozen && !c.stunned && (!c.summonSick || c.keywords.includes('charge')) && !c.hasAttacked);
+    const eligible = p.board.filter(c=>!c.frozen && !c.stunned && !c.keywords.includes('protecteur') && (!c.summonSick || c.keywords.includes('charge')) && !c.hasAttacked);
     if(eligible.length===0){ endTurn(); return; }
     p.attackers = eligible.map(c=>c.instId);
     eligible.forEach(c=>{ c.hasAttacked=true; fireCreatureTrigger('p2', c, 'onAttack'); });
@@ -2307,7 +2329,8 @@ function cardEl(card, opts={}){
   }
 
   const hasArmorShield = inPlay && kw.includes('armor') && !card.armorUsed;
-  const hasProtection = inPlay && kw.includes('protection') && card.protectedActive;
+  const hasProtecteur = inPlay && kw.includes('protecteur');
+  const hasToxic = inPlay && kw.includes('toxic');
   const hasReach = inPlay && kw.includes('reach');
   const hasPierce = inPlay && kw.includes('pierce');
 
@@ -2339,8 +2362,9 @@ function cardEl(card, opts={}){
     ${card.charges!==undefined ? `<div class="charges">${card.charges}x</div>` : ''}
     ${isSick ? `<div class="zzz"><span>Z</span><span>Z</span><span>Z</span></div>` : ''}
     ${hasArmorShield ? `<div class="card-armor-shield" title="Armure"></div>` : ''}
-    ${(hasProtection || hasReach) ? `<div class="status-stack-tr">
-        ${hasProtection ? `<span class="card-protection-icon" title="Protection">🛡</span>` : ''}
+    ${(hasProtecteur || hasReach || hasToxic) ? `<div class="status-stack-tr">
+        ${hasProtecteur ? `<span class="card-protection-icon" title="Protecteur">🛡</span>` : ''}
+        ${hasToxic ? `<span class="card-toxic-icon" title="Toxique">☠</span>` : ''}
         ${hasReach ? `<span class="card-reach-icon" title="Portée">🏹</span>` : ''}
       </div>` : ''}
     ${hasPierce ? `<div class="card-pierce-badge" title="Perçant">🔻</div>` : ''}
@@ -2470,12 +2494,12 @@ function renderHero(key){
     };
     el.appendChild(btn);
   }
-  if(S.pendingCard && key==='p2'){
+  if(S.pendingCard && targetableKeysForEffect(S.pendingCard.isHeroPower ? S.p1.hero.activeEffect : S.p1.hand[S.pendingCard.index]?.effect).includes(key)){
     const eff = S.pendingCard.isHeroPower ? S.p1.hero.activeEffect : S.p1.hand[S.pendingCard.index]?.effect;
-    const wantsHero = eff && eff.type==='damage';
+    const wantsHero = eff && (eff.type==='damage' || eff.type==='heal');
     if(wantsHero){
       el.style.cursor='crosshair';
-      el.onclick = ()=>resolvePendingTarget({isHeroTarget:true, player:S.p2, key:'p2'});
+      el.onclick = ()=>resolvePendingTarget({isHeroTarget:true, player:S[key], key});
     }
   }
 }
@@ -2515,8 +2539,18 @@ function renderLane(key){
   });
 }
 
+// Détermine quel(s) camp(s) (p1/p2) sont valables comme cible interactive pour
+// un effet donné, du point de vue du joueur humain (toujours p1 ici). 'random'
+// n'est pas interactif (résolu automatiquement ailleurs), donc renvoie aucun camp.
+function targetableKeysForEffect(eff){
+  const owner = eff && eff.targetOwner;
+  if(owner==='ally') return ['p1'];
+  if(owner==='any') return ['p1','p2'];
+  if(owner==='random') return [];
+  return ['p2']; // 'enemy' et repli par défaut (comportement historique)
+}
+
 function isTargetableCreature(c, isHeroPower){
-  if(c.keywords.includes('protection') && c.protectedActive) return false;
   if(!isHeroPower && c.keywords.includes('stealth') && !c.hasAttacked) return false;
   return true;
 }
@@ -2524,9 +2558,10 @@ function isTargetableCreature(c, isHeroPower){
 function shouldHighlightCreature(key, c){
   if(S.pendingSacrifice && key==='p1') return true;
   if(S.phase==='declareBlockersMe' && key==='p2') return (S.p2.attackers||[]).includes(c.instId);
-  if(S.pendingCard && key==='p2'){
+  if(S.pendingCard){
     const eff = S.pendingCard.isHeroPower ? S.p1.hero.activeEffect : S.p1.hand[S.pendingCard.index]?.effect;
     if(!effectNeedsTarget(eff)) return false;
+    if(!targetableKeysForEffect(eff).includes(key)) return false;
     return isTargetableCreature(c, !!S.pendingCard.isHeroPower);
   }
   return false;
@@ -2555,20 +2590,24 @@ function onCreatureClick(key, c, ev){
   }
 
   // ciblage sort/pouvoir
-  if(S.pendingCard && key==='p2'){
-    if(!isTargetableCreature(c, !!S.pendingCard.isHeroPower)){
-      const reason = c.keywords.includes('protection') && c.protectedActive ? 'Protection' : 'Furtif';
-      log(`${c.name} ne peut pas être ciblée (${reason}).`);
+  if(S.pendingCard){
+    const eff = S.pendingCard.isHeroPower ? S.p1.hero.activeEffect : S.p1.hand[S.pendingCard.index]?.effect;
+    if(targetableKeysForEffect(eff).includes(key)){
+      if(!isTargetableCreature(c, !!S.pendingCard.isHeroPower)){
+        log(`${c.name} ne peut pas être ciblée (Furtif).`);
+        return;
+      }
+      resolvePendingTarget({isHeroTarget:false, creature:c, player:S[key]});
       return;
     }
-    resolvePendingTarget({isHeroTarget:false, creature:c, player:S.p2});
-    return;
   }
 
   // déclaration des attaquants
   if(S.phase==='declareAttackers' && key==='p1'){
-    if(!c.frozen && !c.stunned && (!c.summonSick || c.keywords.includes('charge'))){
+    if(!c.frozen && !c.stunned && !c.keywords.includes('protecteur') && (!c.summonSick || c.keywords.includes('charge'))){
       toggleAttacker(c.instId);
+    } else if(c.keywords.includes('protecteur')){
+      log(`${c.name} est Protecteur et ne peut pas attaquer.`);
     }
     return;
   }
@@ -2892,6 +2931,8 @@ function pickDiscoverOption(caster, casterKey, chosen){
   if(idx>=0) caster.deck.splice(idx,1);
   caster.hand.push(chosen);
   log(`${cardOwnerName(casterKey)} choisit ${chosen.name} (Réveler).`);
+  fireWatchTrigger('watchReveal', casterKey);
+  fireWatchTrigger('watchAfterReveal', casterKey);
   render();
 }
 
