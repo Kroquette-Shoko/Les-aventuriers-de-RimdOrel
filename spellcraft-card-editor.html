@@ -605,7 +605,6 @@ const EFFECT_TYPES = [
   {key:'setStat', label:'Fixer une statistique (Force/Endurance/Coût/Utilisations)', needsTarget:false, needsValue:false, isSetStat:true},
   {key:'reduceCost', label:'Réduire le coût d\'un type/sous-type de carte', needsTarget:false, needsValue:false, isReduceCost:true},
   {key:'reduceAbilityCost', label:'Réduire le coût d\'activation (de cette carte)', needsTarget:false, needsValue:true, isReduceAbilityCost:true},
-  {key:'freeze', label:'Gel', needsTarget:true, needsValue:false},
   {key:'stun', label:'Étourdir', needsTarget:true, needsValue:false},
   {key:'bounce', label:'Renvoi en main', needsTarget:true, needsValue:false},
   {key:'grantMana', label:'Donne du mana', needsTarget:false, needsValue:true, isGrantMana:true},
@@ -1961,8 +1960,6 @@ function buildEffectClause(eff){
       const consequence = eff.coinFlipSuccessEffect==='destroy' ? 'est détruite' : `subit ${eff.coinFlipSuccessValue} dégâts`;
       return `lancez une pièce pour ${groupLabel} : sur un résultat défavorable, elle ${consequence}`;
     }
-    case 'freeze':
-      return `gelez ${targetPhrase(eff)}`;
     case 'discard': {
       if(eff.valueMode==='fixed'){
         return eff.valueFixed===1 ? 'défaussez une carte' : `défaussez ${eff.valueFixed} cartes`;

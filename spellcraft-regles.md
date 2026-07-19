@@ -254,3 +254,5 @@ Cette section trace les décisions prises pendant la refonte complète du systè
 **"Mal d'invocation"** est le nom officiel donné à la règle déjà existante (créature sans Charge ne peut pas agir le tour où elle arrive) — reste une règle automatique, pas un mot-clé à cocher sur une carte ; a seulement besoin d'une vraie animation (Zzz).
 
 **Sacrifice en tant qu'effet** (`sacrificeEffect`) est distinct du coût additionnel "sacrifier une créature" pour jouer une carte — l'un est un coût à payer avant de jouer la carte, l'autre est une conséquence de la capacité elle-même une fois déclenchée.
+
+**À faire côté moteur (pas encore fait) :** `spellcraft-prototype.html` a encore toute la logique mécanique de l'ancien mot-clé Protection (y compris une carte de démonstration, "Garde Protégée", qui l'utilise) — à retirer/remplacer par Protecteur et Toxique quand on câblera les mots-clés côté moteur. Idem pour tous les autres points listés ci-dessus : rien de tout ça n'est encore interprété par le moteur, uniquement configurable dans l'éditeur.

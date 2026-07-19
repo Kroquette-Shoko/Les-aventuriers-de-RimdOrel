@@ -33,11 +33,12 @@ const KEYWORDS = [
   {key:'pierce', label:'Perçant', desc:"L'excédent de dégâts passe sur le héros adverse."},
   {key:'lifesteal', label:'Vol de vie', desc:'Les dégâts infligés soignent votre héros.'},
   {key:'initiative', label:'Initiative', desc:'Frappe avant son adversaire (si elle tue sa cible, elle ne subit pas de dégâts).'},
-  {key:'protection', label:'Protection', desc:"Jusqu'à votre prochain tour, ne peut pas être ciblée par votre adversaire."},
   {key:'armor', label:'Armure', desc:"Annule la première fois qu'elle subit des dégâts."},
-  {key:'stealth', label:'Furtif', desc:"Ne peut pas être la cible d'un sort avant d'avoir attaqué."},
-  {key:'relentless', label:'Tenace', desc:'Quand elle meurt, revient en jeu une fois.'},
-  {key:'fearful', label:'Peureux', desc:'Ne peut pas bloquer.'}
+  {key:'stealth', label:'Furtif', desc:"Ne peut pas être la cible d'un sortilège le tour où elle arrive."},
+  {key:'relentless', label:'Tenace', desc:'Quand elle meurt, revient en jeu une fois (sans Tenace).'},
+  {key:'fearful', label:'Peureux', desc:'Ne peut pas bloquer.'},
+  {key:'protecteur', label:'Protecteur', desc:'Ne peut pas attaquer.'},
+  {key:'toxic', label:'Toxique', desc:'Tue toute créature à qui elle inflige des dégâts.'}
 ];
 
 /* ============================================================
