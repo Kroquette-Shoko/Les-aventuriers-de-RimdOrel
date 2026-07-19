@@ -546,7 +546,7 @@ const EFFECT_LABELS = {
   fight: ()=>`Une créature alliée et une créature ennemie se battent.`,
   coinFlip: ()=>`Lance une pièce contre des créatures ennemies.`
 };
-const TARGETED_EFFECTS = ['damage','heal','stun','freeze','bounce','destroy','silence','weaken'];
+const TARGETED_EFFECTS = ['damage','heal','stun','freeze','bounce','destroy','silence','weaken','buff'];
 
 function mapAbilityEffect(ab){
   const eff = ab && ab.effects && ab.effects[0];
@@ -1024,8 +1024,11 @@ function fireHeroTrigger(key, triggerName){
   const eff = p.hero.triggeredEffects && p.hero.triggeredEffects[triggerName];
   if(!eff) return;
   if(!conditionsMet(eff.conditions, p, key)) return;
-  if(!effectNeedsTarget(eff)) applySpellEffect(eff, p, key, {});
-  // les capacités de héros ciblant une créature depuis ces déclencheurs ne sont pas encore prises en charge
+  if(effectNeedsTarget(eff)){
+    applySpellEffect(eff, p, key, autoResolveTargetForTriggeredEffect(eff, p, key, null));
+  } else {
+    applySpellEffect(eff, p, key, {});
+  }
 }
 
 function dealDamageToHero(targetPlayer, targetKey, amount, sourcePlayer){
@@ -1165,13 +1168,31 @@ function fireWatchTrigger(triggerName, eventOwnerKey){
       if(owner==='ally' && !isAllyEvent) return;
       if(owner==='enemy' && isAllyEvent) return;
       if(!conditionsMet(eff.conditions, p, watcherKey)) return;
-      if(isCreature && eff.targetOwner==='self' && TARGETED_EFFECTS.includes(eff.type)){
-        applySpellEffect(eff, p, watcherKey, {isHeroTarget:false, creature:source, player:p});
-      } else if(!effectNeedsTarget(eff)){
+      if(effectNeedsTarget(eff)){
+        applySpellEffect(eff, p, watcherKey, autoResolveTargetForTriggeredEffect(eff, p, watcherKey, isCreature?source:null));
+      } else {
         applySpellEffect(eff, p, watcherKey, {});
       }
     });
   });
+}
+
+// Résout automatiquement une cible pour un effet déclenché automatiquement
+// (pas de sélection interactive possible dans ce contexte) : soi-même si
+// targetOwner='self', sinon une créature au hasard du bon camp.
+function autoResolveTargetForTriggeredEffect(eff, p, key, sourceCreature){
+  if(eff.targetOwner==='self'){
+    if(sourceCreature) return {isHeroTarget:false, creature:sourceCreature, player:p};
+    return {isHeroTarget:true, player:p, key};
+  }
+  const oppKey = key==='p1' ? 'p2' : 'p1';
+  const pool = eff.targetOwner==='enemy' ? S[oppKey].board : p.board;
+  const poolP = eff.targetOwner==='enemy' ? S[oppKey] : p;
+  if(pool.length>0){
+    const c = pool[Math.floor(Math.random()*pool.length)];
+    return {isHeroTarget:false, creature:c, player:poolP};
+  }
+  return {};
 }
 
 function firePermanentTriggers(key, triggerName){
@@ -1188,9 +1209,9 @@ function firePermanentTriggers(key, triggerName){
     if(!eff) return;
     if((triggerName==='startOfTurnX' || triggerName==='endOfTurnX') && S.turn!==(eff._triggerTurn||1)) return;
     if(!conditionsMet(eff.conditions, p, key)) return;
-    if(isCreature && eff.targetOwner==='self' && TARGETED_EFFECTS.includes(eff.type)){
-      applySpellEffect(eff, p, key, {isHeroTarget:false, creature:source, player:p});
-    } else if(!effectNeedsTarget(eff)){
+    if(effectNeedsTarget(eff)){
+      applySpellEffect(eff, p, key, autoResolveTargetForTriggeredEffect(eff, p, key, isCreature?source:null));
+    } else {
       applySpellEffect(eff, p, key, {});
     }
   });
@@ -1204,9 +1225,9 @@ function fireCreatureTrigger(key, creature, triggerName){
   const eff = creature.triggeredEffects && creature.triggeredEffects[triggerName];
   if(!eff) return;
   if(!conditionsMet(eff.conditions, p, key)) return;
-  if(eff.targetOwner==='self' && TARGETED_EFFECTS.includes(eff.type)){
-    applySpellEffect(eff, p, key, {isHeroTarget:false, creature, player:p});
-  } else if(!effectNeedsTarget(eff)){
+  if(effectNeedsTarget(eff)){
+    applySpellEffect(eff, p, key, autoResolveTargetForTriggeredEffect(eff, p, key, creature));
+  } else {
     applySpellEffect(eff, p, key, {});
   }
 }
@@ -1349,9 +1370,9 @@ function fireSummonSubtypeTrigger(key, newCreature){
     if(!eff) return;
     if(eff._triggerSubtype && !subtypes.includes(eff._triggerSubtype.toLowerCase())) return;
     if(!conditionsMet(eff.conditions, p, key)) return;
-    if(isCreature && eff.targetOwner==='self' && TARGETED_EFFECTS.includes(eff.type)){
-      applySpellEffect(eff, p, key, {isHeroTarget:false, creature:source, player:p});
-    } else if(!effectNeedsTarget(eff)){
+    if(effectNeedsTarget(eff)){
+      applySpellEffect(eff, p, key, autoResolveTargetForTriggeredEffect(eff, p, key, isCreature?source:null));
+    } else {
       applySpellEffect(eff, p, key, {});
     }
   });
@@ -1692,7 +1713,8 @@ function applySpellEffect(effect, caster, casterKey, target){
       break;
     }
     case 'buff': {
-      const c = (target && target.creature) ? target.creature : (caster.board.length>0 ? caster.board[Math.floor(Math.random()*caster.board.length)] : null);
+      const pool = target && target.creature ? null : (effect.targetOwner==='enemy' ? S[targetKey].board : caster.board);
+      const c = (target && target.creature) ? target.creature : (pool && pool.length>0 ? pool[Math.floor(Math.random()*pool.length)] : null);
       if(c){
         c.curAtk = Math.max(0, c.curAtk + effect.atk); c.curHp += effect.hp;
         const s1 = (effect.atk>=0?'+':'')+effect.atk, s2 = (effect.hp>=0?'+':'')+effect.hp;
