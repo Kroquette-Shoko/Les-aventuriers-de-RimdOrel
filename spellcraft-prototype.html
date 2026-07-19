@@ -70,7 +70,8 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .mana-dot.reserved{outline:2px dashed var(--gold);outline-offset:1.5px;}
 
 .zone-badges{display:flex;gap:8px;margin-left:auto;flex-shrink:0;}
-.badge{display:flex;flex-direction:column;align-items:center;justify-content:center;width:46px;height:52px;border-radius:8px;background:var(--bg-panel-2);border:1px solid #3a3260;cursor:pointer;user-select:none;}
+.badge{display:flex;flex-direction:column;align-items:center;justify-content:center;width:50px;height:58px;border-radius:8px;background:var(--bg-panel-2);border:1px solid #3a3260;cursor:pointer;user-select:none;}
+.badge-label{font-size:8px;text-transform:uppercase;letter-spacing:.3px;color:var(--parchment-dim);margin-top:1px;}
 .badge:hover{border-color:var(--gold);}
 .badge .badge-icon{font-size:17px;line-height:1;}
 .badge .badge-count{font-size:12px;font-weight:700;color:var(--parchment);}
@@ -370,6 +371,7 @@ body.targeting *{cursor:crosshair !important;}
 
 
 <div id="deck-select-overlay" style="position:fixed;inset:0;background:var(--bg-void);display:flex;align-items:center;justify-content:center;z-index:90;">
+  <div id="sc-auth-slot" style="position:absolute;top:16px;right:20px;"></div>
   <div id="deck-select-box" style="max-width:640px;width:90vw;max-height:85vh;overflow-y:auto;background:var(--bg-panel);border:1px solid #2b2440;border-radius:14px;padding:28px 30px;"></div>
 </div>
 
@@ -704,7 +706,7 @@ function newPlayer(heroObj, regionObj, deckArray, isAI){
     manaNormalMax:0, manaNormal:0, manaFragile:0,
     heroCooldown:0, pendingDiscount:null,
     hand:[], deck:[...deckArray], board:[], relics:[], discard:[],
-    attackers:[], blocks:{}, hpLostThisTurn:0, hpGainedThisTurn:0, activeCostReductions:[]
+    attackers:[], blocks:{}, hpLostThisTurn:0, hpGainedThisTurn:0, activeCostReductions:[], gameStartFired:false
   };
   for(let i=0;i<4;i++) drawCard(p);
   return p;
@@ -803,11 +805,6 @@ function startGame(p1Hero, p1Region, p1Deck, p2Hero, p2Region, p2Deck, p2IsAI){
   S.phase = 'main';
   log(`La partie commence. Vous incarnez ${p1Hero.name}, avec ${p1Region.name} comme région.`);
 
-  suppressDamagePopups = true;
-  triggerGameStart(S.p1, 'p1');
-  triggerGameStart(S.p2, 'p2');
-  suppressDamagePopups = false;
-
   startTurn('p1', true);
 }
 
@@ -891,6 +888,14 @@ function modifyHp(p, delta){
 function startTurn(key, first){
   const p = S[key];
   applyManaGain(p, key);
+
+  if(!p.gameStartFired){
+    p.gameStartFired = true;
+    suppressDamagePopups = true;
+    triggerGameStart(p, key);
+    suppressDamagePopups = false;
+  }
+
   p.hpLostThisTurn = 0;
   p.hpGainedThisTurn = 0;
 
@@ -2218,8 +2223,8 @@ function renderHero(key){
         <div class="region-tag">${region.name}</div>
       </div>
       <div class="zone-badges">
-        <div class="badge deck" title="Cartes restantes"><span class="badge-icon">🂠</span><span class="badge-count">${p.deck.length}</span></div>
-        <div class="badge discard ${p.discard.length>0?'has-cards':''}" title="Défausse" onclick="openDiscardModal('${key}')"><span class="badge-icon">🪦</span><span class="badge-count">${p.discard.length}</span></div>
+        <div class="badge deck" title="Cartes restantes"><span class="badge-icon">🂠</span><span class="badge-count">${p.deck.length}</span><span class="badge-label">Deck</span></div>
+        <div class="badge discard ${p.discard.length>0?'has-cards':''}" title="Défausse" onclick="openDiscardModal('${key}')"><span class="badge-icon">🪦</span><span class="badge-count">${p.discard.length}</span><span class="badge-label">Défausse</span></div>
       </div>
     </div>
     <div class="mana-bar">

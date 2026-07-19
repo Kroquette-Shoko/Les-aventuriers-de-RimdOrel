@@ -27,7 +27,7 @@ html,body{margin:0;background:var(--bg-void);color:var(--parchment);font-family:
 
 #app{display:flex;flex-direction:column;min-height:100vh;width:100%;}
 
-header{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:14px;padding:12px 20px;background:var(--bg-panel);border-bottom:1px solid #2b2440;}
+header{position:sticky;top:0;z-index:30;display:flex;align-items:center;gap:14px;padding:12px 20px;background:var(--bg-panel);border-bottom:1px solid #2b2440;flex-wrap:wrap;}
 header h1{font-family:'Cinzel',serif;font-size:17px;margin:0;color:var(--gold);letter-spacing:.5px;}
 header .spacer{flex:1;}
 .btn{background:var(--bg-panel-2);border:1px solid #3a3260;color:var(--parchment);border-radius:8px;padding:8px 14px;font-family:'Inter';font-size:12.5px;font-weight:600;cursor:pointer;}
@@ -229,6 +229,7 @@ header .spacer{flex:1;}
     <h1>🃏 Spellcraft — Éditeur de cartes</h1>
     <span class="save-indicator" id="save-indicator">✓ Sauvegardé</span>
     <div class="spacer"></div>
+    <div id="sc-auth-slot"></div>
     <label style="font-size:11px;color:var(--parchment-dim);display:flex;align-items:center;gap:6px;">
       Set :
       <select id="set-selector" onchange="onSetSelectorChange()" style="background:var(--bg-panel-2);border:1px solid #3a3260;color:var(--parchment);border-radius:6px;padding:6px 8px;font-size:12px;"></select>
