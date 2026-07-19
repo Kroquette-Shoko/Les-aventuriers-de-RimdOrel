@@ -741,7 +741,7 @@ function playDrawAnimation(card, onDone){
   // étape 2 : glisse ensuite vers la main
   setTimeout(()=>{
     const to = document.getElementById('hand-p1').getBoundingClientRect();
-    const endX = to.left + Math.min(to.width, 420)/2 - 40, endY = to.top - 10;
+    const endX = window.innerWidth/2 - 40, endY = to.top - 10;
     wrap.style.transition = 'transform .48s cubic-bezier(.3,.55,.3,1), opacity .3s ease .3s';
     wrap.style.transform = `translate(${endX-behindX}px, ${endY-behindY}px) scale(.5) rotate(5deg)`;
     wrap.style.opacity = '0';
