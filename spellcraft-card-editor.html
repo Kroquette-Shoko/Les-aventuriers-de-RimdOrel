@@ -512,11 +512,13 @@ header .spacer{flex:1;}
 /* CLASSES, CLASS_COLORS, RARITIES, CARD_TYPES, KEYWORDS, escapeHtml et migrateCard
    viennent maintenant de spellcraft-shared.js (chargé juste avant ce script). */
 
+const WATCH_TRIGGERS = ['watchPlay','watchDeath','watchAttack','watchDamaged','watchHealed','watchHeroHealed','watchSpell','watchTrap','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchAfterReveal','watchReveal','watchExplore','watchRetrieveDiscard','watchRetrieveDeck'];
+
 const TRIGGERS_BY_TYPE = {
-  'Créature': ['onPlay','onAttack','onDamaged','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','endOfTurn','onManaGained','onDraw','onSummonSubtype','activated'],
-  'Héros':    ['gameStart','onPlay','onDamaged','onKill','onReturnFromGraveyard','startOfTurn','endOfTurn','onManaGained','onDraw','onSummonSubtype','activated'],
-  'Région':   ['gameStart','onPlay','onDestroyed','onReturnFromGraveyard','startOfTurn','endOfTurn','onManaGained','activated'],
-  'Artefact': ['onPlay','onUse','onDestroyed','onReturnFromGraveyard','startOfTurn','endOfTurn','onManaGained','onDraw','onSummonSubtype','activated'],
+  'Créature': ['onPlay','onAttack','onDamaged','onHealed','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype', ...WATCH_TRIGGERS,'activated'],
+  'Héros':    ['gameStart','onPlay','onDamaged','onHealed','onKill','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype', ...WATCH_TRIGGERS,'activated'],
+  'Région':   ['gameStart','onPlay','onDestroyed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion', ...WATCH_TRIGGERS,'activated'],
+  'Artefact': ['onPlay','onUse','onDestroyed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype', ...WATCH_TRIGGERS,'activated'],
   'Sortilège':['onPlay'],
   'Piège':    ['onOpponentAttack','onOpponentSpell','onOpponentPlayCreature','onOpponentPlayCard','onOpponentEndTurn','onOpponentTargetsAlly','onAllySurvivesCombat','onEnemySurvivesCombat','beforeAllyFights','onAllyBlocked']
 };
@@ -526,6 +528,7 @@ const TRIGGER_TEXT = {
   onPlay: 'Quand cette carte entre en jeu',
   onAttack: 'Quand cette créature attaque',
   onDamaged: 'Quand cette carte subit des dégâts',
+  onHealed: 'Quand cette carte est soignée',
   onDeath: 'Quand cette créature meurt',
   onDestroyed: 'Quand cette carte est détruite',
   onKill: 'Quand cette carte élimine une créature',
@@ -533,9 +536,13 @@ const TRIGGER_TEXT = {
   onReturnFromGraveyard: 'Quand vous ramenez une créature de la défausse',
   onUse: 'À chaque utilisation',
   startOfTurn: 'Au début de votre tour',
+  startOfTurnX: 'Au début de votre tour X',
   endOfTurn: 'À la fin de votre tour',
-  onManaGained: 'Quand vous gagnez un point de mana',
+  endOfTurnX: 'À la fin de votre tour X',
+  onManaGained: 'Quand vous gagnez du mana',
+  onManaGainedNonRegion: 'Quand vous gagnez du mana autrement que par la région',
   onDraw: 'Quand vous piochez une carte',
+  onHandDiscard: 'Quand vous défaussez une carte depuis votre main',
   onSummonSubtype: 'Quand vous invoquez une créature du sous-type X',
   onOpponentAttack: 'Quand une créature ennemie attaque',
   onOpponentSpell: "Quand l'adversaire lance un sortilège",
@@ -547,13 +554,31 @@ const TRIGGER_TEXT = {
   onEnemySurvivesCombat: "Après qu'une créature ennemie survit à un combat",
   beforeAllyFights: "Avant qu'une créature alliée ne combatte",
   onAllyBlocked: "Si une créature alliée est bloquée",
+  watchPlay: 'Quand une carte entre en jeu',
+  watchDeath: 'Quand une carte meurt',
+  watchAttack: 'Quand une créature attaque',
+  watchDamaged: 'Quand une carte subit des dégâts',
+  watchHealed: 'Quand une carte est soignée',
+  watchHeroHealed: 'Quand un héros est soigné',
+  watchSpell: 'Quand un sortilège est joué',
+  watchTrap: "Quand un piège se déclenche",
+  watchBuffed: 'Quand une carte gagne un bonus',
+  watchFromDiscard: 'Quand une carte arrive depuis la défausse',
+  watchFromDeck: 'Quand une carte arrive depuis le deck',
+  watchConjured: 'Quand une carte est conjurée',
+  watchAfterReveal: 'Quand une carte arrive après avoir été révélée',
+  watchReveal: 'Quand un joueur révèle',
+  watchExplore: 'Quand un joueur explore',
+  watchRetrieveDiscard: 'Quand une carte est récupérée depuis la défausse',
+  watchRetrieveDeck: 'Quand une carte est récupérée depuis le deck',
   activated: 'Capacité activée (payez du mana)'
 };
 
 // Noms courts façon "mot-clé" pour certains déclencheurs, affichés dans le menu (n'affecte pas le texte généré)
 const TRIGGER_SHORT_NAME = {
   onPlay: 'Début',
-  onDeath: 'Finale'
+  onDeath: 'Finale',
+  onAttack: 'Assaut'
 };
 
 const CONDITION_TYPES = [
@@ -702,6 +727,8 @@ function blankAbility(){
     id: rowId(),
     trigger: null,
     triggerSubtype: '',
+    triggerOwner: 'ally',
+    triggerTurn: 1,
     conditions: [],
     effects: [ blankEffect() ],
     chainMode: 'sequential',
@@ -1103,6 +1130,30 @@ function rebuildAbilitiesUI(){
       sel.onchange = ()=>{ ab.trigger=sel.value; rebuildAbilitiesUI(); onFormChange(); };
       trow.querySelector('.field').appendChild(sel);
       box.appendChild(trow);
+
+      if(WATCH_TRIGGERS.includes(ab.trigger)){
+        const orow = document.createElement('div');
+        orow.className='ability-row';
+        orow.innerHTML = `<div class="field"><label class="mini-field">Concerne les cartes</label></div>`;
+        const osel = document.createElement('select');
+        [['ally','Alliées'],['enemy','Ennemies'],['both','Les deux']].forEach(([k,l])=>{
+          const opt = document.createElement('option'); opt.value=k; opt.textContent=l;
+          if((ab.triggerOwner||'ally')===k) opt.selected=true;
+          osel.appendChild(opt);
+        });
+        osel.onchange = ()=>{ ab.triggerOwner=osel.value; onFormChange(); };
+        orow.querySelector('.field').appendChild(osel);
+        box.appendChild(orow);
+      }
+
+      if(ab.trigger==='startOfTurnX' || ab.trigger==='endOfTurnX'){
+        const xrow = document.createElement('div');
+        xrow.className='ability-row';
+        xrow.innerHTML = `<div class="field"><label class="mini-field">Numéro du tour</label>
+          <input type="number" id="trigturn-${ab.id}" min="1" max="30" value="${ab.triggerTurn||1}"></div>`;
+        xrow.querySelector(`#trigturn-${ab.id}`).oninput = (e)=>{ ab.triggerTurn=parseInt(e.target.value)||1; onFormChange(); };
+        box.appendChild(xrow);
+      }
 
       if(ab.trigger==='onSummonSubtype'){
         const srow = document.createElement('div');
@@ -2009,6 +2060,16 @@ function buildAbilitySentence(cardType, ab){
     let prefix = TRIGGER_TEXT[ab.trigger] || '';
     if(ab.trigger==='onSummonSubtype'){
       prefix = `Quand vous invoquez une créature du sous-type ${ab.triggerSubtype || '?'}`;
+    }
+    if(WATCH_TRIGGERS.includes(ab.trigger)){
+      const ownerSuffix = {ally:' alliée', enemy:' ennemie', both:''}[ab.triggerOwner||'ally'];
+      if(ownerSuffix) prefix += ` (carte${ownerSuffix})`;
+    }
+    if(ab.trigger==='startOfTurnX'){
+      prefix = `Au début de votre tour ${ab.triggerTurn||1}`;
+    }
+    if(ab.trigger==='endOfTurnX'){
+      prefix = `À la fin de votre tour ${ab.triggerTurn||1}`;
     }
     if(ab.trigger==='activated'){
       prefix = `Payez ${ab.activationCost ?? 0} mana`;

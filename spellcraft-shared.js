@@ -60,6 +60,8 @@ function migrateCard(c){
     if(ab.activationCost===undefined) ab.activationCost = 2;
     if(ab.activationCooldown===undefined) ab.activationCooldown = 0;
     if(ab.triggerSubtype===undefined) ab.triggerSubtype = '';
+    if(ab.triggerOwner===undefined) ab.triggerOwner = 'ally';
+    if(ab.triggerTurn===undefined) ab.triggerTurn = 1;
     if(ab.extraCostEnabled===undefined) ab.extraCostEnabled = false;
     if(ab.extraCostType===undefined) ab.extraCostType = 'sacrificeCreature';
     if(ab.extraCostAmount===undefined) ab.extraCostAmount = 1;
