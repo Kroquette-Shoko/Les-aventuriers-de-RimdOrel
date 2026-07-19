@@ -668,19 +668,24 @@ const CONJURE_DESTINATIONS = [
 const TARGET_CATEGORIES = [
   {key:'creature', label:'Créature'},
   {key:'hero', label:'Héros'},
+  {key:'hero_creature', label:'Héros et créature'},
   {key:'artifact', label:'Artefact'},
   {key:'player', label:'Joueur'},
-  {key:'card_in_hand', label:'Carte en main'}
+  {key:'card_in_hand', label:'Carte en main'},
+  {key:'card_in_discard', label:'Carte en défausse'},
+  {key:'card_in_deck', label:'Carte dans le deck'}
 ];
 const TARGET_OWNERS = [
   {key:'self', label:'Cette carte'},
   {key:'ally', label:'Alliée / vous'},
   {key:'enemy', label:'Ennemie / adversaire'},
-  {key:'any', label:'Peu importe'}
+  {key:'any', label:'Peu importe'},
+  {key:'random', label:'Au hasard (un camp tiré une fois)'}
 ];
 const SELECTION_MODES = [
   {key:'chosen', label:'Désignée par le joueur'},
   {key:'upTo', label:'Jusqu\'à X désignées'},
+  {key:'exact', label:'Exactement X (sinon la carte ne peut pas être jouée)'},
   {key:'random', label:'Aléatoire'},
   {key:'all', label:'Toutes / tous'}
 ];
@@ -1838,27 +1843,34 @@ function valuePhrase(eff, mode, fixedVal, dynKey){
 function targetPhrase(eff){
   if(eff.targetOwner==='self') return 'cette carte';
   if(eff.targetCategory==='hero'){
+    if(eff.targetOwner==='random') return 'un héros tiré au hasard (allié ou ennemi)';
     return eff.targetOwner==='enemy' ? 'le héros ennemi' : 'votre héros';
   }
   if(eff.targetCategory==='player'){
+    if(eff.targetOwner==='random') return 'un joueur tiré au hasard';
     return eff.targetOwner==='enemy' ? 'votre adversaire' : 'vous';
   }
-  const nounSing = {creature:'créature', artifact:'artefact', card_in_hand:'carte en main'}[eff.targetCategory] || 'cible';
-  const nounPlur = {creature:'créatures', artifact:'artefacts', card_in_hand:'cartes en main'}[eff.targetCategory] || 'cibles';
-  const adjSing = {ally:'alliée', enemy:'ennemie', any:''}[eff.targetOwner] || '';
-  const adjPlur = {ally:'alliées', enemy:'ennemies', any:''}[eff.targetOwner] || '';
+  const nounSing = {creature:'créature', hero_creature:'héros ou créature', artifact:'artefact', card_in_hand:'carte en main', card_in_discard:'carte en défausse', card_in_deck:'carte du deck'}[eff.targetCategory] || 'cible';
+  const nounPlur = {creature:'créatures', hero_creature:'héros ou créatures', artifact:'artefacts', card_in_hand:'cartes en main', card_in_discard:'cartes en défausse', card_in_deck:'cartes du deck'}[eff.targetCategory] || 'cibles';
+  const adjSing = {ally:'alliée', enemy:'ennemie', any:'', random:''}[eff.targetOwner] || '';
+  const adjPlur = {ally:'alliées', enemy:'ennemies', any:'', random:''}[eff.targetOwner] || '';
+  const randomOwnerPrefix = eff.targetOwner==='random' ? "(camp tiré au hasard) " : '';
 
   if(eff.selectionMode==='all'){
     if(eff.targetOwner==='ally') return `toutes vos ${nounPlur}`;
     if(eff.targetOwner==='enemy') return `toutes les ${nounPlur} ${adjPlur}`.trim();
-    return `toutes les ${nounPlur}`;
+    return `${randomOwnerPrefix}toutes les ${nounPlur}`.trim();
   }
   const count = eff.targetCount||1;
   const noun = count>1 ? nounPlur : nounSing;
   const adj = count>1 ? adjPlur : adjSing;
-  const selWord = eff.selectionMode==='random' ? (count>1?'aléatoires':'aléatoire') : (count>1?'désignées':'désignée');
-  const article = count>1 ? `${count} ` : 'une ';
-  return `${article}${noun}${adj?' '+adj:''} ${selWord}`.replace(/\s+/g,' ').trim();
+  let selWord;
+  if(eff.selectionMode==='random') selWord = count>1?'aléatoires':'aléatoire';
+  else if(eff.selectionMode==='upTo') selWord = 'désignée(s) au choix';
+  else if(eff.selectionMode==='exact') selWord = 'désignée(s) obligatoirement';
+  else selWord = count>1?'désignées':'désignée';
+  const article = eff.selectionMode==='upTo' ? `jusqu'à ${count} ` : (count>1 ? `${count} ` : 'une ');
+  return `${randomOwnerPrefix}${article}${noun}${adj?' '+adj:''} ${selWord}`.replace(/\s+/g,' ').trim();
 }
 
 function buildEffectClause(eff){

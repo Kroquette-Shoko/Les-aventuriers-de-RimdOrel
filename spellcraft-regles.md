@@ -236,3 +236,21 @@ Le **coût additionnel** (sacrifice, défausse, perte de PV) est réellement vé
 Une capacité peut désormais avoir plusieurs déclencheurs différents en même temps sur une seule carte (avant ce lot de correctifs, une carte de type Créature/Héros/Région/Artefact ne pouvait avoir qu'une seule capacité réellement interprétée par le moteur, même si l'éditeur en acceptait plusieurs).
 
 Tout le reste décrit dans ce document (mana, combat, mots-clés, Pièges, effets listés en section 8 hors les exceptions ci-dessus) est réellement implémenté et appliqué par le moteur.
+
+## 11. Refonte des capacités (2026) — décisions de conception
+
+Cette section trace les décisions prises pendant la refonte complète du système de capacités de l'éditeur (déclencheurs, conditions, effets, cibles, mots-clés), pour ne pas les perdre avant l'implémentation côté moteur. **Rien ci-dessous n'est encore câblé dans `spellcraft-prototype.html`** — uniquement dans l'éditeur pour l'instant.
+
+**Règle générale de ciblage (important, pas encore appliquée dans le moteur) :** pour toute carte qui a besoin d'une cible, si aucune cible valable n'existe (ou si la sélection "Exactement X" ne peut pas être remplie), **la carte ne peut pas être jouée du tout** — ce n'est pas un échec partiel à la résolution, c'est un blocage en amont, au même titre que ne pas avoir assez de mana. Il faudra vérifier la disponibilité de cibles valables AVANT de permettre de jouer la carte, pas après.
+
+**Règle "Regarder" (discover) :** une carte "regardée" depuis le deck, la défausse, ou la main d'un joueur est **toujours retirée de sa zone d'origine**, peu importe où elle finit ensuite (main, jeu...). On ne copie jamais la carte — elle change de zone, elle n'existe jamais à deux endroits en même temps.
+
+**Cas particulier de la règle générale de ciblage :** si un effet "Regarder N cartes" porte sur une zone qui contient moins de N cartes (ex : regarder 3 cartes de la défausse alors qu'il n'y en a que 2, ou 0), l'effet ne peut pas se jouer — même conséquence que l'absence de cible valable : la carte entière ne peut pas être jouée.
+
+**Sous-type vide :** dans une condition/cible qui filtre par sous-type, laisser le champ vide signifie "sans sous-type" (aucun sous-type sur la carte), pas "n'importe quel sous-type".
+
+**Mot-clé Protection retiré**, remplacé par Protecteur (ne peut pas attaquer), qui n'a aucun rapport avec l'ancien Protection (ne peut pas être ciblée par un sort).
+
+**"Mal d'invocation"** est le nom officiel donné à la règle déjà existante (créature sans Charge ne peut pas agir le tour où elle arrive) — reste une règle automatique, pas un mot-clé à cocher sur une carte ; a seulement besoin d'une vraie animation (Zzz).
+
+**Sacrifice en tant qu'effet** (`sacrificeEffect`) est distinct du coût additionnel "sacrifier une créature" pour jouer une carte — l'un est un coût à payer avant de jouer la carte, l'autre est une conséquence de la capacité elle-même une fois déclenchée.
