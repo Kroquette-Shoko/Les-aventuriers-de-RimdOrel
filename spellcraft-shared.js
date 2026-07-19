@@ -70,6 +70,23 @@ function migrateCard(c){
       if(cond.healthChangeDirection===undefined) cond.healthChangeDirection='lost';
       if(cond.healthChangeOwner===undefined) cond.healthChangeOwner='self';
       if(cond.healthChangeMode===undefined) cond.healthChangeMode='atLeast';
+      if(cond.owner===undefined) cond.owner='self';
+      if(cond.valueMode===undefined) cond.valueMode='fixed';
+      if(cond.valueFixed===undefined) cond.valueFixed = parseInt(cond.value)||3;
+      if(cond.valueDynamic===undefined) cond.valueDynamic='handSize';
+      if(cond.resourceType===undefined) cond.resourceType='hp';
+      if(cond.compareMode===undefined) cond.compareMode='atLeast';
+      if(cond.countThisTurnType===undefined) cond.countThisTurnType='creature';
+      if(cond.countThisTurnEvent===undefined) cond.countThisTurnEvent='died';
+      if(cond.subtypeCardType===undefined) cond.subtypeCardType='creature';
+      if(cond.subtypeZone===undefined) cond.subtypeZone='board';
+      if(cond.subtype===undefined) cond.subtype='';
+      if(cond.statType===undefined) cond.statType='force';
+      if(cond.statScope===undefined) cond.statScope='target';
+      if(cond.statCompareMode===undefined) cond.statCompareMode='greater';
+      if(cond.deckCompMode===undefined) cond.deckCompMode='singleClassAny';
+      if(cond.deckCompClass===undefined) cond.deckCompClass='Aube';
+      if(cond.deckCompValue===undefined) cond.deckCompValue=1;
     });
     (ab.effects||[]).forEach(eff=>{
       if(eff.retrieveSource===undefined) eff.retrieveSource='deck';

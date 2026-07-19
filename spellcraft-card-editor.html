@@ -763,7 +763,9 @@ function blankEffect(){
   };
 }
 function blankCondition(){
-  return { id: rowId(), conditionType:'resourceCompare', value:'3', healthChangeDirection:'lost', healthChangeOwner:'self', healthChangeMode:'atLeast',
+  return { id: rowId(), conditionType:'resourceCompare', value:'3',
+    valueMode:'fixed', valueFixed:3, valueDynamic:'handSize',
+    owner:'self', healthChangeDirection:'lost', healthChangeOwner:'self', healthChangeMode:'atLeast',
     resourceType:'hp', compareMode:'atLeast', countThisTurnType:'creature', countThisTurnEvent:'died',
     subtypeCardType:'creature', subtypeZone:'board', subtype:'',
     statType:'force', statScope:'target', statCompareMode:'greater',
@@ -1249,13 +1251,16 @@ function rebuildAbilitiesUI(){
       const ctDef = CONDITION_TYPES.find(c=>c.key===cond.conditionType);
 
       if(ctDef && ctDef.isResourceCompare){
+        row.appendChild(makeCondSelectField(cond, 'owner', [['self','Vous'],['enemy','Adversaire']], 'self', 'Qui'));
         row.appendChild(makeCondSelectField(cond, 'resourceType', [['hp','PV'],['mana','Mana'],['hand','Cartes en main'],['discard','Cartes en défausse'],['deck','Cartes dans le deck'],['board','Créatures en jeu']], 'hp', 'Ressource'));
         row.appendChild(makeCondSelectField(cond, 'compareMode', [['atLeast','Au moins'],['atMost','Au plus'],['exactly','Exactement']], 'atLeast', 'Comparaison'));
       }
       if(ctDef && ctDef.isDrawnThisTurn){
+        row.appendChild(makeCondSelectField(cond, 'owner', [['self','Vous'],['enemy','Adversaire']], 'self', 'Qui'));
         row.appendChild(makeCondSelectField(cond, 'compareMode', [['atLeast','Au moins'],['exactly','Exactement']], 'atLeast', 'Comparaison'));
       }
       if(ctDef && ctDef.isCountThisTurn){
+        row.appendChild(makeCondSelectField(cond, 'owner', [['self','Alliées'],['enemy','Ennemies'],['both','Les deux']], 'self', 'Camp'));
         row.appendChild(makeCondSelectField(cond, 'countThisTurnType', [['creature','Créatures'],['artifact','Artefacts']], 'creature', 'Type de carte', true));
         const typeNow = cond.countThisTurnType||'creature';
         const eventOptions = typeNow==='artifact' ? [['died','Mortes'],['arrived','Arrivées'],['activated','Activées']] : [['died','Mortes'],['arrived','Arrivées']];
@@ -1263,6 +1268,7 @@ function rebuildAbilitiesUI(){
         row.appendChild(makeCondSelectField(cond, 'compareMode', [['atLeast','Au moins'],['exactly','Exactement']], 'atLeast', 'Comparaison'));
       }
       if(ctDef && ctDef.isSubtypeCount){
+        row.appendChild(makeCondSelectField(cond, 'owner', [['self','Vous'],['enemy','Adversaire']], 'self', 'Qui'));
         row.appendChild(makeCondSelectField(cond, 'subtypeCardType', [['creature','Créature'],['artifact','Artefact'],['sortilege','Sortilège'],['piege','Piège'],['any','Peu importe']], 'creature', 'Type de carte'));
         row.appendChild(makeCondSelectField(cond, 'subtypeZone', [['board','En jeu'],['hand','En main'],['discard','En défausse']], 'board', 'Zone'));
         const subField = document.createElement('div');
@@ -1336,7 +1342,7 @@ function rebuildAbilitiesUI(){
         modeField.appendChild(modeSel);
         row.appendChild(modeField);
       }
-      if(ctDef && ctDef.hasValue){
+      if(ctDef && ctDef.hasValue && ctDef.valueType==='text'){
         const valField = document.createElement('div');
         valField.className='field';
         valField.innerHTML = `<label class="mini-field">Valeur</label>`;
@@ -1345,6 +1351,8 @@ function rebuildAbilitiesUI(){
         valInput.oninput=()=>{ cond.value=valInput.value; onFormChange(); };
         valField.appendChild(valInput);
         row.appendChild(valField);
+      } else if(ctDef && ctDef.hasValue){
+        row.appendChild(buildValueField(cond, 'valueMode', 'valueFixed', 'valueDynamic', 'Valeur', true));
       }
       const rm = document.createElement('button');
       rm.className='mini-btn'; rm.textContent='×';
@@ -2087,6 +2095,14 @@ function conjureClause(eff){
   return `${ownerVerb} un(e) ${typesPhrase}${classPhrase}${subtypePhrase}${filterPhrase}${destPhrase}${followUpClause(eff)}`;
 }
 
+function condValueText(cond){
+  if(cond.valueMode==='dynamic'){
+    const dv = DYNAMIC_VALUES.find(d=>d.key===cond.valueDynamic);
+    return dv ? dv.label.replace('= ','') : '?';
+  }
+  return String(cond.valueFixed ?? cond.value ?? 'X');
+}
+
 function conditionClause(cond){
   const def = CONDITION_TYPES.find(c=>c.key===cond.conditionType);
   if(!def) return '';
@@ -2094,7 +2110,8 @@ function conditionClause(cond){
     case 'resourceCompare': {
       const resLabel = {hp:'PV', mana:'mana', hand:'cartes en main', discard:'cartes en défausse', deck:'cartes dans le deck', board:'créatures en jeu'}[cond.resourceType||'hp'];
       const compLabel = {atLeast:'au moins', atMost:'au plus', exactly:'exactement'}[cond.compareMode||'atLeast'];
-      return `votre héros a ${compLabel} ${cond.value||'X'} ${resLabel}`;
+      const who = cond.owner==='enemy' ? "le héros adverse a" : 'votre héros a';
+      return `${who} ${compLabel} ${condValueText(cond)} ${resLabel}`;
     }
     case 'healthChange': {
       const isEnemy = cond.healthChangeOwner==='enemy';
@@ -2102,33 +2119,36 @@ function conditionClause(cond){
       const verbAvoir = isEnemy ? 'a' : 'avez';
       const verb = cond.healthChangeDirection==='gained' ? 'gagné' : 'perdu';
       const comp = cond.healthChangeMode==='exact' ? 'exactement' : 'au moins';
-      return `${who} ${verbAvoir} ${verb} ${comp} ${cond.value||'X'} PV ce tour-ci`;
+      return `${who} ${verbAvoir} ${verb} ${comp} ${condValueText(cond)} PV ce tour-ci`;
     }
     case 'drawnThisTurn': {
       const comp = cond.compareMode==='exactly' ? 'exactement' : 'au moins';
-      return `votre héros a pioché ${comp} ${cond.value||'X'} carte(s) ce tour-ci`;
+      const who = cond.owner==='enemy' ? "l'adversaire a" : 'votre héros a';
+      return `${who} pioché ${comp} ${condValueText(cond)} carte(s) ce tour-ci`;
     }
     case 'countThisTurn': {
       const typeLabel = cond.countThisTurnType==='artifact' ? 'artefact(s)' : 'créature(s)';
       const evLabel = {died:'mortes',arrived:'arrivées',activated:'activées'}[cond.countThisTurnEvent||'died'];
       const comp = cond.compareMode==='exactly' ? 'exactement' : 'au moins';
-      return `${comp} ${cond.value||'X'} ${typeLabel} ${evLabel} ce tour-ci`;
+      const ownerLabel = {self:'alliées ',enemy:'ennemies ',both:''}[cond.owner||'self'];
+      return `${comp} ${condValueText(cond)} ${typeLabel} ${ownerLabel}${evLabel} ce tour-ci`;
     }
     case 'boardEmpty': return 'le plateau adverse est vide';
     case 'subtypeCount': {
       const typeLabel = {creature:'créature(s)',artifact:'artefact(s)',sortilege:'sortilège(s)',piege:'piège(s)',any:'carte(s)'}[cond.subtypeCardType||'creature'];
       const zoneLabel = {board:'en jeu',hand:'en main',discard:'en défausse'}[cond.subtypeZone||'board'];
       const comp = {atLeast:'au moins',atMost:'au plus',exactly:'exactement'}[cond.compareMode||'atLeast'];
-      return `vous avez ${comp} ${cond.value||'X'} ${typeLabel} ${zoneLabel} du sous-type ${cond.subtype||'?'}`;
+      const who = cond.owner==='enemy' ? "l'adversaire a" : 'vous avez';
+      return `${who} ${comp} ${condValueText(cond)} ${typeLabel} ${zoneLabel} du sous-type ${cond.subtype||'?'}`;
     }
     case 'statCompare': {
       const statLabel = cond.statType==='endurance' ? 'endurance' : 'force';
       const scopeLabel = {target:'de la cible',anyBoard:"d'une créature en jeu",anyHand:"d'une créature en main"}[cond.statScope||'target'];
       const compLabel = {greater:'supérieure',less:'inférieure',equal:'égale'}[cond.statCompareMode||'greater'];
-      return `la ${statLabel} ${scopeLabel} est ${compLabel} à ${cond.value||'X'}`;
+      return `la ${statLabel} ${scopeLabel} est ${compLabel} à ${condValueText(cond)}`;
     }
-    case 'turnAtLeast': return `on est au tour ${cond.value||'X'} ou plus`;
-    case 'chance': return `vous avez ${cond.value||'X'}% de chance`;
+    case 'turnAtLeast': return `on est au tour ${condValueText(cond)} ou plus`;
+    case 'chance': return `vous avez ${condValueText(cond)}% de chance`;
     case 'deckComposition': {
       switch(cond.deckCompMode){
         case 'singleClassSpecific': return `votre deck de base ne contient que des cartes ${cond.deckCompClass||'?'} (Neutre exclu)`;
