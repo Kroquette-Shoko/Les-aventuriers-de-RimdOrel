@@ -564,12 +564,22 @@ function mapAbilityEffectRaw(eff, amount){
     case 'silence': return {type:'silence', targetOwner: eff.targetOwner};
     case 'draw': return {type:'draw', amount: amount||1, owner: eff.manaTargetOwner||'self'};
     case 'buff': return {type:'buff', atk: amount??1, hp: eff.valueFixed2??1};
+    case 'weaken': return {type:'buff', atk: -(Math.abs(amount??1)), hp: -(Math.abs(eff.valueFixed2??1))};
     case 'resource': return {type:'resource', amount: amount||1, owner: eff.manaTargetOwner||'self'};
     case 'emptyMana': return {type:'emptyManaEffect', amount: amount||1, owner: eff.manaTargetOwner||'self'};
     case 'fragileMana': return {type:'fragileManaEffect', amount: amount||1, owner: eff.manaTargetOwner||'self'};
+    case 'grantMana': {
+      const manaType = eff.manaType||'normal';
+      const t = manaType==='empty' ? 'emptyManaEffect' : manaType==='fragile' ? 'fragileManaEffect' : 'resource';
+      return {type:t, amount: amount||1, owner: eff.manaTargetOwner||'self'};
+    }
     case 'refillMana': return {type:'refillMana', owner: eff.manaTargetOwner||'self'};
     case 'discard': return {type:'discardSelf', amount: amount||1};
     case 'setStats': return {type:'setStats', scope: eff.setStatsScope||'board', owner: eff.setStatsOwner||'ally', atk: eff.setStatsAtk??1, hp: eff.setStatsHp??1};
+    case 'setStat': return {type:'setStat', target: eff.setStatTarget||'force', scope: eff.setStatScope||'board', owner: eff.setStatOwner||'ally', value: eff.setStatValue??2};
+    case 'silence': return {type:'silence', targetOwner: eff.targetOwner, mode: eff.silenceMode||'both'};
+    case 'removeArtifactCharges': return {type:'removeArtifactCharges', amount: amount||1, targetOwner: eff.targetOwner};
+    case 'sacrificeEffect': return {type:'sacrificeEffect', targetOwner: eff.targetOwner};
     case 'upgrade': return {type:'upgrade'};
     case 'grantKeyword': return {type:'grantKeyword', keyword: eff.grantKeywordKey||'charge', duration: eff.grantKeywordDuration||'permanent'};
     case 'keywordChoice': return {type:'keywordChoice'};
@@ -627,6 +637,8 @@ function extractTriggeredEffects(rawCard){
     const mapped = mapAbilityEffect(ab);
     if(mapped){
       mapped._triggerSubtype = (ab.triggerSubtype||'').trim();
+      mapped._triggerOwner = ab.triggerOwner||'ally';
+      mapped._triggerTurn = ab.triggerTurn||1;
       map[ab.trigger] = mapped;
     }
   });
@@ -706,7 +718,9 @@ function newPlayer(heroObj, regionObj, deckArray, isAI){
     manaNormalMax:0, manaNormal:0, manaFragile:0,
     heroCooldown:0, pendingDiscount:null,
     hand:[], deck:[...deckArray], board:[], relics:[], discard:[],
-    attackers:[], blocks:{}, hpLostThisTurn:0, hpGainedThisTurn:0, activeCostReductions:[], gameStartFired:false
+    attackers:[], blocks:{}, hpLostThisTurn:0, hpGainedThisTurn:0, activeCostReductions:[], gameStartFired:false,
+    cardsDrawnThisTurn:0, manaGainedThisTurn:0, creaturesDiedThisTurn:0, creaturesArrivedThisTurn:0,
+    artifactsDiedThisTurn:0, artifactsArrivedThisTurn:0, artifactsActivatedThisTurn:0
   };
   for(let i=0;i<4;i++) drawCard(p);
   return p;
@@ -716,6 +730,7 @@ function drawCard(p, key){
   if(p.deck.length===0) return null;
   const card = p.deck.shift();
   p.hand.push(card);
+  p.cardsDrawnThisTurn = (p.cardsDrawnThisTurn||0) + 1;
   if(p===S.p1){
     DRAW_ANIM_PENDING_CARDS.push(card);
     DRAW_ANIM_QUEUE.push(card);
@@ -852,9 +867,11 @@ function cardOwnerName(key){ return key==='p1' ? 'Vous' : 'L\'adversaire'; }
 function applyManaGain(p, key){
   p.manaNormalMax = Math.min(10, p.manaNormalMax+1);
   p.manaNormal = p.manaNormalMax;
+  p.manaGainedThisTurn = (p.manaGainedThisTurn||0) + 1;
   const region = p.region;
   if(region.manaRule==='bonusFragile'){
     p.manaFragile += 1;
+    p.manaGainedThisTurn += 1;
     log(`${cardOwnerName(key)} : ${region.name} octroie 1 mana fragile supplémentaire.`);
   }
   firePermanentTriggers(key, 'onManaGained');
@@ -882,7 +899,11 @@ function gainFragileMana(p, key, amount){
 function modifyHp(p, delta){
   p.hp += delta;
   if(delta<0) p.hpLostThisTurn = (p.hpLostThisTurn||0) + (-delta);
-  else if(delta>0) p.hpGainedThisTurn = (p.hpGainedThisTurn||0) + delta;
+  else if(delta>0){
+    p.hpGainedThisTurn = (p.hpGainedThisTurn||0) + delta;
+    const key = p===S.p1 ? 'p1' : p===S.p2 ? 'p2' : null;
+    if(key) fireWatchTrigger('watchHeroHealed', key);
+  }
 }
 
 function startTurn(key, first){
@@ -898,6 +919,13 @@ function startTurn(key, first){
 
   p.hpLostThisTurn = 0;
   p.hpGainedThisTurn = 0;
+  p.cardsDrawnThisTurn = 0;
+  p.manaGainedThisTurn = 0;
+  p.creaturesDiedThisTurn = 0;
+  p.creaturesArrivedThisTurn = 0;
+  p.artifactsDiedThisTurn = 0;
+  p.artifactsArrivedThisTurn = 0;
+  p.artifactsActivatedThisTurn = 0;
 
   // pièges actifs jamais déclenchés : se désarment au retour du tour de leur propriétaire
   p.hand.forEach(card=>{
@@ -910,10 +938,13 @@ function startTurn(key, first){
 
   // début de tour : déclenche les capacités "début de votre tour" sur tous les permanents
   firePermanentTriggers(key, 'startOfTurn');
+  firePermanentTriggers(key, 'startOfTurnX');
 
   // reliques : décompte des charges (indépendant de leur capacité éventuelle)
   p.relics.forEach(r=>{ r.charges--; });
-  p.discard.push(...p.relics.filter(r=>r.charges<=0));
+  const deadRelics = p.relics.filter(r=>r.charges<=0);
+  p.discard.push(...deadRelics);
+  p.artifactsDiedThisTurn = (p.artifactsDiedThisTurn||0) + deadRelics.length;
   p.relics = p.relics.filter(r=>r.charges>0);
 
   drawCard(p, key);
@@ -960,6 +991,7 @@ function resolveTrapReservations(key){
 function endTurn(){
   if(S.gameOver) return;
   firePermanentTriggers(S.active, 'endOfTurn');
+  firePermanentTriggers(S.active, 'endOfTurnX');
   resolveTrapReservations(S.active);
   fireTrap(S.active==='p1' ? 'p2' : 'p1', 'onOpponentEndTurn', null);
   S[S.active].pendingDiscount = null;
@@ -1048,6 +1080,7 @@ function applyDamage(dealer, dealerP, dealerKey, target, targetP, targetKey){
     log(`Perçant : ${excess} dégâts excédentaires passent au héros ennemi.`);
   }
   fireCreatureTrigger(targetKey, target, 'onDamaged');
+  fireWatchTrigger('watchDamaged', targetKey);
   if(target.curHp<=0) fireCreatureTrigger(dealerKey, dealer, 'onKill');
   return dmg;
 }
@@ -1070,6 +1103,7 @@ function cleanupDeaths(){
           p.discard.push(c);
           log(`${c.name} meurt.`);
           dead.push({creature:c, key});
+          p.creaturesDiedThisTurn = (p.creaturesDiedThisTurn||0) + 1;
         }
       } else {
         survivors.push(c);
@@ -1092,6 +1126,7 @@ function cleanupDeaths(){
   dead.forEach(({creature, key})=>{
     fireCreatureTrigger(key, creature, 'onDeath');
     fireCreatureTrigger(key, creature, 'onDestroyed');
+    fireWatchTrigger('watchDeath', key);
   });
 }
 
@@ -1100,6 +1135,36 @@ function cleanupDeaths(){
 // région, artefacts). Les effets qui se ciblent eux-mêmes ("Cette carte") ne
 // sont gérés que pour les créatures ; les effets ciblant l'adversaire depuis
 // ces déclencheurs ne sont pas encore pris en charge.
+// Déclenche un événement "observable" (ex: une carte quelconque meurt) sur TOUS
+// les permanents des deux joueurs qui le surveillent, en respectant leur filtre
+// Alliées/Ennemies/Les deux par rapport au camp où l'événement s'est produit.
+function fireWatchTrigger(triggerName, eventOwnerKey){
+  ['p1','p2'].forEach(watcherKey=>{
+    const p = S[watcherKey];
+    if(!p) return;
+    const sources = [
+      ...p.board.map(c=>({source:c, isCreature:true})),
+      p.hero ? {source:p.hero, isCreature:false} : null,
+      p.region ? {source:p.region, isCreature:false} : null,
+      ...(p.relics||[]).map(r=>({source:r, isCreature:false}))
+    ].filter(Boolean);
+    sources.forEach(({source, isCreature})=>{
+      const eff = source.triggeredEffects && source.triggeredEffects[triggerName];
+      if(!eff) return;
+      const owner = eff._triggerOwner || 'ally';
+      const isAllyEvent = eventOwnerKey===watcherKey;
+      if(owner==='ally' && !isAllyEvent) return;
+      if(owner==='enemy' && isAllyEvent) return;
+      if(!conditionsMet(eff.conditions, p, watcherKey)) return;
+      if(isCreature && eff.targetOwner==='self' && TARGETED_EFFECTS.includes(eff.type)){
+        applySpellEffect(eff, p, watcherKey, {isHeroTarget:false, creature:source, player:p});
+      } else if(!effectNeedsTarget(eff)){
+        applySpellEffect(eff, p, watcherKey, {});
+      }
+    });
+  });
+}
+
 function firePermanentTriggers(key, triggerName){
   const p = S[key];
   if(!p) return;
@@ -1112,6 +1177,7 @@ function firePermanentTriggers(key, triggerName){
   sources.forEach(({source, isCreature})=>{
     const eff = source.triggeredEffects && source.triggeredEffects[triggerName];
     if(!eff) return;
+    if((triggerName==='startOfTurnX' || triggerName==='endOfTurnX') && S.turn!==(eff._triggerTurn||1)) return;
     if(!conditionsMet(eff.conditions, p, key)) return;
     if(isCreature && eff.targetOwner==='self' && TARGETED_EFFECTS.includes(eff.type)){
       applySpellEffect(eff, p, key, {isHeroTarget:false, creature:source, player:p});
@@ -1325,6 +1391,8 @@ function playCard(key, handIndex, targetInfo){
       // les capacités "à l'entrée en jeu" ciblant l'adversaire ne sont pas encore prises en charge pour les créatures
     }
     fireSummonSubtypeTrigger(key, inst);
+    p.creaturesArrivedThisTurn = (p.creaturesArrivedThisTurn||0) + 1;
+    fireWatchTrigger('watchPlay', key);
     triggerOpponentPlayTraps(key, card, inst);
   }
   else if(card.type==='Sortilège'){
@@ -1336,6 +1404,8 @@ function playCard(key, handIndex, targetInfo){
     showCardReveal(card);
     applySpellEffect(card.effect, p, key, targetInfo || {});
     p.discard.push(card);
+    fireWatchTrigger('watchPlay', key);
+    fireWatchTrigger('watchSpell', key);
     triggerOpponentPlayTraps(key, card, null);
   }
   else if(card.type==='Piège'){
@@ -1349,6 +1419,8 @@ function playCard(key, handIndex, targetInfo){
     if(p.pendingDiscount && (p.pendingDiscount.cardType==='Toutes' || p.pendingDiscount.cardType===card.type)) p.pendingDiscount = null;
     const relicInst = {...card, instId:nextId()};
     p.relics.push(relicInst);
+    p.artifactsArrivedThisTurn = (p.artifactsArrivedThisTurn||0) + 1;
+    fireWatchTrigger('watchPlay', key);
     log(`${cardOwnerName(key)} active ${card.name}.`);
     const onPlayEff = relicInst.triggeredEffects && relicInst.triggeredEffects.onPlay;
     if(onPlayEff && conditionsMet(onPlayEff.conditions, p, key) && !effectNeedsTarget(onPlayEff)){
@@ -1406,22 +1478,111 @@ function conditionsMet(conditions, caster, casterKey){
   return conditions.every(cond=>evalCondition(cond, caster, casterKey));
 }
 
+function resolveDynamicValue(key, caster, casterKey, sourceCreature, targetCreature){
+  const oppKey = casterKey==='p1' ? 'p2' : 'p1';
+  const opp = S[oppKey];
+  switch(key){
+    case 'thisAtk': return sourceCreature ? sourceCreature.curAtk : 0;
+    case 'thisHp': return sourceCreature ? sourceCreature.curHp : 0;
+    case 'targetAtk': return targetCreature ? targetCreature.curAtk : 0;
+    case 'targetHp': return targetCreature ? targetCreature.curHp : 0;
+    case 'handSize': return caster.hand.length;
+    case 'discardSize': return caster.discard.length;
+    case 'deckSize': return caster.deck.length;
+    case 'manaRemaining': return availableMana(caster);
+    case 'allyMaxMana': return caster.manaNormalMax;
+    case 'enemyMaxMana': return opp.manaNormalMax;
+    case 'creaturesInPlay': return caster.board.length;
+    case 'artifactsInPlay': return caster.relics.length;
+    case 'cardsDeadThisTurn': return (caster.creaturesDiedThisTurn||0)+(caster.artifactsDiedThisTurn||0);
+    case 'cardsDrawnThisTurn': return caster.cardsDrawnThisTurn||0;
+    case 'manaGainedThisTurn': return caster.manaGainedThisTurn||0;
+    case 'hpLostThisTurn': return caster.hpLostThisTurn||0;
+    case 'hpGainedThisTurn': return caster.hpGainedThisTurn||0;
+    default: return 0; // valeurs paramétriques (type/zone, sous-type/zone, nom précis) pas encore résolues
+  }
+}
+
+function conditionValue(cond, caster, casterKey){
+  if(cond.valueMode==='dynamic') return resolveDynamicValue(cond.valueDynamic, caster, casterKey);
+  const n = parseInt(cond.valueFixed ?? cond.value);
+  return isNaN(n) ? 0 : n;
+}
+
+function compareValues(actual, mode, wanted){
+  if(mode==='atMost') return actual<=wanted;
+  if(mode==='exactly' || mode==='exact') return actual===wanted;
+  return actual>=wanted; // atLeast par défaut
+}
+
 function evalCondition(cond, caster, casterKey){
   const oppKey = casterKey==='p1' ? 'p2' : 'p1';
-  const val = parseInt(cond.value);
+  const val = conditionValue(cond, caster, casterKey);
   switch(cond.conditionType){
-    case 'healthBelow': return caster.hp < (val||0);
+    case 'resourceCompare': {
+      const p = cond.owner==='enemy' ? S[oppKey] : caster;
+      const resource = {hp:p.hp, mana:availableMana(p), hand:p.hand.length, discard:p.discard.length, deck:p.deck.length, board:p.board.length}[cond.resourceType||'hp'];
+      return compareValues(resource, cond.compareMode, val);
+    }
     case 'healthChange': {
       const target = cond.healthChangeOwner==='enemy' ? S[oppKey] : caster;
       const amount = cond.healthChangeDirection==='gained' ? (target.hpGainedThisTurn||0) : (target.hpLostThisTurn||0);
-      return cond.healthChangeMode==='exact' ? amount===(val||0) : amount>=(val||0);
+      return cond.healthChangeMode==='exact' ? amount===val : amount>=val;
     }
-    case 'handSizeAtLeast': return caster.hand.length >= (val||0);
+    case 'drawnThisTurn': {
+      const p = cond.owner==='enemy' ? S[oppKey] : caster;
+      return compareValues(p.cardsDrawnThisTurn||0, cond.compareMode, val);
+    }
+    case 'countThisTurn': {
+      const players = cond.owner==='both' ? [caster, S[oppKey]] : [cond.owner==='enemy' ? S[oppKey] : caster];
+      const field = cond.countThisTurnType==='artifact'
+        ? (cond.countThisTurnEvent==='arrived' ? 'artifactsArrivedThisTurn' : cond.countThisTurnEvent==='activated' ? 'artifactsActivatedThisTurn' : 'artifactsDiedThisTurn')
+        : (cond.countThisTurnEvent==='arrived' ? 'creaturesArrivedThisTurn' : 'creaturesDiedThisTurn');
+      const total = players.reduce((sum,p)=>sum+(p[field]||0), 0);
+      return compareValues(total, cond.compareMode, val);
+    }
     case 'boardEmpty': return S[oppKey].board.length===0;
+    case 'subtypeCount': {
+      const p = cond.owner==='enemy' ? S[oppKey] : caster;
+      const zone = {board:p.board, hand:p.hand, discard:p.discard}[cond.subtypeZone||'board'] || [];
+      const typeFilter = {creature:'Créature', artifact:'Artefact', sortilege:'Sortilège', piege:'Piège'}[cond.subtypeCardType];
+      const matches = zone.filter(c=>{
+        if(typeFilter && c.type!==typeFilter) return false;
+        const subs = c.subtypes||[];
+        if(!cond.subtype) return subs.length===0;
+        return subs.some(s=>s.trim().toLowerCase()===cond.subtype.trim().toLowerCase());
+      });
+      return compareValues(matches.length, cond.compareMode, val);
+    }
+    case 'statCompare': {
+      let stat = 0;
+      if(cond.statScope==='anyBoard') stat = caster.board.length ? Math.max(...caster.board.map(c=>cond.statType==='endurance'?c.curHp:c.curAtk)) : 0;
+      else if(cond.statScope==='anyHand') stat = caster.hand.filter(c=>c.type==='Créature').length ? Math.max(...caster.hand.filter(c=>c.type==='Créature').map(c=>cond.statType==='endurance'?c.hp:c.atk)) : 0;
+      // 'target' : pas de cible garantie disponible au moment de l'évaluation de condition ; traité comme 0
+      const comp = {greater:(a,b)=>a>b, less:(a,b)=>a<b, equal:(a,b)=>a===b}[cond.statCompareMode||'greater'];
+      return comp(stat, val);
+    }
+    case 'turnAtLeast': return S.turn >= val;
+    case 'chance': return Math.random() < val/100;
+    case 'deckComposition': {
+      const allCards = [...caster.hand, ...caster.deck, ...caster.discard, ...caster.board];
+      const classes = new Set(allCards.map(c=>c.class).filter(c=>c && c!=='Neutre'));
+      switch(cond.deckCompMode){
+        case 'singleClassSpecific': return classes.size<=1 && (classes.size===0 || classes.has(cond.deckCompClass));
+        case 'maxClasses': return classes.size <= (cond.deckCompValue||1);
+        case 'minPerClass': {
+          const counts = {};
+          allCards.forEach(c=>{ if(c.class && c.class!=='Neutre') counts[c.class]=(counts[c.class]||0)+1; });
+          return Object.values(counts).every(n=>n>=(cond.deckCompValue||1));
+        }
+        default: return classes.size<=1;
+      }
+    }
+    // --- anciennes conditions retirées de l'éditeur, gardées pour les cartes déjà sauvegardées ---
+    case 'healthBelow': return caster.hp < val;
+    case 'handSizeAtLeast': return caster.hand.length >= val;
     case 'controlsSubtype': return caster.board.some(c=>(c.subtypes||[]).includes(cond.value));
-    case 'handHasStatAtLeast': return caster.hand.some(c=>c.type==='Créature' && (c.atk||0)>=(val||0));
-    case 'turnAtLeast': return S.turn >= (val||0);
-    case 'chance': return Math.random() < (val||0)/100;
+    case 'handHasStatAtLeast': return caster.hand.some(c=>c.type==='Créature' && (c.atk||0)>=val);
     case 'monoColorDeck': {
       const allCards = [...caster.hand, ...caster.deck, ...caster.discard, ...caster.board];
       const classes = new Set(allCards.map(c=>c.class).filter(c=>c && c!=='Neutre'));
@@ -1450,6 +1611,7 @@ function applySpellEffect(effect, caster, casterKey, target){
         target.creature.curHp -= amt;
         spawnDamageNumber(document.querySelector(`[data-inst-id="${target.creature.instId}"]`), amt);
         fireCreatureTrigger(target.player===S.p1?'p1':'p2', target.creature, 'onDamaged');
+        fireWatchTrigger('watchDamaged', target.player===S.p1?'p1':'p2');
       }
       log(`${cardOwnerName(casterKey)} inflige ${amt} dégâts.`);
       cleanupDeaths();
@@ -1480,8 +1642,18 @@ function applySpellEffect(effect, caster, casterKey, target){
       break;
     case 'silence':
       if(!target.isHeroTarget){
-        target.creature.keywords = [];
-        log(`${cardOwnerName(casterKey)} réduit une créature ennemie au silence.`);
+        const c = target.creature;
+        const mode = effect.mode||'both';
+        if(mode==='abilities' || mode==='both'){
+          c.keywords = [];
+          c.triggeredEffects = {};
+          c.onPlayEffect = null; c.onReviveEffect = null;
+        }
+        if(mode==='buffs' || mode==='both'){
+          c.curAtk = c.atk; c.curHp = c.hp;
+        }
+        log(`${cardOwnerName(casterKey)} retire ${mode==='abilities'?'les capacités':mode==='buffs'?'les bonus de stats':'les capacités et les bonus de stats'} de ${c.name}.`);
+        cleanupDeaths();
       }
       break;
     case 'bounce':
@@ -1509,6 +1681,7 @@ function applySpellEffect(effect, caster, casterKey, target){
         c.curAtk = Math.max(0, c.curAtk + effect.atk); c.curHp += effect.hp;
         const s1 = (effect.atk>=0?'+':'')+effect.atk, s2 = (effect.hp>=0?'+':'')+effect.hp;
         log(`${cardOwnerName(casterKey)} modifie ${c.name} de ${s1}/${s2}.`);
+        if(effect.atk>0 || effect.hp>0) fireWatchTrigger('watchBuffed', casterKey);
         cleanupDeaths();
       } else {
         log(`${cardOwnerName(casterKey)} n'a aucune créature à renforcer.`);
@@ -1519,6 +1692,7 @@ function applySpellEffect(effect, caster, casterKey, target){
       const targets = ownerTargets(effect, caster, casterKey, casterKey==='p1'?'p2':'p1');
       targets.forEach(({p,key})=>{
         p.manaNormal += effect.amount;
+        p.manaGainedThisTurn = (p.manaGainedThisTurn||0) + effect.amount;
         log(`${cardOwnerName(key)} gagne ${effect.amount} mana utilisable immédiatement.`);
       });
       break;
@@ -1548,6 +1722,53 @@ function applySpellEffect(effect, caster, casterKey, target){
         caster.discard.push(caster.hand.splice(idx,1)[0]);
       }
       log(`${cardOwnerName(casterKey)} défausse ${n} carte${n>1?'s':''}.`);
+      break;
+    }
+    case 'setStat': {
+      const ownerP = effect.owner==='enemy' ? S[targetKey] : caster;
+      if(effect.target==='charges'){
+        ownerP.relics.forEach(r=>{ r.charges = effect.value; });
+      } else if(effect.target==='cost'){
+        const list = effect.scope==='hand' ? ownerP.hand : effect.scope==='deck' ? ownerP.deck : [];
+        list.forEach(c=>{ c.cost = effect.value; });
+      } else if(effect.target==='force'){
+        if(effect.scope==='board') ownerP.board.forEach(c=>{ c.curAtk=effect.value; });
+        else if(effect.scope==='hand') ownerP.hand.forEach(c=>{ if(c.type==='Créature') c.atk=effect.value; });
+        else if(effect.scope==='deck') ownerP.deck.forEach(c=>{ if(c.type==='Créature') c.atk=effect.value; });
+      } else if(effect.target==='endurance'){
+        if(effect.scope==='board') ownerP.board.forEach(c=>{ c.curHp=effect.value; });
+        else if(effect.scope==='hand') ownerP.hand.forEach(c=>{ if(c.type==='Créature') c.hp=effect.value; });
+        else if(effect.scope==='deck') ownerP.deck.forEach(c=>{ if(c.type==='Créature') c.hp=effect.value; });
+      }
+      log(`${cardOwnerName(casterKey)} fixe une statistique à ${effect.value}.`);
+      cleanupDeaths();
+      break;
+    }
+    case 'removeArtifactCharges': {
+      const ownerP = effect.targetOwner==='enemy' ? S[targetKey] : caster;
+      if(ownerP.relics.length>0){
+        const r = ownerP.relics[Math.floor(Math.random()*ownerP.relics.length)];
+        r.charges = Math.max(0, r.charges - effect.amount);
+        log(`${cardOwnerName(casterKey)} retire ${effect.amount} utilisation(s) à ${r.name}.`);
+        const deadR = ownerP.relics.filter(x=>x.charges<=0);
+        ownerP.discard.push(...deadR);
+        ownerP.artifactsDiedThisTurn = (ownerP.artifactsDiedThisTurn||0) + deadR.length;
+        ownerP.relics = ownerP.relics.filter(x=>x.charges>0);
+      } else {
+        log(`${cardOwnerName(casterKey)} : aucun artefact à cibler.`);
+      }
+      break;
+    }
+    case 'sacrificeEffect': {
+      const ownerP = effect.targetOwner==='enemy' ? S[targetKey] : caster;
+      if(ownerP.board.length>0){
+        const c = ownerP.board[Math.floor(Math.random()*ownerP.board.length)];
+        c.curHp = 0;
+        log(`${cardOwnerName(casterKey)} sacrifie ${c.name}.`);
+        cleanupDeaths();
+      } else {
+        log(`${cardOwnerName(casterKey)} : aucune créature à sacrifier.`);
+      }
       break;
     }
     case 'setStats': {
@@ -1778,7 +1999,7 @@ function confirmAttackers(){
   p.attackers = ids;
   ids.forEach(id=>{
     const c = p.board.find(x=>x.instId===id);
-    if(c){ c.hasAttacked = true; fireCreatureTrigger(atkKey, c, 'onAttack'); }
+    if(c){ c.hasAttacked = true; fireCreatureTrigger(atkKey, c, 'onAttack'); fireWatchTrigger('watchAttack', atkKey); }
   });
   log(`${cardOwnerName(atkKey)} déclare ${ids.length} attaquant(s).`);
   const firstTarget = p.board.find(x=>x.instId===ids[0]);
@@ -1807,6 +2028,7 @@ function fireTrap(ownerKey, triggerType, target){
   log(`${cardOwnerName(ownerKey)} déclenche ${trap.name} ! (${trap.reservedMana||trap.cost} mana réservé consommé)`);
   trap.activeTrap = false; trap.reservedMana = undefined;
   showCardReveal(trap);
+  fireWatchTrigger('watchTrap', ownerKey);
   if(target && trap.effect){
     switch(trap.effect.type){
       case 'damage':
@@ -2038,6 +2260,7 @@ function runAI(){
     if(eligible.length===0){ endTurn(); return; }
     p.attackers = eligible.map(c=>c.instId);
     eligible.forEach(c=>{ c.hasAttacked=true; fireCreatureTrigger('p2', c, 'onAttack'); });
+    fireWatchTrigger('watchAttack', 'p2');
     log(`L'adversaire déclare ${eligible.length} attaquant(s).`);
     fireTrap('p1', 'onOpponentAttack', eligible[0]);
     render();
