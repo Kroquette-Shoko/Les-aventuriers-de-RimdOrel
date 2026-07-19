@@ -34,7 +34,7 @@ header p{color:var(--parchment-dim);font-size:13px;margin:8px 0 0;letter-spacing
 /* ---------- Le panneau d'affichage ---------- */
 #board{
   position:relative;width:100%;max-width:1160px;aspect-ratio:1448/1086;
-  background:url('hub-bg-board.png') center/contain no-repeat;
+  background:url('images/hub-bg-board.png') center/contain no-repeat;
   margin-top:22px;
 }
 
@@ -46,40 +46,44 @@ header p{color:var(--parchment-dim);font-size:13px;margin:8px 0 0;letter-spacing
 }
 .poster img{display:block;width:100%;height:100%;object-fit:contain;}
 .poster:hover{filter:drop-shadow(0 16px 26px rgba(0,0,0,.7)) drop-shadow(0 0 18px rgba(212,175,55,.45));}
+.poster.soon{cursor:default;}
+.poster.soon img{filter:grayscale(75%) brightness(.55);}
+.poster.soon:hover{filter:drop-shadow(0 10px 18px rgba(0,0,0,.55));transform:none !important;}
+.poster.soon .poster-label{color:var(--parchment-dim);}
 
-.poster-left{left:3.5%;top:35%;width:23%;height:41%;transform:rotate(-3deg);}
+/* Le gros tableau central : Recherche de partie */
+.poster-center{left:36%;top:24%;width:28%;height:34%;transform:rotate(0deg);}
+.poster-center:hover{transform:scale(1.04) translateY(-4px);}
+
+/* Panneau de gauche : Boutique */
+.poster-left{left:6.5%;top:40%;width:17%;height:27%;transform:rotate(-3deg);}
 .poster-left:hover{transform:rotate(0deg) scale(1.05) translateY(-4px);}
 
-.poster-right{left:74.5%;top:35%;width:23%;height:41%;transform:rotate(3deg);}
+/* Panneau de droite : Collection & Deck */
+.poster-right{left:76.5%;top:40%;width:17%;height:27%;transform:rotate(3deg);}
 .poster-right:hover{transform:rotate(0deg) scale(1.05) translateY(-4px);}
+
+/* Sur le mur, au-dessus de la Boutique : Cartomancer */
+.poster-wall-left{left:6%;top:5%;width:18%;height:27%;transform:rotate(-4deg);}
+.poster-wall-left:hover{transform:rotate(0deg) scale(1.05) translateY(-4px);}
+
+/* Sous Recherche de partie, plus petites : Succès et Quête */
+.poster-below-1{left:33%;top:60%;width:14%;height:19%;transform:rotate(-4deg);}
+.poster-below-1:hover{transform:rotate(0deg) scale(1.08) translateY(-4px);}
+.poster-below-2{left:53%;top:60%;width:14%;height:19%;transform:rotate(4deg);}
+.poster-below-2:hover{transform:rotate(0deg) scale(1.08) translateY(-4px);}
 
 .poster-label{
   position:absolute;bottom:-9%;left:50%;transform:translateX(-50%);
-  font-family:'Cinzel',serif;font-size:clamp(11px,1.3vw,15px);font-weight:700;color:var(--gold);
+  font-family:'Cinzel',serif;font-size:clamp(10px,1.15vw,14px);font-weight:700;color:var(--gold);
   letter-spacing:.5px;white-space:nowrap;text-shadow:0 2px 6px rgba(0,0,0,.9);
   pointer-events:none;
 }
 
-/* ---------- Rangée secondaire ---------- */
-#poster-row{
-  display:flex;gap:clamp(10px,2.4vw,30px);justify-content:center;flex-wrap:wrap;
-  margin-top:64px;max-width:1160px;
-}
-.poster-small{
-  position:relative;width:130px;text-decoration:none;color:inherit;cursor:pointer;
-  filter:drop-shadow(0 8px 14px rgba(0,0,0,.5));
-  transition:transform .2s ease, filter .2s ease;
-}
-.poster-small img{display:block;width:100%;border-radius:2px;}
-.poster-small .poster-label{bottom:-22px;font-size:11.5px;}
-.poster-small.working:hover{transform:translateY(-6px) scale(1.04);filter:drop-shadow(0 14px 20px rgba(0,0,0,.65)) drop-shadow(0 0 14px rgba(212,175,55,.4));}
-.poster-small.soon{cursor:default;}
-.poster-small.soon img{filter:grayscale(75%) brightness(.55);}
-.poster-small.soon .poster-label{color:var(--parchment-dim);}
 .soon-ribbon{
-  position:absolute;top:38%;left:50%;transform:translateX(-50%) rotate(-8deg);
-  background:var(--blood);color:#fff;font-family:'Cinzel',serif;font-size:10.5px;font-weight:700;
-  padding:3px 10px;border-radius:3px;letter-spacing:.5px;box-shadow:0 3px 8px rgba(0,0,0,.5);
+  position:absolute;top:40%;left:50%;transform:translateX(-50%) rotate(-8deg);
+  background:var(--blood);color:#fff;font-family:'Cinzel',serif;font-size:10px;font-weight:700;
+  padding:2px 8px;border-radius:3px;letter-spacing:.5px;box-shadow:0 3px 8px rgba(0,0,0,.5);
   pointer-events:none;white-space:nowrap;
 }
 
@@ -93,11 +97,13 @@ footer{margin-top:26px;text-align:center;color:var(--parchment-dim);font-size:11
 footer strong{color:var(--parchment);}
 
 @media (max-width:760px){
-  .poster-left{left:1%;top:33%;width:26%;height:34%;}
-  .poster-right{left:73%;top:33%;width:26%;height:34%;}
-  .poster-label{font-size:10px;}
-  #poster-row{margin-top:110px;}
-  .poster-small{width:96px;}
+  .poster-center{left:32%;top:23%;width:36%;height:32%;}
+  .poster-left{left:2%;top:38%;width:22%;height:24%;}
+  .poster-right{left:76%;top:38%;width:22%;height:24%;}
+  .poster-wall-left{left:1%;top:3%;width:22%;height:24%;}
+  .poster-below-1{left:29%;top:58%;width:19%;height:17%;}
+  .poster-below-2{left:52%;top:58%;width:19%;height:17%;}
+  .poster-label{font-size:9px;}
 }
 </style>
 </head>
@@ -113,40 +119,42 @@ footer strong{color:var(--parchment);}
   </header>
 
   <div id="board">
-    <a class="poster poster-left" href="spellcraft-prototype.html" title="Affronter l'IA ou un ami">
-      <img src="hub-poster-jouer.png" alt="Recherche de partie">
+    <a class="poster poster-center" href="spellcraft-prototype.html" title="Affronter l'IA ou un ami">
+      <img src="images/hub-poster-jouer.png" alt="Recherche de partie">
       <span class="poster-label">Jouer</span>
     </a>
-    <a class="poster poster-right" href="spellcraft-deckbuilder.html" title="Ta collection et tes decks">
-      <img src="hub-poster-collection.png" alt="Collection et Deck">
-      <span class="poster-label">Collection &amp; Deck</span>
-    </a>
-  </div>
 
-  <div id="poster-row">
-    <a class="poster-small working" href="spellcraft-card-editor.html" title="Créer et modifier tes cartes">
-      <img src="hub-poster-editeur.png" alt="Cartomancer">
-      <span class="poster-label">Éditeur de cartes</span>
-    </a>
-    <div class="poster-small soon" title="Bientôt disponible">
-      <img src="hub-poster-succes.png" alt="Succès">
-      <span class="soon-ribbon">Bientôt</span>
-      <span class="poster-label">Succès</span>
-    </div>
-    <div class="poster-small soon" title="Bientôt disponible">
-      <img src="hub-poster-boutique.png" alt="Boutique">
+    <div class="poster poster-left soon" title="Bientôt disponible">
+      <img src="images/hub-poster-boutique.png" alt="Boutique">
       <span class="soon-ribbon">Bientôt</span>
       <span class="poster-label">Boutique</span>
     </div>
-    <div class="poster-small soon" title="Bientôt disponible">
-      <img src="hub-poster-quete.png" alt="Quête">
+
+    <a class="poster poster-right" href="spellcraft-deckbuilder.html" title="Ta collection et tes decks">
+      <img src="images/hub-poster-collection.png" alt="Collection et Deck">
+      <span class="poster-label">Collection &amp; Deck</span>
+    </a>
+
+    <a class="poster poster-wall-left" href="spellcraft-card-editor.html" title="Créer et modifier tes cartes">
+      <img src="images/hub-poster-editeur.png" alt="Cartomancer">
+      <span class="poster-label">Éditeur de cartes</span>
+    </a>
+
+    <div class="poster poster-below-1 soon" title="Bientôt disponible">
+      <img src="images/hub-poster-succes.png" alt="Succès">
+      <span class="soon-ribbon">Bientôt</span>
+      <span class="poster-label">Succès</span>
+    </div>
+
+    <div class="poster poster-below-2 soon" title="Bientôt disponible">
+      <img src="images/hub-poster-quete.png" alt="Quête">
       <span class="soon-ribbon">Bientôt</span>
       <span class="poster-label">Quêtes</span>
     </div>
   </div>
 
   <div class="note">
-    Les trois outils partagent la même collection et les mêmes decks automatiquement. Garde tous les fichiers (y compris les images) dans le même dossier pour que tout fonctionne.
+    Les trois outils partagent la même collection et les mêmes decks automatiquement. Garde tous les fichiers (y compris le dossier images/) dans le même dossier pour que tout fonctionne.
   </div>
 
   <footer>
