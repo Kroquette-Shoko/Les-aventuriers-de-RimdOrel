@@ -532,6 +532,7 @@ const EFFECT_LABELS = {
   keywordChoice: ()=>`Révèle 3 mots-clés au hasard pour une créature alliée.`,
   summonCopy: (e)=>`Invoque ${e.amount} copie(s) supplémentaire(s) de cette carte.`,
   nextDiscount: (e)=>`Le prochain ${e.cardType} coûte ${e.amount} de moins ce tour-ci.`,
+  reduceCostAura: (e)=>`Réduit durablement de ${e.amount} le coût des cartes ${e.cardType && e.cardType!=='any' ? 'de type '+e.cardType : ''}${e.subtype ? ' du sous-type '+e.subtype : ''}.`,
   explore: (e)=>`Explore ${e.amount} carte(s) ${e.owner==='enemy'?'du deck adverse':'de son deck'}.`,
   retrieve: ()=>`Cherche une carte dans le deck ou la défausse.`,
   discover: ()=>`Révèle 3 cartes du deck, choisissez-en une.`,
@@ -572,6 +573,7 @@ function mapAbilityEffectRaw(eff, amount){
     case 'keywordChoice': return {type:'keywordChoice'};
     case 'summonCopy': return {type:'summonCopy', amount: amount||1};
     case 'nextDiscount': return {type:'nextDiscount', amount: amount||1, cardType: eff.nextDiscountType||'Toutes'};
+    case 'reduceCost': return {type:'reduceCostAura', owner: eff.reduceCostOwner||'ally', cardType: eff.reduceCostType||'any', subtype: (eff.reduceCostSubtype||'').trim(), amount: eff.reduceCostAmount??1};
     case 'explore': return {type:'explore', amount: amount||1, owner: eff.exploreOwner||'own'};
     case 'retrieve': return {type:'retrieve', source: eff.retrieveSource||'deck', criteria: eff.retrieveCriteria||'random',
       value: eff.retrieveValue, cardType: eff.retrieveCardType, subtype: eff.retrieveSubtype, keyword: eff.retrieveKeyword,
@@ -607,6 +609,28 @@ function extractCreatureOnPlay(rawCard){
   return mapAbilityEffect(ab);
 }
 
+function extractCreatureOnRevive(rawCard){
+  if(rawCard.type!=='Créature') return null;
+  const ab = (rawCard.abilities||[]).find(a=>a.trigger==='onRevive');
+  return mapAbilityEffect(ab);
+}
+
+// Extraction générale : renvoie TOUTES les capacités de la carte, indexées par
+// déclencheur (une carte peut avoir plusieurs capacités avec des déclencheurs
+// différents, contrairement aux extractions ciblées ci-dessus qui n'en gardent qu'une).
+function extractTriggeredEffects(rawCard){
+  const map = {};
+  (rawCard.abilities||[]).forEach(ab=>{
+    if(!ab || !ab.trigger) return;
+    const mapped = mapAbilityEffect(ab);
+    if(mapped){
+      mapped._triggerSubtype = (ab.triggerSubtype||'').trim();
+      map[ab.trigger] = mapped;
+    }
+  });
+  return map;
+}
+
 function translateCard(raw){
   return {
     id: raw.id, name: raw.name, type: raw.type, class: raw.class, classSecondary: raw.classSecondary||'',
@@ -620,7 +644,9 @@ function translateCard(raw){
     extraCostEnabled: !!raw.extraCostEnabled, extraCostType: raw.extraCostType||'sacrificeCreature', extraCostAmount: raw.extraCostAmount||1, extraCostCustom: raw.extraCostCustom||'',
     trapTrigger: raw.type==='Piège' ? ((raw.abilities||[])[0]?.trigger || 'onOpponentAttack') : undefined,
     effect: extractSimpleEffect(raw),
-    onPlayEffect: extractCreatureOnPlay(raw)
+    onPlayEffect: extractCreatureOnPlay(raw),
+    onReviveEffect: extractCreatureOnRevive(raw),
+    triggeredEffects: extractTriggeredEffects(raw)
   };
 }
 
@@ -647,6 +673,7 @@ function buildHeroObject(rawHeroCard){
   const gameStartEffect = startAb ? mapAbilityEffect(startAb) : null;
   return { id: rawHeroCard.id, name: rawHeroCard.name, class: rawHeroCard.class, hp: rawHeroCard.hp||20,
     activeText, activeCost, activeCooldownMax, activeEffect, gameStartEffect,
+    triggeredEffects: extractTriggeredEffects(rawHeroCard),
     image: rawHeroCard.image||'', imagePosX: rawHeroCard.imagePosX ?? 50, imagePosY: rawHeroCard.imagePosY ?? 50, imageZoom: rawHeroCard.imageZoom ?? 100 };
 }
 
@@ -656,6 +683,7 @@ function buildRegionObject(rawRegionCard){
   const startAb = (rawRegionCard.abilities||[]).find(a=>a.trigger==='gameStart');
   const gameStartEffect = startAb ? mapAbilityEffect(startAb) : null;
   return { id: rawRegionCard.id, name: rawRegionCard.name, class: rawRegionCard.class, text: flavor, manaRule, gameStartEffect,
+    triggeredEffects: extractTriggeredEffects(rawRegionCard),
     image: rawRegionCard.image||'', imagePosX: rawRegionCard.imagePosX ?? 50, imagePosY: rawRegionCard.imagePosY ?? 50, imageZoom: rawRegionCard.imageZoom ?? 100 };
 }
 
@@ -676,13 +704,13 @@ function newPlayer(heroObj, regionObj, deckArray, isAI){
     manaNormalMax:0, manaNormal:0, manaFragile:0,
     heroCooldown:0, pendingDiscount:null,
     hand:[], deck:[...deckArray], board:[], relics:[], discard:[],
-    attackers:[], blocks:{}, hpLostThisTurn:0, hpGainedThisTurn:0
+    attackers:[], blocks:{}, hpLostThisTurn:0, hpGainedThisTurn:0, activeCostReductions:[]
   };
   for(let i=0;i<4;i++) drawCard(p);
   return p;
 }
 
-function drawCard(p){
+function drawCard(p, key){
   if(p.deck.length===0) return null;
   const card = p.deck.shift();
   p.hand.push(card);
@@ -692,6 +720,7 @@ function drawCard(p){
     DRAW_ANIM_IN_PROGRESS = true;
     processDrawAnimQueue();
   }
+  if(key) firePermanentTriggers(key, 'onDraw');
   return card;
 }
 
@@ -831,6 +860,7 @@ function applyManaGain(p, key){
     p.manaFragile += 1;
     log(`${cardOwnerName(key)} : ${region.name} octroie 1 mana fragile supplémentaire.`);
   }
+  firePermanentTriggers(key, 'onManaGained');
 }
 function availableMana(p){ return p.manaNormal + p.manaFragile; }
 function spendMana(p, amount){
@@ -873,18 +903,15 @@ function startTurn(key, first){
     }
   });
 
-  // reliques : tick de début de tour
-  p.relics.forEach(r=>{
-    if(r.effect && r.effect.type==='heal' && conditionsMet(r.effect.conditions, p, key)){
-      modifyHp(p, r.effect.amount);
-      log(`${cardOwnerName(key)} : ${r.name} restaure ${r.effect.amount} PV.`);
-    }
-    r.charges--;
-  });
+  // début de tour : déclenche les capacités "début de votre tour" sur tous les permanents
+  firePermanentTriggers(key, 'startOfTurn');
+
+  // reliques : décompte des charges (indépendant de leur capacité éventuelle)
+  p.relics.forEach(r=>{ r.charges--; });
   p.discard.push(...p.relics.filter(r=>r.charges<=0));
   p.relics = p.relics.filter(r=>r.charges>0);
 
-  drawCard(p);
+  drawCard(p, key);
 
   p.board.forEach(c=>{
     c.frozen=false;
@@ -927,6 +954,7 @@ function resolveTrapReservations(key){
 
 function endTurn(){
   if(S.gameOver) return;
+  firePermanentTriggers(S.active, 'endOfTurn');
   resolveTrapReservations(S.active);
   fireTrap(S.active==='p1' ? 'p2' : 'p1', 'onOpponentEndTurn', null);
   S[S.active].pendingDiscount = null;
@@ -948,11 +976,23 @@ function endTurn(){
    ============================================================ */
 let suppressDamagePopups = false;
 
+function fireHeroTrigger(key, triggerName){
+  const p = S[key];
+  if(!p || !p.hero) return;
+  const eff = p.hero.triggeredEffects && p.hero.triggeredEffects[triggerName];
+  if(!eff) return;
+  if(!conditionsMet(eff.conditions, p, key)) return;
+  if(!effectNeedsTarget(eff)) applySpellEffect(eff, p, key, {});
+  // les capacités de héros ciblant une créature depuis ces déclencheurs ne sont pas encore prises en charge
+}
+
 function dealDamageToHero(targetPlayer, targetKey, amount, sourcePlayer){
   modifyHp(targetPlayer, -amount);
   if(!suppressDamagePopups) spawnDamageNumber(document.querySelector(`#hero-${targetKey} .hero-portrait`), amount);
   if(targetPlayer.hp<=0){
     endGame(targetKey==='p1' ? 'p2' : 'p1');
+  } else {
+    fireHeroTrigger(targetKey, 'onDamaged');
   }
 }
 
@@ -1002,10 +1042,14 @@ function applyDamage(dealer, dealerP, dealerKey, target, targetP, targetKey){
     dealDamageToHero(targetP, targetKey, excess, dealerP);
     log(`Perçant : ${excess} dégâts excédentaires passent au héros ennemi.`);
   }
+  fireCreatureTrigger(targetKey, target, 'onDamaged');
+  if(target.curHp<=0) fireCreatureTrigger(dealerKey, dealer, 'onKill');
   return dmg;
 }
 
 function cleanupDeaths(){
+  const revived = []; // { creature, key } — capacités "revient du cimetière" à déclencher après coup
+  const dead = []; // { creature, key } — capacités "à la mort" à déclencher après coup
   ['p1','p2'].forEach(key=>{
     const p = S[key];
     const survivors = [];
@@ -1016,9 +1060,11 @@ function cleanupDeaths(){
           c.keywords = c.keywords.filter(k=>k!=='relentless');
           log(`${c.name} revient en jeu grâce à Tenace.`);
           survivors.push(c);
+          if(c.onReviveEffect) revived.push({creature:c, key});
         } else {
           p.discard.push(c);
           log(`${c.name} meurt.`);
+          dead.push({creature:c, key});
         }
       } else {
         survivors.push(c);
@@ -1026,6 +1072,63 @@ function cleanupDeaths(){
     });
     p.board = survivors;
   });
+  // déclenché après coup (et non pendant la boucle ci-dessus) pour éviter tout
+  // problème si cet effet redéclenchait lui-même une vérification des morts
+  revived.forEach(({creature, key})=>{
+    const p = S[key];
+    const eff = creature.onReviveEffect;
+    if(eff.targetOwner==='self' && TARGETED_EFFECTS.includes(eff.type)){
+      applySpellEffect(eff, p, key, {isHeroTarget:false, creature, player:p});
+    } else if(!effectNeedsTarget(eff)){
+      applySpellEffect(eff, p, key, {});
+    }
+    // les capacités de résurrection ciblant l'adversaire ne sont pas encore prises en charge
+  });
+  dead.forEach(({creature, key})=>{
+    fireCreatureTrigger(key, creature, 'onDeath');
+    fireCreatureTrigger(key, creature, 'onDestroyed');
+  });
+}
+
+// Déclenche, pour un joueur donné, la capacité (si elle existe) correspondant à
+// un déclencheur donné, sur chacun de ses permanents en jeu (créatures, héros,
+// région, artefacts). Les effets qui se ciblent eux-mêmes ("Cette carte") ne
+// sont gérés que pour les créatures ; les effets ciblant l'adversaire depuis
+// ces déclencheurs ne sont pas encore pris en charge.
+function firePermanentTriggers(key, triggerName){
+  const p = S[key];
+  if(!p) return;
+  const sources = [
+    ...p.board.map(c=>({source:c, isCreature:true})),
+    p.hero ? {source:p.hero, isCreature:false} : null,
+    p.region ? {source:p.region, isCreature:false} : null,
+    ...(p.relics||[]).map(r=>({source:r, isCreature:false}))
+  ].filter(Boolean);
+  sources.forEach(({source, isCreature})=>{
+    const eff = source.triggeredEffects && source.triggeredEffects[triggerName];
+    if(!eff) return;
+    if(!conditionsMet(eff.conditions, p, key)) return;
+    if(isCreature && eff.targetOwner==='self' && TARGETED_EFFECTS.includes(eff.type)){
+      applySpellEffect(eff, p, key, {isHeroTarget:false, creature:source, player:p});
+    } else if(!effectNeedsTarget(eff)){
+      applySpellEffect(eff, p, key, {});
+    }
+  });
+}
+
+// Déclenche la capacité liée à un événement propre à UNE créature précise
+// (ex: elle-même meurt, elle-même attaque) plutôt qu'à tout le plateau.
+function fireCreatureTrigger(key, creature, triggerName){
+  const p = S[key];
+  if(!p || !creature) return;
+  const eff = creature.triggeredEffects && creature.triggeredEffects[triggerName];
+  if(!eff) return;
+  if(!conditionsMet(eff.conditions, p, key)) return;
+  if(eff.targetOwner==='self' && TARGETED_EFFECTS.includes(eff.type)){
+    applySpellEffect(eff, p, key, {isHeroTarget:false, creature, player:p});
+  } else if(!effectNeedsTarget(eff)){
+    applySpellEffect(eff, p, key, {});
+  }
 }
 
 /* ============================================================
@@ -1056,6 +1159,13 @@ function effectiveCost(p, card){
   if(p.pendingDiscount && (p.pendingDiscount.cardType==='Toutes' || p.pendingDiscount.cardType===card.type)){
     cost = Math.max(0, cost - p.pendingDiscount.amount);
   }
+  (p.activeCostReductions||[]).forEach(r=>{
+    const typeMatches = !r.cardType || r.cardType==='any' || r.cardType===card.type;
+    const subtypeMatches = !r.subtype || (card.subtypes||[]).some(s=>s.trim().toLowerCase()===r.subtype.toLowerCase());
+    if(typeMatches && subtypeMatches){
+      cost = Math.max(0, cost - r.amount);
+    }
+  });
   return cost;
 }
 
@@ -1079,7 +1189,15 @@ function setTrap(key, handIndex){
   const cost = effectiveCost(p, card);
   if(availableMana(p) < cost) return false;
   if(!canPayExtraCost(p, card)) return false;
-  payExtraCost(key, p, card);
+
+  if(key==='p1' && card.extraCostEnabled && card.extraCostType==='sacrificeCreature' && p.board.length>1 && !card._sacrificeChosen){
+    S.pendingSacrifice = { handIndex, isTrap:true };
+    log('Choisis la créature à sacrifier pour payer le coût additionnel.');
+    render();
+    return 'needs-sacrifice';
+  }
+  payExtraCost(key, p, card, card._sacrificeChosen);
+  delete card._sacrificeChosen;
   card.pendingTrap = true;
   card.reservedMana = cost;
   log(`${cardOwnerName(key)} réserve ${cost} mana pour poser ${card.name} (confirmé en fin de tour).`);
@@ -1096,14 +1214,16 @@ function canPayExtraCost(p, card){
     default: return true; // loseLife et custom sont toujours payables
   }
 }
-function payExtraCost(key, p, card){
+function payExtraCost(key, p, card, chosenSacrifice){
   if(!card.extraCostEnabled) return;
   switch(card.extraCostType){
     case 'sacrificeCreature': {
       if(p.board.length===0) return;
-      const weakest = [...p.board].sort((a,b)=>(a.curAtk+a.curHp)-(b.curAtk+b.curHp))[0];
-      weakest.curHp = 0;
-      log(`${cardOwnerName(key)} sacrifie ${weakest.name} pour payer le coût additionnel de ${card.name}.`);
+      const target = (chosenSacrifice && p.board.includes(chosenSacrifice))
+        ? chosenSacrifice
+        : [...p.board].sort((a,b)=>(a.curAtk+a.curHp)-(b.curAtk+b.curHp))[0];
+      target.curHp = 0;
+      log(`${cardOwnerName(key)} sacrifie ${target.name} pour payer le coût additionnel de ${card.name}.`);
       cleanupDeaths();
       break;
     }
@@ -1133,6 +1253,31 @@ function triggerOpponentPlayTraps(key, card, inst){
   fireTrap(oppKey, 'onOpponentPlayCard', inst||null);
 }
 
+// Déclenché quand une créature entre en jeu : vérifie tous les permanents du
+// même joueur qui surveillent l'apparition d'un sous-type précis (ou de
+// n'importe lequel, si aucun sous-type n'a été précisé dans l'éditeur).
+function fireSummonSubtypeTrigger(key, newCreature){
+  const p = S[key];
+  if(!p) return;
+  const subtypes = (newCreature.subtypes||[]).map(s=>s.trim().toLowerCase());
+  const sources = [
+    ...p.board.map(c=>({source:c, isCreature:true})),
+    p.hero ? {source:p.hero, isCreature:false} : null,
+    ...(p.relics||[]).map(r=>({source:r, isCreature:false}))
+  ].filter(Boolean);
+  sources.forEach(({source, isCreature})=>{
+    const eff = source.triggeredEffects && source.triggeredEffects.onSummonSubtype;
+    if(!eff) return;
+    if(eff._triggerSubtype && !subtypes.includes(eff._triggerSubtype.toLowerCase())) return;
+    if(!conditionsMet(eff.conditions, p, key)) return;
+    if(isCreature && eff.targetOwner==='self' && TARGETED_EFFECTS.includes(eff.type)){
+      applySpellEffect(eff, p, key, {isHeroTarget:false, creature:source, player:p});
+    } else if(!effectNeedsTarget(eff)){
+      applySpellEffect(eff, p, key, {});
+    }
+  });
+}
+
 function playCard(key, handIndex, targetInfo){
   const p = S[key];
   const card = p.hand[handIndex];
@@ -1141,11 +1286,22 @@ function playCard(key, handIndex, targetInfo){
   if(availableMana(p) < cost) return false;
   if(!canPayExtraCost(p, card)) return false;
 
+  // Sacrifice : si le joueur humain a plus d'une créature possible, on lui demande laquelle
+  if(key==='p1' && card.extraCostEnabled && card.extraCostType==='sacrificeCreature'
+     && p.board.length>1 && !(targetInfo && targetInfo._sacrifice)){
+    if(needsTarget(card) && !targetInfo) return 'needs-target'; // le ciblage du sort prime, résolu d'abord
+    S.pendingSacrifice = { handIndex, targetInfo: targetInfo||null };
+    log('Choisis la créature à sacrifier pour payer le coût additionnel.');
+    render();
+    return 'needs-sacrifice';
+  }
+  const chosenSacrifice = targetInfo && targetInfo._sacrifice;
+
   if(card.type==='Créature'){
     if(p.board.length>=8) return false;
     spendMana(p, cost);
     p.hand.splice(handIndex,1);
-    payExtraCost(key, p, card);
+    payExtraCost(key, p, card, chosenSacrifice);
     if(p.pendingDiscount && (p.pendingDiscount.cardType==='Toutes' || p.pendingDiscount.cardType===card.type)) p.pendingDiscount = null;
     const inst = instantiateCreature(card);
     p.board.push(inst);
@@ -1163,13 +1319,14 @@ function playCard(key, handIndex, targetInfo){
       }
       // les capacités "à l'entrée en jeu" ciblant l'adversaire ne sont pas encore prises en charge pour les créatures
     }
+    fireSummonSubtypeTrigger(key, inst);
     triggerOpponentPlayTraps(key, card, inst);
   }
   else if(card.type==='Sortilège'){
     if(needsTarget(card) && !targetInfo) return 'needs-target';
     spendMana(p, cost);
     p.hand.splice(handIndex,1);
-    payExtraCost(key, p, card);
+    payExtraCost(key, p, card, chosenSacrifice);
     if(p.pendingDiscount && (p.pendingDiscount.cardType==='Toutes' || p.pendingDiscount.cardType===card.type)) p.pendingDiscount = null;
     showCardReveal(card);
     applySpellEffect(card.effect, p, key, targetInfo || {});
@@ -1183,10 +1340,16 @@ function playCard(key, handIndex, targetInfo){
     if(p.relics.length>=2) return false;
     spendMana(p, cost);
     p.hand.splice(handIndex,1);
-    payExtraCost(key, p, card);
+    payExtraCost(key, p, card, chosenSacrifice);
     if(p.pendingDiscount && (p.pendingDiscount.cardType==='Toutes' || p.pendingDiscount.cardType===card.type)) p.pendingDiscount = null;
-    p.relics.push({...card, instId:nextId()});
+    const relicInst = {...card, instId:nextId()};
+    p.relics.push(relicInst);
     log(`${cardOwnerName(key)} active ${card.name}.`);
+    const onPlayEff = relicInst.triggeredEffects && relicInst.triggeredEffects.onPlay;
+    if(onPlayEff && conditionsMet(onPlayEff.conditions, p, key) && !effectNeedsTarget(onPlayEff)){
+      applySpellEffect(onPlayEff, p, key, {});
+      // les capacités "à l'entrée en jeu" ciblant une créature ne sont pas encore prises en charge pour les artefacts
+    }
     triggerOpponentPlayTraps(key, card, null);
   }
   render();
@@ -1281,6 +1444,7 @@ function applySpellEffect(effect, caster, casterKey, target){
       else {
         target.creature.curHp -= amt;
         spawnDamageNumber(document.querySelector(`[data-inst-id="${target.creature.instId}"]`), amt);
+        fireCreatureTrigger(target.player===S.p1?'p1':'p2', target.creature, 'onDamaged');
       }
       log(`${cardOwnerName(casterKey)} inflige ${amt} dégâts.`);
       cleanupDeaths();
@@ -1328,7 +1492,7 @@ function applySpellEffect(effect, caster, casterKey, target){
     case 'draw': {
       const targets = ownerTargets(effect, caster, casterKey, casterKey==='p1'?'p2':'p1');
       targets.forEach(({p,key})=>{
-        for(let i=0;i<effect.amount;i++) drawCard(p);
+        for(let i=0;i<effect.amount;i++) drawCard(p, key);
         log(`${cardOwnerName(key)} pioche ${effect.amount} carte${effect.amount>1?'s':''}.`);
       });
       break;
@@ -1434,6 +1598,16 @@ function applySpellEffect(effect, caster, casterKey, target){
       caster.pendingDiscount = {cardType: effect.cardType, amount: effect.amount};
       log(`${cardOwnerName(casterKey)} : le prochain ${effect.cardType==='Toutes'?'achat':effect.cardType} coûte ${effect.amount} de moins ce tour-ci.`);
       break;
+    case 'reduceCostAura': {
+      const targetP = effect.owner==='enemy' ? S[targetKey] : caster;
+      const targetPKey = effect.owner==='enemy' ? targetKey : casterKey;
+      if(!targetP.activeCostReductions) targetP.activeCostReductions = [];
+      targetP.activeCostReductions.push({ cardType: effect.cardType, subtype: effect.subtype, amount: effect.amount });
+      const typeLabel = effect.cardType && effect.cardType!=='any' ? `les cartes de type ${effect.cardType}` : 'toutes les cartes';
+      const subLabel = effect.subtype ? ` du sous-type ${effect.subtype}` : '';
+      log(`${cardOwnerName(targetPKey)} : ${typeLabel}${subLabel} coûtent désormais ${effect.amount} de moins.`);
+      break;
+    }
     case 'explore': {
       const targetP = effect.owner==='enemy' ? S[targetKey] : caster;
       let n = 0;
@@ -1454,11 +1628,14 @@ function applySpellEffect(effect, caster, casterKey, target){
         const idx = source.indexOf(chosen);
         if(idx>=0) source.splice(idx,1);
         if(effect.destination==='battlefield' && chosen.type==='Créature' && caster.board.length<8){
-          caster.board.push(instantiateCreature(chosen));
+          const retrievedInst = instantiateCreature(chosen);
+          caster.board.push(retrievedInst);
+          fireSummonSubtypeTrigger(casterKey, retrievedInst);
         } else {
           caster.hand.push(chosen);
         }
         log(`${cardOwnerName(casterKey)} récupère ${chosen.name}.`);
+        if(effect.source==='discard') firePermanentTriggers(casterKey, 'onReturnFromGraveyard');
         return true;
       };
       if(effect.repeat==='asManyAsPossible'){
@@ -1504,7 +1681,9 @@ function applySpellEffect(effect, caster, casterKey, target){
           else if(effect.followUp.type==='grantKeyword') card = {...card, keywords:[...(card.keywords||[]), effect.followUp.keyword]};
         }
         if(effect.destination==='battlefield' && card.type==='Créature' && p.board.length<8){
-          p.board.push(instantiateCreature(card));
+          const conjuredInst = instantiateCreature(card);
+          p.board.push(conjuredInst);
+          fireSummonSubtypeTrigger(key, conjuredInst);
         } else {
           p.hand.push(card);
         }
@@ -1594,7 +1773,7 @@ function confirmAttackers(){
   p.attackers = ids;
   ids.forEach(id=>{
     const c = p.board.find(x=>x.instId===id);
-    if(c) c.hasAttacked = true;
+    if(c){ c.hasAttacked = true; fireCreatureTrigger(atkKey, c, 'onAttack'); }
   });
   log(`${cardOwnerName(atkKey)} déclare ${ids.length} attaquant(s).`);
   const firstTarget = p.board.find(x=>x.instId===ids[0]);
@@ -1853,7 +2032,7 @@ function runAI(){
     const eligible = p.board.filter(c=>!c.frozen && !c.stunned && (!c.summonSick || c.keywords.includes('charge')) && !c.hasAttacked);
     if(eligible.length===0){ endTurn(); return; }
     p.attackers = eligible.map(c=>c.instId);
-    eligible.forEach(c=>c.hasAttacked=true);
+    eligible.forEach(c=>{ c.hasAttacked=true; fireCreatureTrigger('p2', c, 'onAttack'); });
     log(`L'adversaire déclare ${eligible.length} attaquant(s).`);
     fireTrap('p1', 'onOpponentAttack', eligible[0]);
     render();
@@ -1872,9 +2051,7 @@ function runAI(){
    ============================================================ */
 function endGame(winnerKey){
   S.gameOver = true;
-  const overlay = document.getElementById('overlay');
-  document.getElementById('overlay-text').textContent = winnerKey==='p1' ? 'Victoire !' : 'Défaite...';
-  overlay.classList.add('show');
+  S.winnerKey = winnerKey;
 }
 
 /* ============================================================
@@ -1966,7 +2143,15 @@ function render(){
   renderHand();
   renderPhaseBar();
   updateTip();
+  renderGameOverOverlay();
   requestAnimationFrame(drawBlockArrows);
+}
+
+function renderGameOverOverlay(){
+  const overlay = document.getElementById('overlay');
+  if(!S.gameOver){ overlay.classList.remove('show'); return; }
+  document.getElementById('overlay-text').textContent = S.winnerKey==='p1' ? 'Victoire !' : 'Défaite...';
+  overlay.classList.add('show');
 }
 
 function drawBlockArrows(){
@@ -2109,6 +2294,7 @@ function isTargetableCreature(c, isHeroPower){
 }
 
 function shouldHighlightCreature(key, c){
+  if(S.pendingSacrifice && key==='p1') return true;
   if(S.phase==='declareBlockersMe' && key==='p2') return (S.p2.attackers||[]).includes(c.instId);
   if(S.pendingCard && key==='p2'){
     const eff = S.pendingCard.isHeroPower ? S.p1.hero.activeEffect : S.p1.hand[S.pendingCard.index]?.effect;
@@ -2118,8 +2304,27 @@ function shouldHighlightCreature(key, c){
   return false;
 }
 
+function chooseSacrifice(creature){
+  if(!S.pendingSacrifice) return;
+  const { handIndex, targetInfo, isTrap } = S.pendingSacrifice;
+  S.pendingSacrifice = null;
+  if(isTrap){
+    const card = S.p1.hand[handIndex];
+    if(card) card._sacrificeChosen = creature;
+    setTrap('p1', handIndex);
+  } else {
+    playCard('p1', handIndex, { ...(targetInfo||{}), _sacrifice: creature });
+  }
+}
+
 function onCreatureClick(key, c, ev){
   if(S.gameOver) return;
+
+  // choix de la créature à sacrifier pour un coût additionnel
+  if(S.pendingSacrifice && key==='p1'){
+    chooseSacrifice(c);
+    return;
+  }
 
   // ciblage sort/pouvoir
   if(S.pendingCard && key==='p2'){
@@ -2324,6 +2529,7 @@ function updateTip(){
     else tip.textContent = "Tour de l'adversaire...";
     return;
   }
+  if(S.pendingSacrifice){ tip.textContent = 'Clique la créature à sacrifier.'; return; }
   if(S.pendingCard){ tip.textContent = 'Choisissez une cible ennemie.'; return; }
   if(S.phase==='declareAttackers'){ tip.textContent = 'Clique tes créatures pour les désigner comme attaquantes.'; return; }
   tip.textContent = 'Jouez des cartes, puis passez à l\'attaque ou finissez votre tour.';
@@ -2485,7 +2691,7 @@ function openKeywordChoice(creature, options){
    ============================================================ */
 let hoverTimer = null;
 const HOVER_DELAY = 500;
-function actionInProgress(){ return !!(S.pendingCard) || S.phase==='declareAttackers' || S.phase==='declareBlockersMe'; }
+function actionInProgress(){ return !!(S.pendingCard) || !!(S.pendingSacrifice) || S.phase==='declareAttackers' || S.phase==='declareBlockersMe'; }
 function attachHoverPreview(el, card){
   el.addEventListener('mouseenter', ()=>{
     clearTimeout(hoverTimer);
