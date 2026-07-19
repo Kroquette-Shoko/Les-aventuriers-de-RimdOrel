@@ -692,11 +692,29 @@ const SELECTION_MODES = [
 const DYNAMIC_VALUES = [
   {key:'thisAtk', label:'= la Force de cette créature'},
   {key:'thisHp', label:"= l'Endurance de cette créature"},
+  {key:'targetAtk', label:'= la Force de la cible'},
+  {key:'targetHp', label:"= l'Endurance de la cible"},
   {key:'handSize', label:'= cartes en main'},
   {key:'discardSize', label:'= cartes dans votre défausse'},
-  {key:'manaSpentThis', label:'= mana dépensé pour payer cet effet'},
-  {key:'enemyMaxMana', label:"= mana maximum de l'adversaire"}
+  {key:'deckSize', label:'= cartes dans votre deck'},
+  {key:'manaSpentThis', label:'= mana dépensé pour payer cette carte'},
+  {key:'manaRemaining', label:'= mana restant'},
+  {key:'allyMaxMana', label:'= mana maximum allié'},
+  {key:'enemyMaxMana', label:"= mana maximum de l'adversaire"},
+  {key:'creaturesInPlay', label:'= nombre de créatures en jeu'},
+  {key:'artifactsInPlay', label:"= nombre d'artefacts en jeu"},
+  {key:'cardsDeadThisTurn', label:'= nombre de cartes mortes ce tour-ci'},
+  {key:'cardsByTypeZone', label:'= nombre de cartes [type de carte] [zone]', parametric:'typeZone'},
+  {key:'cardsBySubtypeZone', label:'= nombre de cartes [sous-type précis] [zone]', parametric:'subtypeZone'},
+  {key:'cardsByName', label:'= nombre de cartes [nom précis]', parametric:'cardName'},
+  {key:'cardsDrawnThisTurn', label:'= nombre de cartes piochées ce tour-ci'},
+  {key:'manaGainedThisTurn', label:'= nombre de mana gagné ce tour-ci'},
+  {key:'hpLostThisTurn', label:'= nombre de PV perdus ce tour-ci'},
+  {key:'hpGainedThisTurn', label:'= nombre de PV gagnés ce tour-ci'}
 ];
+
+const DYNAMIC_VALUE_ZONES = [['playedThisTurn','Jouée(s) ce tour-ci'],['board','En jeu'],['hand','En main'],['discard','En défausse']];
+const DYNAMIC_VALUE_TYPES = [['Sortilège','Sortilège'],['Créature','Créature'],['Artefact','Artefact'],['any','Peu importe']];
 
 
 
@@ -1809,19 +1827,42 @@ function buildValueField(eff, modeKey, fixedKey, dynKey, label, shareMode, allow
     dynSel.appendChild(opt);
   });
   dynSel.style.display = (shareMode?eff.valueMode:eff[modeKey])==='dynamic' ? 'block':'none';
-  dynSel.onchange=()=>{ eff[dynKey]=dynSel.value; onFormChange(); };
-
-  modeSel.onchange=()=>{
-    if(shareMode) eff.valueMode = modeSel.value; else eff[modeKey]=modeSel.value;
-    numInput.style.display = modeSel.value==='fixed' ? 'block':'none';
-    dynSel.style.display = modeSel.value==='dynamic' ? 'block':'none';
-    onFormChange();
-  };
+  dynSel.onchange=()=>{ eff[dynKey]=dynSel.value; rebuildAbilitiesUI(); onFormChange(); };
 
   rowInner.appendChild(modeSel);
   rowInner.appendChild(numInput);
   rowInner.appendChild(dynSel);
   wrap.appendChild(rowInner);
+
+  // sous-champs pour les valeurs dynamiques paramétriques (type/zone, sous-type/zone, nom de carte)
+  if((shareMode?eff.valueMode:eff[modeKey])==='dynamic'){
+    const dvDef = DYNAMIC_VALUES.find(d=>d.key===eff[dynKey]);
+    if(dvDef && dvDef.parametric==='typeZone'){
+      const typeKey = dynKey+'Type', zoneKey = dynKey+'Zone';
+      wrap.appendChild(makeSelectField('Type de carte', DYNAMIC_VALUE_TYPES.map(([k,l])=>({key:k,label:l})), eff[typeKey]||'any', v=>{ eff[typeKey]=v; onFormChange(); }));
+      wrap.appendChild(makeSelectField('Zone', DYNAMIC_VALUE_ZONES.map(([k,l])=>({key:k,label:l})), eff[zoneKey]||'board', v=>{ eff[zoneKey]=v; onFormChange(); }));
+    }
+    if(dvDef && dvDef.parametric==='subtypeZone'){
+      const subKey = dynKey+'Subtype', zoneKey = dynKey+'Zone';
+      const sf = document.createElement('div'); sf.className='field'; sf.innerHTML=`<label class="mini-field">Sous-type</label>`;
+      const si = document.createElement('input'); si.type='text'; si.value=eff[subKey]||''; si.placeholder='Ex : Zombie';
+      si.oninput=()=>{ eff[subKey]=si.value; onFormChange(); }; sf.appendChild(si); wrap.appendChild(sf);
+      wrap.appendChild(makeSelectField('Zone', DYNAMIC_VALUE_ZONES.map(([k,l])=>({key:k,label:l})), eff[zoneKey]||'board', v=>{ eff[zoneKey]=v; onFormChange(); }));
+    }
+    if(dvDef && dvDef.parametric==='cardName'){
+      const nameKey = dynKey+'CardName';
+      const nf = document.createElement('div'); nf.className='field'; nf.innerHTML=`<label class="mini-field">Nom exact de la carte</label>`;
+      const ni = document.createElement('input'); ni.type='text'; ni.value=eff[nameKey]||''; ni.placeholder='Ex : Golem de Jaäne';
+      ni.oninput=()=>{ eff[nameKey]=ni.value; onFormChange(); }; nf.appendChild(ni); wrap.appendChild(nf);
+    }
+  }
+
+  modeSel.onchange=()=>{
+    if(shareMode) eff.valueMode = modeSel.value; else eff[modeKey]=modeSel.value;
+    rebuildAbilitiesUI();
+    onFormChange();
+  };
+
   return wrap;
 }
 
@@ -1831,12 +1872,36 @@ function buildValueField(eff, modeKey, fixedKey, dynKey, label, shareMode, allow
 function plural(n, sing, plur){ return n===1 ? sing : (plur || sing+'s'); }
 function capitalize(s){ return s ? s.charAt(0).toUpperCase()+s.slice(1) : s; }
 
-function valuePhrase(eff, mode, fixedVal, dynKey){
+function valuePhrase(eff, mode, fixedVal, dynFieldName){
   if(mode==='dynamic'){
-    const dv = DYNAMIC_VALUES.find(d=>d.key===dynKey);
-    return dv ? dv.label.replace('= ','') : '?';
+    const dynKeyValue = eff[dynFieldName];
+    const dv = DYNAMIC_VALUES.find(d=>d.key===dynKeyValue);
+    if(!dv) return '?';
+    return dynamicValueLabel(eff, dynFieldName, dv);
   }
   return String(fixedVal);
+}
+
+function dynamicValueLabel(obj, dynFieldName, dv){
+  let label = dv.label.replace('= ','');
+  if(dv.parametric==='typeZone'){
+    const typeVal = obj[dynFieldName+'Type']||'any';
+    const zoneVal = obj[dynFieldName+'Zone']||'board';
+    const typeLabel = typeVal==='any' ? 'carte' : typeVal.toLowerCase();
+    const zoneLabel = {playedThisTurn:'jouée(s) ce tour-ci', board:'en jeu', hand:'en main', discard:'en défausse'}[zoneVal];
+    return `nombre de ${typeLabel}(s) ${zoneLabel}`;
+  }
+  if(dv.parametric==='subtypeZone'){
+    const subVal = obj[dynFieldName+'Subtype']||'?';
+    const zoneVal = obj[dynFieldName+'Zone']||'board';
+    const zoneLabel = {playedThisTurn:'jouée(s) ce tour-ci', board:'en jeu', hand:'en main', discard:'en défausse'}[zoneVal];
+    return `nombre de cartes du sous-type ${subVal} ${zoneLabel}`;
+  }
+  if(dv.parametric==='cardName'){
+    const nameVal = obj[dynFieldName+'CardName']||'?';
+    return `nombre de cartes "${nameVal}"`;
+  }
+  return label;
 }
 
 function targetPhrase(eff){
@@ -1876,12 +1941,12 @@ function buildEffectClause(eff){
   const v1 = eff.needsValueCache;
   switch(eff.effectType){
     case 'damage': {
-      const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, eff.valueDynamic);
+      const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic');
       const isNum = eff.valueMode==='fixed';
       return `infligez ${val} ${isNum ? plural(eff.valueFixed,'dégât','dégâts') : 'dégâts'} à ${targetPhrase(eff)}`;
     }
     case 'heal': {
-      const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, eff.valueDynamic);
+      const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic');
       return `restaurez ${val} PV à ${targetPhrase(eff)}`;
     }
     case 'draw': {
@@ -1891,22 +1956,22 @@ function buildEffectClause(eff){
         if(eff.manaTargetOwner==='both') return `chaque joueur pioche ${cardsWord(eff.valueFixed)}`;
         return eff.valueFixed===1 ? 'piochez une carte' : `piochez ${eff.valueFixed} cartes`;
       }
-      const dyn = valuePhrase(eff,eff.valueMode,eff.valueFixed,eff.valueDynamic);
+      const dyn = valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic');
       if(eff.manaTargetOwner==='enemy') return `votre adversaire pioche un nombre de cartes ${dyn}`;
       if(eff.manaTargetOwner==='both') return `chaque joueur pioche un nombre de cartes ${dyn}`;
       return `piochez un nombre de cartes ${dyn}`;
     }
     case 'buff': {
-      const v1 = eff.valueMode==='dynamic' ? '+'+valuePhrase(eff, eff.valueMode, eff.valueFixed, eff.valueDynamic) : (eff.valueFixed>=0?'+':'')+eff.valueFixed;
+      const v1 = eff.valueMode==='dynamic' ? '+'+valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic') : (eff.valueFixed>=0?'+':'')+eff.valueFixed;
       const v2m = eff.valueMode2||eff.valueMode;
-      const v2 = v2m==='dynamic' ? '+'+valuePhrase(eff, v2m, eff.valueFixed2, eff.valueDynamic2) : (eff.valueFixed2>=0?'+':'')+eff.valueFixed2;
+      const v2 = v2m==='dynamic' ? '+'+valuePhrase(eff, v2m, eff.valueFixed2, 'valueDynamic2') : (eff.valueFixed2>=0?'+':'')+eff.valueFixed2;
       const verb = (eff.valueMode==='fixed' && eff.valueFixed<0) || (v2m==='fixed' && eff.valueFixed2<0) ? 'subit' : 'gagne';
       return `${targetPhrase(eff)} ${verb} ${v1}/${v2}`;
     }
     case 'weaken': {
-      const v1 = eff.valueMode==='dynamic' ? valuePhrase(eff, eff.valueMode, eff.valueFixed, eff.valueDynamic) : Math.abs(eff.valueFixed);
+      const v1 = eff.valueMode==='dynamic' ? valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic') : Math.abs(eff.valueFixed);
       const v2m = eff.valueMode2||eff.valueMode;
-      const v2 = v2m==='dynamic' ? valuePhrase(eff, v2m, eff.valueFixed2, eff.valueDynamic2) : Math.abs(eff.valueFixed2);
+      const v2 = v2m==='dynamic' ? valuePhrase(eff, v2m, eff.valueFixed2, 'valueDynamic2') : Math.abs(eff.valueFixed2);
       return `${targetPhrase(eff)} subit -${v1}/-${v2}`;
     }
     case 'setStat': {
@@ -1923,7 +1988,7 @@ function buildEffectClause(eff){
       return `réduisez de ${eff.reduceCostAmount} le coût des cartes ${typeLabel}${subLabel} ${whose} ${scopeLabel} (minimum 0)`;
     }
     case 'reduceAbilityCost': {
-      const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, eff.valueDynamic);
+      const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic');
       return `réduisez le coût d'activation de cette carte de ${val} (minimum 0)`;
     }
     case 'bounce':
@@ -1934,7 +1999,7 @@ function buildEffectClause(eff){
       return `rechargez tout votre mana disponible ce tour-ci`;
     }
     case 'nextDiscount': {
-      const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, eff.valueDynamic);
+      const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic');
       return `le prochain ${eff.nextDiscountType.toLowerCase()} que vous jouez ce tour-ci coûte ${val} de moins`;
     }
     case 'grantKeyword': {
@@ -1945,7 +2010,7 @@ function buildEffectClause(eff){
     case 'keywordChoice':
       return `révélez 3 mots-clés au hasard : ${targetPhrase(eff)} obtient celui que vous choisissez`;
     case 'summonCopy': {
-      const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, eff.valueDynamic);
+      const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic');
       const isNum = eff.valueMode==='fixed';
       return `invoquez ${val} ${isNum ? plural(eff.valueFixed,'copie','copies') : 'copies'} de cette carte`;
     }
@@ -1964,12 +2029,12 @@ function buildEffectClause(eff){
       if(eff.valueMode==='fixed'){
         return eff.valueFixed===1 ? 'défaussez une carte' : `défaussez ${eff.valueFixed} cartes`;
       }
-      return `défaussez un nombre de cartes ${valuePhrase(eff,eff.valueMode,eff.valueFixed,eff.valueDynamic)}`;
+      return `défaussez un nombre de cartes ${valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic')}`;
     }
     case 'destroy':
       return `détruisez ${targetPhrase(eff)}`;
     case 'removeArtifactCharges': {
-      const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, eff.valueDynamic);
+      const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic');
       return `retirez ${val} utilisation(s) à ${targetPhrase(eff)}`;
     }
     case 'silence': {
@@ -1981,7 +2046,7 @@ function buildEffectClause(eff){
     case 'stun':
       return `étourdissez ${targetPhrase(eff)} (elle ne peut ni attaquer ni bloquer lors de son prochain tour)`;
     case 'grantMana': {
-      const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, eff.valueDynamic);
+      const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic');
       const isNum = eff.valueMode==='fixed';
       const who = eff.manaTargetOwner==='enemy' ? "votre adversaire gagne" : eff.manaTargetOwner==='both' ? "chaque joueur gagne" : 'gagnez';
       const manaLabel = {normal:['mana','manas'], empty:['mana vide','manas vides'], fragile:['mana fragile','manas fragiles']}[eff.manaType||'normal'];
@@ -1989,7 +2054,7 @@ function buildEffectClause(eff){
       return `${who} ${val} ${isNum ? plural(eff.valueFixed, manaLabel[0], manaLabel[1]) : manaLabel[1]}${suffix}`;
     }
     case 'explore': {
-      const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, eff.valueDynamic);
+      const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic');
       const ownerLabel = eff.exploreOwner==='enemy' ? 'du deck adverse' : 'de votre deck';
       const isNum = eff.valueMode==='fixed';
       return `explorez ${val} ${isNum ? plural(eff.valueFixed,'carte','cartes') : 'cartes'} ${ownerLabel} (envoyées dans la défausse)`;
@@ -2107,7 +2172,7 @@ function conjureClause(eff){
 function condValueText(cond){
   if(cond.valueMode==='dynamic'){
     const dv = DYNAMIC_VALUES.find(d=>d.key===cond.valueDynamic);
-    return dv ? dv.label.replace('= ','') : '?';
+    return dv ? dynamicValueLabel(cond, 'valueDynamic', dv) : '?';
   }
   return String(cond.valueFixed ?? cond.value ?? 'X');
 }
