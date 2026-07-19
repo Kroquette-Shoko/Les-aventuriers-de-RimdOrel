@@ -90,6 +90,12 @@ function migrateCard(c){
     });
     (ab.effects||[]).forEach(eff=>{
       if(eff.retrieveSource===undefined) eff.retrieveSource='deck';
+      if(eff.setStatTarget===undefined) eff.setStatTarget='force';
+      if(eff.setStatScope===undefined) eff.setStatScope='board';
+      if(eff.setStatOwner===undefined) eff.setStatOwner='ally';
+      if(eff.setStatValue===undefined) eff.setStatValue=2;
+      if(eff.manaType===undefined) eff.manaType='normal';
+      if(eff.silenceMode===undefined) eff.silenceMode='both';
       if(eff.retrieveCriteria===undefined) eff.retrieveCriteria='random';
       if(eff.retrieveValue===undefined) eff.retrieveValue='2';
       if(eff.retrieveCardType===undefined) eff.retrieveCardType='Créature';

@@ -601,22 +601,21 @@ const EFFECT_TYPES = [
   {key:'heal', label:'Soin', needsTarget:true, needsValue:true},
   {key:'draw', label:'Pioche', needsTarget:false, needsValue:true},
   {key:'buff', label:'Renforcement (+Force/+Endurance)', needsTarget:true, needsValue:true, doubleValue:true},
-  {key:'setStats', label:'Fixer les statistiques (= X/X)', needsTarget:false, needsValue:false, isSetStats:true},
-  {key:'setCost', label:'Fixer le coût des cartes', needsTarget:false, needsValue:false, isSetCost:true},
+  {key:'weaken', label:'Affaiblissement (-Force/-Endurance)', needsTarget:true, needsValue:true, doubleValue:true},
+  {key:'setStat', label:'Fixer une statistique (Force/Endurance/Coût/Utilisations)', needsTarget:false, needsValue:false, isSetStat:true},
   {key:'reduceCost', label:'Réduire le coût d\'un type/sous-type de carte', needsTarget:false, needsValue:false, isReduceCost:true},
   {key:'reduceAbilityCost', label:'Réduire le coût d\'activation (de cette carte)', needsTarget:false, needsValue:true, isReduceAbilityCost:true},
   {key:'freeze', label:'Gel', needsTarget:true, needsValue:false},
   {key:'stun', label:'Étourdir', needsTarget:true, needsValue:false},
   {key:'bounce', label:'Renvoi en main', needsTarget:true, needsValue:false},
-  {key:'resource', label:'Gain de mana (utilisable maintenant)', needsTarget:false, needsValue:true},
-  {key:'emptyMana', label:'Mana vide (augmente le max, pas le disponible)', needsTarget:false, needsValue:true},
-  {key:'fragileMana', label:'Mana fragile (reste dispo tant que non dépensé)', needsTarget:false, needsValue:true},
+  {key:'grantMana', label:'Donne du mana', needsTarget:false, needsValue:true, isGrantMana:true},
   {key:'refillMana', label:'Recharge le mana disponible ce tour-ci', needsTarget:false, needsValue:false},
   {key:'nextDiscount', label:'Réduction du prochain achat ce tour-ci', needsTarget:false, needsValue:true, isNextDiscount:true},
-  {key:'discard', label:'Défausse', needsTarget:false, needsValue:true},
+  {key:'discard', label:'Défausser (depuis la main)', needsTarget:false, needsValue:true},
   {key:'explore', label:'Explorer (mise en défausse depuis le deck)', needsTarget:false, needsValue:true, isExplore:true},
   {key:'destroy', label:'Destruction', needsTarget:true, needsValue:false},
-  {key:'silence', label:'Silence (retire les capacités)', needsTarget:true, needsValue:false},
+  {key:'removeArtifactCharges', label:"Retire des utilisations d'un artefact", needsTarget:true, needsValue:true},
+  {key:'silence', label:'Retire les capacités et/ou les bonus de stats', needsTarget:true, needsValue:false, isSilence:true},
   {key:'upgrade', label:'Amélioration (mot-clé aléatoire)', needsTarget:true, needsValue:false},
   {key:'grantKeyword', label:'Octroi de mot-clé précis', needsTarget:true, needsValue:false, isGrantKeyword:true},
   {key:'keywordChoice', label:'Choix parmi 3 mots-clés', needsTarget:true, needsValue:false},
@@ -626,6 +625,7 @@ const EFFECT_TYPES = [
   {key:'retrieve', label:'Récupération (deck ou défausse)', needsTarget:false, needsValue:false, isRetrieve:true},
   {key:'discover', label:'Réveler (choisir 1 carte parmi 3)', needsTarget:false, needsValue:false, isDiscover:true},
   {key:'conjure', label:'Conjuration (carte hors deck)', needsTarget:false, needsValue:false, isConjure:true},
+  {key:'sacrificeEffect', label:'Sacrifice une créature (effet, pas un coût)', needsTarget:true, needsValue:false},
   {key:'custom', label:'⚠ Effet personnalisé (texte libre)', needsTarget:false, needsValue:false}
 ];
 
@@ -751,7 +751,9 @@ function blankEffect(){
     exploreOwner:'own',
     discoverCriteria:'random', discoverValue:'2', discoverCardType:'Créature', discoverSubtype:'', discoverSource:'deck',
     setStatsScope:'board', setStatsOwner:'ally', setStatsAtk:1, setStatsHp:1,
+    setStatTarget:'force', setStatScope:'board', setStatOwner:'ally', setStatValue:2,
     setCostScope:'deck', setCostOwner:'ally', setCostValue:1,
+    manaType:'normal', silenceMode:'both',
     reduceCostScope:'hand', reduceCostOwner:'ally', reduceCostType:'any', reduceCostSubtype:'', reduceCostAmount:1,
     nextDiscountType:'Sortilège',
     grantKeywordKey:'charge', grantKeywordDuration:'permanent',
@@ -1275,7 +1277,7 @@ function rebuildAbilitiesUI(){
         subField.className='field';
         subField.innerHTML = `<label class="mini-field">Sous-type</label>`;
         const subInput = document.createElement('input');
-        subInput.type='text'; subInput.value=cond.subtype||''; subInput.placeholder='Ex : Zombie';
+        subInput.type='text'; subInput.value=cond.subtype||''; subInput.placeholder='Ex : Zombie (vide = sans sous-type)';
         subInput.oninput=()=>{ cond.subtype=subInput.value; onFormChange(); };
         subField.appendChild(subInput);
         row.appendChild(subField);
@@ -1485,7 +1487,7 @@ function buildEffectRow(ab, eff){
     }
   }
 
-  if(['draw','resource','emptyMana','fragileMana','refillMana'].includes(eff.effectType)){
+  if(['draw','grantMana','refillMana'].includes(eff.effectType)){
     row.appendChild(makeSelectField('Bénéficiaire', [{key:'self',label:'Vous'},{key:'enemy',label:"L'adversaire"},{key:'both',label:'Les deux'}], eff.manaTargetOwner, v=>{ eff.manaTargetOwner=v; onFormChange(); }));
   }
 
@@ -1570,12 +1572,13 @@ function buildEffectRow(ab, eff){
     }
   }
 
-  if(def.isSetCost){
-    row.appendChild(makeSelectField('Portée', [{key:'deck',label:'Dans le deck'},{key:'hand',label:'En main'}], eff.setCostScope, v=>{ eff.setCostScope=v; onFormChange(); }));
-    row.appendChild(makeSelectField('Propriétaire', TARGET_OWNERS.filter(o=>o.key!=='any' && o.key!=='self'), eff.setCostOwner, v=>{ eff.setCostOwner=v; onFormChange(); }));
-    const fc = document.createElement('div'); fc.className='field'; fc.innerHTML=`<label class="mini-field">Coût fixé à</label>`;
-    const ic = document.createElement('input'); ic.type='number'; ic.min=0; ic.max=15; ic.value=eff.setCostValue;
-    ic.oninput=()=>{ eff.setCostValue=parseInt(ic.value)||0; onFormChange(); }; fc.appendChild(ic); row.appendChild(fc);
+  if(def.isSetStat){
+    row.appendChild(makeSelectField('Statistique', [{key:'force',label:'Force'},{key:'endurance',label:'Endurance'},{key:'cost',label:'Coût de mana'},{key:'charges',label:'Utilisations (artefact)'}], eff.setStatTarget||'force', v=>{ eff.setStatTarget=v; onFormChange(); }));
+    row.appendChild(makeSelectField('Portée', [{key:'board',label:'Sur le champ de bataille'},{key:'hand',label:'En main'},{key:'deck',label:'Dans le deck'}], eff.setStatScope||'board', v=>{ eff.setStatScope=v; onFormChange(); }));
+    row.appendChild(makeSelectField('Propriétaire', TARGET_OWNERS.filter(o=>o.key!=='any' && o.key!=='self'), eff.setStatOwner||'ally', v=>{ eff.setStatOwner=v; onFormChange(); }));
+    const vf = document.createElement('div'); vf.className='field'; vf.innerHTML=`<label class="mini-field">Valeur fixée à</label>`;
+    const vi = document.createElement('input'); vi.type='number'; vi.min=0; vi.max=20; vi.value=eff.setStatValue??2;
+    vi.oninput=()=>{ eff.setStatValue=parseInt(vi.value)||0; onFormChange(); }; vf.appendChild(vi); row.appendChild(vf);
   }
 
   if(def.isReduceCost){
@@ -1590,15 +1593,12 @@ function buildEffectRow(ab, eff){
     amI.oninput=()=>{ eff.reduceCostAmount=parseInt(amI.value)||1; onFormChange(); }; amF.appendChild(amI); row.appendChild(amF);
   }
 
-  if(def.isSetStats){
-    row.appendChild(makeSelectField('Portée', [{key:'board',label:'Sur le champ de bataille'},{key:'hand',label:'En main'},{key:'deck',label:'Dans le deck'}], eff.setStatsScope, v=>{ eff.setStatsScope=v; onFormChange(); }));
-    row.appendChild(makeSelectField('Propriétaire', TARGET_OWNERS.filter(o=>o.key!=='any' && o.key!=='self'), eff.setStatsOwner, v=>{ eff.setStatsOwner=v; onFormChange(); }));
-    const f1 = document.createElement('div'); f1.className='field'; f1.innerHTML=`<label class="mini-field">Force fixée à</label>`;
-    const i1 = document.createElement('input'); i1.type='number'; i1.min=0; i1.max=20; i1.value=eff.setStatsAtk;
-    i1.oninput=()=>{ eff.setStatsAtk=parseInt(i1.value)||0; onFormChange(); }; f1.appendChild(i1); row.appendChild(f1);
-    const f2 = document.createElement('div'); f2.className='field'; f2.innerHTML=`<label class="mini-field">Endurance fixée à</label>`;
-    const i2 = document.createElement('input'); i2.type='number'; i2.min=1; i2.max=20; i2.value=eff.setStatsHp;
-    i2.oninput=()=>{ eff.setStatsHp=parseInt(i2.value)||1; onFormChange(); }; f2.appendChild(i2); row.appendChild(f2);
+  if(def.isGrantMana){
+    row.appendChild(makeSelectField('Type de mana', [{key:'normal',label:'Mana (utilisable maintenant)'},{key:'empty',label:'Mana vide (augmente le maximum)'},{key:'fragile',label:'Mana fragile (reste dispo tant que non dépensé)'}], eff.manaType||'normal', v=>{ eff.manaType=v; onFormChange(); }));
+  }
+
+  if(def.isSilence){
+    row.appendChild(makeSelectField('Retire', [{key:'abilities',label:'Les capacités'},{key:'buffs',label:'Les bonus de stats'},{key:'both',label:'Les deux'}], eff.silenceMode||'both', v=>{ eff.silenceMode=v; onFormChange(); }));
   }
 
   if(def.isNextDiscount){
@@ -1892,15 +1892,17 @@ function buildEffectClause(eff){
       const verb = (eff.valueMode==='fixed' && eff.valueFixed<0) || (v2m==='fixed' && eff.valueFixed2<0) ? 'subit' : 'gagne';
       return `${targetPhrase(eff)} ${verb} ${v1}/${v2}`;
     }
-    case 'setStats': {
-      const scopeLabel = {board:'sur le champ de bataille', hand:'en main', deck:'dans le deck'}[eff.setStatsScope];
-      const ownerLabel = eff.setStatsOwner==='enemy' ? 'ennemies' : 'alliées';
-      return `fixez la Force et l'Endurance de toutes les créatures ${ownerLabel} ${scopeLabel} à ${eff.setStatsAtk}/${eff.setStatsHp}`;
+    case 'weaken': {
+      const v1 = eff.valueMode==='dynamic' ? valuePhrase(eff, eff.valueMode, eff.valueFixed, eff.valueDynamic) : Math.abs(eff.valueFixed);
+      const v2m = eff.valueMode2||eff.valueMode;
+      const v2 = v2m==='dynamic' ? valuePhrase(eff, v2m, eff.valueFixed2, eff.valueDynamic2) : Math.abs(eff.valueFixed2);
+      return `${targetPhrase(eff)} subit -${v1}/-${v2}`;
     }
-    case 'setCost': {
-      const scopeLabel = eff.setCostScope==='hand' ? 'en main' : 'dans le deck';
-      const whose = eff.setCostOwner==='enemy' ? "de l'adversaire" : 'de votre deck';
-      return `changez le coût de toutes les cartes ${whose} ${scopeLabel} à ${eff.setCostValue}`;
+    case 'setStat': {
+      const statLabel = {force:'la Force',endurance:"l'Endurance",cost:'le coût de mana',charges:"le nombre d'utilisations"}[eff.setStatTarget||'force'];
+      const scopeLabel = {board:'sur le champ de bataille', hand:'en main', deck:'dans le deck'}[eff.setStatScope||'board'];
+      const ownerLabel = eff.setStatOwner==='enemy' ? 'ennemies' : 'alliées';
+      return `fixez ${statLabel} des cartes ${ownerLabel} ${scopeLabel} à ${eff.setStatValue??2}`;
     }
     case 'reduceCost': {
       const scopeLabel = {hand:'en main', deck:'dans le deck', both:'en main et dans le deck'}[eff.reduceCostScope];
@@ -1949,12 +1951,6 @@ function buildEffectClause(eff){
     }
     case 'freeze':
       return `gelez ${targetPhrase(eff)}`;
-    case 'resource': {
-      const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, eff.valueDynamic);
-      const isNum = eff.valueMode==='fixed';
-      const who = eff.manaTargetOwner==='enemy' ? "votre adversaire gagne" : eff.manaTargetOwner==='both' ? "chaque joueur gagne" : 'gagnez';
-      return `${who} ${val} ${isNum ? plural(eff.valueFixed,'ressource','ressources') : 'ressources'}`;
-    }
     case 'discard': {
       if(eff.valueMode==='fixed'){
         return eff.valueFixed===1 ? 'défaussez une carte' : `défaussez ${eff.valueFixed} cartes`;
@@ -1963,21 +1959,25 @@ function buildEffectClause(eff){
     }
     case 'destroy':
       return `détruisez ${targetPhrase(eff)}`;
-    case 'silence':
-      return `réduisez ${targetPhrase(eff)} au silence`;
+    case 'removeArtifactCharges': {
+      const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, eff.valueDynamic);
+      return `retirez ${val} utilisation(s) à ${targetPhrase(eff)}`;
+    }
+    case 'silence': {
+      const modeLabel = {abilities:'les capacités', buffs:'les bonus de stats', both:'les capacités et les bonus de stats'}[eff.silenceMode||'both'];
+      return `retirez ${modeLabel} de ${targetPhrase(eff)}`;
+    }
+    case 'sacrificeEffect':
+      return `sacrifiez ${targetPhrase(eff)}`;
     case 'stun':
       return `étourdissez ${targetPhrase(eff)} (elle ne peut ni attaquer ni bloquer lors de son prochain tour)`;
-    case 'emptyMana': {
+    case 'grantMana': {
       const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, eff.valueDynamic);
       const isNum = eff.valueMode==='fixed';
       const who = eff.manaTargetOwner==='enemy' ? "votre adversaire gagne" : eff.manaTargetOwner==='both' ? "chaque joueur gagne" : 'gagnez';
-      return `${who} ${val} ${isNum ? plural(eff.valueFixed,'mana vide','manas vides') : 'manas vides'} (augmente son mana maximum, pas son mana disponible ce tour-ci)`;
-    }
-    case 'fragileMana': {
-      const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, eff.valueDynamic);
-      const isNum = eff.valueMode==='fixed';
-      const who = eff.manaTargetOwner==='enemy' ? "votre adversaire gagne" : eff.manaTargetOwner==='both' ? "chaque joueur gagne" : 'gagnez';
-      return `${who} ${val} ${isNum ? plural(eff.valueFixed,'mana fragile','manas fragiles') : 'manas fragiles'} (reste disponible tant qu'il n'est pas dépensé, utilisé après le mana normal)`;
+      const manaLabel = {normal:['mana','manas'], empty:['mana vide','manas vides'], fragile:['mana fragile','manas fragiles']}[eff.manaType||'normal'];
+      const suffix = eff.manaType==='empty' ? ' (augmente le mana maximum, pas le mana disponible ce tour-ci)' : eff.manaType==='fragile' ? " (reste disponible tant qu'il n'est pas dépensé, utilisé après le mana normal)" : '';
+      return `${who} ${val} ${isNum ? plural(eff.valueFixed, manaLabel[0], manaLabel[1]) : manaLabel[1]}${suffix}`;
     }
     case 'explore': {
       const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, eff.valueDynamic);
