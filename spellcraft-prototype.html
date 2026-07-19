@@ -2094,7 +2094,7 @@ function cardEl(card, opts={}){
 
   el.innerHTML = `
     <div class="card-art" style="${artStyle}">
-      ${(isHero || isRegion) ? '' : `<div class="card-cost">${card.cost ?? 0}</div>`}
+      ${(isHero || isRegion) ? '' : `<div class="card-cost">${opts.displayCost ?? card.cost ?? 0}</div>`}
       ${isHero ? `<div class="card-hero-hp">${card.curHp ?? card.hp ?? 0}</div>` : ''}
     </div>
     <div class="card-divider"><div class="card-set-icon">${card.setLogo ? `<div class="card-set-logo-img" style="background-image:url('${card.setLogo.replace(/'/g,"")}')"></div>` : `<span>${escapeHtmlGS(setInitial)}</span>`}</div></div>
@@ -2426,6 +2426,7 @@ function renderHand(){
     const affordable = effectiveCost(p, card)<=availableMana(p) && S.phase==='main' && canPayExtraCost(p, card);
     const canAct = S.active==='p1' && !S.gameOver && !DRAW_ANIM_IN_PROGRESS && affordable && !isLockedTrap;
     const c = cardEl(card, {
+      displayCost: effectiveCost(p, card),
       onClick: (ev)=>{
         if(!canAct) return;
         if(card.type==='Piège'){ setTrap('p1', realIdx); return; }
