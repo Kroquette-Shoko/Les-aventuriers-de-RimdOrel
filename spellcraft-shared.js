@@ -90,6 +90,7 @@ function migrateCard(c){
       if(cond.deckCompValue===undefined) cond.deckCompValue=1;
     });
     (ab.effects||[]).forEach(eff=>{
+      if(eff.valueMode2===undefined) eff.valueMode2 = eff.valueMode||'fixed';
       if(eff.retrieveSource===undefined) eff.retrieveSource='deck';
       if(eff.setStatTarget===undefined) eff.setStatTarget='force';
       if(eff.setStatScope===undefined) eff.setStatScope='board';

@@ -764,7 +764,7 @@ function blankEffect(){
   return {
     id: rowId(), effectType:'damage',
     targetCategory:'creature', targetOwner:'enemy', selectionMode:'chosen', targetCount:1,
-    valueMode:'fixed', valueFixed:2, valueFixed2:2, valueDynamic:'thisAtk', valueDynamic2:'thisAtk',
+    valueMode:'fixed', valueMode2:'fixed', valueFixed:2, valueFixed2:2, valueDynamic:'thisAtk', valueDynamic2:'thisAtk',
     customText:'',
     retrieveSource:'deck', retrieveCriteria:'random', retrieveValue:'2', retrieveCardType:'Créature', retrieveSubtype:'', retrieveKeyword:'charge', retrieveDestination:'hand', retrieveRepeat:'once',
     conjureTypes:['Sortilège'], conjureClass:'any', conjureDestination:'hand',
@@ -1505,7 +1505,7 @@ function buildEffectRow(ab, eff){
     const allowNegative = eff.effectType==='buff';
     row.appendChild(buildValueField(eff, 'valueMode','valueFixed','valueDynamic', def.doubleValue?'Valeur (Force)':'Valeur', false, allowNegative));
     if(def.doubleValue){
-      row.appendChild(buildValueField(eff, 'valueMode2','valueFixed2','valueDynamic2','Valeur (Endurance)', true, allowNegative));
+      row.appendChild(buildValueField(eff, 'valueMode2','valueFixed2','valueDynamic2','Valeur (Endurance)', false, allowNegative));
     }
   }
 
