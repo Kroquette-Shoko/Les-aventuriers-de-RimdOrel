@@ -1246,7 +1246,7 @@ function rebuildAbilitiesUI(){
         if(ct.key===cond.conditionType) opt.selected=true;
         typeSel.appendChild(opt);
       });
-      typeSel.onchange=()=>{ cond.conditionType=typeSel.value; onFormChange(); };
+      typeSel.onchange=()=>{ cond.conditionType=typeSel.value; rebuildAbilitiesUI(); onFormChange(); };
       typeField.appendChild(typeSel);
       row.appendChild(typeField);
 
