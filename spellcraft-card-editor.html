@@ -582,15 +582,16 @@ const TRIGGER_SHORT_NAME = {
 };
 
 const CONDITION_TYPES = [
-  {key:'healthBelow', label:'Votre héros a moins de X PV', hasValue:true},
+  {key:'resourceCompare', label:'Un héros a [comparaison] X [ressource]', hasValue:true, isResourceCompare:true},
   {key:'healthChange', label:'Un joueur a perdu/gagné des PV (ce tour-ci)', hasValue:true, valueType:'number', isHealthChange:true},
-  {key:'handSizeAtLeast', label:'Vous avez au moins X cartes en main', hasValue:true},
+  {key:'drawnThisTurn', label:'Un héros a pioché [comparaison] X cartes ce tour-ci', hasValue:true, isDrawnThisTurn:true},
+  {key:'countThisTurn', label:'[Comparaison] X cartes mortes/arrivées/activées ce tour-ci', hasValue:true, isCountThisTurn:true},
   {key:'boardEmpty', label:'Le plateau adverse est vide', hasValue:false},
-  {key:'controlsSubtype', label:'Vous contrôlez une créature du sous-type X', hasValue:true, valueType:'text'},
-  {key:'handHasStatAtLeast', label:'Vous avez une créature en main avec Force ≥ X', hasValue:true, valueType:'number'},
+  {key:'subtypeCount', label:"Vous avez [comparaison] X cartes d'un sous-type précis", hasValue:true, isSubtypeCount:true},
+  {key:'statCompare', label:"La Force/Endurance d'une créature est [comparaison] à X", hasValue:true, isStatCompare:true},
   {key:'turnAtLeast', label:'À partir du tour X de la partie', hasValue:true, valueType:'number'},
   {key:'chance', label:'Vous avez X% de chance', hasValue:true, valueType:'number'},
-  {key:'monoColorDeck', label:'Votre deck de base est d\'une seule classe (hors Neutre)', hasValue:false},
+  {key:'deckComposition', label:'Composition de votre deck de base', hasValue:false, isDeckComposition:true},
   {key:'manaNotFromRegion', label:'Le mana utilisé ne vient pas de votre région', hasValue:false},
   {key:'custom', label:'⚠ Condition personnalisée (texte libre)', hasValue:true, valueType:'text'}
 ];
@@ -762,7 +763,11 @@ function blankEffect(){
   };
 }
 function blankCondition(){
-  return { id: rowId(), conditionType:'handSizeAtLeast', value:'3', healthChangeDirection:'lost', healthChangeOwner:'self', healthChangeMode:'atLeast' };
+  return { id: rowId(), conditionType:'resourceCompare', value:'3', healthChangeDirection:'lost', healthChangeOwner:'self', healthChangeMode:'atLeast',
+    resourceType:'hp', compareMode:'atLeast', countThisTurnType:'creature', countThisTurnEvent:'died',
+    subtypeCardType:'creature', subtypeZone:'board', subtype:'',
+    statType:'force', statScope:'target', statCompareMode:'greater',
+    deckCompMode:'singleClassAny', deckCompClass:'Aube', deckCompValue:1 };
 }
 
 let abilities = [];
@@ -1242,6 +1247,55 @@ function rebuildAbilitiesUI(){
       row.appendChild(typeField);
 
       const ctDef = CONDITION_TYPES.find(c=>c.key===cond.conditionType);
+
+      if(ctDef && ctDef.isResourceCompare){
+        row.appendChild(makeCondSelectField(cond, 'resourceType', [['hp','PV'],['mana','Mana'],['hand','Cartes en main'],['discard','Cartes en défausse'],['deck','Cartes dans le deck'],['board','Créatures en jeu']], 'hp', 'Ressource'));
+        row.appendChild(makeCondSelectField(cond, 'compareMode', [['atLeast','Au moins'],['atMost','Au plus'],['exactly','Exactement']], 'atLeast', 'Comparaison'));
+      }
+      if(ctDef && ctDef.isDrawnThisTurn){
+        row.appendChild(makeCondSelectField(cond, 'compareMode', [['atLeast','Au moins'],['exactly','Exactement']], 'atLeast', 'Comparaison'));
+      }
+      if(ctDef && ctDef.isCountThisTurn){
+        row.appendChild(makeCondSelectField(cond, 'countThisTurnType', [['creature','Créatures'],['artifact','Artefacts']], 'creature', 'Type de carte', true));
+        const typeNow = cond.countThisTurnType||'creature';
+        const eventOptions = typeNow==='artifact' ? [['died','Mortes'],['arrived','Arrivées'],['activated','Activées']] : [['died','Mortes'],['arrived','Arrivées']];
+        row.appendChild(makeCondSelectField(cond, 'countThisTurnEvent', eventOptions, 'died', 'Événement'));
+        row.appendChild(makeCondSelectField(cond, 'compareMode', [['atLeast','Au moins'],['exactly','Exactement']], 'atLeast', 'Comparaison'));
+      }
+      if(ctDef && ctDef.isSubtypeCount){
+        row.appendChild(makeCondSelectField(cond, 'subtypeCardType', [['creature','Créature'],['artifact','Artefact'],['sortilege','Sortilège'],['piege','Piège'],['any','Peu importe']], 'creature', 'Type de carte'));
+        row.appendChild(makeCondSelectField(cond, 'subtypeZone', [['board','En jeu'],['hand','En main'],['discard','En défausse']], 'board', 'Zone'));
+        const subField = document.createElement('div');
+        subField.className='field';
+        subField.innerHTML = `<label class="mini-field">Sous-type</label>`;
+        const subInput = document.createElement('input');
+        subInput.type='text'; subInput.value=cond.subtype||''; subInput.placeholder='Ex : Zombie';
+        subInput.oninput=()=>{ cond.subtype=subInput.value; onFormChange(); };
+        subField.appendChild(subInput);
+        row.appendChild(subField);
+        row.appendChild(makeCondSelectField(cond, 'compareMode', [['atLeast','Au moins'],['atMost','Au plus'],['exactly','Exactement']], 'atLeast', 'Comparaison'));
+      }
+      if(ctDef && ctDef.isStatCompare){
+        row.appendChild(makeCondSelectField(cond, 'statType', [['force','Force'],['endurance','Endurance']], 'force', 'Statistique'));
+        row.appendChild(makeCondSelectField(cond, 'statScope', [['target','La cible de cette capacité'],['anyBoard','Une créature en jeu'],['anyHand','Une créature en main']], 'target', 'De quelle créature'));
+        row.appendChild(makeCondSelectField(cond, 'statCompareMode', [['greater','Supérieure'],['less','Inférieure'],['equal','Égale']], 'greater', 'Comparaison'));
+      }
+      if(ctDef && ctDef.isDeckComposition){
+        row.appendChild(makeCondSelectField(cond, 'deckCompMode', [['singleClassSpecific','Uniquement une classe précise'],['singleClassAny','Une seule classe (peu importe laquelle)'],['maxClasses','Au plus N classes différentes'],['minPerClass','Au moins X cartes de chaque classe']], 'singleClassAny', 'Règle', true));
+        if((cond.deckCompMode||'singleClassAny')==='singleClassSpecific'){
+          row.appendChild(makeCondSelectField(cond, 'deckCompClass', [['Aube','Aube'],['Crépuscule','Crépuscule'],['Volonté','Volonté'],['Prima','Prima'],['Arcane','Arcane']], 'Aube', 'Classe'));
+        }
+        if(cond.deckCompMode==='maxClasses' || cond.deckCompMode==='minPerClass'){
+          const valField2 = document.createElement('div');
+          valField2.className='field';
+          valField2.innerHTML = `<label class="mini-field">${cond.deckCompMode==='maxClasses' ? 'Nombre max de classes' : 'Cartes minimum par classe'}</label>`;
+          const valInput2 = document.createElement('input');
+          valInput2.type='number'; valInput2.min=1; valInput2.value=cond.deckCompValue||1;
+          valInput2.oninput=()=>{ cond.deckCompValue=parseInt(valInput2.value)||1; onFormChange(); };
+          valField2.appendChild(valInput2);
+          row.appendChild(valField2);
+        }
+      }
       if(ctDef && ctDef.isHealthChange){
         const dirField = document.createElement('div');
         dirField.className='field';
@@ -1646,6 +1700,21 @@ function buildEffectRow(ab, eff){
   return row;
 }
 
+function makeCondSelectField(cond, fieldName, options, defaultVal, label, rebuild){
+  const field = document.createElement('div');
+  field.className='field';
+  field.innerHTML = `<label class="mini-field">${label}</label>`;
+  const sel = document.createElement('select');
+  options.forEach(([k,l])=>{
+    const opt=document.createElement('option'); opt.value=k; opt.textContent=l;
+    if((cond[fieldName]||defaultVal)===k) opt.selected=true;
+    sel.appendChild(opt);
+  });
+  sel.onchange=()=>{ cond[fieldName]=sel.value; if(rebuild) rebuildAbilitiesUI(); onFormChange(); };
+  field.appendChild(sel);
+  return field;
+}
+
 function makeSelectField(label, options, current, onChange){
   const field = document.createElement('div');
   field.className='field';
@@ -2022,7 +2091,11 @@ function conditionClause(cond){
   const def = CONDITION_TYPES.find(c=>c.key===cond.conditionType);
   if(!def) return '';
   switch(cond.conditionType){
-    case 'healthBelow': return `votre héros a moins de ${cond.value||'X'} PV`;
+    case 'resourceCompare': {
+      const resLabel = {hp:'PV', mana:'mana', hand:'cartes en main', discard:'cartes en défausse', deck:'cartes dans le deck', board:'créatures en jeu'}[cond.resourceType||'hp'];
+      const compLabel = {atLeast:'au moins', atMost:'au plus', exactly:'exactement'}[cond.compareMode||'atLeast'];
+      return `votre héros a ${compLabel} ${cond.value||'X'} ${resLabel}`;
+    }
     case 'healthChange': {
       const isEnemy = cond.healthChangeOwner==='enemy';
       const who = isEnemy ? "l'adversaire" : 'vous';
@@ -2031,13 +2104,39 @@ function conditionClause(cond){
       const comp = cond.healthChangeMode==='exact' ? 'exactement' : 'au moins';
       return `${who} ${verbAvoir} ${verb} ${comp} ${cond.value||'X'} PV ce tour-ci`;
     }
-    case 'handSizeAtLeast': return `vous avez au moins ${cond.value||'X'} cartes en main`;
+    case 'drawnThisTurn': {
+      const comp = cond.compareMode==='exactly' ? 'exactement' : 'au moins';
+      return `votre héros a pioché ${comp} ${cond.value||'X'} carte(s) ce tour-ci`;
+    }
+    case 'countThisTurn': {
+      const typeLabel = cond.countThisTurnType==='artifact' ? 'artefact(s)' : 'créature(s)';
+      const evLabel = {died:'mortes',arrived:'arrivées',activated:'activées'}[cond.countThisTurnEvent||'died'];
+      const comp = cond.compareMode==='exactly' ? 'exactement' : 'au moins';
+      return `${comp} ${cond.value||'X'} ${typeLabel} ${evLabel} ce tour-ci`;
+    }
     case 'boardEmpty': return 'le plateau adverse est vide';
-    case 'controlsSubtype': return `vous contrôlez une créature ${cond.value||'?'}`;
-    case 'handHasStatAtLeast': return `vous avez une créature en main avec une Force de ${cond.value||'X'} ou plus`;
+    case 'subtypeCount': {
+      const typeLabel = {creature:'créature(s)',artifact:'artefact(s)',sortilege:'sortilège(s)',piege:'piège(s)',any:'carte(s)'}[cond.subtypeCardType||'creature'];
+      const zoneLabel = {board:'en jeu',hand:'en main',discard:'en défausse'}[cond.subtypeZone||'board'];
+      const comp = {atLeast:'au moins',atMost:'au plus',exactly:'exactement'}[cond.compareMode||'atLeast'];
+      return `vous avez ${comp} ${cond.value||'X'} ${typeLabel} ${zoneLabel} du sous-type ${cond.subtype||'?'}`;
+    }
+    case 'statCompare': {
+      const statLabel = cond.statType==='endurance' ? 'endurance' : 'force';
+      const scopeLabel = {target:'de la cible',anyBoard:"d'une créature en jeu",anyHand:"d'une créature en main"}[cond.statScope||'target'];
+      const compLabel = {greater:'supérieure',less:'inférieure',equal:'égale'}[cond.statCompareMode||'greater'];
+      return `la ${statLabel} ${scopeLabel} est ${compLabel} à ${cond.value||'X'}`;
+    }
     case 'turnAtLeast': return `on est au tour ${cond.value||'X'} ou plus`;
     case 'chance': return `vous avez ${cond.value||'X'}% de chance`;
-    case 'monoColorDeck': return `votre deck de base est d'une seule classe (les cartes Neutre ne comptent pas)`;
+    case 'deckComposition': {
+      switch(cond.deckCompMode){
+        case 'singleClassSpecific': return `votre deck de base ne contient que des cartes ${cond.deckCompClass||'?'} (Neutre exclu)`;
+        case 'maxClasses': return `votre deck de base contient au plus ${cond.deckCompValue||'X'} classe(s) différente(s) (Neutre exclu)`;
+        case 'minPerClass': return `votre deck de base contient au moins ${cond.deckCompValue||'X'} carte(s) de chaque classe qu'il utilise`;
+        default: return `votre deck de base est d'une seule classe (Neutre exclu)`;
+      }
+    }
     case 'manaNotFromRegion': return `le mana utilisé pour la payer ne vient pas de votre région`;
     case 'custom': return cond.value || 'condition personnalisée';
     default: return '';
