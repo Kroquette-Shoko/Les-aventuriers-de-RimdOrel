@@ -183,10 +183,8 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .card-armor-shield{position:absolute;inset:0;z-index:3;pointer-events:none;background:linear-gradient(135deg, rgba(255,215,110,.32), rgba(255,215,110,.04) 60%);box-shadow:inset 0 0 12px rgba(255,215,110,.6);animation:armor-glow 2.2s ease-in-out infinite;}
 @keyframes armor-glow{0%,100%{opacity:.65;}50%{opacity:1;}}
 
-.status-stack-tr{position:absolute;top:2px;left:3px;display:flex;flex-direction:column;align-items:flex-start;gap:2px;z-index:6;pointer-events:none;}
-.card-protection-icon{font-size:12px;filter:drop-shadow(0 0 3px rgba(79,179,217,.95));animation:protection-pulse 1.6s ease-in-out infinite;}
-.card-reach-icon{font-size:11px;filter:drop-shadow(0 0 2px rgba(212,175,55,.9));}
-.card-toxic-icon{font-size:12px;filter:drop-shadow(0 0 3px rgba(90,180,90,.9));}
+.status-stack-tr{position:absolute;bottom:29px;left:50%;transform:translateX(-50%);display:flex;flex-direction:row;align-items:center;justify-content:center;gap:2px;z-index:6;pointer-events:none;max-width:80%;flex-wrap:wrap-reverse;}
+.kw-icon{width:12px;height:12px;filter:invert(1) drop-shadow(0 1px 2px rgba(0,0,0,.7));}
 @keyframes protection-pulse{0%,100%{opacity:.7;transform:scale(1);}50%{opacity:1;transform:scale(1.18);}}
 
 /* Vol : la carte plane, ombre portée dessous via drop-shadow (respecte la découpe de la carte) */
@@ -211,7 +209,6 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 }
 
 /* Perçant : petit pic acéré animé */
-.card-pierce-badge{position:absolute;bottom:3px;right:3px;font-size:12px;z-index:6;pointer-events:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6));animation:pierce-jab 1.4s ease-in-out infinite;}
 @keyframes pierce-jab{0%,100%{transform:translateX(0) rotate(-30deg);}50%{transform:translateX(2px) rotate(-30deg) scale(1.15);}}
 
 /* Initiative : reflet métallique qui balaie la carte */
@@ -234,7 +231,8 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 /* Choisi pour attaquer : épées */
 .card.attack-selecting{transform:translateY(-20px);box-shadow:0 12px 22px rgba(194,59,59,.55);}
 .card.attack-selecting:hover{transform:translateY(-24px);}
-.sword-icons{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:24px;z-index:8;pointer-events:none;text-shadow:0 2px 5px rgba(0,0,0,.7);}
+.sword-icons{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:32px;height:32px;z-index:8;pointer-events:none;filter:drop-shadow(0 2px 5px rgba(0,0,0,.7));}
+.sword-icons img{width:100%;height:100%;filter:invert(21%) sepia(85%) saturate(2500%) hue-rotate(340deg) brightness(90%);}
 .sword-icons.confirmed{font-size:28px;animation:sword-clash 1.3s ease-in-out infinite;}
 @keyframes sword-clash{0%,100%{transform:translate(-50%,-50%) rotate(-5deg);}50%{transform:translate(-50%,-50%) rotate(5deg);}}
 @keyframes pulse{0%,100%{outline-color:var(--blood);}50%{outline-color:#ff8a8a;}}
@@ -251,7 +249,8 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .card-kw{font-size:8px;color:var(--arcane);font-weight:700;min-height:10px;text-align:center;}
 .card-text{font-size:8.2px;line-height:1.2;flex:1;color:#2a2338;overflow:hidden;white-space:pre-wrap;text-align:center;}
 .card-footer{height:27px;flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:space-between;padding:0 7px 4px;}
-.card-atk,.card-hp{width:20px;height:20px;border-radius:50%;background:#efe6c8;border:2px solid #1c1830;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:9.5px;}
+.card-atk,.card-hp{width:20px;height:20px;border-radius:50%;background:#efe6c8;border:2px solid #1c1830;display:flex;align-items:center;justify-content:center;gap:1px;font-weight:700;font-size:9.5px;}
+.atk-icon{width:9px;height:9px;filter:invert(21%) sepia(85%) saturate(2500%) hue-rotate(340deg) brightness(85%);}
 .card-atk{color:var(--blood);}
 .card-hp{color:var(--green);}
 .card-rarity-gem{position:absolute;left:50%;bottom:5px;transform:translateX(-50%) rotate(45deg);width:10px;height:10px;border:2px solid rgba(0,0,0,.35);box-shadow:0 0 4px currentColor;}
@@ -485,6 +484,13 @@ const CARD_DB = [
   {id:'c15', name:'Golem de Pierre', type:'Créature', class:'Neutre', cost:5, atk:5, hp:6, keywords:[], text:'Lent mais massif.'},
   {id:'s4', name:'Étincelle', type:'Sortilège', class:'Neutre', cost:1, effect:{type:'damage', amount:1}, text:'Inflige 1 dégât à une créature ou un héros ennemi.'},
 ];
+
+const KEYWORD_ICON_FILES = {
+  charge:'kw-charge.png', flying:'kw-vol.png', reach:'kw-portee.png', pierce:'kw-percant.png',
+  lifesteal:'kw-volDeVie.png', initiative:'kw-initiative.png', armor:'kw-armure.png',
+  stealth:'kw-furtif.png', relentless:'kw-tenace.png', fearful:'kw-peureux.png',
+  protecteur:'kw-protecteur.png', toxic:'kw-toxique.png'
+};
 
 const KEYWORD_LABELS = {
   charge:'Charge', flying:'Vol', reach:'Portée', pierce:'Perçant', lifesteal:'Vol de vie',
@@ -2348,10 +2354,7 @@ function cardEl(card, opts={}){
   }
 
   const hasArmorShield = inPlay && kw.includes('armor') && !card.armorUsed;
-  const hasProtecteur = inPlay && kw.includes('protecteur');
-  const hasToxic = inPlay && kw.includes('toxic');
-  const hasReach = inPlay && kw.includes('reach');
-  const hasPierce = inPlay && kw.includes('pierce');
+  const activeKeywordIcons = inPlay ? kw.filter(k=>KEYWORD_ICON_FILES[k]) : [];
 
   const kwText = kw.map(k=>KEYWORD_LABELS[k]).filter(Boolean).join(', ');
   const isHero = card.type==='Héros';
@@ -2374,20 +2377,17 @@ function cardEl(card, opts={}){
       <div class="card-text">${escapeHtmlGS(card.text||'')}</div>
     </div>
     <div class="card-footer">
-      ${isCreature ? `<div class="card-atk">⚔${card.curAtk ?? card.atk ?? 0}</div>` : `<div></div>`}
+      ${isCreature ? `<div class="card-atk"><img class="atk-icon" src="images/kw-attaque.png">${card.curAtk ?? card.atk ?? 0}</div>` : `<div></div>`}
       <div class="card-rarity-gem rarity-${card.rarity||'Commune'}" title="${card.rarity||'Commune'}"></div>
       ${isCreature ? `<div class="card-hp">♥${card.curHp ?? card.hp ?? 0}</div>` : `<div></div>`}
     </div>
     ${card.charges!==undefined ? `<div class="charges">${card.charges}x</div>` : ''}
     ${isSick ? `<div class="zzz"><span>Z</span><span>Z</span><span>Z</span></div>` : ''}
     ${hasArmorShield ? `<div class="card-armor-shield" title="Armure"></div>` : ''}
-    ${(hasProtecteur || hasReach || hasToxic) ? `<div class="status-stack-tr">
-        ${hasProtecteur ? `<span class="card-protection-icon" title="Protecteur">🛡</span>` : ''}
-        ${hasToxic ? `<span class="card-toxic-icon" title="Toxique">☠</span>` : ''}
-        ${hasReach ? `<span class="card-reach-icon" title="Portée">🏹</span>` : ''}
+    ${activeKeywordIcons.length ? `<div class="status-stack-tr">
+        ${activeKeywordIcons.map(k=>`<img class="kw-icon" src="images/${KEYWORD_ICON_FILES[k]}" title="${KEYWORD_LABELS[k]||k}">`).join('')}
       </div>` : ''}
-    ${hasPierce ? `<div class="card-pierce-badge" title="Perçant">🔻</div>` : ''}
-    ${inPlay && opts.attackConfirmed ? `<div class="sword-icons confirmed">⚔️</div>` : ''}
+    ${inPlay && opts.attackConfirmed ? `<div class="sword-icons confirmed"><img src="images/kw-attaque.png"></div>` : ''}
     ${card.foil ? `<div class="card-foil-layer"></div>` : ''}
   `;
   if(opts.onClick) el.onclick = opts.onClick;
