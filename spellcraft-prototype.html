@@ -2649,6 +2649,27 @@ function renderLane(key){
       }
       el.appendChild(cardWrap);
   });
+
+  // aperçu de la créature en attente de ciblage, posée sur son propre plateau
+  // plutôt que laissée en main seule — moins confus pour savoir ce qui se joue.
+  if(key==='p1' && S.pendingCard && !S.pendingCard.isHeroPower){
+    const card = S.p1.hand[S.pendingCard.index];
+    if(card && card.type==='Créature'){
+      const eff = card.onPlayEffect;
+      const ghostWrap = document.createElement('div');
+      ghostWrap.className = 'card-slot ghost-pending-creature';
+      ghostWrap.style.cssText = 'position:relative;opacity:.6;';
+      const ghostEl = cardEl(card, { inPlay:false });
+      ghostEl.style.border = '2px dashed var(--gold)';
+      if(eff && (eff.targetOwner==='ally' || eff.targetOwner==='any')){
+        ghostEl.style.cursor = 'crosshair';
+        ghostEl.onclick = ()=>resolvePendingTarget({ selfTarget:true });
+        ghostWrap.title = 'Cliquer pour cibler cette carte elle-même';
+      }
+      ghostWrap.appendChild(ghostEl);
+      el.appendChild(ghostWrap);
+    }
+  }
 }
 
 // Détermine quel(s) camp(s) (p1/p2) sont valables comme cible interactive pour
@@ -3409,31 +3430,86 @@ function clearDropHighlights(){
   document.querySelectorAll('.drop-hover').forEach(el=>el.classList.remove('drop-hover'));
 }
 
+// Effet ciblé d'une carte, quel que soit son type (identique à pendingTargetedEffect
+// mais applicable à n'importe quelle carte, pas seulement celle en attente de ciblage).
+function cardTargetedEffect(card){
+  if(!card) return null;
+  if(card.type==='Sortilège') return card.effect;
+  if(card.type==='Créature') return card.onPlayEffect;
+  if(card.type==='Artefact') return card.triggeredEffects && card.triggeredEffects.onPlay;
+  return null;
+}
+
 function setupDragAndDrop(){
   const laneP1 = document.getElementById('lane-p1');
   const laneP2 = document.getElementById('lane-p2');
+  const heroP1 = document.getElementById('hero-p1');
   const heroP2 = document.getElementById('hero-p2');
   const handP1 = document.getElementById('hand-p1');
 
-  // déposer sur son propre plateau : joue une carte qui n'a pas besoin de cible
+  // déposer sur son propre plateau : joue une carte sans cible, cible une créature
+  // alliée précise, ou se cible elle-même si déposée sur une zone vide.
   laneP1.addEventListener('dragover', (ev)=>{
-    if(!dragState || needsTarget(dragState.card)) return;
+    if(!dragState) return;
     ev.preventDefault();
     laneP1.classList.add('drop-hover');
+    const eff = cardTargetedEffect(dragState.card);
+    const slot = ev.target.closest('.card-slot');
+    clearDropHighlights();
+    laneP1.classList.add('drop-hover');
+    if(slot && eff && targetableKeysForEffect(eff).includes('p1')) slot.classList.add('drop-hover');
   });
   laneP1.addEventListener('dragleave', ()=>laneP1.classList.remove('drop-hover'));
   laneP1.addEventListener('drop', (ev)=>{
     laneP1.classList.remove('drop-hover');
-    if(!dragState || needsTarget(dragState.card)) return;
+    clearDropHighlights();
+    if(!dragState) return;
     ev.preventDefault();
-    if(dragState.card.type==='Piège') setTrap('p1', dragState.index);
-    else playCard('p1', dragState.index);
+    const card = dragState.card, index = dragState.index;
+    const eff = cardTargetedEffect(card);
+    const slot = ev.target.closest('.card-slot');
+
+    if(needsTarget(card)){
+      if(slot){
+        const creature = S.p1.board.find(c=>c.instId===slot.dataset.instId);
+        if(creature && eff && targetableKeysForEffect(eff).includes('p1') && isTargetableCreature(creature, false)){
+          playCard('p1', index, {isHeroTarget:false, creature, player:S.p1});
+        }
+      } else if(eff && (eff.targetOwner==='ally' || eff.targetOwner==='any')){
+        // déposée sur une zone vide de son propre plateau : se cible elle-même
+        playCard('p1', index, { selfTarget:true });
+      }
+      dragState = null;
+      return;
+    }
+    if(card.type==='Piège') setTrap('p1', index);
+    else playCard('p1', index);
+    dragState = null;
+  });
+
+  // déposer sur son propre héros : cible le héros allié (ex: Soin)
+  heroP1.addEventListener('dragover', (ev)=>{
+    if(!dragState) return;
+    const eff = cardTargetedEffect(dragState.card);
+    if(!(eff && (eff.type==='damage' || eff.type==='heal') && targetableKeysForEffect(eff).includes('p1'))) return;
+    ev.preventDefault();
+    heroP1.classList.add('drop-hover');
+  });
+  heroP1.addEventListener('dragleave', ()=>heroP1.classList.remove('drop-hover'));
+  heroP1.addEventListener('drop', (ev)=>{
+    heroP1.classList.remove('drop-hover');
+    if(!dragState) return;
+    const eff = cardTargetedEffect(dragState.card);
+    if(!(eff && (eff.type==='damage' || eff.type==='heal') && targetableKeysForEffect(eff).includes('p1'))) return;
+    ev.preventDefault();
+    playCard('p1', dragState.index, {isHeroTarget:true, player:S.p1, key:'p1'});
     dragState = null;
   });
 
   // déposer sur une créature ennemie : joue un sort/effet ciblé sur elle
   laneP2.addEventListener('dragover', (ev)=>{
-    if(!dragState || !effectNeedsTarget(dragState.card.effect)) return;
+    const eff = dragState && cardTargetedEffect(dragState.card);
+    if(!dragState || !eff || !effectNeedsTarget(eff) || !targetableKeysForEffect(eff).includes('p2')) return;
     ev.preventDefault();
     const slot = ev.target.closest('.card-slot');
     clearDropHighlights();
@@ -3442,7 +3518,8 @@ function setupDragAndDrop(){
   laneP2.addEventListener('dragleave', clearDropHighlights);
   laneP2.addEventListener('drop', (ev)=>{
     clearDropHighlights();
-    if(!dragState || !effectNeedsTarget(dragState.card.effect)) return;
+    const eff = dragState && cardTargetedEffect(dragState.card);
+    if(!dragState || !eff || !effectNeedsTarget(eff) || !targetableKeysForEffect(eff).includes('p2')) return;
     const slot = ev.target.closest('.card-slot');
     if(!slot) return;
     ev.preventDefault();
@@ -3457,11 +3534,11 @@ function setupDragAndDrop(){
     dragState = null;
   });
 
-  // déposer sur le héros ennemi : joue un sort de dégâts directement sur lui
+  // déposer sur le héros ennemi : joue un sort de dégâts (ou soin sur soi si "any") directement sur lui
   heroP2.addEventListener('dragover', (ev)=>{
     if(!dragState) return;
-    const eff = dragState.card.effect;
-    if(!(eff && eff.type==='damage')) return;
+    const eff = cardTargetedEffect(dragState.card);
+    if(!(eff && (eff.type==='damage' || eff.type==='heal') && targetableKeysForEffect(eff).includes('p2'))) return;
     ev.preventDefault();
     heroP2.classList.add('drop-hover');
   });
@@ -3469,8 +3546,8 @@ function setupDragAndDrop(){
   heroP2.addEventListener('drop', (ev)=>{
     heroP2.classList.remove('drop-hover');
     if(!dragState) return;
-    const eff = dragState.card.effect;
-    if(!(eff && eff.type==='damage')) return;
+    const eff = cardTargetedEffect(dragState.card);
+    if(!(eff && (eff.type==='damage' || eff.type==='heal') && targetableKeysForEffect(eff).includes('p2'))) return;
     ev.preventDefault();
     playCard('p1', dragState.index, {isHeroTarget:true, player:S.p2, key:'p2'});
     dragState = null;
