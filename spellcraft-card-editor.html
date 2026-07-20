@@ -477,6 +477,58 @@ header .spacer{flex:1;}
       <div id="gallery-grid"></div>
     </div>
 
+    <div class="panel" id="shop-admin-panel">
+      <h2>Boutique <span class="hint">boosters et dos de cartes vendables — visible immédiatement dans la boutique</span></h2>
+      <div style="display:flex;gap:24px;flex-wrap:wrap;">
+
+        <div style="flex:1;min-width:340px;">
+          <h3 style="font-family:'Cinzel',serif;font-size:13px;color:var(--gold);margin:0 0 10px;">📦 Boosters</h3>
+          <div id="booster-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;"></div>
+          <button class="btn small" onclick="newBoosterForm()">+ Nouveau booster</button>
+          <div id="booster-form" style="display:none;margin-top:14px;background:var(--bg-panel-2);border-radius:10px;padding:14px;">
+            <div class="field"><label>Nom</label><input type="text" id="bf-name" placeholder="Ex : Booster Aube"></div>
+            <div class="grid2">
+              <div class="field"><label>Set source</label><select id="bf-set"></select></div>
+              <div class="field"><label>Prix (or)</label><input type="number" id="bf-price" value="120" min="1"></div>
+            </div>
+            <div class="field"><label>Image (URL)</label><input type="url" id="bf-image" placeholder="https://..."></div>
+            <div class="field">
+              <label>Répartition des raretés (%) — <span id="bf-total">100</span>/100</label>
+              <div class="grid3" style="grid-template-columns:repeat(5,1fr);gap:6px;">
+                <div><label class="mini-field">Basique</label><input type="number" class="bf-rarity" data-rarity="Basique" value="30" min="0" max="100" oninput="updateBoosterTotal()"></div>
+                <div><label class="mini-field">Commune</label><input type="number" class="bf-rarity" data-rarity="Commune" value="40" min="0" max="100" oninput="updateBoosterTotal()"></div>
+                <div><label class="mini-field">Rare</label><input type="number" class="bf-rarity" data-rarity="Rare" value="20" min="0" max="100" oninput="updateBoosterTotal()"></div>
+                <div><label class="mini-field">Épique</label><input type="number" class="bf-rarity" data-rarity="Épique" value="8" min="0" max="100" oninput="updateBoosterTotal()"></div>
+                <div><label class="mini-field">Légendaire</label><input type="number" class="bf-rarity" data-rarity="Légendaire" value="2" min="0" max="100" oninput="updateBoosterTotal()"></div>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;margin-top:10px;">
+              <button class="btn primary small" onclick="saveBoosterForm()">💾 Enregistrer</button>
+              <button class="btn small" onclick="closeBoosterForm()">Annuler</button>
+            </div>
+          </div>
+        </div>
+
+        <div style="flex:1;min-width:340px;">
+          <h3 style="font-family:'Cinzel',serif;font-size:13px;color:var(--gold);margin:0 0 10px;">🎴 Dos de cartes</h3>
+          <div id="cardback-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;"></div>
+          <button class="btn small" onclick="newCardBackForm()">+ Nouveau dos de carte</button>
+          <div id="cardback-form" style="display:none;margin-top:14px;background:var(--bg-panel-2);border-radius:10px;padding:14px;">
+            <div class="grid2">
+              <div class="field"><label>Nom</label><input type="text" id="cf-name" placeholder="Ex : Dos flammes"></div>
+              <div class="field"><label>Prix (or)</label><input type="number" id="cf-price" value="150" min="1"></div>
+            </div>
+            <div class="field"><label>Image (URL)</label><input type="url" id="cf-image" placeholder="https://..."></div>
+            <div style="display:flex;gap:8px;margin-top:10px;">
+              <button class="btn primary small" onclick="saveCardBackForm()">💾 Enregistrer</button>
+              <button class="btn small" onclick="closeCardBackForm()">Annuler</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -2829,18 +2881,180 @@ function doImport(){
 }
 
 /* ============================================================
+   BOUTIQUE — boosters et dos de cartes
+   ============================================================ */
+let boostersCache = [];
+let cardBacksCache = [];
+let editingBoosterId = null;
+let editingCardBackId = null;
+const RARITY_KEYS = ['Basique','Commune','Rare','Épique','Légendaire'];
+
+async function loadShopAdmin(){
+  const [{data: boosters}, {data: backs}] = await Promise.all([
+    sb.from('boosters').select('*').order('created_at'),
+    sb.from('card_backs').select('*').order('created_at')
+  ]);
+  boostersCache = boosters || [];
+  cardBacksCache = backs || [];
+  renderBoosterList();
+  renderCardBackList();
+}
+
+function renderBoosterList(){
+  const el = document.getElementById('booster-list');
+  if(boostersCache.length===0){ el.innerHTML = `<div class="empty-state">Aucun booster créé.</div>`; return; }
+  el.innerHTML = boostersCache.map(b=>{
+    const setName = (setsIndex.find(s=>s.id===b.set_id)||{}).name || '(set introuvable)';
+    return `
+    <div style="display:flex;align-items:center;gap:8px;background:var(--bg-panel-2);border-radius:8px;padding:8px 10px;font-size:12px;">
+      <span style="flex:1;">${escapeHtml(b.name)} <span style="color:var(--parchment-dim);">— ${escapeHtml(setName)} · ${b.price} or</span></span>
+      <button class="mini-btn" onclick="editBoosterForm('${b.id}')" title="Modifier">✎</button>
+      <button class="mini-btn" onclick="deleteBoosterEntry('${b.id}')" title="Supprimer">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+function populateBoosterSetSelect(){
+  const sel = document.getElementById('bf-set');
+  sel.innerHTML = setsIndex.map(s=>`<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`).join('');
+}
+
+function newBoosterForm(){
+  editingBoosterId = null;
+  populateBoosterSetSelect();
+  document.getElementById('bf-name').value = '';
+  document.getElementById('bf-price').value = 120;
+  document.getElementById('bf-image').value = '';
+  const defaults = {Basique:30, Commune:40, Rare:20, 'Épique':8, 'Légendaire':2};
+  document.querySelectorAll('.bf-rarity').forEach(inp=>{ inp.value = defaults[inp.dataset.rarity]; });
+  updateBoosterTotal();
+  document.getElementById('booster-form').style.display = 'block';
+}
+
+function editBoosterForm(id){
+  const b = boostersCache.find(x=>x.id===id);
+  if(!b) return;
+  editingBoosterId = id;
+  populateBoosterSetSelect();
+  document.getElementById('bf-name').value = b.name;
+  document.getElementById('bf-set').value = b.set_id;
+  document.getElementById('bf-price').value = b.price;
+  document.getElementById('bf-image').value = b.image_url || '';
+  document.querySelectorAll('.bf-rarity').forEach(inp=>{ inp.value = (b.rarity_distribution||{})[inp.dataset.rarity] ?? 0; });
+  updateBoosterTotal();
+  document.getElementById('booster-form').style.display = 'block';
+}
+
+function closeBoosterForm(){ document.getElementById('booster-form').style.display = 'none'; editingBoosterId = null; }
+
+function updateBoosterTotal(){
+  let total = 0;
+  document.querySelectorAll('.bf-rarity').forEach(inp=>{ total += parseInt(inp.value)||0; });
+  const span = document.getElementById('bf-total');
+  span.textContent = total;
+  span.style.color = total===100 ? 'var(--green)' : 'var(--blood)';
+}
+
+async function saveBoosterForm(){
+  const name = document.getElementById('bf-name').value.trim();
+  if(!name){ alert('Donne un nom au booster.'); return; }
+  const distribution = {};
+  document.querySelectorAll('.bf-rarity').forEach(inp=>{ distribution[inp.dataset.rarity] = parseInt(inp.value)||0; });
+  const total = Object.values(distribution).reduce((a,b)=>a+b,0);
+  if(total!==100 && !confirm(`La répartition fait ${total}% au lieu de 100%. Enregistrer quand même ?`)) return;
+
+  const row = {
+    id: editingBoosterId || ('booster_' + Date.now()),
+    name,
+    set_id: document.getElementById('bf-set').value,
+    price: parseInt(document.getElementById('bf-price').value) || 120,
+    image_url: document.getElementById('bf-image').value.trim() || null,
+    rarity_distribution: distribution
+  };
+  const { error } = await sb.from('boosters').upsert(row);
+  if(error){ alert('Erreur : ' + error.message); return; }
+  closeBoosterForm();
+  await loadShopAdmin();
+}
+
+async function deleteBoosterEntry(id){
+  const b = boostersCache.find(x=>x.id===id);
+  if(b && !confirm(`Supprimer le booster "${b.name}" ?`)) return;
+  const { error } = await sb.from('boosters').delete().eq('id', id);
+  if(error){ alert('Erreur : ' + error.message); return; }
+  await loadShopAdmin();
+}
+
+function renderCardBackList(){
+  const el = document.getElementById('cardback-list');
+  if(cardBacksCache.length===0){ el.innerHTML = `<div class="empty-state">Aucun dos de carte créé.</div>`; return; }
+  el.innerHTML = cardBacksCache.map(cb=>`
+    <div style="display:flex;align-items:center;gap:8px;background:var(--bg-panel-2);border-radius:8px;padding:8px 10px;font-size:12px;">
+      <span style="flex:1;">${escapeHtml(cb.name)} <span style="color:var(--parchment-dim);">— ${cb.price} or</span></span>
+      <button class="mini-btn" onclick="editCardBackForm('${cb.id}')" title="Modifier">✎</button>
+      <button class="mini-btn" onclick="deleteCardBackEntry('${cb.id}')" title="Supprimer">🗑</button>
+    </div>
+  `).join('');
+}
+
+function newCardBackForm(){
+  editingCardBackId = null;
+  document.getElementById('cf-name').value = '';
+  document.getElementById('cf-price').value = 150;
+  document.getElementById('cf-image').value = '';
+  document.getElementById('cardback-form').style.display = 'block';
+}
+
+function editCardBackForm(id){
+  const cb = cardBacksCache.find(x=>x.id===id);
+  if(!cb) return;
+  editingCardBackId = id;
+  document.getElementById('cf-name').value = cb.name;
+  document.getElementById('cf-price').value = cb.price;
+  document.getElementById('cf-image').value = cb.image_url || '';
+  document.getElementById('cardback-form').style.display = 'block';
+}
+
+function closeCardBackForm(){ document.getElementById('cardback-form').style.display = 'none'; editingCardBackId = null; }
+
+async function saveCardBackForm(){
+  const name = document.getElementById('cf-name').value.trim();
+  if(!name){ alert('Donne un nom au dos de carte.'); return; }
+  const row = {
+    id: editingCardBackId || ('back_' + Date.now()),
+    name,
+    price: parseInt(document.getElementById('cf-price').value) || 150,
+    image_url: document.getElementById('cf-image').value.trim() || null
+  };
+  const { error } = await sb.from('card_backs').upsert(row);
+  if(error){ alert('Erreur : ' + error.message); return; }
+  closeCardBackForm();
+  await loadShopAdmin();
+}
+
+async function deleteCardBackEntry(id){
+  const cb = cardBacksCache.find(x=>x.id===id);
+  if(cb && !confirm(`Supprimer le dos de carte "${cb.name}" ?`)) return;
+  const { error } = await sb.from('card_backs').delete().eq('id', id);
+  if(error){ alert('Erreur : ' + error.message); return; }
+  await loadShopAdmin();
+}
+
+/* ============================================================
    INIT
    ============================================================ */
 async function initEditorData(){
   const user = await scGetCurrentUser();
   if(user) await migrateLocalCatalogToSupabaseIfNeeded();
   await loadCards();
+  await loadShopAdmin();
 }
 initSpellcraftAuth().then(initEditorData);
 sb.auth.onAuthStateChange(async (event)=>{
   if(event==='SIGNED_IN'){
     await migrateLocalCatalogToSupabaseIfNeeded();
     await loadCards();
+    await loadShopAdmin();
   }
 });
 </script>

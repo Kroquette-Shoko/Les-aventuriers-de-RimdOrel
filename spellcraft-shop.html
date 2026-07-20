@@ -54,9 +54,7 @@ header .spacer{flex:1;}
 }
 #vendor-portrait{
   width:120px;height:140px;flex-shrink:0;border-radius:10px;
-  background:rgba(0,0,0,.3);border:2px dashed rgba(255,255,255,.15);
-  display:flex;align-items:center;justify-content:center;
-  font-size:11px;color:var(--parchment-dim);text-align:center;padding:8px;
+  background:rgba(0,0,0,.3);border:2px solid var(--gold);
 }
 #vendor-speech{
   flex:1;font-family:'Cinzel',serif;font-size:14px;color:var(--parchment);
@@ -123,8 +121,8 @@ header .spacer{flex:1;}
   </div>
 
   <div id="vendor-area">
-    <div id="vendor-portrait">Portrait du vendeur<br>(à ajouter)</div>
-    <div id="vendor-speech">Bienvenue, aventurier ! Jette un œil à mes étagères — j'ai des boosters fraîchement scellés, quelques cartes isolées qui traînaient, et de quoi personnaliser tes dos de cartes.</div>
+    <div id="vendor-portrait" style="background-image:url('images/vendor-bruno.png');background-size:cover;background-position:top center;border-style:solid;border-color:var(--gold);"></div>
+    <div id="vendor-speech"></div>
   </div>
 
   <div id="shelves">
@@ -162,6 +160,14 @@ const RARITY_COLORS = {Basique:'#8a7f6a', Commune:'#c7c2b3', Rare:'#4fb3d9', Ép
 const BOOSTER_PRICE = 120;
 const SINGLE_PRICE = 30;
 
+// Répliques d'accueil de Bruno — on en ajoutera d'autres plus tard, une est tirée au hasard à chaque visite.
+const BRUNO_LINES = [
+  `Ohhhh, quel plaisir, quelle <em>joie</em>, quel <em>honneur</em> !! Bruno en personne t'accueille dans son humble échoppe — enfin, humble, façon de parler, regarde-moi ces merveilles ! Un petit booster, une carte par-ci par-là, un dos de carte assorti à tes bottes ? Sers-toi, mon trésor, l'or de ta bourse ne demande qu'à briller entre mes mains ✨🃏✨`
+];
+function renderBrunoLine(){
+  document.getElementById('vendor-speech').innerHTML = BRUNO_LINES[Math.floor(Math.random()*BRUNO_LINES.length)];
+}
+
 async function refreshCurrency(){
   const profile = await loadUserProfile();
   if(!profile){
@@ -176,17 +182,22 @@ async function refreshCurrency(){
   document.getElementById('cur-arcane').textContent = profile.fragments_arcane ?? 0;
 }
 
-function renderBoosterShelf(){
+async function renderBoosterShelf(){
   const el = document.getElementById('shelf-boosters');
-  el.innerHTML = `
+  const { data, error } = await sb.from('boosters').select('*').order('price');
+  if(error || !data || data.length===0){
+    el.innerHTML = `<div class="empty-shelf">Aucun booster disponible pour l'instant — reviens plus tard !</div>`;
+    return;
+  }
+  el.innerHTML = data.map(b=>`
     <div class="shop-item">
-      <div class="shop-item-art">📦</div>
-      <div class="shop-item-name">Booster</div>
-      <div class="shop-item-desc">6 cartes, au moins une Rare ou mieux garantie.</div>
-      <div class="shop-item-price">🪙 ${BOOSTER_PRICE}</div>
-      <button class="buy-btn" onclick="buyBooster()">Acheter</button>
+      <div class="shop-item-art" style="${b.image_url?`background-image:url('${b.image_url}');background-size:cover;`:''}">${b.image_url?'':'📦'}</div>
+      <div class="shop-item-name">${escapeHtmlShop(b.name)}</div>
+      <div class="shop-item-desc">6 cartes du set correspondant.</div>
+      <div class="shop-item-price">🪙 ${b.price}</div>
+      <button class="buy-btn" onclick="buyBooster('${b.id}', ${b.price})">Acheter</button>
     </div>
-  `;
+  `).join('');
 }
 
 function renderSingleShelf(){
@@ -194,8 +205,8 @@ function renderSingleShelf(){
   el.innerHTML = `
     <div class="shop-item">
       <div class="shop-item-art">🃏</div>
-      <div class="shop-item-name">Carte au hasard</div>
-      <div class="shop-item-desc">Une carte aléatoire. Si tu la possèdes déjà, elle devient Foil.</div>
+      <div class="shop-item-name">Carte au choix</div>
+      <div class="shop-item-desc">4 cartes tirées au hasard (hors set de base) — tu choisis laquelle acheter. Déjà possédée = Foil.</div>
       <div class="shop-item-price">🪙 ${SINGLE_PRICE}</div>
       <button class="buy-btn" onclick="buySingle()">Acheter</button>
     </div>
@@ -232,10 +243,10 @@ function escapeHtmlShop(s){
   return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
 
-async function buyBooster(){
+async function buyBooster(boosterId){
   const user = await scGetCurrentUser();
   if(!user){ alert('Connecte-toi pour acheter dans la boutique.'); return; }
-  const { data, error } = await sb.rpc('buy_booster', { p_booster_price: BOOSTER_PRICE });
+  const { data, error } = await sb.rpc('buy_booster', { p_booster_id: boosterId });
   if(error){ alert('Erreur : ' + error.message); return; }
   if(data.error){ alert(shopErrorMessage(data.error)); return; }
   showRevealModal('Booster ouvert !', data.cards.map(c=>({
@@ -247,7 +258,29 @@ async function buyBooster(){
 async function buySingle(){
   const user = await scGetCurrentUser();
   if(!user){ alert('Connecte-toi pour acheter dans la boutique.'); return; }
-  const { data, error } = await sb.rpc('buy_single_card', { p_price: SINGLE_PRICE });
+  const { data, error } = await sb.rpc('get_single_card_choices');
+  if(error){ alert('Erreur : ' + error.message); return; }
+  if(data.error){ alert(shopErrorMessage(data.error)); return; }
+  if(!data.choices || data.choices.length===0){ alert("Aucune carte disponible pour l'instant (hors set de base)."); return; }
+  showChoiceModal(data.choices);
+}
+
+function showChoiceModal(choices){
+  document.getElementById('reveal-title').textContent = `Choisis une carte (🪙 ${SINGLE_PRICE})`;
+  const grid = document.getElementById('reveal-grid');
+  grid.innerHTML = choices.map(c=>`
+    <div class="reveal-card choice" style="cursor:pointer;" onclick="confirmSingleChoice('${c.id}')">
+      <div style="font-size:26px;">🃏</div>
+      <div class="rcard-name">${escapeHtmlShop(c.name)}</div>
+      <div class="rcard-rarity" style="color:${RARITY_COLORS[c.rarity]||'inherit'}">${c.rarity||''}</div>
+    </div>
+  `).join('');
+  openModal('reveal-modal');
+}
+
+async function confirmSingleChoice(cardId){
+  closeModal('reveal-modal');
+  const { data, error } = await sb.rpc('buy_single_card', { p_card_id: cardId, p_price: SINGLE_PRICE });
   if(error){ alert('Erreur : ' + error.message); return; }
   if(data.error){ alert(shopErrorMessage(data.error)); return; }
   showRevealModal('Carte obtenue !', [{ name: data.name, foil: data.foil, rarity: '' }]);
@@ -270,7 +303,9 @@ function shopErrorMessage(code){
     'not-enough-gold': "Pas assez d'or pour cet achat.",
     'already-owned': "Tu possèdes déjà ce dos de carte.",
     'unknown-card-back': "Ce dos de carte n'existe plus.",
-    'no-card-available': "Toutes les cartes disponibles sont déjà au maximum dans ta collection !"
+    'no-card-available': "Toutes les cartes disponibles sont déjà au maximum dans ta collection !",
+    'already-maxed': "Tu as déjà le maximum de cette carte, choisis-en une autre.",
+    'unknown-booster': "Ce booster n'existe plus."
   }[code] || ('Erreur : ' + code);
 }
 
@@ -299,7 +334,8 @@ function openModal(id){ document.getElementById(id).classList.add('show'); }
 function closeModal(id){ document.getElementById(id).classList.remove('show'); }
 
 async function initShop(){
-  renderBoosterShelf();
+  renderBrunoLine();
+  await renderBoosterShelf();
   renderSingleShelf();
   await renderCardBackShelf();
   await refreshCurrency();
