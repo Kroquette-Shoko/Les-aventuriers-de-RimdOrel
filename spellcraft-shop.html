@@ -502,9 +502,11 @@ function dealBoosterCards(cardsStage, cardsResult, fullCards, backUrl, actions){
     front.className = 'flip-face flip-front';
     const full = fullCards[res.card_id] || { name: res.name, rarity: res.rarity };
     front.appendChild(buildCardEl(full));
+    let banner = null;
     if(res.result==='fragments'){
-      const banner = document.createElement('div');
+      banner = document.createElement('div');
       banner.className = 'fragments-banner';
+      banner.style.display = 'none';
       banner.innerHTML = `Déjà au max<br>+${res.fragment_amount ?? '?'} fragments`;
       flip.appendChild(banner);
     }
@@ -518,6 +520,7 @@ function dealBoosterCards(cardsStage, cardsResult, fullCards, backUrl, actions){
     flip.onclick = () => {
       if(flip.classList.contains('flipped')) return;
       flip.classList.add('flipped');
+      if(banner) banner.style.display = 'block';
       flippedCount++;
       if(flippedCount===cardsResult.length){
         actions.classList.add('show');
