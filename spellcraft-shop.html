@@ -252,9 +252,11 @@ async function renderSingleShelf(){
     return;
   }
   const fullCards = await fetchFullCards(data.choices.map(c=>c.id));
+  const boughtToday = await fetchTodaysSinglePurchases(user.id);
   el.innerHTML = '';
   data.choices.forEach(c=>{
     const full = fullCards[c.id] || { name: c.name, rarity: c.rarity, class: c.class };
+    const alreadyBought = boughtToday.has(c.id);
     const wrap = document.createElement('div');
     wrap.className = 'shop-item';
     wrap.style.width = '150px';
@@ -271,11 +273,30 @@ async function renderSingleShelf(){
     price.textContent = `🪙 ${SINGLE_CARD_PRICES[c.rarity] ?? 50}`;
     wrap.appendChild(price);
     const btn = document.createElement('button');
-    btn.className = 'buy-btn'; btn.textContent = 'Acheter';
-    btn.onclick = () => confirmSingleChoice(c.id);
+    if(alreadyBought){
+      btn.className = 'buy-btn owned';
+      btn.textContent = 'Déjà acheté';
+      btn.disabled = true;
+    } else {
+      btn.className = 'buy-btn';
+      btn.textContent = 'Acheter';
+      btn.onclick = () => confirmSingleChoice(c.id);
+    }
     wrap.appendChild(btn);
     el.appendChild(wrap);
   });
+}
+
+// Renvoie l'ensemble des card_id déjà achetés aujourd'hui (achats "single") par ce joueur
+async function fetchTodaysSinglePurchases(userId){
+  const startOfDay = new Date(); startOfDay.setHours(0,0,0,0);
+  const { data, error } = await sb.from('shop_purchases')
+    .select('detail')
+    .eq('user_id', userId)
+    .eq('purchase_type', 'single')
+    .gte('created_at', startOfDay.toISOString());
+  if(error){ console.error(error); return new Set(); }
+  return new Set((data||[]).map(row => row.detail && row.detail.card_id).filter(Boolean));
 }
 
 async function renderCardBackShelf(){
@@ -364,6 +385,7 @@ async function confirmSingleChoice(cardId){
   if(data.error){ alert(shopErrorMessage(data.error)); return; }
   showRevealModal('Carte obtenue !', [{ name: data.name, foil: data.foil, rarity: '', card_id: data.card_id }]);
   refreshCurrency();
+  renderSingleShelf();
 }
 
 async function buyCardBack(id){
