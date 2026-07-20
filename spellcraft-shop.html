@@ -200,17 +200,28 @@ async function renderBoosterShelf(){
   `).join('');
 }
 
-function renderSingleShelf(){
+async function renderSingleShelf(){
   const el = document.getElementById('shelf-singles');
-  el.innerHTML = `
+  el.innerHTML = `<div class="empty-shelf">Chargement des cartes du jour...</div>`;
+  const user = await scGetCurrentUser();
+  if(!user){
+    el.innerHTML = `<div class="empty-shelf">Connecte-toi pour voir les cartes du jour.</div>`;
+    return;
+  }
+  const { data, error } = await sb.rpc('get_daily_shop_offers');
+  if(error || data.error || !data.choices || data.choices.length===0){
+    el.innerHTML = `<div class="empty-shelf">Aucune carte disponible pour l'instant (hors set de base).</div>`;
+    return;
+  }
+  el.innerHTML = data.choices.map(c=>`
     <div class="shop-item">
       <div class="shop-item-art">🃏</div>
-      <div class="shop-item-name">Carte au choix</div>
-      <div class="shop-item-desc">4 cartes tirées au hasard (hors set de base) — tu choisis laquelle acheter. Déjà possédée = Foil.</div>
+      <div class="shop-item-name">${escapeHtmlShop(c.name)}</div>
+      <div class="shop-item-desc" style="color:${RARITY_COLORS[c.rarity]||'inherit'}">${c.rarity||''}${c.is_global?' · Carte du jour (tout le monde)':' · Ton offre personnelle'}</div>
       <div class="shop-item-price">🪙 ${SINGLE_PRICE}</div>
-      <button class="buy-btn" onclick="buySingle()">Acheter</button>
+      <button class="buy-btn" onclick="confirmSingleChoice('${c.id}')">Acheter</button>
     </div>
-  `;
+  `).join('');
 }
 
 async function renderCardBackShelf(){
@@ -255,31 +266,7 @@ async function buyBooster(boosterId){
   refreshCurrency();
 }
 
-async function buySingle(){
-  const user = await scGetCurrentUser();
-  if(!user){ alert('Connecte-toi pour acheter dans la boutique.'); return; }
-  const { data, error } = await sb.rpc('get_single_card_choices');
-  if(error){ alert('Erreur : ' + error.message); return; }
-  if(data.error){ alert(shopErrorMessage(data.error)); return; }
-  if(!data.choices || data.choices.length===0){ alert("Aucune carte disponible pour l'instant (hors set de base)."); return; }
-  showChoiceModal(data.choices);
-}
-
-function showChoiceModal(choices){
-  document.getElementById('reveal-title').textContent = `Choisis une carte (🪙 ${SINGLE_PRICE})`;
-  const grid = document.getElementById('reveal-grid');
-  grid.innerHTML = choices.map(c=>`
-    <div class="reveal-card choice" style="cursor:pointer;" onclick="confirmSingleChoice('${c.id}')">
-      <div style="font-size:26px;">🃏</div>
-      <div class="rcard-name">${escapeHtmlShop(c.name)}</div>
-      <div class="rcard-rarity" style="color:${RARITY_COLORS[c.rarity]||'inherit'}">${c.rarity||''}</div>
-    </div>
-  `).join('');
-  openModal('reveal-modal');
-}
-
 async function confirmSingleChoice(cardId){
-  closeModal('reveal-modal');
   const { data, error } = await sb.rpc('buy_single_card', { p_card_id: cardId, p_price: SINGLE_PRICE });
   if(error){ alert('Erreur : ' + error.message); return; }
   if(data.error){ alert(shopErrorMessage(data.error)); return; }
@@ -336,13 +323,13 @@ function closeModal(id){ document.getElementById(id).classList.remove('show'); }
 async function initShop(){
   renderBrunoLine();
   await renderBoosterShelf();
-  renderSingleShelf();
+  await renderSingleShelf();
   await renderCardBackShelf();
   await refreshCurrency();
 }
 initSpellcraftAuth();
 initShop();
-sb.auth.onAuthStateChange(()=>{ refreshCurrency(); renderCardBackShelf(); });
+sb.auth.onAuthStateChange(()=>{ refreshCurrency(); renderCardBackShelf(); renderSingleShelf(); });
 </script>
 
 </body>
