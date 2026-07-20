@@ -70,9 +70,8 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 
 /* ---------- Binder ---------- */
 #binder-frame{
-  background:linear-gradient(160deg, var(--leather-2), var(--leather));
-  border-radius:16px;padding:22px 20px;box-shadow:0 20px 50px rgba(0,0,0,.6), inset 0 0 40px rgba(0,0,0,.4);
-  border:3px solid #241a12;
+  background:url('images/binder-open.png') center/100% 100% no-repeat;
+  border-radius:16px;padding:22px 20px;box-shadow:0 20px 50px rgba(0,0,0,.6);
   perspective:1400px;
 }
 #binder-pages{
@@ -83,16 +82,15 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 .binder-page-half{
   display:grid;grid-template-columns:repeat(3,155px);grid-template-rows:repeat(3,217px);gap:14px;
   padding:0 16px;
+  background:url('images/binder-page.png') center/100% 100% no-repeat;
 }
 .binder-spine{
   width:10px;flex-shrink:0;align-self:stretch;
-  background:linear-gradient(90deg, rgba(0,0,0,.55), rgba(0,0,0,.1) 35%, rgba(0,0,0,.1) 65%, rgba(0,0,0,.55));
-  box-shadow:0 0 14px rgba(0,0,0,.6);
 }
 .binder-slot{width:155px;height:217px;display:flex;align-items:center;justify-content:center;}
 .binder-slot .card{cursor:pointer;transition:transform .12s;}
 .binder-slot .card:hover{transform:translateY(-6px) scale(1.03);}
-.binder-slot-empty{width:155px;height:217px;border-radius:10px;background:rgba(0,0,0,.2);border:1px dashed rgba(255,255,255,.08);}
+.binder-slot-empty{width:155px;height:217px;}
 .card-add-badge{position:absolute;top:2px;right:2px;background:var(--green);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 5px;z-index:5;box-shadow:0 2px 4px rgba(0,0,0,.5);}
 .card-owned-badge{position:absolute;bottom:2px;left:2px;background:rgba(15,12,20,.75);border:1px solid var(--gold);color:var(--gold);font-size:8.5px;font-weight:700;border-radius:8px;padding:1px 5px;z-index:5;}
 
