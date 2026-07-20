@@ -553,7 +553,7 @@ const EFFECT_LABELS = {
   fight: ()=>`Une créature alliée et une créature ennemie se battent.`,
   coinFlip: ()=>`Lance une pièce contre des créatures ennemies.`
 };
-const TARGETED_EFFECTS = ['damage','heal','stun','freeze','bounce','destroy','silence','weaken','buff'];
+const TARGETED_EFFECTS = ['damage','heal','stun','freeze','bounce','destroy','silence','weaken','buff','grantKeyword','keywordChoice'];
 
 function mapAbilityEffect(ab){
   const eff = ab && ab.effects && ab.effects[0];
@@ -591,8 +591,8 @@ function mapAbilityEffectRaw(eff, amount){
     case 'removeArtifactCharges': return {type:'removeArtifactCharges', amount: amount||1, targetOwner: eff.targetOwner};
     case 'sacrificeEffect': return {type:'sacrificeEffect', targetOwner: eff.targetOwner};
     case 'upgrade': return {type:'upgrade'};
-    case 'grantKeyword': return {type:'grantKeyword', keyword: eff.grantKeywordKey||'charge', duration: eff.grantKeywordDuration||'permanent'};
-    case 'keywordChoice': return {type:'keywordChoice'};
+    case 'grantKeyword': return {type:'grantKeyword', keyword: eff.grantKeywordKey||'charge', duration: eff.grantKeywordDuration||'permanent', targetOwner: eff.targetOwner};
+    case 'keywordChoice': return {type:'keywordChoice', targetOwner: eff.targetOwner};
     case 'summonCopy': return {type:'summonCopy', amount: amount||1};
     case 'reduceCost': return {type:'reduceCostAura', owner: eff.reduceCostOwner||'ally', cardType: eff.reduceCostType||'any', subtype: (eff.reduceCostSubtype||'').trim(), amount: eff.reduceCostAmount??1};
     case 'explore': return {type:'explore', amount: amount||1, owner: eff.exploreOwner||'own'};
@@ -1872,7 +1872,7 @@ function applySpellEffect(effect, caster, casterKey, target){
       break;
     }
     case 'grantKeyword': {
-      const c = pickRandomAlly(caster);
+      const c = (target && target.creature) ? target.creature : (effect.targetOwner==='enemy' ? S[targetKey].board : caster.board)[0];
       if(c){
         if(!c.keywords.includes(effect.keyword)) c.keywords.push(effect.keyword);
         if(effect.duration==='thisTurn'){ c._tempKeywords = c._tempKeywords||[]; c._tempKeywords.push(effect.keyword); }
@@ -1881,7 +1881,7 @@ function applySpellEffect(effect, caster, casterKey, target){
       break;
     }
     case 'keywordChoice': {
-      const c = pickRandomAlly(caster);
+      const c = (target && target.creature) ? target.creature : (effect.targetOwner==='enemy' ? S[targetKey].board : caster.board)[0];
       if(!c){ log(`${cardOwnerName(casterKey)} n'a aucune créature disponible.`); break; }
       const allKw = Object.keys(KEYWORD_LABELS).filter(k=>!c.keywords.includes(k));
       const options = shuffle(allKw).slice(0,3);
