@@ -122,6 +122,36 @@ header .spacer{flex:1;}
   transform:translateX(-40%) rotate(8deg);mix-blend-mode:color-dodge;opacity:.55;
 }
 
+/* ---------- ouverture de booster ---------- */
+#booster-open-overlay{position:fixed;inset:0;background:rgba(3,2,8,.94);display:none;align-items:center;justify-content:center;z-index:90;flex-direction:column;gap:26px;}
+#booster-open-overlay.show{display:flex;}
+#pack-stage{cursor:pointer;transition:transform .25s ease;}
+#pack-stage:hover{transform:scale(1.04);}
+#pack-stage img{width:160px;filter:drop-shadow(0 14px 30px rgba(0,0,0,.7));}
+#pack-stage.no-art{width:160px;height:220px;border-radius:12px;background:linear-gradient(160deg,var(--arcane),#3a2a70);border:3px solid var(--gold);display:flex;align-items:center;justify-content:center;font-size:44px;box-shadow:0 14px 30px rgba(0,0,0,.7);}
+#pack-hint{color:var(--parchment-dim);font-family:'Cinzel',serif;font-size:13px;letter-spacing:.5px;}
+#pack-burst{position:absolute;inset:0;pointer-events:none;}
+
+#cards-stage{display:none;gap:16px;flex-wrap:wrap;justify-content:center;max-width:900px;}
+#cards-stage.show{display:flex;}
+.flip-card{width:130px;height:182px;perspective:1200px;cursor:pointer;opacity:0;transform:translateY(30px) scale(.7);transition:opacity .4s ease, transform .4s ease;}
+.flip-card.dealt{opacity:1;transform:translateY(0) scale(1);}
+.flip-inner{position:relative;width:100%;height:100%;transition:transform .55s cubic-bezier(.3,.1,.2,1);transform-style:preserve-3d;}
+.flip-card.flipped .flip-inner{transform:rotateY(180deg);}
+.flip-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:10px;overflow:hidden;}
+.flip-back{background-size:cover;background-position:center;border:3px solid var(--gold);box-shadow:0 8px 20px rgba(0,0,0,.6);
+  background-image:linear-gradient(160deg,#241f38,#171325);display:flex;align-items:center;justify-content:center;}
+.flip-back .default-sigil{font-size:38px;filter:drop-shadow(0 0 10px rgba(212,175,55,.5));}
+.flip-front{transform:rotateY(180deg);display:flex;align-items:center;justify-content:center;}
+.flip-front.fragments-slot{background:var(--bg-panel-3);border-radius:10px;flex-direction:column;gap:6px;color:var(--parchment);text-align:center;padding:10px;}
+
+#booster-open-actions{display:none;gap:10px;}
+#booster-open-actions.show{display:flex;}
+.btn{background:var(--bg-panel-2);border:1px solid #3a3260;color:var(--parchment);border-radius:8px;padding:9px 20px;font-family:'Inter';font-weight:600;font-size:13px;cursor:pointer;}
+.btn:hover{border-color:var(--gold);}
+.btn.primary{background:linear-gradient(180deg,var(--arcane),#5537c2);border:none;color:#fff;}
+.btn.primary:hover{filter:brightness(1.12);}
+
 /* ---------- modales ---------- */
 .modal-overlay{position:fixed;inset:0;background:rgba(5,4,10,.9);display:none;align-items:center;justify-content:center;z-index:80;padding:20px;}
 .modal-overlay.show{display:flex;}
@@ -189,6 +219,15 @@ header .spacer{flex:1;}
   </div>
 </div>
 
+<div id="booster-open-overlay">
+  <div id="pack-stage"></div>
+  <div id="pack-hint">Clique sur le booster pour l'ouvrir</div>
+  <div id="cards-stage"></div>
+  <div id="booster-open-actions">
+    <button class="btn primary" id="booster-close-btn" onclick="closeBoosterOpening()">Continuer</button>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="spellcraft-shared.js"></script>
 <script src="spellcraft-auth.js"></script>
@@ -233,7 +272,7 @@ async function renderBoosterShelf(){
       <div class="shop-item-name">${escapeHtmlShop(b.name)}</div>
       <div class="shop-item-desc">6 cartes du set correspondant.</div>
       <div class="shop-item-price">🪙 ${b.price}</div>
-      <button class="buy-btn" onclick="buyBooster('${b.id}', ${b.price})">Acheter</button>
+      <button class="buy-btn" onclick="buyBooster('${b.id}', ${b.image_url ? `'${b.image_url}'` : 'null'})">Acheter</button>
     </div>
   `).join('');
 }
@@ -308,21 +347,40 @@ async function renderCardBackShelf(){
   }
   const user = await scGetCurrentUser();
   let owned = new Set();
+  let equippedId = null;
   if(user){
     const { data: ownedRows } = await sb.from('user_card_backs').select('card_back_id').eq('user_id', user.id);
     owned = new Set((ownedRows||[]).map(r=>r.card_back_id));
+    const profile = await loadUserProfile();
+    equippedId = profile ? profile.equipped_card_back_id : null;
   }
   el.innerHTML = data.map(cb=>{
     const isOwned = owned.has(cb.id);
+    const isEquipped = equippedId === cb.id;
+    let btnHtml;
+    if(isEquipped){
+      btnHtml = `<button class="buy-btn owned" disabled>Équipé ✓</button>`;
+    } else if(isOwned){
+      btnHtml = `<button class="buy-btn" onclick="equipCardBack('${cb.id}')">Équiper</button>`;
+    } else {
+      btnHtml = `<button class="buy-btn" onclick="buyCardBack('${cb.id}')">Acheter</button>`;
+    }
     return `
       <div class="shop-item">
         <div class="shop-item-art" style="${cb.image_url?`background-image:url('${cb.image_url}');background-size:cover;`:''}">${cb.image_url?'':'🎴'}</div>
         <div class="shop-item-name">${escapeHtmlShop(cb.name)}</div>
         <div class="shop-item-price">🪙 ${cb.price}</div>
-        <button class="buy-btn ${isOwned?'owned':''}" ${isOwned?'disabled':''} onclick="buyCardBack('${cb.id}')">${isOwned?'Possédé':'Acheter'}</button>
+        ${btnHtml}
       </div>
     `;
   }).join('');
+}
+
+async function equipCardBack(id){
+  const { data, error } = await sb.rpc('equip_card_back', { p_card_back_id: id });
+  if(error){ alert('Erreur : ' + error.message); return; }
+  if(data.error){ alert(data.error==='not-owned' ? "Tu ne possèdes pas ce dos de carte." : data.error); return; }
+  renderCardBackShelf();
 }
 
 function escapeHtmlShop(s){
@@ -367,16 +425,103 @@ async function fetchFullCards(ids){
   return map;
 }
 
-async function buyBooster(boosterId){
+async function buyBooster(boosterId, boosterImageUrl){
   const user = await scGetCurrentUser();
   if(!user){ alert('Connecte-toi pour acheter dans la boutique.'); return; }
   const { data, error } = await sb.rpc('buy_booster', { p_booster_id: boosterId });
   if(error){ alert('Erreur : ' + error.message); return; }
   if(data.error){ alert(shopErrorMessage(data.error)); return; }
-  showRevealModal('Booster ouvert !', data.cards.map(c=>({
-    fragments: c.result==='fragments', name: c.name, rarity: c.rarity, card_id: c.card_id
-  })));
   refreshCurrency();
+  await openBoosterAnimation(boosterImageUrl, data.cards);
+}
+
+async function getEquippedCardBackUrl(){
+  const profile = await loadUserProfile();
+  if(!profile || !profile.equipped_card_back_id) return null;
+  const { data } = await sb.from('card_backs').select('image_url').eq('id', profile.equipped_card_back_id).single();
+  return data ? data.image_url : null;
+}
+
+async function openBoosterAnimation(boosterImageUrl, cardsResult){
+  const overlay = document.getElementById('booster-open-overlay');
+  const packStage = document.getElementById('pack-stage');
+  const cardsStage = document.getElementById('cards-stage');
+  const hint = document.getElementById('pack-hint');
+  const actions = document.getElementById('booster-open-actions');
+
+  cardsStage.classList.remove('show');
+  cardsStage.innerHTML = '';
+  actions.classList.remove('show');
+  hint.style.display = 'block';
+  hint.textContent = 'Clique sur le booster pour l\'ouvrir';
+
+  if(boosterImageUrl){
+    packStage.className = '';
+    packStage.innerHTML = `<img src="${boosterImageUrl}" alt="Booster">`;
+  } else {
+    packStage.className = 'no-art';
+    packStage.innerHTML = '📦';
+  }
+  packStage.style.display = 'flex';
+  overlay.classList.add('show');
+
+  const backUrl = await getEquippedCardBackUrl();
+  const idsToFetch = cardsResult.filter(c=>c.result!=='fragments').map(c=>c.card_id);
+  const fullCards = await fetchFullCards(idsToFetch);
+
+  packStage.onclick = () => {
+    packStage.style.display = 'none';
+    hint.style.display = 'none';
+    packStage.onclick = null;
+    dealBoosterCards(cardsStage, cardsResult, fullCards, backUrl, actions);
+  };
+}
+
+function dealBoosterCards(cardsStage, cardsResult, fullCards, backUrl, actions){
+  cardsStage.innerHTML = '';
+  cardsStage.classList.add('show');
+  let flippedCount = 0;
+
+  cardsResult.forEach((res, i)=>{
+    const flip = document.createElement('div');
+    flip.className = 'flip-card';
+    const inner = document.createElement('div');
+    inner.className = 'flip-inner';
+
+    const back = document.createElement('div');
+    back.className = 'flip-face flip-back';
+    if(backUrl){ back.style.backgroundImage = `url('${backUrl}')`; }
+    else { back.innerHTML = `<span class="default-sigil">🃏</span>`; }
+
+    const front = document.createElement('div');
+    front.className = 'flip-face flip-front';
+    if(res.result==='fragments'){
+      front.classList.add('fragments-slot');
+      front.innerHTML = `<div style="font-size:24px;">✨</div><div style="font-family:'Cinzel',serif;font-size:10.5px;font-weight:700;">${escapeHtmlShop(res.name)}</div><div style="font-size:9.5px;color:var(--parchment-dim);">Déjà au maximum<br>fragments obtenus</div>`;
+    } else {
+      const full = fullCards[res.card_id] || { name: res.name, rarity: res.rarity };
+      front.appendChild(buildCardEl(full));
+    }
+
+    inner.appendChild(back); inner.appendChild(front);
+    flip.appendChild(inner);
+    cardsStage.appendChild(flip);
+
+    setTimeout(()=>{ flip.classList.add('dealt'); }, 80*i);
+
+    flip.onclick = () => {
+      if(flip.classList.contains('flipped')) return;
+      flip.classList.add('flipped');
+      flippedCount++;
+      if(flippedCount===cardsResult.length){
+        actions.classList.add('show');
+      }
+    };
+  });
+}
+
+function closeBoosterOpening(){
+  document.getElementById('booster-open-overlay').classList.remove('show');
 }
 
 async function confirmSingleChoice(cardId){
