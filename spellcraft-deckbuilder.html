@@ -269,6 +269,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
     <button class="btn" onclick="refreshCollection()">🔄 Actualiser la collection</button>
     <button class="btn" onclick="openImportModal()">Importer une collection</button>
     <button class="btn" onclick="openDeckListModal()">📚 Mes decks</button>
+    <button class="btn" onclick="openCardBackModal()">🎴 Mes dos de cartes</button>
     <button class="btn primary" onclick="newDeck()">➕ Nouveau deck</button>
   </header>
 
@@ -334,6 +335,12 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
           <div class="deck-count" id="deck-count">0 / 30 cartes</div>
           <div id="hero-slot">Clique une carte Héros dans le classeur pour la définir</div>
           <div id="region-slot">Clique une carte Région dans le classeur pour la définir</div>
+          <div class="field" style="margin-top:8px;">
+            <label style="font-size:10.5px;color:var(--parchment-dim);display:block;margin-bottom:4px;">Dos de carte pour ce deck</label>
+            <select id="deck-cardback-select" onchange="onDeckCardBackChange()" style="width:100%;background:var(--bg-panel-2);border:1px solid #3a3260;color:var(--parchment);border-radius:6px;padding:6px 8px;font-size:12px;">
+              <option value="">Utiliser mon dos équipé par défaut</option>
+            </select>
+          </div>
         </div>
         <div id="mana-curve"></div>
         <div id="deck-list"></div>
@@ -367,6 +374,17 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
     <div id="decklist-content"></div>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal('decklist-modal')">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="cardback-modal" onclick="if(event.target===this) closeModal('cardback-modal')">
+  <div class="modal-box">
+    <h2>Mes dos de cartes</h2>
+    <p style="font-size:11.5px;color:var(--parchment-dim);margin:0 0 12px;">Choisis ton dos par défaut (utilisé partout, sauf si un deck a le sien). Achète-en d'autres dans la Boutique.</p>
+    <div id="cardback-modal-content" style="display:flex;flex-wrap:wrap;gap:12px;"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('cardback-modal')">Fermer</button>
     </div>
   </div>
 </div>
@@ -1196,7 +1214,7 @@ function clearDeck(){
   renderBinder('spread');
 }
 function newDeck(){
-  currentDeck = { id:null, name:'Deck sans nom', heroId:null, regionId:null, cards:[] };
+  currentDeck = { id:null, name:'Deck sans nom', heroId:null, regionId:null, cards:[], cardBackId:null };
   document.getElementById('deck-name-input').value = currentDeck.name;
   deckBuildStep = 'hero';
   currentPage = 0;
@@ -1223,6 +1241,7 @@ function loadDeck(deckId){
   if(!d) return;
   currentDeck = JSON.parse(JSON.stringify(d));
   if(currentDeck.regionId===undefined) currentDeck.regionId = null;
+  if(currentDeck.cardBackId===undefined) currentDeck.cardBackId = null;
   document.getElementById('deck-name-input').value = currentDeck.name;
   deckBuildStep = 'cards';
   currentPage = 0;
@@ -1278,6 +1297,8 @@ function renderDeckPanel(){
     regionSlot.classList.remove('set');
     regionSlot.textContent = 'Clique une carte Région dans le classeur pour la définir';
   }
+
+  populateDeckCardBackSelect();
 
   // courbe de mana
   const buckets = [0,0,0,0,0,0,0,0]; // 0..6, 7+
@@ -1383,6 +1404,69 @@ function openDeckListModal(){
 }
 
 /* ============================================================
+   DOS DE CARTES
+   ============================================================ */
+let ownedCardBacksCache = [];
+let equippedCardBackId = null;
+
+async function loadOwnedCardBacks(){
+  const user = await scGetCurrentUser();
+  if(!user){ ownedCardBacksCache = []; equippedCardBackId = null; return; }
+  const { data: ownedRows } = await sb.from('user_card_backs').select('card_back_id');
+  const ids = (ownedRows||[]).map(r=>r.card_back_id);
+  if(ids.length===0){ ownedCardBacksCache = []; } else {
+    const { data: backs } = await sb.from('card_backs').select('*').in('id', ids);
+    ownedCardBacksCache = backs || [];
+  }
+  const profile = await loadUserProfile();
+  equippedCardBackId = profile ? profile.equipped_card_back_id : null;
+}
+
+function populateDeckCardBackSelect(){
+  const sel = document.getElementById('deck-cardback-select');
+  if(!sel) return;
+  const current = currentDeck ? currentDeck.cardBackId : null;
+  sel.innerHTML = `<option value="">Utiliser mon dos équipé par défaut</option>` +
+    ownedCardBacksCache.map(cb=>`<option value="${escapeHtml(cb.id)}">${escapeHtml(cb.name)}</option>`).join('');
+  sel.value = current || '';
+}
+
+function onDeckCardBackChange(){
+  if(!currentDeck) return;
+  const val = document.getElementById('deck-cardback-select').value;
+  currentDeck.cardBackId = val || null;
+}
+
+async function openCardBackModal(){
+  await loadOwnedCardBacks();
+  const el = document.getElementById('cardback-modal-content');
+  if(ownedCardBacksCache.length===0){
+    el.innerHTML = `<div class="empty-state">Tu ne possèdes encore aucun dos de carte — direction la Boutique !</div>`;
+  } else {
+    el.innerHTML = ownedCardBacksCache.map(cb=>{
+      const isEquipped = equippedCardBackId === cb.id;
+      return `
+        <div style="width:120px;text-align:center;">
+          <div style="width:100%;height:80px;border-radius:8px;background:var(--bg-panel-3);margin-bottom:6px;${cb.image_url?`background-image:url('${cb.image_url}');background-size:cover;`:''}"></div>
+          <div style="font-size:11.5px;font-weight:700;margin-bottom:6px;">${escapeHtml(cb.name)}</div>
+          ${isEquipped
+            ? `<button class="btn small" disabled style="background:var(--green);">Équipé ✓</button>`
+            : `<button class="btn small" onclick="equipCardBackDefault('${cb.id}')">Équiper</button>`}
+        </div>
+      `;
+    }).join('');
+  }
+  openModal('cardback-modal');
+}
+
+async function equipCardBackDefault(id){
+  const { data, error } = await sb.rpc('equip_card_back', { p_card_back_id: id });
+  if(error){ flashError('Erreur : ' + error.message); return; }
+  if(data.error){ flashError(data.error==='not-owned' ? "Tu ne possèdes pas ce dos de carte." : data.error); return; }
+  await openCardBackModal();
+}
+
+/* ============================================================
    INIT
    ============================================================ */
 function renderAll(){
@@ -1392,6 +1476,8 @@ function renderAll(){
 }
 loadAll();
 initSpellcraftAuth();
+loadOwnedCardBacks().then(()=>{ if(currentDeck) populateDeckCardBackSelect(); });
+sb.auth.onAuthStateChange(()=>{ loadOwnedCardBacks().then(()=>{ if(currentDeck) populateDeckCardBackSelect(); }); });
 </script>
 </body>
 </html>
