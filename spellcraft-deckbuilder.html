@@ -113,7 +113,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 .binder-edge-right{left:81%;width:4%;}
 
 #binder-pages.hero-grid-area{
-  position:absolute;inset:auto;top:30%;left:30%;width:40%;height:40%;
+  position:absolute;inset:auto;top:22%;left:28%;width:44%;height:55%;
   display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:1fr;gap:3%;
   padding:1%;justify-content:center;justify-items:center;
 }
@@ -235,7 +235,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 
 #hero-profile{position:fixed;z-index:80;pointer-events:none;display:none;opacity:0;transition:opacity .15s ease;width:480px;background:linear-gradient(160deg,var(--bg-panel),#141021);border:1px solid var(--gold);border-radius:16px;padding:20px 24px;box-shadow:0 20px 50px rgba(0,0,0,.7);}
 
-.hero-select-tile{width:100%;height:100%;box-sizing:border-box;background:linear-gradient(160deg,var(--bg-panel),#141021);border:1px solid #3a3260;border-radius:12px;padding:10px 12px;cursor:pointer;transition:border-color .15s, transform .15s, box-shadow .15s;overflow:hidden;display:flex;flex-direction:column;}
+.hero-select-tile{width:100%;height:100%;box-sizing:border-box;background:linear-gradient(160deg,var(--bg-panel),#141021);border:1px solid #3a3260;border-radius:12px;padding:10px 12px;cursor:pointer;transition:border-color .15s, transform .15s, box-shadow .15s;overflow-y:auto;display:flex;flex-direction:column;}
 .hero-select-tile:hover{border-color:var(--gold);transform:translateY(-4px);box-shadow:0 14px 30px rgba(0,0,0,.55);}
 .hero-select-tile .hp-portrait{width:64px;height:64px;}
 .hero-select-tile .hp-name{font-size:15px;}
@@ -647,18 +647,20 @@ function onFilterChange(){
   renderBinder();
 }
 
+let browsingHeroesStandalone = false;
+
 function jumpToHeroPage(){
-  if(currentDeck && deckBuildStep==='hero'){ flashSaved("Tu es déjà sur la sélection des héros."); return; }
+  if((currentDeck && deckBuildStep==='hero') || browsingHeroesStandalone){ flashSaved("Tu es déjà sur la sélection des héros."); return; }
   const heroList = collection.filter(c=>c.type==='Héros' && !(c.subtypes||[]).some(s=>s.trim().toLowerCase()==='conjuration'));
   if(heroList.length===0){ flashError("Aucun héros dans la collection pour l'instant."); return; }
-  const list = getFilteredSortedCollection();
-  const normalPages = Math.max(1, Math.ceil(list.length / SPREAD_SIZE));
-  currentPage = normalPages;
+  browsingHeroesStandalone = true;
+  currentPage = 0;
   renderBinder('spread');
 }
 
 function jumpToBinderStart(){
-  if(currentPage===0){ flashSaved('Déjà au début du classeur.'); return; }
+  if(currentPage===0 && !browsingHeroesStandalone){ flashSaved('Déjà au début du classeur.'); return; }
+  browsingHeroesStandalone = false;
   currentPage = 0;
   renderBinder('spread');
 }
@@ -1035,7 +1037,8 @@ function renderHeroSelectionGrid(animate){
 }
 
 function renderBinder(animate){
-  if(currentDeck && deckBuildStep==='hero'){ renderHeroSelectionGrid(animate); return; }
+  if((currentDeck && deckBuildStep==='hero') || browsingHeroesStandalone){ renderHeroSelectionGrid(animate); return; }
+  browsingHeroesStandalone = false;
   document.getElementById('binder-pages').className = '';
   document.getElementById('binder-pages').style.position = '';
   document.getElementById('binder-pages').style.display = '';
