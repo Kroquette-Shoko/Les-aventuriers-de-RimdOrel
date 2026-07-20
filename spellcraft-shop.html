@@ -186,11 +186,11 @@ header .spacer{flex:1;}
 
   <div id="currency-bar">
     <div class="currency-chip gold"><span class="dot"></span><span id="cur-gold">–</span> Or</div>
-    <div class="currency-chip aube"><span class="dot"></span><span id="cur-aube">–</span></div>
-    <div class="currency-chip crepuscule"><span class="dot"></span><span id="cur-crepuscule">–</span></div>
-    <div class="currency-chip volonte"><span class="dot"></span><span id="cur-volonte">–</span></div>
-    <div class="currency-chip prima"><span class="dot"></span><span id="cur-prima">–</span></div>
-    <div class="currency-chip arcane"><span class="dot"></span><span id="cur-arcane">–</span></div>
+    <div class="currency-chip aube" title="Diamant (fragments Aube)"><span class="dot"></span>💎 <span id="cur-aube">–</span></div>
+    <div class="currency-chip crepuscule" title="Obsidienne (fragments Crépuscule)"><span class="dot"></span>⚫ <span id="cur-crepuscule">–</span></div>
+    <div class="currency-chip volonte" title="Rubis (fragments Volonté)"><span class="dot"></span>🔴 <span id="cur-volonte">–</span></div>
+    <div class="currency-chip prima" title="Émeraude (fragments Prima)"><span class="dot"></span>🟢 <span id="cur-prima">–</span></div>
+    <div class="currency-chip arcane" title="Saphir (fragments Arcane)"><span class="dot"></span>🔵 <span id="cur-arcane">–</span></div>
   </div>
 
   <div id="vendor-area">
@@ -241,6 +241,7 @@ header .spacer{flex:1;}
 const RARITY_COLORS = {Basique:'#8a7f6a', Commune:'#c7c2b3', Rare:'#4fb3d9', Épique:'#7c5cff', Légendaire:'#d4af37'};
 const BOOSTER_PRICE = 120;
 const SINGLE_CARD_PRICES = {Basique:20, Commune:50, Rare:150, 'Épique':250, 'Légendaire':500};
+const GEM_NAMES = {Volonté:'Rubis', Aube:'Diamant', 'Crépuscule':'Obsidienne', Arcane:'Saphir', Prima:'Émeraude'};
 
 // Répliques d'accueil de Bruno — on en ajoutera d'autres plus tard, une est tirée au hasard à chaque visite.
 const BRUNO_LINES = [
@@ -507,7 +508,8 @@ function dealBoosterCards(cardsStage, cardsResult, fullCards, backUrl, actions){
       banner = document.createElement('div');
       banner.className = 'fragments-banner';
       banner.style.display = 'none';
-      banner.innerHTML = `Déjà au max<br>+${res.fragment_amount ?? '?'} fragments`;
+      const gemLabel = (res.fragment_classes||[]).map(c => GEM_NAMES[c] || c).join(' + ');
+      banner.innerHTML = `Déjà au max<br>+${res.fragment_amount ?? '?'} ${gemLabel||'fragments'}`;
       flip.appendChild(banner);
     }
 
