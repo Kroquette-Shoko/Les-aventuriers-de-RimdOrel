@@ -81,27 +81,29 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 
 /* ---------- Binder ---------- */
 #binder-frame{
+  position:relative;
+  width:min(1500px, 92vw);
+  aspect-ratio:1586/992;
   background:url('images/binder-open.png') center/100% 100% no-repeat;
-  border-radius:16px;padding:22px 20px;box-shadow:0 20px 50px rgba(0,0,0,.6);
-  perspective:1400px;
+  margin:0 auto;
 }
 #binder-pages{
-  display:flex;align-items:stretch;
+  position:absolute;inset:0;
   transition:transform .18s ease;
   transform-style:preserve-3d;
 }
 .binder-page-half{
-  display:grid;grid-template-columns:repeat(3,155px);grid-template-rows:repeat(3,217px);gap:14px;
-  padding:0 16px;
-  background:url('images/binder-page.png') center/100% 100% no-repeat;
+  position:absolute;top:19%;height:64%;
+  display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:2%;
+  padding:1%;
 }
-.binder-spine{
-  width:10px;flex-shrink:0;align-self:stretch;
-}
-.binder-slot{width:155px;height:217px;display:flex;align-items:center;justify-content:center;}
-.binder-slot .card{cursor:pointer;transition:transform .12s;}
-.binder-slot .card:hover{transform:translateY(-6px) scale(1.03);}
-.binder-slot-empty{width:155px;height:217px;}
+.binder-page-half.left{left:17.5%;width:29.5%;}
+.binder-page-half.right{left:52.3%;width:29.5%;}
+.binder-spine{display:none;}
+.binder-slot{width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
+.binder-slot .card{cursor:pointer;transition:transform .12s;width:100%;height:100%;}
+.binder-slot .card:hover{transform:translateY(-4%) scale(1.03);}
+.binder-slot-empty{width:100%;height:100%;}
 .card-add-badge{position:absolute;top:2px;right:2px;background:var(--green);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 5px;z-index:5;box-shadow:0 2px 4px rgba(0,0,0,.5);}
 .card-owned-badge{position:absolute;bottom:2px;left:2px;background:rgba(15,12,20,.75);border:1px solid var(--gold);color:var(--gold);font-size:8.5px;font-weight:700;border-radius:8px;padding:1px 5px;z-index:5;}
 
@@ -974,8 +976,13 @@ function renderHeroSelectionGrid(animate){
   document.getElementById('next-page').disabled = currentPage>=totalPages-1;
 
   const doRender = ()=>{
+    const frame = document.getElementById('binder-frame');
+    frame.style.aspectRatio = 'auto';
+    frame.style.background = 'none';
+    frame.style.width = 'auto';
     const pages = document.getElementById('binder-pages');
     pages.innerHTML = '';
+    pages.style.position = 'static';
     pages.style.display = 'grid';
     pages.style.gridTemplateColumns = 'repeat(3, 300px)';
     pages.style.gap = '18px';
@@ -1016,6 +1023,10 @@ function renderHeroSelectionGrid(animate){
 
 function renderBinder(animate){
   if(currentDeck && deckBuildStep==='hero'){ renderHeroSelectionGrid(animate); return; }
+  document.getElementById('binder-frame').style.aspectRatio = '';
+  document.getElementById('binder-frame').style.background = '';
+  document.getElementById('binder-frame').style.width = '';
+  document.getElementById('binder-pages').style.position = '';
   document.getElementById('binder-pages').style.display = '';
   document.getElementById('binder-pages').style.gridTemplateColumns = '';
   document.getElementById('binder-pages').style.gap = '';
@@ -1082,9 +1093,9 @@ function renderBinder(animate){
     return;
   }
 
-  const buildHalf = (cards)=>{
+  const buildHalf = (cards, side)=>{
     const half = document.createElement('div');
-    half.className = 'binder-page-half';
+    half.className = 'binder-page-half ' + side;
     for(let i=0;i<PAGE_SIZE;i++){
       const slot = document.createElement('div');
       slot.className = 'binder-slot';
@@ -1125,15 +1136,23 @@ function renderBinder(animate){
   };
 
   const doRender = ()=>{
+    const frame = document.getElementById('binder-frame');
+    frame.style.aspectRatio = '';
+    frame.style.background = '';
+    frame.style.width = '';
     const pages = document.getElementById('binder-pages');
     pages.innerHTML = '';
+    pages.style.position = '';
+    pages.style.display = '';
+    pages.style.gridTemplateColumns = '';
+    pages.style.gap = '';
     const start = currentPage * SPREAD_SIZE;
     const spreadCards = list.slice(start, start+SPREAD_SIZE);
-    pages.appendChild(buildHalf(spreadCards.slice(0, PAGE_SIZE)));
+    pages.appendChild(buildHalf(spreadCards.slice(0, PAGE_SIZE), 'left'));
     const spine = document.createElement('div');
     spine.className = 'binder-spine';
     pages.appendChild(spine);
-    pages.appendChild(buildHalf(spreadCards.slice(PAGE_SIZE, SPREAD_SIZE)));
+    pages.appendChild(buildHalf(spreadCards.slice(PAGE_SIZE, SPREAD_SIZE), 'right'));
   };
 
   if(!animate){ doRender(); return; }
