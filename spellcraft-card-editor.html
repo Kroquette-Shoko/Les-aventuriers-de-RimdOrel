@@ -399,22 +399,7 @@ header .spacer{flex:1;}
         <div class="field" id="f-manarule-wrap" style="display:none">
           <label>Règle de mana <span class="hint" style="text-transform:none;letter-spacing:0;">— remplace ou modifie le gain de mana normal</span></label>
           <textarea id="f-manarule" placeholder="Ex : +1 mana normal et +1 mana fragile par tour." oninput="onFormChange()"></textarea>
-
-          <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;text-transform:none;letter-spacing:0;cursor:pointer;margin:12px 0 8px;">
-            <input type="checkbox" id="f-alt-enabled" onchange="onAltEffectToggle()"> Chance de faire autre chose que du mana ce tour-ci
-          </label>
-          <div id="f-alt-fields" style="display:none;">
-            <div class="grid2">
-              <div class="field">
-                <label>Chance (%)</label>
-                <input type="number" id="f-alt-chance" min="1" max="100" value="30" oninput="onFormChange()">
-              </div>
-              <div class="field">
-                <label>Effet alternatif</label>
-                <input type="text" id="f-alt-text" placeholder="Ex : piochez une carte" oninput="onFormChange()">
-              </div>
-            </div>
-          </div>
+          <div class="hint" style="margin-top:8px;">Pour une chance conditionnelle (ex : "à partir du tour X, Y% de chance de faire Z"), utilise une vraie capacité ci-dessous : déclencheur "Début de tour", avec les conditions "À partir du tour X" et "Vous avez X% de chance".</div>
         </div>
 
         <div class="field" id="f-multiclass-wrap" style="display:none">
@@ -1055,11 +1040,6 @@ function onMcEnabledChange(){
   const enabled = document.getElementById('f-mc-enabled').checked;
   document.getElementById('f-mc-details').style.display = enabled ? 'block':'none';
   if(enabled) buildMcClassChips();
-  onFormChange();
-}
-function onAltEffectToggle(){
-  const enabled = document.getElementById('f-alt-enabled').checked;
-  document.getElementById('f-alt-fields').style.display = enabled ? 'block':'none';
   onFormChange();
 }
 
@@ -2356,12 +2336,6 @@ function buildCardText(){
     const manaRuleEl = document.getElementById('f-manarule');
     const manaRuleText = manaRuleEl ? manaRuleEl.value.trim() : '';
     if(manaRuleText) parts.push(manaRuleText);
-    const altEnabled = document.getElementById('f-alt-enabled').checked;
-    if(altEnabled){
-      const chance = document.getElementById('f-alt-chance').value || 30;
-      const altText = document.getElementById('f-alt-text').value.trim() || '(effet à préciser)';
-      parts.push(`${chance}% de chance, à la place : ${altText}.`);
-    }
   }
   if(currentType==='Héros' && document.getElementById('f-mc-enabled').checked && mcAllowedClasses.length){
     const max = document.getElementById('f-mc-max').value || 6;
@@ -2428,9 +2402,6 @@ function readForm(){
     abilities: JSON.parse(JSON.stringify(abilities)),
     keywords: [...keywords],
     manaRule: currentType==='Région' ? document.getElementById('f-manarule').value.trim() : '',
-    altEffectEnabled: currentType==='Région' ? document.getElementById('f-alt-enabled').checked : false,
-    altEffectChance: currentType==='Région' ? (parseInt(document.getElementById('f-alt-chance').value) || 30) : 30,
-    altEffectText: currentType==='Région' ? document.getElementById('f-alt-text').value.trim() : '',
     heroMultiClass: {
       enabled: currentType==='Héros' ? document.getElementById('f-mc-enabled').checked : false,
       allowedClasses: [...mcAllowedClasses],
@@ -2490,10 +2461,6 @@ function loadCardIntoForm(card){
   document.getElementById('f-hp').value = card.hp ?? 1;
   document.getElementById('f-charges').value = card.charges ?? 3;
   document.getElementById('f-manarule').value = card.manaRule || '';
-  document.getElementById('f-alt-enabled').checked = !!card.altEffectEnabled;
-  document.getElementById('f-alt-chance').value = card.altEffectChance ?? 30;
-  document.getElementById('f-alt-text').value = card.altEffectText || '';
-  document.getElementById('f-alt-fields').style.display = card.altEffectEnabled ? 'block':'none';
   document.getElementById('f-mc-enabled').checked = !!card.heroMultiClass?.enabled;
   document.getElementById('f-mc-details').style.display = card.heroMultiClass?.enabled ? 'block' : 'none';
   document.getElementById('f-mc-max').value = card.heroMultiClass?.maxCount ?? 6;
@@ -2543,10 +2510,6 @@ function newCard(){
   document.getElementById('f-hp').value = 4;
   document.getElementById('f-charges').value = 3;
   document.getElementById('f-manarule').value = '';
-  document.getElementById('f-alt-enabled').checked = false;
-  document.getElementById('f-alt-chance').value = 30;
-  document.getElementById('f-alt-text').value = '';
-  document.getElementById('f-alt-fields').style.display = 'none';
   document.getElementById('f-mc-enabled').checked = false;
   document.getElementById('f-mc-details').style.display = 'none';
   document.getElementById('f-mc-max').value = 6;
