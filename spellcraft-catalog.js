@@ -165,7 +165,8 @@ async function loadUserDecks(){
     name: row.name,
     heroId: row.data?.heroId ?? null,
     regionId: row.data?.regionId ?? null,
-    cards: row.data?.cards || []
+    cards: row.data?.cards || [],
+    cardBackId: row.data?.cardBackId ?? null
   }));
 }
 
@@ -175,7 +176,7 @@ async function saveUserDeck(deck){
   const payload = {
     user_id: user.id,
     name: deck.name || 'Deck sans nom',
-    data: { heroId: deck.heroId, regionId: deck.regionId, cards: deck.cards || [] },
+    data: { heroId: deck.heroId, regionId: deck.regionId, cards: deck.cards || [], cardBackId: deck.cardBackId ?? null },
     updated_at: new Date().toISOString()
   };
   const isExistingRemoteId = deck.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(deck.id);
