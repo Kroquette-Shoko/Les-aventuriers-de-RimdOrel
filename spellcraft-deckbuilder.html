@@ -89,8 +89,8 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 }
 .binder-page-half{
   position:absolute;top:19.7%;height:62.5%;
-  display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:4%;
-  padding:3%;
+  display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:2.5%;
+  padding:1.5%;
 }
 .binder-page-half.left{left:18%;width:29%;}
 .binder-page-half.right{left:52%;width:29%;}
@@ -102,11 +102,15 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 .card-add-badge{position:absolute;top:2px;right:2px;background:var(--green);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 5px;z-index:5;box-shadow:0 2px 4px rgba(0,0,0,.5);}
 .card-owned-badge{position:absolute;bottom:2px;left:2px;background:rgba(15,12,20,.75);border:1px solid var(--gold);color:var(--gold);font-size:8.5px;font-weight:700;border-radius:8px;padding:1px 5px;z-index:5;}
 
-#binder-nav{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:16px;}
 .nav-arrow{background:var(--bg-panel-2);border:1px solid #3a3260;color:var(--gold);width:36px;height:36px;border-radius:50%;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .nav-arrow:hover{border-color:var(--gold);}
 .nav-arrow:disabled{opacity:.3;cursor:not-allowed;}
 .page-indicator{font-family:'Cinzel',serif;font-size:13px;color:var(--parchment-dim);min-width:90px;text-align:center;}
+
+/* zones cliquables sur les bords des pages pour tourner les pages */
+.binder-edge{position:absolute;top:19%;height:64%;cursor:pointer;z-index:16;}
+.binder-edge-left{left:10%;width:7%;}
+.binder-edge-right{left:81%;width:4%;}
 
 /* ---------- Card visual (identique aux autres outils) ---------- */
 .card{
@@ -176,12 +180,12 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 #region-slot{display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg-panel-2);border-radius:8px;border:1px dashed #3a3260;margin-top:6px;font-size:11.5px;color:var(--parchment-dim);}
 #region-slot.set{border-style:solid;border-color:var(--green);color:var(--parchment);}
 #deck-col{
-  position:absolute;top:22%;left:85%;width:14%;height:61%;
+  position:absolute;top:22%;left:85%;width:14.5%;height:61%;
   display:flex;flex-direction:column;
   background:rgba(15,12,20,.82);border:1px solid rgba(212,175,55,.3);border-radius:10px;
   overflow:hidden;z-index:10;
 }
-#hub-link-above-deck{position:absolute;top:9.5%;left:85%;width:14%;z-index:20;}
+#hub-link-above-deck{position:absolute;top:16%;left:85%;width:14.5%;z-index:20;}
 #hub-link-above-deck .btn{width:100%;text-align:center;padding:16px 12px;font-size:18px;font-weight:800;}
 #deck-empty-state{flex:1;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:20px;text-align:center;color:var(--parchment-dim);font-size:13px;}
 #deck-empty-state.show{display:flex;}
@@ -280,7 +284,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
   </div>
 
   <div id="hub-link-above-deck">
-    <a href="spellcraft-hub.html" class="btn small" title="Retour à l'accueil" style="text-decoration:none;">🏠 Hub</a>
+    <a href="spellcraft-hub.html" class="btn small" title="Retour à l'accueil" style="text-decoration:none;">🏠 Menu principal</a>
   </div>
 
   <div id="left-toolbar">
@@ -304,6 +308,8 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
   </div>
 
   <div id="wizard-hint" style="display:none;"></div>
+  <div class="binder-edge binder-edge-left" onclick="changePage(-1)" title="Page précédente"></div>
+  <div class="binder-edge binder-edge-right" onclick="changePage(1)" title="Page suivante"></div>
   <div id="binder-frame">
     <div id="binder-pages"></div>
   </div>
