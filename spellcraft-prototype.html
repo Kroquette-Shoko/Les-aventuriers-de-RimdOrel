@@ -145,6 +145,8 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .card.selected{outline:3px solid var(--arcane);transform:translateY(-6px);}
 .card.attacking{outline:3px solid var(--blood);}
 .card.blocked-by::after{content:"🛡";position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:14px;z-index:5;}
+.card.self-targetable{cursor:crosshair;box-shadow:0 0 0 3px var(--gold), 0 4px 14px rgba(212,175,55,.5);animation:self-target-pulse 1.3s ease-in-out infinite;}
+@keyframes self-target-pulse{0%,100%{box-shadow:0 0 0 3px var(--gold), 0 4px 14px rgba(212,175,55,.5);}50%{box-shadow:0 0 0 5px var(--gold), 0 4px 20px rgba(212,175,55,.8);}}
 .card.targetable{outline:3px solid var(--blood);animation:pulse 1s infinite;}
 .card.dragging{opacity:.35;}
 .card.trap-pending{outline:3px dashed var(--gold);outline-offset:2px;opacity:.75;cursor:default;}
@@ -1433,6 +1435,8 @@ function playCard(key, handIndex, targetInfo){
         log(`${cardOwnerName(key)} invoque ${made} copie(s) supplémentaire(s) de ${card.name}.`);
       } else if(card.onPlayEffect.targetOwner==='self' && TARGETED_EFFECTS.includes(card.onPlayEffect.type)){
         applySpellEffect(card.onPlayEffect, p, key, {isHeroTarget:false, creature:inst, player:p});
+      } else if(targetInfo && targetInfo.selfTarget){
+        applySpellEffect(card.onPlayEffect, p, key, {isHeroTarget:false, creature:inst, player:p});
       } else if(targetInfo){
         applySpellEffect(card.onPlayEffect, p, key, targetInfo);
       } else if(!effectNeedsTarget(card.onPlayEffect)){
@@ -2248,6 +2252,11 @@ function resolveOneCombat(attacker, atkP, atkKey, blocker, defP, defKey){
    ============================================================ */
 function beginPlayerBlock(myCreatureInstId){
   if(S.phase!=='declareBlockersMe') return;
+  const c = S.p1.board.find(x=>x.instId===myCreatureInstId);
+  if(c && c.hasBlockedThisTurn){
+    log(`${c.name} a déjà combattu ce tour-ci, elle ne peut plus bloquer.`);
+    return;
+  }
   S.pendingBlocker = myCreatureInstId;
   updateTip();
 }
@@ -2256,6 +2265,9 @@ function assignBlock(attackerInstId){
   const blocker = S.p1.board.find(c=>c.instId===S.pendingBlocker);
   const attacker = S.p2.board.find(c=>c.instId===attackerInstId);
   if(!blocker || !attacker) return;
+  if(blocker.hasBlockedThisTurn){
+    S.pendingBlocker=null; render(); return;
+  }
   if(blocker.keywords.includes('fearful')){
     log(`${blocker.name} est Peureux et ne peut pas bloquer.`);
     S.pendingBlocker=null; render(); return;
@@ -2264,20 +2276,64 @@ function assignBlock(attackerInstId){
     log(`${blocker.name} ne peut pas bloquer une créature volante (il faut Vol ou Portée).`);
     S.pendingBlocker=null; render(); return;
   }
-  Object.keys(S.p1.blocks).forEach(k=>{ if(S.p1.blocks[k]===blocker.instId) delete S.p1.blocks[k]; });
-  S.p1.blocks[attackerInstId] = blocker.instId;
-  S.pendingBlocker=null;
-  render();
-}
-function confirmBlocks(){
-  S.phase='main';
   const atkKey = S.active, defKey = S.active==='p1' ? 'p2' : 'p1';
   const atkP = S[atkKey], defP = S[defKey];
-  Object.keys(defP.blocks||{}).forEach(attId=>{
+  fireTrap(atkKey, 'onAllyBlocked', attacker);
+
+  // le combat se résout immédiatement, avec les stats actuelles des deux créatures
+  suppressDamagePopups = true;
+  const res = resolveOneCombat(attacker, atkP, atkKey, blocker, defP, defKey);
+  suppressDamagePopups = false;
+
+  attacker.hasBeenBlocked = true;
+  blocker.hasBlockedThisTurn = true;
+  S.pendingBlocker = null;
+
+  const attEl = document.querySelector(`[data-inst-id="${attacker.instId}"]`);
+  const blkEl = document.querySelector(`[data-inst-id="${blocker.instId}"]`);
+  if(attEl && blkEl){
+    lungeToward(attEl, blkEl, 420);
+    lungeToward(blkEl, attEl, 420);
+    setTimeout(()=>{
+      if(res.dmgToBlocker) spawnDamageNumber(blkEl, res.dmgToBlocker);
+      if(res.dmgToAttacker) spawnDamageNumber(attEl, res.dmgToAttacker);
+    }, 320);
+  }
+  setTimeout(()=>{ cleanupDeaths(); render(); }, 500);
+  render();
+}
+function anyBlockerAvailable(){
+  return S.p1.board.some(c=>!c.hasBlockedThisTurn && !c.frozen && !c.stunned);
+}
+function finishBlocking(){
+  const atkKey = S.active, defKey = S.active==='p1' ? 'p2' : 'p1';
+  const atkP = S[atkKey], defP = S[defKey];
+  const orderedAttackerIds = atkP.board.map(c=>c.instId).filter(id=>(atkP.attackers||[]).includes(id));
+
+  suppressDamagePopups = true;
+  const events = [];
+  orderedAttackerIds.forEach(attId=>{
     const attacker = atkP.board.find(c=>c.instId===attId);
-    if(attacker) fireTrap(atkKey, 'onAllyBlocked', attacker);
+    if(!attacker || attacker.hasBeenBlocked) return; // déjà combattu au moins une fois : jamais de dégâts au héros
+    const dmg = attacker.curAtk;
+    dealDamageToHero(defP, defKey, dmg, atkP);
+    if(attacker.keywords.includes('lifesteal')) modifyHp(atkP, dmg);
+    log(`${attacker.name} frappe le héros pour ${dmg}.`);
+    events.push({type:'hero', attackerInstId:attId, defKey, dmg});
   });
-  resolveCombat(atkKey, defKey);
+  suppressDamagePopups = false;
+
+  playCombatSequence(events, ()=>{
+    cleanupDeaths();
+    atkP.attackers = [];
+    atkP.board.forEach(c=>{ c.hasBeenBlocked = false; });
+    defP.board.forEach(c=>{ c.hasBlockedThisTurn = false; });
+    S.phase='main';
+    render();
+    if(atkKey==='p2' && !S.gameOver){
+      setTimeout(()=>{ if(!S.gameOver) endTurn(); }, 400);
+    }
+  });
 }
 
 /* ============================================================
@@ -2771,6 +2827,14 @@ function renderHand(){
     const c = cardEl(card, {
       displayCost: effectiveCost(p, card),
       onClick: (ev)=>{
+        if(S.pendingCard && S.pendingCard.index===realIdx && !S.pendingCard.isHeroPower){
+          // la carte se cible elle-même (ex: renforcer la créature qu'on est en train de jouer)
+          const eff = pendingTargetedEffect();
+          if(eff && (eff.targetOwner==='ally' || eff.targetOwner==='any')){
+            resolvePendingTarget({ selfTarget:true });
+          }
+          return;
+        }
         if(!canAct) return;
         if(card.type==='Piège'){ setTrap('p1', realIdx); return; }
         if(needsTarget(card)){
@@ -2787,6 +2851,13 @@ function renderHand(){
         }
       }
     });
+    if(S.pendingCard && S.pendingCard.index===realIdx && !S.pendingCard.isHeroPower){
+      const eff = pendingTargetedEffect();
+      if(eff && (eff.targetOwner==='ally' || eff.targetOwner==='any')){
+        c.classList.add('self-targetable');
+        c.title = 'Cliquer pour cibler cette carte elle-même';
+      }
+    }
     if(isLockedTrap){
       c.classList.add(card.activeTrap ? 'trap-active' : 'trap-pending');
       if(card.activeTrap){
@@ -2836,8 +2907,8 @@ function renderPhaseBar(){
 
   if(S.active!=='p1'){
     if(S.phase==='declareBlockersMe'){
-      btn.textContent='Valider les blocages';
-      btn.onclick = confirmBlocks;
+      btn.textContent='Passer (fin du blocage)';
+      btn.onclick = finishBlocking;
       bar.appendChild(btn);
     } else {
       btn.textContent='Tour adverse';
