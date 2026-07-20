@@ -1241,10 +1241,22 @@ function fireCreatureTrigger(key, creature, triggerName){
    ============================================================ */
 function needsTarget(card){
   if(card.type==='Sortilège') return effectNeedsTarget(card.effect);
+  if(card.type==='Créature' && card.onPlayEffect) return effectNeedsTarget(card.onPlayEffect) && card.onPlayEffect.targetOwner!=='self';
+  if(card.type==='Artefact' && card.triggeredEffects && card.triggeredEffects.onPlay) return effectNeedsTarget(card.triggeredEffects.onPlay) && card.triggeredEffects.onPlay.targetOwner!=='self';
   return false;
 }
 function effectNeedsTarget(effect){
   return !!effect && TARGETED_EFFECTS.includes(effect.type);
+}
+// Vérifie qu'au moins une cible valide existe réellement sur le plateau pour cet effet,
+// du point de vue du joueur casterKey (avant même de tenter de jouer la carte).
+function hasValidTarget(effect, casterKey){
+  if(!effect || !effectNeedsTarget(effect)) return true;
+  if(effect.targetOwner==='self') return true;
+  const wantsHero = (effect.type==='damage' || effect.type==='heal');
+  if(wantsHero) return true; // le héros (allié ou ennemi selon le cas) est toujours une cible disponible
+  const keys = targetableKeysForEffect(effect);
+  return keys.some(k => S[k] && S[k].board.some(c => isTargetableCreature(c, false)));
 }
 
 function instantiateCreature(card){
@@ -1403,6 +1415,10 @@ function playCard(key, handIndex, targetInfo){
 
   if(card.type==='Créature'){
     if(p.board.length>=8) return false;
+    if(needsTarget(card) && !targetInfo){
+      if(!hasValidTarget(card.onPlayEffect, key)) return 'no-valid-target';
+      return 'needs-target';
+    }
     spendMana(p, cost);
     p.hand.splice(handIndex,1);
     payExtraCost(key, p, card, chosenSacrifice);
@@ -1418,10 +1434,11 @@ function playCard(key, handIndex, targetInfo){
         log(`${cardOwnerName(key)} invoque ${made} copie(s) supplémentaire(s) de ${card.name}.`);
       } else if(card.onPlayEffect.targetOwner==='self' && TARGETED_EFFECTS.includes(card.onPlayEffect.type)){
         applySpellEffect(card.onPlayEffect, p, key, {isHeroTarget:false, creature:inst, player:p});
+      } else if(targetInfo){
+        applySpellEffect(card.onPlayEffect, p, key, targetInfo);
       } else if(!effectNeedsTarget(card.onPlayEffect)){
         applySpellEffect(card.onPlayEffect, p, key, {});
       }
-      // les capacités "à l'entrée en jeu" ciblant l'adversaire ne sont pas encore prises en charge pour les créatures
     }
     fireSummonSubtypeTrigger(key, inst);
     p.creaturesArrivedThisTurn = (p.creaturesArrivedThisTurn||0) + 1;
@@ -1429,7 +1446,10 @@ function playCard(key, handIndex, targetInfo){
     triggerOpponentPlayTraps(key, card, inst);
   }
   else if(card.type==='Sortilège'){
-    if(needsTarget(card) && !targetInfo) return 'needs-target';
+    if(needsTarget(card) && !targetInfo){
+      if(!hasValidTarget(card.effect, key)) return 'no-valid-target';
+      return 'needs-target';
+    }
     spendMana(p, cost);
     p.hand.splice(handIndex,1);
     payExtraCost(key, p, card, chosenSacrifice);
@@ -1446,6 +1466,11 @@ function playCard(key, handIndex, targetInfo){
   }
   else if(card.type==='Artefact'){
     if(p.relics.length>=2) return false;
+    if(needsTarget(card) && !targetInfo){
+      const onPlayEff = card.triggeredEffects && card.triggeredEffects.onPlay;
+      if(!hasValidTarget(onPlayEff, key)) return 'no-valid-target';
+      return 'needs-target';
+    }
     spendMana(p, cost);
     p.hand.splice(handIndex,1);
     payExtraCost(key, p, card, chosenSacrifice);
@@ -1456,9 +1481,14 @@ function playCard(key, handIndex, targetInfo){
     fireWatchTrigger('watchPlay', key);
     log(`${cardOwnerName(key)} active ${card.name}.`);
     const onPlayEff = relicInst.triggeredEffects && relicInst.triggeredEffects.onPlay;
-    if(onPlayEff && conditionsMet(onPlayEff.conditions, p, key) && !effectNeedsTarget(onPlayEff)){
-      applySpellEffect(onPlayEff, p, key, {});
-      // les capacités "à l'entrée en jeu" ciblant une créature ne sont pas encore prises en charge pour les artefacts
+    if(onPlayEff && conditionsMet(onPlayEff.conditions, p, key)){
+      if(onPlayEff.targetOwner==='self' && TARGETED_EFFECTS.includes(onPlayEff.type)){
+        applySpellEffect(onPlayEff, p, key, {});
+      } else if(targetInfo){
+        applySpellEffect(onPlayEff, p, key, targetInfo);
+      } else if(!effectNeedsTarget(onPlayEff)){
+        applySpellEffect(onPlayEff, p, key, {});
+      }
     }
     triggerOpponentPlayTraps(key, card, null);
   }
@@ -2721,13 +2751,22 @@ function renderHand(){
     const realIdx = p.hand.indexOf(card);
     const isLockedTrap = card.pendingTrap || card.activeTrap;
     const affordable = effectiveCost(p, card)<=availableMana(p) && S.phase==='main' && canPayExtraCost(p, card);
-    const canAct = S.active==='p1' && !S.gameOver && !DRAW_ANIM_IN_PROGRESS && affordable && !isLockedTrap;
+    const targetOk = !needsTarget(card) || hasValidTarget(
+      card.type==='Sortilège' ? card.effect : card.type==='Créature' ? card.onPlayEffect : (card.triggeredEffects && card.triggeredEffects.onPlay),
+      'p1'
+    );
+    const canAct = S.active==='p1' && !S.gameOver && !DRAW_ANIM_IN_PROGRESS && affordable && targetOk && !isLockedTrap;
     const c = cardEl(card, {
       displayCost: effectiveCost(p, card),
       onClick: (ev)=>{
         if(!canAct) return;
         if(card.type==='Piège'){ setTrap('p1', realIdx); return; }
         if(needsTarget(card)){
+          const eff = card.type==='Sortilège' ? card.effect : card.type==='Créature' ? card.onPlayEffect : card.triggeredEffects.onPlay;
+          if(!hasValidTarget(eff, 'p1')){
+            log(`${card.name} : aucune cible valide, impossible de la jouer.`);
+            return;
+          }
           S.pendingCard = {index:realIdx};
           beginTargeting(ev.currentTarget);
           render();
@@ -2744,8 +2783,11 @@ function renderHand(){
         wolfIcon.textContent = '🪤';
         c.appendChild(wolfIcon);
       }
-    } else if(!affordable){
+    } else if(!affordable || !targetOk){
       c.style.opacity='.45';
+    }
+    if(!isLockedTrap && affordable && !targetOk){
+      c.title = 'Aucune cible valide disponible';
     }
     c.draggable = canAct;
     if(canAct){
