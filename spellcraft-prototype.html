@@ -2634,17 +2634,14 @@ function renderLane(key){
       cardWrap.dataset.instId = c.instId;
       const el2 = cardEl(c, { attacking, attackSelecting, attackConfirmed, targetable, inPlay:true, onClick: (ev)=>onCreatureClick(key, c, ev) });
       cardWrap.appendChild(el2);
-      // badge blocage
-      if(key==='p1'){
-        const blockedAttacker = Object.keys(S.p1.blocks||{}).find(attId=>S.p1.blocks[attId]===c.instId);
-        if(blockedAttacker){
-          const tag=document.createElement('div');
-          tag.style.cssText='position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:12px;z-index:5;';
-          tag.textContent='🛡';
-          cardWrap.appendChild(tag);
-        }
+      if(key==='p1' && c.hasBlockedThisTurn){
+        el2.style.opacity = '.5';
+        const tag=document.createElement('div');
+        tag.style.cssText='position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:12px;z-index:5;';
+        tag.textContent='🛡';
+        cardWrap.appendChild(tag);
       }
-      if(key==='p2' && S.p1.blocks && S.p1.blocks[c.instId]){
+      if(key==='p2' && c.hasBeenBlocked && S.phase==='declareBlockersMe'){
         const tag=document.createElement('div');
         tag.style.cssText='position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:12px;z-index:5;';
         tag.textContent='🔒';
