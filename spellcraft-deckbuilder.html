@@ -36,7 +36,10 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 
 /* ---------- Bande de cuir du haut : tous les contrôles ---------- */
 #top-strap{position:absolute;top:0;left:0;width:100%;height:8%;display:flex;align-items:center;gap:8px;padding:0 2.5%;z-index:20;}
-#left-toolbar{position:absolute;top:9.5%;left:2.5%;width:24.5%;display:flex;flex-wrap:wrap;align-items:center;gap:6px;z-index:20;}
+#left-toolbar{position:absolute;top:9.5%;left:2.5%;width:19%;display:flex;flex-direction:column;align-items:stretch;gap:10px;z-index:20;}
+#left-toolbar .btn{padding:13px 16px;font-size:14px;text-align:left;border-radius:9px;}
+#left-toolbar .select-mini{padding:12px 14px;font-size:13px;border-radius:9px;width:100%;}
+#left-toolbar .results-count{text-align:center;font-size:12px;}
 #top-strap h1{display:none;}
 #top-strap .spacer{flex:1;}
 .save-indicator{font-size:10.5px;color:var(--green);opacity:0;transition:opacity .4s;white-space:nowrap;}
@@ -173,11 +176,13 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 #region-slot{display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg-panel-2);border-radius:8px;border:1px dashed #3a3260;margin-top:6px;font-size:11.5px;color:var(--parchment-dim);}
 #region-slot.set{border-style:solid;border-color:var(--green);color:var(--parchment);}
 #deck-col{
-  position:absolute;top:20%;left:75%;width:23.5%;height:71%;
+  position:absolute;top:22%;left:85%;width:13.5%;height:69%;
   display:flex;flex-direction:column;
   background:rgba(15,12,20,.82);border:1px solid rgba(212,175,55,.3);border-radius:10px;
   overflow:hidden;z-index:10;
 }
+#hub-link-above-deck{position:absolute;top:15%;left:85%;width:13.5%;z-index:20;}
+#hub-link-above-deck .btn{width:100%;text-align:center;}
 #deck-empty-state{flex:1;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:20px;text-align:center;color:var(--parchment-dim);font-size:13px;}
 #deck-empty-state.show{display:flex;}
 #deck-editor{flex:1;display:flex;flex-direction:column;min-height:0;}
@@ -271,21 +276,23 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
   <div id="top-strap">
     <span class="save-indicator" id="save-indicator">✓ Sauvegardé</span>
     <div class="spacer"></div>
-    <button class="btn" onclick="openDeckListModal()">📚 Mes decks</button>
-    <button class="btn primary" onclick="newDeck()">➕ Nouveau deck</button>
-    <a href="spellcraft-hub.html" class="btn small" title="Retour à l'accueil" style="text-decoration:none;">🏠 Hub</a>
     <div id="sc-auth-slot"></div>
+  </div>
+
+  <div id="hub-link-above-deck">
+    <a href="spellcraft-hub.html" class="btn small" title="Retour à l'accueil" style="text-decoration:none;">🏠 Hub</a>
   </div>
 
   <div id="left-toolbar">
     <div class="dropdown-wrap">
-      <button class="btn small" onclick="toggleFilterPanel()">🔎 Filtrer</button>
+      <button class="btn" onclick="toggleFilterPanel()" style="width:100%;">🔎 Filtre de recherche</button>
       <div class="dropdown-panel" id="filter-panel"></div>
     </div>
-    <button class="btn small" onclick="jumpToHeroPage()">🦸 Héros</button>
-    <button class="btn small" onclick="openCardBackModal()">🎴 Dos de cartes</button>
-    <button class="btn small" onclick="jumpToBinderStart()">📖 Classeur</button>
+    <button class="btn" onclick="jumpToBinderStart()">📖 Voir les cartes</button>
+    <button class="btn" onclick="jumpToHeroPage()">🦸 Voir les héros</button>
+    <button class="btn" onclick="openCardBackModal()">🎴 Voir les dos de carte</button>
     <select class="select-mini" id="sort-select" onchange="onFilterChange()">
+      <option value="class-cost-name">Tri : Classe → Coût → Alphabétique</option>
       <option value="name-asc">Nom (A → Z)</option>
       <option value="name-desc">Nom (Z → A)</option>
       <option value="cost-asc">Coût (croissant)</option>
@@ -403,7 +410,7 @@ let filters = {
   costMode:'eq', costValue:'', powerMode:'eq', powerValue:'', toughnessMode:'eq', toughnessValue:'',
   showFoils:true, showUnowned:false
 };
-let sortMode = 'name-asc';
+let sortMode = 'class-cost-name';
 
 let currentDeck = null; // { id, name, heroId, regionId, cards:[{cardId, count}] } — null = pas de deck actif
 let savedDecks = [];
@@ -685,6 +692,15 @@ function getFilteredSortedCollection(){
 
   const costOf = c => c.cost===null || c.cost===undefined ? -1 : c.cost;
   switch(sortMode){
+    case 'class-cost-name': {
+      const classOrder = {}; CLASSES.forEach((c,i)=>{ classOrder[c]=i; });
+      list.sort((a,b)=>
+        (classOrder[a.class]??99)-(classOrder[b.class]??99)
+        || costOf(a)-costOf(b)
+        || a.name.localeCompare(b.name)
+      );
+      break;
+    }
     case 'name-asc': list.sort((a,b)=>a.name.localeCompare(b.name)); break;
     case 'name-desc': list.sort((a,b)=>b.name.localeCompare(a.name)); break;
     case 'cost-asc': list.sort((a,b)=>costOf(a)-costOf(b) || a.name.localeCompare(b.name)); break;
