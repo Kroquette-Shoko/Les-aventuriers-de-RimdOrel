@@ -2554,8 +2554,8 @@ function renderHero(key){
     };
     el.appendChild(btn);
   }
-  if(S.pendingCard && targetableKeysForEffect(S.pendingCard.isHeroPower ? S.p1.hero.activeEffect : S.p1.hand[S.pendingCard.index]?.effect).includes(key)){
-    const eff = S.pendingCard.isHeroPower ? S.p1.hero.activeEffect : S.p1.hand[S.pendingCard.index]?.effect;
+  if(S.pendingCard && targetableKeysForEffect(pendingTargetedEffect()).includes(key)){
+    const eff = pendingTargetedEffect();
     const wantsHero = eff && (eff.type==='damage' || eff.type==='heal');
     if(wantsHero){
       el.style.cursor='crosshair';
@@ -2615,11 +2615,24 @@ function isTargetableCreature(c, isHeroPower){
   return true;
 }
 
+// Récupère l'effet ciblé de la carte/pouvoir actuellement en attente de ciblage,
+// quel que soit le type de carte (Sortilège/Créature/Artefact/pouvoir de héros).
+function pendingTargetedEffect(){
+  if(!S.pendingCard) return null;
+  if(S.pendingCard.isHeroPower) return S.p1.hero.activeEffect;
+  const card = S.p1.hand[S.pendingCard.index];
+  if(!card) return null;
+  if(card.type==='Sortilège') return card.effect;
+  if(card.type==='Créature') return card.onPlayEffect;
+  if(card.type==='Artefact') return card.triggeredEffects && card.triggeredEffects.onPlay;
+  return null;
+}
+
 function shouldHighlightCreature(key, c){
   if(S.pendingSacrifice && key==='p1') return true;
   if(S.phase==='declareBlockersMe' && key==='p2') return (S.p2.attackers||[]).includes(c.instId);
   if(S.pendingCard){
-    const eff = S.pendingCard.isHeroPower ? S.p1.hero.activeEffect : S.p1.hand[S.pendingCard.index]?.effect;
+    const eff = pendingTargetedEffect();
     if(!effectNeedsTarget(eff)) return false;
     if(!targetableKeysForEffect(eff).includes(key)) return false;
     return isTargetableCreature(c, !!S.pendingCard.isHeroPower);
@@ -2651,7 +2664,7 @@ function onCreatureClick(key, c, ev){
 
   // ciblage sort/pouvoir
   if(S.pendingCard){
-    const eff = S.pendingCard.isHeroPower ? S.p1.hero.activeEffect : S.p1.hand[S.pendingCard.index]?.effect;
+    const eff = pendingTargetedEffect();
     if(targetableKeysForEffect(eff).includes(key)){
       if(!isTargetableCreature(c, !!S.pendingCard.isHeroPower)){
         log(`${c.name} ne peut pas être ciblée (Furtif).`);
