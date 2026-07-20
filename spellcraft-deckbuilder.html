@@ -57,6 +57,17 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 .pill.class-Neutre.active{background:#c0c0c0;border-color:#c0c0c0;color:#1c1830;}
 .dropdown-wrap{position:relative;}
 .dropdown-panel{position:absolute;top:34px;left:0;background:var(--bg-panel);border:1px solid #3a3260;border-radius:8px;padding:10px;z-index:40;display:none;min-width:180px;box-shadow:0 8px 20px rgba(0,0,0,.5);max-height:240px;overflow-y:auto;}
+#filter-panel{min-width:320px;max-width:360px;max-height:70vh;padding:16px;}
+#filter-panel .ff-group{margin-bottom:14px;}
+#filter-panel label{display:block;font-size:11px;color:var(--parchment-dim);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px;}
+#filter-panel input[type=text], #filter-panel select{width:100%;background:var(--bg-void);border:1px solid #3a3260;color:var(--parchment);border-radius:6px;padding:7px 9px;font-size:12.5px;}
+#filter-panel .ff-row{display:flex;gap:8px;}
+#filter-panel .ff-row select{flex:0 0 118px;}
+#filter-panel .ff-checks{display:flex;flex-wrap:wrap;gap:6px;}
+#filter-panel .ff-check{display:flex;align-items:center;gap:5px;font-size:11.5px;background:var(--bg-void);border:1px solid #3a3260;border-radius:14px;padding:4px 9px;cursor:pointer;}
+#filter-panel .ff-check input{margin:0;}
+#filter-panel .ff-toggle{display:flex;align-items:center;justify-content:space-between;font-size:12px;padding:6px 0;}
+#filter-panel .ff-actions{display:flex;gap:8px;margin-top:6px;position:sticky;bottom:0;background:var(--bg-panel);padding-top:8px;}
 .dropdown-panel.show{display:block;}
 .dropdown-panel label{display:flex;align-items:center;gap:6px;font-size:12px;padding:4px 2px;cursor:pointer;}
 .results-count{font-size:11.5px;color:var(--parchment-dim);margin-left:auto;white-space:nowrap;}
@@ -259,38 +270,23 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 
 <div id="app">
   <header>
-    <a href="spellcraft-hub.html" class="btn small" title="Retour à l'accueil" style="text-decoration:none;">🏠 Hub</a>
     <h1>📖 Spellcraft — Collection</h1>
     <span class="save-indicator" id="save-indicator">✓ Sauvegardé</span>
     <div class="spacer"></div>
-    <div id="sc-auth-slot"></div>
-    <button class="btn" onclick="refreshCollection()">🔄 Actualiser la collection</button>
-    <button class="btn" onclick="openImportModal()">Importer une collection</button>
     <button class="btn" onclick="openDeckListModal()">📚 Mes decks</button>
-    <button class="btn" onclick="openCardBackModal()">🎴 Mes dos de cartes</button>
     <button class="btn primary" onclick="newDeck()">➕ Nouveau deck</button>
+    <a href="spellcraft-hub.html" class="btn small" title="Retour à l'accueil" style="text-decoration:none;">🏠 Hub</a>
+    <div id="sc-auth-slot"></div>
   </header>
 
   <div id="filter-bar">
-    <input type="text" id="search-input" placeholder="🔍 Nom de carte..." oninput="onFilterChange()">
-
     <div class="dropdown-wrap">
-      <button class="btn small" onclick="toggleDropdown('dd-class')">Classe ▾</button>
-      <div class="dropdown-panel" id="dd-class"></div>
+      <button class="btn small" onclick="toggleFilterPanel()">🔎 Filtrer</button>
+      <div class="dropdown-panel" id="filter-panel"></div>
     </div>
-    <div class="dropdown-wrap">
-      <button class="btn small" onclick="toggleDropdown('dd-type')">Type ▾</button>
-      <div class="dropdown-panel" id="dd-type"></div>
-    </div>
-    <div class="dropdown-wrap">
-      <button class="btn small" onclick="toggleDropdown('dd-rarity')">Rareté ▾</button>
-      <div class="dropdown-panel" id="dd-rarity"></div>
-    </div>
-    <div class="dropdown-wrap">
-      <button class="btn small" onclick="toggleDropdown('dd-keyword')">Mots-clés ▾</button>
-      <div class="dropdown-panel" id="dd-keyword"></div>
-    </div>
-
+    <button class="btn small" onclick="jumpToHeroPage()">🦸 Héros</button>
+    <button class="btn small" onclick="openCardBackModal()">🎴 Dos de cartes</button>
+    <button class="btn small" onclick="jumpToBinderStart()">📖 Retour au classeur</button>
     <select class="select-mini" id="sort-select" onchange="onFilterChange()">
       <option value="name-asc">Nom (A → Z)</option>
       <option value="name-desc">Nom (Z → A)</option>
@@ -299,10 +295,6 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
       <option value="class">Classe</option>
       <option value="rarity">Rareté</option>
     </select>
-
-    <button class="clear-filters" onclick="clearFilters()">Réinitialiser</button>
-    <button class="btn small" onclick="jumpToHeroPage()">🦸 Aller aux héros</button>
-    <button class="btn small" onclick="jumpToBinderStart()">📖 Retour au classeur</button>
     <span class="results-count" id="results-count"></span>
   </div>
 
@@ -409,9 +401,14 @@ let isLoggedInCache = false;
    ÉTAT
    ============================================================ */
 let collection = [];
+let allCardsCache = []; // toutes les cartes du catalogue, possédées ou non (pour le mode "afficher non-possédées")
 let currentPage = 0;
 let deckBuildStep = null; // null | 'hero' | 'region' | 'cards'
-let filters = { search:'', classes:new Set(), types:new Set(), rarities:new Set(), keywords:new Set() };
+let filters = {
+  search:'', oracleText:'', setId:'', classes:new Set(), classMode:'any', types:new Set(), rarities:new Set(), keywords:new Set(),
+  costMode:'eq', costValue:'', powerMode:'eq', powerValue:'', toughnessMode:'eq', toughnessValue:'',
+  showFoils:true, showUnowned:false
+};
 let sortMode = 'name-asc';
 
 let currentDeck = null; // { id, name, heroId, regionId, cards:[{cardId, count}] } — null = pas de deck actif
@@ -444,6 +441,7 @@ sb.auth.onAuthStateChange(async (event)=>{
 async function refreshCollection(silent){
   const allCards = await loadAllCardsAcrossSets();
   ownedCollection = await loadUserCollection();
+  allCardsCache = allCards;
   collection = allCards.filter(c => (ownedCollection[c.id]||0) > 0);
   if(!silent){
     buildFilterDropdowns();
@@ -472,32 +470,124 @@ function flashError(msg){
 /* ============================================================
    FILTRES
    ============================================================ */
-function buildFilterDropdowns(){
-  buildDropdown('dd-class', CLASSES, filters.classes);
-  buildDropdown('dd-type', CARD_TYPES.filter(t=>t!=='Héros'), filters.types);
-  buildDropdown('dd-rarity', RARITIES, filters.rarities);
-  buildDropdown('dd-keyword', KEYWORDS.map(k=>k.label), filters.keywords, KEYWORDS.map(k=>k.key));
+function buildFilterDropdowns(){ renderFilterPanel(); }
+
+function renderFilterPanel(){
+  const el = document.getElementById('filter-panel');
+  if(!el) return;
+  const setNames = [...new Set(allCardsCache.map(c=>c.set).filter(Boolean))].sort();
+
+  el.innerHTML = `
+    <div class="ff-group">
+      <label>Nom de la carte</label>
+      <input type="text" id="ff-search" value="${escapeHtml(filters.search)}" placeholder="Ex : Golem de Jaäne">
+    </div>
+    <div class="ff-group">
+      <label>Set / Édition</label>
+      <select id="ff-set">
+        <option value="">Tous les sets</option>
+        ${setNames.map(s=>`<option value="${escapeHtml(s)}" ${filters.setId===s?'selected':''}>${escapeHtml(s)}</option>`).join('')}
+      </select>
+    </div>
+    <div class="ff-group">
+      <label>Texte de la carte</label>
+      <input type="text" id="ff-oracle" value="${escapeHtml(filters.oracleText)}" placeholder="Ex : détruisez">
+    </div>
+    <div class="ff-group">
+      <label>Type de carte</label>
+      <div class="ff-checks" id="ff-types"></div>
+    </div>
+    <div class="ff-group">
+      <label>Classe</label>
+      <div class="ff-checks" id="ff-classes"></div>
+      <select id="ff-class-mode" style="margin-top:6px;">
+        <option value="any" ${filters.classMode==='any'?'selected':''}>Doit avoir une des classes cochées</option>
+        <option value="all" ${filters.classMode==='all'?'selected':''}>Doit avoir toutes les classes cochées</option>
+      </select>
+    </div>
+    <div class="ff-group">
+      <label>Rareté</label>
+      <div class="ff-checks" id="ff-rarities"></div>
+    </div>
+    <div class="ff-group">
+      <label>Mots-clés</label>
+      <div class="ff-checks" id="ff-keywords"></div>
+    </div>
+    <div class="ff-group">
+      <label>Coût</label>
+      <div class="ff-row">
+        <select id="ff-cost-mode">
+          <option value="eq" ${filters.costMode==='eq'?'selected':''}>Égal à</option>
+          <option value="gt" ${filters.costMode==='gt'?'selected':''}>Supérieur à</option>
+          <option value="lt" ${filters.costMode==='lt'?'selected':''}>Inférieur à</option>
+        </select>
+        <input type="text" id="ff-cost-value" value="${escapeHtml(filters.costValue)}" placeholder="Ex : 3">
+      </div>
+    </div>
+    <div class="ff-group">
+      <label>Force</label>
+      <div class="ff-row">
+        <select id="ff-power-mode">
+          <option value="eq" ${filters.powerMode==='eq'?'selected':''}>Égal à</option>
+          <option value="gt" ${filters.powerMode==='gt'?'selected':''}>Supérieur à</option>
+          <option value="lt" ${filters.powerMode==='lt'?'selected':''}>Inférieur à</option>
+        </select>
+        <input type="text" id="ff-power-value" value="${escapeHtml(filters.powerValue)}" placeholder="Ex : 4">
+      </div>
+    </div>
+    <div class="ff-group">
+      <label>Endurance</label>
+      <div class="ff-row">
+        <select id="ff-toughness-mode">
+          <option value="eq" ${filters.toughnessMode==='eq'?'selected':''}>Égal à</option>
+          <option value="gt" ${filters.toughnessMode==='gt'?'selected':''}>Supérieur à</option>
+          <option value="lt" ${filters.toughnessMode==='lt'?'selected':''}>Inférieur à</option>
+        </select>
+        <input type="text" id="ff-toughness-value" value="${escapeHtml(filters.toughnessValue)}" placeholder="Ex : 4">
+      </div>
+    </div>
+    <div class="ff-group">
+      <div class="ff-toggle">
+        <span>Afficher les exemplaires Foil</span>
+        <label class="ff-check"><input type="checkbox" id="ff-show-foils" ${filters.showFoils?'checked':''}> Oui</label>
+      </div>
+      <div class="ff-toggle">
+        <span>Afficher les cartes non possédées</span>
+        <label class="ff-check"><input type="checkbox" id="ff-show-unowned" ${filters.showUnowned?'checked':''}> Oui</label>
+      </div>
+    </div>
+    <div class="ff-actions">
+      <button class="btn small primary" onclick="applyFilterPanel()" style="flex:1;">Appliquer</button>
+      <button class="btn small" onclick="resetFilterPanel()">Réinitialiser</button>
+    </div>
+  `;
+  fillCheckGroup('ff-types', CARD_TYPES.filter(t=>t!=='Héros'), filters.types);
+  fillCheckGroup('ff-classes', CLASSES, filters.classes);
+  fillCheckGroup('ff-rarities', RARITIES, filters.rarities);
+  fillCheckGroup('ff-keywords', KEYWORDS.map(k=>k.label), filters.keywords, KEYWORDS.map(k=>k.key));
 }
-function buildDropdown(id, labels, setRef, keys){
-  const el = document.getElementById(id);
-  el.innerHTML = '';
-  labels.forEach((label, i)=>{
+
+function fillCheckGroup(containerId, labels, setRef, keys){
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  el.innerHTML = labels.map((label,i)=>{
     const key = keys ? keys[i] : label;
-    const wrap = document.createElement('label');
     const checked = setRef.has(key);
-    wrap.innerHTML = `<input type="checkbox" ${checked?'checked':''}> ${label}`;
-    wrap.querySelector('input').onchange = (e)=>{
-      if(e.target.checked) setRef.add(key); else setRef.delete(key);
-      onFilterChange();
-    };
-    el.appendChild(wrap);
-  });
+    return `<label class="ff-check"><input type="checkbox" data-key="${escapeHtml(key)}" ${checked?'checked':''}> ${escapeHtml(label)}</label>`;
+  }).join('');
 }
-function toggleDropdown(id){
-  document.querySelectorAll('.dropdown-panel').forEach(p=>{
-    if(p.id!==id) p.classList.remove('show');
-  });
-  document.getElementById(id).classList.toggle('show');
+
+function readCheckGroup(containerId){
+  const set = new Set();
+  document.querySelectorAll(`#${containerId} input:checked`).forEach(inp=>set.add(inp.dataset.key));
+  return set;
+}
+
+function toggleFilterPanel(){
+  const panel = document.getElementById('filter-panel');
+  const wasOpen = panel.classList.contains('show');
+  document.querySelectorAll('.dropdown-panel').forEach(p=>p.classList.remove('show'));
+  if(!wasOpen){ renderFilterPanel(); panel.classList.add('show'); }
 }
 document.addEventListener('click', (e)=>{
   if(!e.target.closest('.dropdown-wrap')){
@@ -505,18 +595,41 @@ document.addEventListener('click', (e)=>{
   }
 });
 
-function onFilterChange(){
-  filters.search = document.getElementById('search-input').value.trim().toLowerCase();
-  sortMode = document.getElementById('sort-select').value;
+function applyFilterPanel(){
+  filters.search = document.getElementById('ff-search').value.trim().toLowerCase();
+  filters.setId = document.getElementById('ff-set').value;
+  filters.oracleText = document.getElementById('ff-oracle').value.trim().toLowerCase();
+  filters.types = readCheckGroup('ff-types');
+  filters.classes = readCheckGroup('ff-classes');
+  filters.classMode = document.getElementById('ff-class-mode').value;
+  filters.rarities = readCheckGroup('ff-rarities');
+  filters.keywords = readCheckGroup('ff-keywords');
+  filters.costMode = document.getElementById('ff-cost-mode').value;
+  filters.costValue = document.getElementById('ff-cost-value').value.trim();
+  filters.powerMode = document.getElementById('ff-power-mode').value;
+  filters.powerValue = document.getElementById('ff-power-value').value.trim();
+  filters.toughnessMode = document.getElementById('ff-toughness-mode').value;
+  filters.toughnessValue = document.getElementById('ff-toughness-value').value.trim();
+  filters.showFoils = document.getElementById('ff-show-foils').checked;
+  filters.showUnowned = document.getElementById('ff-show-unowned').checked;
   currentPage = 0;
+  document.getElementById('filter-panel').classList.remove('show');
   renderBinder();
 }
-function clearFilters(){
-  filters = { search:'', classes:new Set(), types:new Set(), rarities:new Set(), keywords:new Set() };
-  document.getElementById('search-input').value='';
-  document.getElementById('sort-select').value='name-asc';
-  sortMode='name-asc';
-  buildFilterDropdowns();
+
+function resetFilterPanel(){
+  filters = {
+    search:'', oracleText:'', setId:'', classes:new Set(), classMode:'any', types:new Set(), rarities:new Set(), keywords:new Set(),
+    costMode:'eq', costValue:'', powerMode:'eq', powerValue:'', toughnessMode:'eq', toughnessValue:'',
+    showFoils:true, showUnowned:false
+  };
+  currentPage = 0;
+  renderFilterPanel();
+  renderBinder();
+}
+
+function onFilterChange(){
+  sortMode = document.getElementById('sort-select').value;
   currentPage = 0;
   renderBinder();
 }
@@ -538,7 +651,8 @@ function jumpToBinderStart(){
 }
 
 function getFilteredSortedCollection(){
-  let list = collection.filter(c=>{
+  const sourceList = (!currentDeck && filters.showUnowned) ? allCardsCache : collection;
+  let list = sourceList.filter(c=>{
     if((c.subtypes||[]).some(s=>s.trim().toLowerCase()==='conjuration')) return false;
     if(c.type==='Héros') return false; // les héros ont leur propre page dédiée à la fin du classeur
 
@@ -555,7 +669,12 @@ function getFilteredSortedCollection(){
     }
 
     if(filters.search && !c.name.toLowerCase().includes(filters.search)) return false;
-    if(filters.classes.size && !filters.classes.has(c.class)) return false;
+    if(filters.oracleText && !(c.text||'').toLowerCase().includes(filters.oracleText)) return false;
+    if(filters.setId && c.set!==filters.setId) return false;
+    if(filters.classes.size){
+      if(filters.classMode==='all'){ if(!filters.classes.has(c.class)) return false; }
+      else { if(!filters.classes.has(c.class)) return false; }
+    }
     if(filters.types.size && !filters.types.has(c.type)) return false;
     if(filters.rarities.size && !filters.rarities.has(c.rarity)) return false;
     if(filters.keywords.size){
@@ -564,6 +683,9 @@ function getFilteredSortedCollection(){
       filters.keywords.forEach(k=>{ if(ck.includes(k)) hasAny = true; });
       if(!hasAny) return false;
     }
+    if(filters.costValue!=='' && !matchesComparator(c.cost, filters.costMode, filters.costValue)) return false;
+    if(filters.powerValue!=='' && !matchesComparator(c.atk, filters.powerMode, filters.powerValue)) return false;
+    if(filters.toughnessValue!=='' && !matchesComparator(c.hp, filters.toughnessMode, filters.toughnessValue)) return false;
     return true;
   });
 
@@ -581,6 +703,15 @@ function getFilteredSortedCollection(){
     }
   }
   return list;
+}
+
+function matchesComparator(cardValue, mode, targetStr){
+  const target = parseFloat(targetStr);
+  if(isNaN(target)) return true;
+  const val = cardValue===null || cardValue===undefined ? -1 : cardValue;
+  if(mode==='gt') return val > target;
+  if(mode==='lt') return val < target;
+  return val === target;
 }
 
 /* ============================================================
@@ -889,7 +1020,7 @@ function renderBinder(animate){
   document.getElementById('binder-pages').style.gridTemplateColumns = '';
   document.getElementById('binder-pages').style.gap = '';
 
-  if(collection.length===0){
+  if(collection.length===0 && !filters.showUnowned){
     document.getElementById('results-count').textContent = '0 carte';
     document.getElementById('page-indicator').textContent = '—';
     document.getElementById('prev-page').disabled = true;
@@ -974,6 +1105,11 @@ function renderBinder(animate){
           slot.appendChild(badge);
         }
         const owned = ownedCollection[card.id];
+        const isOwned = owned!==undefined && owned>0;
+        if(!isOwned && card.type!=='Héros' && card.type!=='Région'){
+          el.style.filter = 'grayscale(85%) brightness(.6)';
+          el.title = 'Tu ne possèdes pas encore cette carte';
+        }
         if(owned!==undefined && card.type!=='Héros' && card.type!=='Région'){
           const ownedBadge = document.createElement('div');
           ownedBadge.className='card-owned-badge';
