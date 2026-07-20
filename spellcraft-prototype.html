@@ -565,15 +565,14 @@ function mapAbilityEffect(ab){
 function mapAbilityEffectRaw(eff, amount){
   switch(eff.effectType){
     case 'damage': return {type:'damage', amount: amount||2, targetOwner: eff.targetOwner};
-    case 'heal': return {type:'heal', amount: amount||2};
+    case 'heal': return {type:'heal', amount: amount||2, targetOwner: eff.targetOwner};
     case 'stun': return {type:'stun', targetOwner: eff.targetOwner};
     case 'freeze': return {type:'freeze', targetOwner: eff.targetOwner};
     case 'bounce': return {type:'bounce', targetOwner: eff.targetOwner};
     case 'destroy': return {type:'destroy', targetOwner: eff.targetOwner};
-    case 'silence': return {type:'silence', targetOwner: eff.targetOwner};
     case 'draw': return {type:'draw', amount: amount||1, owner: eff.manaTargetOwner||'self'};
-    case 'buff': return {type:'buff', atk: amount??1, hp: eff.valueFixed2??1};
-    case 'weaken': return {type:'buff', atk: -(Math.abs(amount??1)), hp: -(Math.abs(eff.valueFixed2??1))};
+    case 'buff': return {type:'buff', atk: amount??1, hp: eff.valueFixed2??1, targetOwner: eff.targetOwner};
+    case 'weaken': return {type:'buff', atk: -(Math.abs(amount??1)), hp: -(Math.abs(eff.valueFixed2??1)), targetOwner: eff.targetOwner};
     case 'resource': return {type:'resource', amount: amount||1, owner: eff.manaTargetOwner||'self'};
     case 'emptyMana': return {type:'emptyManaEffect', amount: amount||1, owner: eff.manaTargetOwner||'self'};
     case 'fragileMana': return {type:'fragileManaEffect', amount: amount||1, owner: eff.manaTargetOwner||'self'};
