@@ -196,7 +196,7 @@ header .spacer{flex:1;}
 <script>
 const RARITY_COLORS = {Basique:'#8a7f6a', Commune:'#c7c2b3', Rare:'#4fb3d9', Épique:'#7c5cff', Légendaire:'#d4af37'};
 const BOOSTER_PRICE = 120;
-const SINGLE_PRICE = 30;
+const SINGLE_CARD_PRICES = {Basique:20, Commune:50, Rare:150, 'Épique':250, 'Légendaire':500};
 
 // Répliques d'accueil de Bruno — on en ajoutera d'autres plus tard, une est tirée au hasard à chaque visite.
 const BRUNO_LINES = [
@@ -268,7 +268,7 @@ async function renderSingleShelf(){
     wrap.appendChild(label);
     const price = document.createElement('div');
     price.className = 'shop-item-price';
-    price.textContent = `🪙 ${SINGLE_PRICE}`;
+    price.textContent = `🪙 ${SINGLE_CARD_PRICES[c.rarity] ?? 50}`;
     wrap.appendChild(price);
     const btn = document.createElement('button');
     btn.className = 'buy-btn'; btn.textContent = 'Acheter';
@@ -359,7 +359,7 @@ async function buyBooster(boosterId){
 }
 
 async function confirmSingleChoice(cardId){
-  const { data, error } = await sb.rpc('buy_single_card', { p_card_id: cardId, p_price: SINGLE_PRICE });
+  const { data, error } = await sb.rpc('buy_single_card', { p_card_id: cardId });
   if(error){ alert('Erreur : ' + error.message); return; }
   if(data.error){ alert(shopErrorMessage(data.error)); return; }
   showRevealModal('Carte obtenue !', [{ name: data.name, foil: data.foil, rarity: '', card_id: data.card_id }]);
