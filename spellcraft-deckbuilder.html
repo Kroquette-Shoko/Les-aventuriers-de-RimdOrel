@@ -112,6 +112,12 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 .binder-edge-left{left:10%;width:7%;}
 .binder-edge-right{left:81%;width:4%;}
 
+.hero-grid-area{
+  position:absolute;top:30%;left:30%;width:40%;height:40%;
+  display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:1fr;gap:3%;
+  padding:1%;
+}
+
 /* ---------- Card visual (identique aux autres outils) ---------- */
 .card{
   --class-color: var(--grey);
@@ -229,7 +235,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 
 #hero-profile{position:fixed;z-index:80;pointer-events:none;display:none;opacity:0;transition:opacity .15s ease;width:480px;background:linear-gradient(160deg,var(--bg-panel),#141021);border:1px solid var(--gold);border-radius:16px;padding:20px 24px;box-shadow:0 20px 50px rgba(0,0,0,.7);}
 
-.hero-select-tile{width:300px;background:linear-gradient(160deg,var(--bg-panel),#141021);border:1px solid #3a3260;border-radius:16px;padding:16px 18px;cursor:pointer;transition:border-color .15s, transform .15s, box-shadow .15s;}
+.hero-select-tile{width:100%;height:100%;box-sizing:border-box;background:linear-gradient(160deg,var(--bg-panel),#141021);border:1px solid #3a3260;border-radius:12px;padding:10px 12px;cursor:pointer;transition:border-color .15s, transform .15s, box-shadow .15s;overflow:hidden;display:flex;flex-direction:column;}
 .hero-select-tile:hover{border-color:var(--gold);transform:translateY(-4px);box-shadow:0 14px 30px rgba(0,0,0,.55);}
 .hero-select-tile .hp-portrait{width:64px;height:64px;}
 .hero-select-tile .hp-name{font-size:15px;}
@@ -975,7 +981,7 @@ function hidePreview(){
 /* ============================================================
    BINDER (classeur paginé)
    ============================================================ */
-const HERO_PAGE_SIZE = 6;
+const HERO_PAGE_SIZE = 3;
 
 function renderHeroSelectionGrid(animate){
   const heroes = collection.filter(c=>c.type==='Héros' && !(c.subtypes||[]).some(s=>s.trim().toLowerCase()==='conjuration'));
@@ -990,16 +996,9 @@ function renderHeroSelectionGrid(animate){
   document.getElementById('next-page').disabled = currentPage>=totalPages-1;
 
   const doRender = ()=>{
-    const frame = document.getElementById('binder-frame');
-    frame.style.aspectRatio = 'auto';
-    frame.style.background = 'none';
-    frame.style.width = 'auto';
     const pages = document.getElementById('binder-pages');
     pages.innerHTML = '';
-    pages.style.position = 'static';
-    pages.style.display = 'grid';
-    pages.style.gridTemplateColumns = 'repeat(3, 300px)';
-    pages.style.gap = '18px';
+    pages.className = 'hero-grid-area';
     const start = currentPage*HERO_PAGE_SIZE;
     const pageHeroes = filtered.slice(start, start+HERO_PAGE_SIZE);
     if(pageHeroes.length===0){
@@ -1037,9 +1036,7 @@ function renderHeroSelectionGrid(animate){
 
 function renderBinder(animate){
   if(currentDeck && deckBuildStep==='hero'){ renderHeroSelectionGrid(animate); return; }
-  document.getElementById('binder-frame').style.aspectRatio = '';
-  document.getElementById('binder-frame').style.background = '';
-  document.getElementById('binder-frame').style.width = '';
+  document.getElementById('binder-pages').className = '';
   document.getElementById('binder-pages').style.position = '';
   document.getElementById('binder-pages').style.display = '';
   document.getElementById('binder-pages').style.gridTemplateColumns = '';
@@ -1150,10 +1147,6 @@ function renderBinder(animate){
   };
 
   const doRender = ()=>{
-    const frame = document.getElementById('binder-frame');
-    frame.style.aspectRatio = '';
-    frame.style.background = '';
-    frame.style.width = '';
     const pages = document.getElementById('binder-pages');
     pages.innerHTML = '';
     pages.style.position = '';
