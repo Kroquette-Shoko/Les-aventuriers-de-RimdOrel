@@ -35,7 +35,8 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 }
 
 /* ---------- Bande de cuir du haut : tous les contrôles ---------- */
-#top-strap{position:absolute;top:0;left:0;width:100%;height:9%;display:flex;align-items:center;gap:8px;padding:0 2.5%;z-index:20;}
+#top-strap{position:absolute;top:0;left:0;width:100%;height:8%;display:flex;align-items:center;gap:8px;padding:0 2.5%;z-index:20;}
+#right-toolbar{position:absolute;top:9.5%;left:74%;width:24.5%;display:flex;flex-wrap:wrap;align-items:center;gap:6px;z-index:20;}
 #top-strap h1{display:none;}
 #top-strap .spacer{flex:1;}
 .save-indicator{font-size:10.5px;color:var(--green);opacity:0;transition:opacity .4s;white-space:nowrap;}
@@ -172,7 +173,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 #region-slot{display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg-panel-2);border-radius:8px;border:1px dashed #3a3260;margin-top:6px;font-size:11.5px;color:var(--parchment-dim);}
 #region-slot.set{border-style:solid;border-color:var(--green);color:var(--parchment);}
 #deck-col{
-  position:absolute;top:10.5%;left:73%;width:25.5%;height:80%;
+  position:absolute;top:20%;left:75%;width:23.5%;height:71%;
   display:flex;flex-direction:column;
   background:rgba(15,12,20,.82);border:1px solid rgba(212,175,55,.3);border-radius:10px;
   overflow:hidden;z-index:10;
@@ -269,6 +270,14 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 <div id="app">
   <div id="top-strap">
     <a href="spellcraft-hub.html" class="btn small" title="Retour à l'accueil" style="text-decoration:none;">🏠 Hub</a>
+    <span class="save-indicator" id="save-indicator">✓ Sauvegardé</span>
+    <div class="spacer"></div>
+    <button class="btn" onclick="openDeckListModal()">📚 Mes decks</button>
+    <button class="btn primary" onclick="newDeck()">➕ Nouveau deck</button>
+    <div id="sc-auth-slot"></div>
+  </div>
+
+  <div id="right-toolbar">
     <div class="dropdown-wrap">
       <button class="btn small" onclick="toggleFilterPanel()">🔎 Filtrer</button>
       <div class="dropdown-panel" id="filter-panel"></div>
@@ -285,11 +294,6 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
       <option value="rarity">Rareté</option>
     </select>
     <span class="results-count" id="results-count"></span>
-    <div class="spacer"></div>
-    <span class="save-indicator" id="save-indicator">✓ Sauvegardé</span>
-    <button class="btn" onclick="openDeckListModal()">📚 Mes decks</button>
-    <button class="btn primary" onclick="newDeck()">➕ Nouveau deck</button>
-    <div id="sc-auth-slot"></div>
   </div>
 
   <div id="wizard-hint" style="display:none;"></div>
