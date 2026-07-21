@@ -261,7 +261,7 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .card-rarity-gem.rarity-Commune{background:#c7c2b3;color:#c7c2b3;}
 .card-rarity-gem.rarity-Rare{background:var(--frost);color:var(--frost);}
 .card-rarity-gem.rarity-Épique{background:var(--arcane);color:var(--arcane);}
-.card-rarity-gem.rarity-Légendaire{background:var(--gold);color:var(--gold);}
+.card-rarity-gem.rarity-Mythique{background:var(--gold);color:var(--gold);}
 .charges{color:var(--frost);font-size:11px;font-weight:700;position:absolute;bottom:5px;right:6px;z-index:2;}
 
 .hand-row{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:9px;justify-content:center;padding:55px 14px 6px;pointer-events:none;scrollbar-width:none;background:transparent !important;box-shadow:none;border:none;}
@@ -592,8 +592,15 @@ function fireResolvedEffect(eff, p, key, sourceCreature, targetOverride, eventCr
   if(targetOverride){
     applySpellEffect(resolved, p, key, targetOverride);
   } else if(effectNeedsTarget(resolved)){
-    if(eventCreature && resolved.targetOwner!=='enemy' && TARGETED_EFFECTS.includes(resolved.type)){
-      applySpellEffect(resolved, p, key, {isHeroTarget:false, creature:eventCreature, player:p});
+    const oppKey = key==='p1' ? 'p2' : 'p1';
+    const eventCreatureIsAlly = eventCreature && p.board.includes(eventCreature);
+    const eventCreatureIsEnemy = eventCreature && S[oppKey].board.includes(eventCreature);
+    const eventCreatureMatchesWanted =
+      (resolved.targetOwner==='enemy' && eventCreatureIsEnemy) ||
+      (resolved.targetOwner!=='enemy' && eventCreatureIsAlly);
+    if(eventCreature && eventCreatureMatchesWanted && TARGETED_EFFECTS.includes(resolved.type)){
+      const owner = eventCreatureIsEnemy ? S[oppKey] : p;
+      applySpellEffect(resolved, p, key, {isHeroTarget:false, creature:eventCreature, player:owner});
     } else {
       applySpellEffect(resolved, p, key, autoResolveTargetForTriggeredEffect(resolved, p, key, sourceCreature));
     }
@@ -1734,6 +1741,10 @@ function applySpellEffect(effect, caster, casterKey, target){
     return;
   }
   const targetKey = casterKey==='p1' ? 'p2' : 'p1';
+  if(target && target.creature && !target.isHeroTarget && TARGETED_EFFECTS.includes(effect.type)){
+    const designatedKey = target.player===S.p1 ? 'p1' : target.player===S.p2 ? 'p2' : casterKey;
+    fireWatchTrigger('watchTargeted', designatedKey, target.creature);
+  }
   switch(effect.type){
     case 'damage': {
       const amt = effect.amount;

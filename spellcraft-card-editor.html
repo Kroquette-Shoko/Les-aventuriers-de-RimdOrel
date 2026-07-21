@@ -171,7 +171,7 @@ header .spacer{flex:1;}
 .card-rarity-gem.rarity-Commune{background:#c7c2b3;color:#c7c2b3;}
 .card-rarity-gem.rarity-Rare{background:var(--frost);color:var(--frost);}
 .card-rarity-gem.rarity-Épique{background:var(--arcane);color:var(--arcane);}
-.card-rarity-gem.rarity-Légendaire{background:var(--gold);color:var(--gold);}
+.card-rarity-gem.rarity-Mythique{background:var(--gold);color:var(--gold);}
 .charges-tag{position:absolute;right:12px;bottom:8px;color:var(--frost);font-size:10px;font-weight:700;}
 
 #preview-big{margin-bottom:56px;transform:scale(1.35);transform-origin:top center;}
@@ -268,8 +268,14 @@ header .spacer{flex:1;}
           <div class="field">
             <label>Rareté</label>
             <select id="f-rarity" onchange="onFormChange()">
-              <option>Basique</option><option>Commune</option><option>Rare</option><option>Épique</option><option>Légendaire</option>
+              <option>Basique</option><option>Commune</option><option>Rare</option><option>Épique</option><option>Mythique</option>
             </select>
+          </div>
+          <div class="field">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="checkbox" id="f-legendary" onchange="onFormChange()" style="width:auto;"> Super-type Légendaire
+            </label>
+            <div class="hint" style="margin-top:4px;">Un seul exemplaire autorisé par deck, quelle que soit la rareté.</div>
           </div>
         </div>
 
@@ -293,7 +299,7 @@ header .spacer{flex:1;}
             <input type="text" id="f-subtype-entry" placeholder="Tape puis Entrée..." onkeydown="onSubtypeKeydown(event)">
           </div>
           <div class="chip-suggestions">
-            <span class="chip-suggest" onclick="addSubtype('Légendaire')">+ Légendaire</span>
+            <span class="chip-suggest" onclick="addSubtype('Mythique')">+ Mythique</span>
             <span class="chip-suggest" onclick="addSubtype('Bête')">+ Bête</span>
             <span class="chip-suggest" onclick="addSubtype('Elfe')">+ Elfe</span>
             <span class="chip-suggest" onclick="addSubtype('Mort-vivant')">+ Mort-vivant</span>
@@ -484,7 +490,7 @@ header .spacer{flex:1;}
                 <div><label class="mini-field">Commune</label><input type="number" class="bf-rarity" data-rarity="Commune" value="40" min="0" max="100" oninput="updateBoosterTotal()"></div>
                 <div><label class="mini-field">Rare</label><input type="number" class="bf-rarity" data-rarity="Rare" value="20" min="0" max="100" oninput="updateBoosterTotal()"></div>
                 <div><label class="mini-field">Épique</label><input type="number" class="bf-rarity" data-rarity="Épique" value="8" min="0" max="100" oninput="updateBoosterTotal()"></div>
-                <div><label class="mini-field">Légendaire</label><input type="number" class="bf-rarity" data-rarity="Légendaire" value="2" min="0" max="100" oninput="updateBoosterTotal()"></div>
+                <div><label class="mini-field">Mythique</label><input type="number" class="bf-rarity" data-rarity="Mythique" value="2" min="0" max="100" oninput="updateBoosterTotal()"></div>
               </div>
             </div>
             <div style="display:flex;gap:8px;margin-top:10px;">
@@ -550,7 +556,7 @@ header .spacer{flex:1;}
 /* CLASSES, CLASS_COLORS, RARITIES, CARD_TYPES, KEYWORDS, escapeHtml et migrateCard
    viennent maintenant de spellcraft-shared.js (chargé juste avant ce script). */
 
-const WATCH_TRIGGERS = ['watchPlay','watchDeath','watchAttack','watchDamaged','watchHealed','watchHeroHealed','watchSpell','watchTrap','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchAfterReveal','watchReveal','watchExplore','watchRetrieveDiscard','watchRetrieveDeck'];
+const WATCH_TRIGGERS = ['watchPlay','watchDeath','watchAttack','watchDamaged','watchHealed','watchHeroHealed','watchSpell','watchTrap','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchAfterReveal','watchReveal','watchExplore','watchRetrieveDiscard','watchRetrieveDeck','watchTargeted'];
 
 const TRIGGERS_BY_TYPE = {
   'Créature': ['onPlay','onAttack','onDamaged','onHealed','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype', ...WATCH_TRIGGERS,'activated'],
@@ -610,6 +616,7 @@ const TRIGGER_TEXT = {
   watchExplore: 'Quand un joueur explore',
   watchRetrieveDiscard: 'Quand une carte est récupérée depuis la défausse',
   watchRetrieveDeck: 'Quand une carte est récupérée depuis le deck',
+  watchTargeted: 'Quand une créature est désignée (ciblée par un effet)',
   activated: 'Capacité activée (payez du mana)'
 };
 
@@ -2441,6 +2448,7 @@ function readForm(){
     hero: document.getElementById('f-hero').value.trim(),
     set: document.getElementById('f-set').value.trim(),
     rarity: document.getElementById('f-rarity').value,
+    isLegendary: document.getElementById('f-legendary').checked,
     foil: document.getElementById('f-foil').checked,
     image: document.getElementById('f-image').value.trim(),
     imagePosX: parseInt(document.getElementById('f-image-x').value) || 50,
@@ -2492,6 +2500,7 @@ function loadCardIntoForm(card){
   document.getElementById('f-class').value = card.class || 'Neutre';
   document.getElementById('f-class2').value = card.classSecondary || '';
   document.getElementById('f-rarity').value = card.rarity || 'Commune';
+  document.getElementById('f-legendary').checked = !!card.isLegendary;
   document.getElementById('f-foil').checked = !!card.foil;
   document.getElementById('f-extracost-enabled').checked = !!card.extraCostEnabled;
   document.getElementById('f-extracost-type').value = card.extraCostType || 'sacrificeCreature';
@@ -2543,6 +2552,7 @@ function newCard(){
   document.getElementById('f-class').value = 'Neutre';
   document.getElementById('f-class2').value = '';
   document.getElementById('f-rarity').value = 'Commune';
+  document.getElementById('f-legendary').checked = false;
   document.getElementById('f-foil').checked = false;
   document.getElementById('f-extracost-enabled').checked = false;
   document.getElementById('f-extracost-type').value = 'sacrificeCreature';
@@ -2902,7 +2912,7 @@ let boostersCache = [];
 let cardBacksCache = [];
 let editingBoosterId = null;
 let editingCardBackId = null;
-const RARITY_KEYS = ['Basique','Commune','Rare','Épique','Légendaire'];
+const RARITY_KEYS = ['Basique','Commune','Rare','Épique','Mythique'];
 
 async function loadShopAdmin(){
   const [{data: boosters}, {data: backs}] = await Promise.all([
@@ -2940,7 +2950,7 @@ function newBoosterForm(){
   document.getElementById('bf-name').value = '';
   document.getElementById('bf-price').value = 120;
   document.getElementById('bf-image').value = '';
-  const defaults = {Basique:30, Commune:40, Rare:20, 'Épique':8, 'Légendaire':2};
+  const defaults = {Basique:30, Commune:40, Rare:20, 'Épique':8, 'Mythique':2};
   document.querySelectorAll('.bf-rarity').forEach(inp=>{ inp.value = defaults[inp.dataset.rarity]; });
   updateBoosterTotal();
   document.getElementById('booster-form').style.display = 'block';

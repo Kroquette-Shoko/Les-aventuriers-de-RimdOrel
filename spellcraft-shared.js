@@ -23,7 +23,7 @@ const CLASS_COLORS = {
 };
 function getClassColor(className){ return CLASS_COLORS[className] || CLASS_COLORS.Neutre; }
 
-const RARITIES = ['Basique','Commune','Rare','Épique','Légendaire'];
+const RARITIES = ['Basique','Commune','Rare','Épique','Mythique'];
 const CARD_TYPES = ['Héros','Région','Créature','Artefact','Sortilège','Piège'];
 
 const KEYWORDS = [

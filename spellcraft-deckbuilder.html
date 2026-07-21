@@ -173,7 +173,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 .card-rarity-gem.rarity-Commune{background:#c7c2b3;color:#c7c2b3;}
 .card-rarity-gem.rarity-Rare{background:var(--frost);color:var(--frost);}
 .card-rarity-gem.rarity-Épique{background:var(--arcane);color:var(--arcane);}
-.card-rarity-gem.rarity-Légendaire{background:var(--gold);color:var(--gold);}
+.card-rarity-gem.rarity-Mythique{background:var(--gold);color:var(--gold);}
 
 /* ---------- Deck panel ---------- */
 #deck-header{padding:14px 16px;border-bottom:1px solid #2b2440;flex-shrink:0;}
@@ -276,7 +276,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 .mlc-rarity-gem.rarity-Commune{background:#c7c2b3;color:#c7c2b3;}
 .mlc-rarity-gem.rarity-Rare{background:var(--frost);color:var(--frost);}
 .mlc-rarity-gem.rarity-Épique{background:var(--arcane);color:var(--arcane);}
-.mlc-rarity-gem.rarity-Légendaire{background:var(--gold);color:var(--gold);}
+.mlc-rarity-gem.rarity-Mythique{background:var(--gold);color:var(--gold);}
 .hp-linked-empty{font-size:12px;color:var(--parchment-dim);font-style:italic;}
 </style>
 </head>
@@ -721,7 +721,7 @@ function getFilteredSortedCollection(){
     case 'cost-desc': list.sort((a,b)=>costOf(b)-costOf(a) || a.name.localeCompare(b.name)); break;
     case 'class': list.sort((a,b)=>(a.class||'').localeCompare(b.class||'') || a.name.localeCompare(b.name)); break;
     case 'rarity': {
-      const order = {Basique:0, Commune:1, Rare:2, Épique:3, Légendaire:4};
+      const order = {Basique:0, Commune:1, Rare:2, Épique:3, Mythique:4};
       list.sort((a,b)=>(order[a.rarity]??0)-(order[b.rarity]??0) || a.name.localeCompare(b.name));
       break;
     }
@@ -1238,7 +1238,7 @@ function changePage(dir){
 }
 
 function maxCopiesFor(card){
-  const ruleMax = card.rarity==='Légendaire' ? 1 : MAX_COPIES;
+  const ruleMax = card.isLegendary ? 1 : MAX_COPIES;
   const owned = ownedCollection[card.id] ?? ruleMax; // repli permissif si l'info n'a pas pu être chargée
   return Math.min(ruleMax, owned);
 }
@@ -1504,7 +1504,7 @@ function renderDeckPanel(){
     row.className='deck-row';
     row.innerHTML = `
       <div class="drow-cost">${c.cost ?? '–'}</div>
-      <div class="drow-name" title="${escapeHtml(c.name)}">${escapeHtml(c.name)}${c.rarity==='Légendaire'?' ✦':''}</div>
+      <div class="drow-name" title="${escapeHtml(c.name)}">${escapeHtml(c.name)}${c.isLegendary?' ✦':''}</div>
       <div class="drow-count">x${entry.count}</div>
       <div class="drow-btns">
         <button class="drow-btn" data-act="minus">−</button>

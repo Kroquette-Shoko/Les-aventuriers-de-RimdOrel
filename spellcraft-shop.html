@@ -113,7 +113,7 @@ header .spacer{flex:1;}
 .card-rarity-gem.rarity-Commune{background:#c7c2b3;color:#c7c2b3;}
 .card-rarity-gem.rarity-Rare{background:#4fb3d9;color:#4fb3d9;}
 .card-rarity-gem.rarity-Épique{background:#7c5cff;color:#7c5cff;}
-.card-rarity-gem.rarity-Légendaire{background:var(--gold);color:var(--gold);}
+.card-rarity-gem.rarity-Mythique{background:var(--gold);color:var(--gold);}
 .card-foil-layer{position:absolute;inset:0;border-radius:inherit;overflow:hidden;pointer-events:none;z-index:9;}
 .card-foil-layer::before{
   content:'';position:absolute;top:-60%;left:-70%;width:70%;height:220%;
@@ -238,9 +238,9 @@ header .spacer{flex:1;}
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>
 <script>
-const RARITY_COLORS = {Basique:'#8a7f6a', Commune:'#c7c2b3', Rare:'#4fb3d9', Épique:'#7c5cff', Légendaire:'#d4af37'};
+const RARITY_COLORS = {Basique:'#8a7f6a', Commune:'#c7c2b3', Rare:'#4fb3d9', Épique:'#7c5cff', Mythique:'#d4af37'};
 const BOOSTER_PRICE = 120;
-const SINGLE_CARD_PRICES = {Basique:20, Commune:50, Rare:150, 'Épique':250, 'Légendaire':500};
+const SINGLE_CARD_PRICES = {Basique:20, Commune:50, Rare:150, 'Épique':250, 'Mythique':500};
 const GEM_NAMES = {Volonté:'Rubis', Aube:'Diamant', 'Crépuscule':'Obsidienne', Arcane:'Saphir', Prima:'Émeraude'};
 
 // Répliques d'accueil de Bruno — on en ajoutera d'autres plus tard, une est tirée au hasard à chaque visite.
