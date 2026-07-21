@@ -33,9 +33,11 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--bg-void);color:v
   pointer-events:none;white-space:nowrap;text-align:center;
 }
 
-/* ---------- Le panneau d'affichage : occupe tout l'écran ---------- */
+/* ---------- Le panneau d'affichage : taille classique, centré, jamais étiré ---------- */
 #board{
-  position:relative;width:100vw;height:calc(100vw * 1086 / 1448);
+  position:relative;
+  width:min(92vw, 92vh * 1448 / 1086);
+  height:min(92vh, 92vw * 1086 / 1448);
   background:url('images/hub-bg-board.png') center/100% 100% no-repeat;
   margin:0;
 }
@@ -149,14 +151,6 @@ footer strong{color:var(--parchment);}
       <span class="poster-label">Succès</span>
     </div>
   </div>
-
-  <div class="note">
-    Les trois outils partagent la même collection et les mêmes decks automatiquement. Garde tous les fichiers (y compris le dossier images/) dans le même dossier pour que tout fonctionne.
-  </div>
-
-  <footer>
-    <strong>Ordre conseillé :</strong> crée tes cartes dans l'éditeur → construis un deck dans le classeur (héros + région + 30 cartes) → lance une partie.
-  </footer>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>

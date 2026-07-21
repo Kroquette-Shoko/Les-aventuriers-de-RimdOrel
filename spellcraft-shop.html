@@ -35,17 +35,17 @@ header .spacer{flex:1;}
 
 /* ---------- barre de monnaie ---------- */
 #currency-bar{display:flex;align-items:center;gap:10px;background:var(--bg-panel);border:1px solid #3a3260;border-radius:12px;padding:8px 14px;flex-wrap:wrap;}
-.currency-chip{display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;padding:4px 9px;border-radius:14px;background:var(--bg-panel-2);}
+.currency-chip{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;padding:5px 12px;border-radius:18px;background:var(--bg-panel-2);}
 .currency-chip .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
-.currency-chip .gem-icon{width:14px;height:14px;flex-shrink:0;background-size:contain;background-repeat:no-repeat;background-position:center;}
+.currency-chip .gem-icon{width:30px;height:30px;flex-shrink:0;background-size:contain;background-repeat:no-repeat;background-position:center;}
 .currency-chip.gold .dot{background:var(--gold);}
 .currency-chip.aube .gem-icon{background-color:#d4af37;-webkit-mask-image:url('images/gem-aub.png');mask-image:url('images/gem-aub.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;}
 .currency-chip.crepuscule .gem-icon{background-color:#8a5cf0;-webkit-mask-image:url('images/gem-crep.png');mask-image:url('images/gem-crep.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;}
 .currency-chip.volonte .gem-icon{background-color:#c23b3b;-webkit-mask-image:url('images/gem-vol.png');mask-image:url('images/gem-vol.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;}
 .currency-chip.prima .gem-icon{background-color:#3fae5c;-webkit-mask-image:url('images/gem-prim.png');mask-image:url('images/gem-prim.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;}
 .currency-chip.arcane .gem-icon{background-color:#5b9bd5;-webkit-mask-image:url('images/gem-arc.png');mask-image:url('images/gem-arc.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;}
-.money-icon{width:14px;height:14px;display:inline-block;vertical-align:-2px;background-image:url('images/money.png');background-size:contain;background-repeat:no-repeat;background-position:center;}
-.frag-toast-icon{width:14px;height:14px;vertical-align:-2px;margin-right:3px;}
+.money-icon{width:30px;height:30px;display:inline-block;vertical-align:-8px;background-image:url('images/money.png');background-size:contain;background-repeat:no-repeat;background-position:center;}
+.frag-toast-icon{width:30px;height:30px;vertical-align:-8px;margin-right:5px;}
 .frag-summary-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);opacity:0;transition:opacity .3s,transform .3s;background:rgba(15,12,20,.94);border:1px solid var(--gold);border-radius:12px;padding:12px 20px;z-index:200;display:flex;flex-direction:column;gap:5px;box-shadow:0 10px 30px rgba(0,0,0,.6);}
 .frag-summary-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 .frag-toast-title{font-family:'Cinzel',serif;color:var(--gold);font-size:13px;margin-bottom:2px;}
