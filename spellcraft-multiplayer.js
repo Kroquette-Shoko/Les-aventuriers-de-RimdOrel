@@ -93,7 +93,8 @@ function mpSwapPerspective(hostState){
     ...hostState,
     p1: hostState.p2,
     p2: hostState.p1,
-    active: hostState.active==='p1' ? 'p2' : 'p1'
+    active: hostState.active==='p1' ? 'p2' : 'p1',
+    winnerKey: hostState.winnerKey==='p1' ? 'p2' : (hostState.winnerKey==='p2' ? 'p1' : hostState.winnerKey)
   };
 }
 
@@ -145,9 +146,14 @@ function mpApplyGuestAction(action){
     case 'confirmAttackers':
       if(S.active==='p2'){ S.selectedAttackers = action.selectedAttackers || []; confirmAttackers(); }
       break;
-    case 'confirmBlocks':
-      S.p2.blocks = action.blocks || {};
-      confirmBlocks();
+    case 'beginPlayerBlock':
+      if(S.phase==='declareBlockersMe') beginPlayerBlock(action.instId);
+      break;
+    case 'assignBlock':
+      if(S.phase==='declareBlockersMe') assignBlock(action.attackerInstId);
+      break;
+    case 'finishBlocking':
+      if(S.phase==='declareBlockersMe') finishBlocking();
       break;
   }
 }
@@ -180,7 +186,17 @@ function mpStartAsGuest(roomId){
   endTurn = function(){ mpSendAction('endTurn'); };
   enterDeclareAttackers = function(){ mpSendAction('enterDeclareAttackers'); };
   confirmAttackers = function(){ mpSendAction('confirmAttackers', { selectedAttackers: S.selectedAttackers||[] }); };
-  confirmBlocks = function(){ mpSendAction('confirmBlocks', { blocks: (S.p1 && S.p1.blocks) || {} }); };
+  beginPlayerBlock = function(myCreatureInstId){
+    mpSendAction('beginPlayerBlock', { instId: myCreatureInstId });
+    S.pendingBlocker = myCreatureInstId; // retour visuel local immédiat (surbrillance) en attendant l'état officiel
+    render();
+  };
+  assignBlock = function(attackerInstId){
+    if(!S.pendingBlocker) return;
+    mpSendAction('assignBlock', { blockerInstId: S.pendingBlocker, attackerInstId });
+    S.pendingBlocker = null;
+  };
+  finishBlocking = function(){ mpSendAction('finishBlocking'); };
 
   MP_CHANNEL = sb.channel(`game-${roomId}`, { config:{ broadcast:{ self:false } } });
   MP_CHANNEL.on('broadcast', {event:'state'}, ({payload})=>{

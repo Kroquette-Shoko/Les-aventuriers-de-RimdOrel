@@ -2324,7 +2324,8 @@ function resolveOneCombat(attacker, atkP, atkKey, blocker, defP, defKey){
    ============================================================ */
 function beginPlayerBlock(myCreatureInstId){
   if(S.phase!=='declareBlockersMe') return;
-  const c = S.p1.board.find(x=>x.instId===myCreatureInstId);
+  const defKey = S.active==='p1' ? 'p2' : 'p1';
+  const c = S[defKey].board.find(x=>x.instId===myCreatureInstId);
   if(c && c.hasBlockedThisTurn){
     log(`${c.name} a déjà combattu ce tour-ci, elle ne peut plus bloquer.`);
     return;
@@ -2334,8 +2335,9 @@ function beginPlayerBlock(myCreatureInstId){
 }
 function assignBlock(attackerInstId){
   if(S.phase!=='declareBlockersMe' || !S.pendingBlocker) return;
-  const blocker = S.p1.board.find(c=>c.instId===S.pendingBlocker);
-  const attacker = S.p2.board.find(c=>c.instId===attackerInstId);
+  const atkKeyEarly = S.active, defKeyEarly = S.active==='p1' ? 'p2' : 'p1';
+  const blocker = S[defKeyEarly].board.find(c=>c.instId===S.pendingBlocker);
+  const attacker = S[atkKeyEarly].board.find(c=>c.instId===attackerInstId);
   if(!blocker || !attacker) return;
   if(blocker.hasBlockedThisTurn){
     S.pendingBlocker=null; render(); return;
@@ -2375,7 +2377,8 @@ function assignBlock(attackerInstId){
   render();
 }
 function anyBlockerAvailable(){
-  return S.p1.board.some(c=>!c.hasBlockedThisTurn && !c.frozen && !c.stunned);
+  const defKey = S.active==='p1' ? 'p2' : 'p1';
+  return S[defKey].board.some(c=>!c.hasBlockedThisTurn && !c.frozen && !c.stunned);
 }
 function finishBlocking(){
   if(S.phase!=='declareBlockersMe') return; // déjà validé une fois, un second clic (double-clic) ne fait rien
@@ -2836,7 +2839,11 @@ function onCreatureClick(key, c, ev){
 
   // blocage : je clique ma créature (bloqueur), puis l'attaquant adverse
   if(S.phase==='declareBlockersMe'){
-    if(key==='p1'){
+    const atkKeyC = S.active, defKeyC = S.active==='p1' ? 'p2' : 'p1';
+    // en multijoueur, si je suis l'hôte et que c'est à l'invité (p2) de bloquer,
+    // je ne dois pas pouvoir interagir moi-même à sa place — j'attends son action réseau.
+    if(typeof MP_MODE!=='undefined' && MP_MODE==='host' && defKeyC==='p2') return;
+    if(key===defKeyC){
       if(c.keywords.includes('fearful')){
         log(`${c.name} est Peureux et ne peut pas bloquer.`);
         return;
@@ -2844,7 +2851,7 @@ function onCreatureClick(key, c, ev){
       if(!c.frozen && !c.stunned){ beginPlayerBlock(c.instId); }
       return;
     }
-    if(key==='p2' && S.pendingBlocker){
+    if(key===atkKeyC && S.pendingBlocker){
       assignBlock(c.instId);
       return;
     }
