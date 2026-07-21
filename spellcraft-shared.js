@@ -249,12 +249,25 @@ const SFX_VARIANTS = {
   draw: ['draw-1','draw-2'],
 };
 let sfxMuted = false;
+let musicVolumeLevel = 0.7;
+let sfxVolumeLevel = 0.7;
 try { sfxMuted = localStorage.getItem('sfxMuted') === 'true'; } catch(e){}
+try { const v = parseFloat(localStorage.getItem('musicVolumeLevel')); if(!isNaN(v)) musicVolumeLevel = v; } catch(e){}
+try { const v = parseFloat(localStorage.getItem('sfxVolumeLevel')); if(!isNaN(v)) sfxVolumeLevel = v; } catch(e){}
 
 function setSfxMuted(muted){
   sfxMuted = muted;
   try { localStorage.setItem('sfxMuted', muted ? 'true' : 'false'); } catch(e){}
   if(muted) stopMusic();
+}
+function setMusicVolumeLevel(v){
+  musicVolumeLevel = Math.max(0, Math.min(1, v));
+  try { localStorage.setItem('musicVolumeLevel', musicVolumeLevel); } catch(e){}
+  if(currentMusicAudio) currentMusicAudio.volume = musicVolumeLevel * (currentMusicBaseVolume||0.4);
+}
+function setSfxVolumeLevel(v){
+  sfxVolumeLevel = Math.max(0, Math.min(1, v));
+  try { localStorage.setItem('sfxVolumeLevel', sfxVolumeLevel); } catch(e){}
 }
 
 // Joue un effet sonore ponctuel depuis sfx/. Si `key` correspond à une famille
@@ -269,22 +282,24 @@ function playSfx(key, volume=0.6){
       file = arr[Math.floor(Math.random()*arr.length)];
     }
     const audio = new Audio(`sfx/${file}.mp3`);
-    audio.volume = volume;
+    audio.volume = volume * sfxVolumeLevel;
     audio.play().catch(()=>{});
   }catch(e){}
 }
 
 let currentMusicAudio = null;
+let currentMusicBaseVolume = 0.4;
 let musicGeneration = 0;
 
 // Musique simple, en boucle (ex: musique de la boutique).
 function playMusic(name, {loop=true, volume=0.4}={}){
   if(sfxMuted) return;
   stopMusic();
+  currentMusicBaseVolume = volume;
   try{
     currentMusicAudio = new Audio(`music/${name}.ogg`);
     currentMusicAudio.loop = loop;
-    currentMusicAudio.volume = volume;
+    currentMusicAudio.volume = volume * musicVolumeLevel;
     currentMusicAudio.play().catch(()=>{});
   }catch(e){}
 }
@@ -296,6 +311,7 @@ let lastCombatTrack = null;
 function playCombatMusicRotation(volume=0.35){
   if(sfxMuted) return;
   stopMusic();
+  currentMusicBaseVolume = volume;
   const myGen = ++musicGeneration;
   const playNext = ()=>{
     if(myGen !== musicGeneration) return; // une autre musique a pris le relais depuis
@@ -306,7 +322,7 @@ function playCombatMusicRotation(volume=0.35){
     try{
       const audio = new Audio(`music/${track}.ogg`);
       audio.loop = false;
-      audio.volume = volume;
+      audio.volume = volume * musicVolumeLevel;
       audio.addEventListener('ended', playNext);
       audio.play().catch(()=>{});
       currentMusicAudio = audio;
@@ -327,3 +343,57 @@ function playFinalSfx(key, volume=0.8){
   stopMusic();
   playSfx(key, volume);
 }
+
+/* ---------- Menu d'options (icône engrenage, en haut à droite de chaque page) ---------- */
+function injectOptionsMenu(){
+  if(document.getElementById('sc-options-gear')) return; // déjà injecté
+  const style = document.createElement('style');
+  style.textContent = `
+    #sc-options-gear{position:fixed;top:10px;right:10px;z-index:99999;width:36px;height:36px;border-radius:50%;
+      background:rgba(23,19,37,.85);border:1px solid rgba(212,175,55,.45);cursor:pointer;padding:0;
+      display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,.4);transition:transform .15s;}
+    #sc-options-gear:hover{transform:rotate(25deg);border-color:#d4af37;}
+    #sc-options-gear img{width:20px;height:20px;pointer-events:none;}
+    #sc-options-modal{display:none;position:fixed;top:52px;right:10px;z-index:99999;
+      background:rgba(15,12,20,.97);border:1px solid #d4af37;border-radius:12px;padding:16px 18px;width:230px;
+      box-shadow:0 12px 34px rgba(0,0,0,.6);font-family:'Inter',sans-serif;color:#f2ead2;}
+    #sc-options-modal.show{display:block;}
+    #sc-options-modal .sc-opt-title{font-family:'Cinzel',serif;font-weight:700;color:#d4af37;margin-bottom:12px;font-size:14px;}
+    #sc-options-modal label.sc-opt-label{display:block;font-size:11.5px;color:#c8beb0;margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px;}
+    #sc-options-modal input[type=range]{width:100%;margin-bottom:14px;accent-color:#d4af37;}
+    #sc-options-modal .sc-opt-mute{display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer;padding-top:2px;border-top:1px solid rgba(212,175,55,.2);padding-top:10px;}
+  `;
+  document.head.appendChild(style);
+
+  const gear = document.createElement('button');
+  gear.id = 'sc-options-gear';
+  gear.title = 'Options';
+  gear.innerHTML = `<img src="images/gear.png" alt="Options">`;
+
+  const modal = document.createElement('div');
+  modal.id = 'sc-options-modal';
+  modal.innerHTML = `
+    <div class="sc-opt-title">Options audio</div>
+    <label class="sc-opt-label">Musique</label>
+    <input type="range" id="sc-music-vol-slider" min="0" max="100" value="${Math.round(musicVolumeLevel*100)}">
+    <label class="sc-opt-label">Effets sonores</label>
+    <input type="range" id="sc-sfx-vol-slider" min="0" max="100" value="${Math.round(sfxVolumeLevel*100)}">
+    <label class="sc-opt-mute">
+      <input type="checkbox" id="sc-mute-checkbox" ${sfxMuted?'checked':''}> Tout couper
+    </label>
+  `;
+
+  document.body.appendChild(gear);
+  document.body.appendChild(modal);
+
+  gear.onclick = (e)=>{ e.stopPropagation(); modal.classList.toggle('show'); };
+  document.addEventListener('click', (e)=>{
+    if(modal.classList.contains('show') && !modal.contains(e.target) && e.target!==gear){
+      modal.classList.remove('show');
+    }
+  });
+  document.getElementById('sc-music-vol-slider').oninput = (e)=>setMusicVolumeLevel(e.target.value/100);
+  document.getElementById('sc-sfx-vol-slider').oninput = (e)=>setSfxVolumeLevel(e.target.value/100);
+  document.getElementById('sc-mute-checkbox').onchange = (e)=>setSfxMuted(e.target.checked);
+}
+document.addEventListener('DOMContentLoaded', injectOptionsMenu);

@@ -188,7 +188,6 @@ header .spacer{flex:1;}
     <a class="back-link" href="spellcraft-hub.html">← Retour au hub</a>
     <h1>🛒 Boutique</h1>
     <div class="spacer"></div>
-    <button id="sfx-toggle-btn" onclick="toggleSfxMuted()" class="btn small" style="margin-right:6px;">🔊 Son</button>
     <div id="sc-auth-slot"></div>
   </header>
 
@@ -654,19 +653,6 @@ async function showRevealModal(title, items){
 
 function openModal(id){ document.getElementById(id).classList.add('show'); }
 function closeModal(id){ document.getElementById(id).classList.remove('show'); }
-
-function toggleSfxMuted(){
-  setSfxMuted(!sfxMuted);
-  const btn = document.getElementById('sfx-toggle-btn');
-  if(btn) btn.textContent = sfxMuted ? '🔇 Son coupé' : '🔊 Son';
-  if(!sfxMuted && !currentMusicAudio){
-    playMusic('bruno-shop', {loop:true, volume:0.3});
-  }
-}
-document.addEventListener('DOMContentLoaded', ()=>{
-  const btn = document.getElementById('sfx-toggle-btn');
-  if(btn) btn.textContent = sfxMuted ? '🔇 Son coupé' : '🔊 Son';
-});
 
 async function initShop(){
   renderBrunoLine();
