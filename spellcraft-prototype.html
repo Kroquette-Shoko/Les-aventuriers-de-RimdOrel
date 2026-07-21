@@ -289,6 +289,10 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 
 /* ---------- Log panel ---------- */
 #log-panel{width:230px;background:var(--bg-panel);border-left:1px solid #2b2440;padding:14px 14px 40px;display:flex;flex-direction:column;min-height:0;}
+
+/* Bouton d'options : décalé sous le bouton Menu principal pour ne pas le chevaucher (taille déjà correcte par défaut) */
+#sc-options-gear{top:66px !important;right:14px !important;}
+#sc-options-modal{top:126px !important;}
 #log-panel h3{font-family:'Cinzel',serif;font-size:13px;margin:0 0 10px;color:var(--gold);letter-spacing:1px;}
 #log{flex:1;overflow-y:auto;font-size:11px;line-height:1.5;color:var(--parchment-dim);display:flex;flex-direction:column-reverse;}
 #log div{padding:3px 0;border-bottom:1px solid #241f38;}
@@ -350,7 +354,7 @@ body.targeting *{cursor:crosshair !important;}
       <div class="hero-row self" id="hero-p1"></div>
     </div>
     <div id="log-panel">
-      <a href="spellcraft-hub.html" style="display:inline-block;margin-bottom:10px;font-size:11px;color:var(--parchment-dim);text-decoration:none;border:1px solid #3a3260;border-radius:6px;padding:5px 10px;">🏠 Retour au hub</a>
+      <a href="spellcraft-hub.html" style="display:inline-block;margin-bottom:10px;font-size:15px;font-weight:800;color:var(--gold);text-decoration:none;border:1.5px solid var(--gold);border-radius:8px;padding:10px 16px;">🏠 Menu principal</a>
       <h3>Journal</h3>
       <div id="log"></div>
     </div>
@@ -3302,7 +3306,7 @@ function dsBox(){ return document.getElementById('deck-select-box'); }
 
 function renderDeckSelectStep1(){
   const box = dsBox();
-  const hubLink = '<a href="spellcraft-hub.html" style="display:inline-block;margin-bottom:14px;font-size:11px;color:var(--parchment-dim);text-decoration:none;border:1px solid #3a3260;border-radius:6px;padding:5px 10px;">🏠 Retour au hub</a>';
+  const hubLink = '<a href="spellcraft-hub.html" style="display:inline-block;margin-bottom:14px;font-size:15px;font-weight:800;color:var(--gold);text-decoration:none;border:1.5px solid var(--gold);border-radius:8px;padding:10px 16px;">🏠 Menu principal</a>';
   if(LOADED_DECKS.length===0){
     box.innerHTML = hubLink + `
       <h1>🃏 Spellcraft</h1>
