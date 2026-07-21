@@ -744,6 +744,11 @@ function matchesComparator(cardValue, mode, targetStr){
 function buildCardEl(card, opts={}){
   const el = document.createElement('div');
   el.className = `card class-${card.class||'Arcane'}`;
+  if(card.classSecondary){
+    const CLASS_COLORS = {Aube:'#d4af37', Crépuscule:'#4b0082', Prima:'#228b22', Volonté:'#8b0000', Arcane:'#4682b4', Neutre:'#c0c0c0'};
+    const c1 = CLASS_COLORS[card.class]||'#c0c0c0', c2 = CLASS_COLORS[card.classSecondary]||'#c0c0c0';
+    el.style.borderImage = `linear-gradient(135deg, ${c1} 45%, ${c2} 55%) 1`;
+  }
   const posX = card.imagePosX ?? 50, posY = card.imagePosY ?? 50, zoom = card.imageZoom ?? 100;
   const sizeVal = zoom>100 ? zoom+'%' : 'cover';
   const artStyle = card.image ? `background-image:url('${card.image.replace(/'/g,"")}');background-position:${posX}% ${posY}%;background-size:${sizeVal};` : '';

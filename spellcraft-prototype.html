@@ -249,7 +249,8 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .card-body{flex:1;padding:3px 7px 2px;display:flex;flex-direction:column;min-height:0;}
 .card-name{font-family:'Cinzel',serif;font-weight:700;font-size:11px;text-align:center;text-decoration:underline;text-underline-offset:2.5px;color:#1c1830;line-height:1.2;margin-bottom:3px;min-height:24px;}
 .card-kw{font-size:8px;color:var(--arcane);font-weight:700;min-height:10px;text-align:center;}
-.card-text{font-size:8.2px;line-height:1.2;flex:1;color:#2a2338;overflow:hidden;white-space:pre-wrap;text-align:center;}
+.card-text{font-size:8.2px;line-height:1.2;flex:1;color:#2a2338;overflow-y:auto;white-space:pre-wrap;text-align:center;}
+.card-typeline{position:absolute;left:0;top:0;bottom:0;width:11px;background:rgba(15,12,20,.6);color:#f2ead2;writing-mode:vertical-rl;transform:rotate(180deg);display:flex;align-items:flex-start;justify-content:flex-start;font-size:5px;letter-spacing:.2px;text-transform:uppercase;padding:5px 0 16px;text-align:center;z-index:1;}
 .card-footer{height:27px;flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:space-between;padding:0 7px 4px;}
 .card-atk,.card-hp{width:20px;height:20px;border-radius:50%;background:#efe6c8;border:2px solid #1c1830;display:flex;align-items:center;justify-content:center;gap:1px;font-weight:700;font-size:9.5px;}
 .atk-icon{width:9px;height:9px;filter:invert(21%) sepia(85%) saturate(2500%) hue-rotate(340deg) brightness(85%);}
@@ -2508,6 +2509,7 @@ function cardEl(card, opts={}){
     <div class="card-art" style="${artStyle}">
       ${(isHero || isRegion) ? '' : `<div class="card-cost">${opts.displayCost ?? card.cost ?? 0}</div>`}
       ${isHero ? `<div class="card-hero-hp">${card.curHp ?? card.hp ?? 0}</div>` : ''}
+      <div class="card-typeline">${escapeHtmlGS(card.type||'')}${(card.subtypes&&card.subtypes.length) ? ' - '+escapeHtmlGS(card.subtypes.join(', ')) : ''}</div>
     </div>
     <div class="card-divider"><div class="card-set-icon">${card.setLogo ? `<div class="card-set-logo-img" style="background-image:url('${card.setLogo.replace(/'/g,"")}')"></div>` : `<span>${escapeHtmlGS(setInitial)}</span>`}</div></div>
     <div class="card-body">

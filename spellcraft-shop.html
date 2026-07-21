@@ -396,6 +396,11 @@ function escapeHtmlShop(s){
 function buildCardEl(card){
   const el = document.createElement('div');
   el.className = `card class-${card.class||'Neutre'}` + (card.foil ? ' foil' : '');
+  if(card.classSecondary){
+    const CLASS_COLORS = {Aube:'#d4af37', 'Crépuscule':'#4b0082', Prima:'#228b22', 'Volonté':'#8b0000', Arcane:'#4682b4', Neutre:'#c0c0c0'};
+    const c1 = CLASS_COLORS[card.class]||'#c0c0c0', c2 = CLASS_COLORS[card.classSecondary]||'#c0c0c0';
+    el.style.borderImage = `linear-gradient(135deg, ${c1} 45%, ${c2} 55%) 1`;
+  }
   const artStyle = card.image ? `background-image:url('${card.image.replace(/'/g,"")}');` : '';
   const isHero = card.type==='Héros';
   const isRegion = card.type==='Région';
