@@ -600,7 +600,10 @@ function fireResolvedEffect(eff, p, key, sourceCreature, targetOverride, eventCr
     applySpellEffect(resolved, p, key, {});
   }
   if(eff._thenEffects){
-    eff._thenEffects.forEach(e2=>fireResolvedEffect(e2, p, key, sourceCreature, null, eventCreature));
+    eff._thenEffects.forEach(e2=>{
+      if(!conditionsMet(e2.conditions, p, key)) return;
+      fireResolvedEffect(e2, p, key, sourceCreature, null, eventCreature);
+    });
   }
 }
 
@@ -706,7 +709,15 @@ function extractTriggeredEffects(rawCard){
       mapped._triggerSubtype = (ab.triggerSubtype||'').trim();
       mapped._triggerOwner = ab.triggerOwner||'ally';
       mapped._triggerTurn = ab.triggerTurn||1;
-      map[ab.trigger] = mapped;
+      if(map[ab.trigger]){
+        // deux capacités différentes partagent le même déclencheur : on les
+        // chaîne au lieu de laisser la seconde écraser silencieusement la première.
+        let last = map[ab.trigger];
+        while(last._thenEffects && last._thenEffects.length) last = last._thenEffects[last._thenEffects.length-1];
+        last._thenEffects = (last._thenEffects||[]).concat([mapped]);
+      } else {
+        map[ab.trigger] = mapped;
+      }
     }
   });
   return map;
