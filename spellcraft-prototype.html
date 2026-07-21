@@ -302,6 +302,18 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 #overlay h1{font-family:'Cinzel',serif;font-size:36px;color:var(--gold);}
 #overlay button{background:var(--arcane);color:#fff;border:none;border-radius:10px;padding:12px 26px;font-family:'Cinzel',serif;font-weight:700;cursor:pointer;font-size:14px;}
 
+#mulligan-overlay{position:fixed;inset:0;background:rgba(5,4,10,.92);display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;z-index:55;}
+#mulligan-overlay.show{display:flex;}
+#mulligan-overlay h2{font-family:'Cinzel',serif;font-size:26px;color:var(--gold);margin:0;}
+#mulligan-overlay .mulligan-sub{font-size:13px;color:var(--parchment-dim);margin:0 0 6px;max-width:420px;text-align:center;}
+#mulligan-cards{display:flex;gap:16px;}
+.mulligan-card-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:transform .15s;}
+.mulligan-card-wrap:hover{transform:translateY(-6px);}
+.mulligan-card-wrap.marked .card{opacity:.4;filter:grayscale(70%);}
+.mulligan-tag{font-family:'Cinzel',serif;font-size:12px;font-weight:700;color:var(--green);padding:4px 12px;border-radius:14px;border:1px solid var(--green);}
+.mulligan-card-wrap.marked .mulligan-tag{color:var(--blood);border-color:var(--blood);}
+.mulligan-confirm-btn{background:var(--arcane);color:#fff;border:none;border-radius:10px;padding:12px 28px;font-family:'Cinzel',serif;font-weight:700;cursor:pointer;font-size:14px;margin-top:8px;}
+
 .tip{position:fixed;transform:translate(-50%,-100%);font-size:11px;color:var(--parchment-dim);background:rgba(0,0,0,.6);padding:5px 12px;border-radius:20px;pointer-events:none;text-align:center;max-width:280px;z-index:45;transition:left .15s ease, top .15s ease;}
 
 #targeting-layer{position:fixed;inset:0;pointer-events:none;z-index:40;width:100%;height:100%;}
@@ -386,6 +398,13 @@ body.targeting *{cursor:crosshair !important;}
   <h1 id="overlay-text"></h1>
   <p id="overlay-currency" style="font-size:15px;color:var(--gold);margin:0 0 18px;"></p>
   <button onclick="location.reload()">Rejouer</button>
+</div>
+
+<div id="mulligan-overlay">
+  <h2>Ta main de départ</h2>
+  <p class="mulligan-sub">Clique une carte pour la renvoyer et en repiocher une nouvelle. Tu ne peux le faire qu'une fois.</p>
+  <div id="mulligan-cards"></div>
+  <button class="mulligan-confirm-btn" onclick="confirmMulligan()">Confirmer ma main</button>
 </div>
 
 <div class="modal-overlay" id="discard-modal" style="position:fixed;inset:0;background:rgba(5,4,10,.88);display:none;align-items:center;justify-content:center;z-index:60;" onclick="if(event.target===this) closeDiscardModal()">
@@ -817,8 +836,19 @@ function newPlayer(heroObj, regionObj, deckArray, isAI){
 }
 
 function drawCard(p, key){
-  if(p.deck.length===0) return null;
+  if(p.deck.length===0){
+    if(key && !S.gameOver){
+      log(`${cardOwnerName(key)} doit piocher mais son deck est vide — défaite !`);
+      endGame(key==='p1' ? 'p2' : 'p1');
+    }
+    return null;
+  }
   const card = p.deck.shift();
+  if(p.hand.length>=8){
+    p.discard.push(card);
+    if(key) log(`${cardOwnerName(key)} a déjà 8 cartes en main : ${card.name} est perdue.`);
+    return null;
+  }
   p.hand.push(card);
   p.cardsDrawnThisTurn = (p.cardsDrawnThisTurn||0) + 1;
   if(p===S.p1){
@@ -910,11 +940,94 @@ function startGame(p1Hero, p1Region, p1Deck, p2Hero, p2Region, p2Deck, p2IsAI){
   S.p2 = newPlayer(p2Hero, p2Region, p2Deck, p2IsAI!==false);
   playSfx('shuffle');
   S.turn = 1;
-  S.active = 'p1';
+  S.active = Math.random()<0.5 ? 'p1' : 'p2';
   S.phase = 'main';
+  log(`${cardOwnerName(S.active)} commence la partie (tirage au sort).`);
   log(`La partie commence. Vous incarnez ${p1Hero.name}, avec ${p1Region.name} comme région.`);
 
-  startTurn('p1', true);
+  beginMulliganPhase();
+}
+
+// ============================================================
+// MULLIGAN — chaque joueur peut renvoyer tout ou partie de sa main
+// de départ pour en repiocher une nouvelle, une seule fois.
+// ============================================================
+let mulliganMarked = new Set();
+
+function beginMulliganPhase(){
+  // En multijoueur, on garde une version simple et sûre pour l'instant :
+  // pas de mulligan interactif (pour éviter tout nouveau risque de désync),
+  // la partie démarre directement avec la main de départ.
+  if(typeof MP_MODE!=='undefined' && MP_MODE){
+    startTurn(S.active, true);
+    return;
+  }
+  // L'IA fait un mulligan simple et automatique : renvoie les cartes à 5+ de coût
+  autoMulliganAI('p2');
+  showMulliganOverlay();
+}
+
+function autoMulliganAI(key){
+  const p = S[key];
+  const toReturn = p.hand.filter(c=>(c.cost||0)>=5);
+  if(toReturn.length===0) return;
+  toReturn.forEach(c=>{
+    const idx = p.hand.indexOf(c);
+    if(idx>=0) p.hand.splice(idx,1);
+    p.deck.push(c);
+  });
+  p.deck = shuffle(p.deck);
+  for(let i=0;i<toReturn.length;i++) drawCard(p);
+}
+
+function showMulliganOverlay(){
+  mulliganMarked = new Set();
+  const overlay = document.getElementById('mulligan-overlay');
+  const cardsEl = document.getElementById('mulligan-cards');
+  cardsEl.innerHTML = '';
+  S.p1.hand.forEach(card=>{
+    const wrap = document.createElement('div');
+    wrap.className = 'mulligan-card-wrap';
+    const el = cardEl(card, { inPlay:false, isPreview:true });
+    wrap.appendChild(el);
+    const tag = document.createElement('div');
+    tag.className = 'mulligan-tag';
+    tag.textContent = 'Garder';
+    wrap.appendChild(tag);
+    wrap.onclick = ()=>{
+      if(mulliganMarked.has(card)){
+        mulliganMarked.delete(card);
+        wrap.classList.remove('marked');
+        tag.textContent = 'Garder';
+      } else {
+        mulliganMarked.add(card);
+        wrap.classList.add('marked');
+        tag.textContent = 'Renvoyer';
+      }
+    };
+    cardsEl.appendChild(wrap);
+  });
+  overlay.classList.add('show');
+}
+
+function confirmMulligan(){
+  const p = S.p1;
+  const toReturn = [...mulliganMarked];
+  toReturn.forEach(c=>{
+    const idx = p.hand.indexOf(c);
+    if(idx>=0) p.hand.splice(idx,1);
+    p.deck.push(c);
+  });
+  if(toReturn.length>0){
+    p.deck = shuffle(p.deck);
+    for(let i=0;i<toReturn.length;i++) drawCard(p);
+    log(`Vous renvoyez ${toReturn.length} carte(s) et en piochez de nouvelles.`);
+  } else {
+    log('Vous gardez votre main de départ.');
+  }
+  document.getElementById('mulligan-overlay').classList.remove('show');
+  startTurn(S.active, true);
+  render();
 }
 
 function triggerGameStart(p, key){
@@ -968,7 +1081,7 @@ function applyManaGain(p, key){
     firePermanentTriggers(key, 'onManaGained');
     return;
   }
-  p.manaNormalMax = Math.min(10, p.manaNormalMax+1);
+  p.manaNormalMax = Math.min(20, p.manaNormalMax+1);
   p.manaNormal = p.manaNormalMax;
   p.manaGainedThisTurn = (p.manaGainedThisTurn||0) + 1;
   if(region.manaRule==='bonusFragile'){
@@ -987,7 +1100,7 @@ function spendMana(p, amount){
   p.manaFragile -= fromFragile; remaining -= fromFragile;
 }
 function gainEmptyMana(p, key, amount){
-  p.manaNormalMax = Math.min(10, p.manaNormalMax+amount);
+  p.manaNormalMax = Math.min(20, p.manaNormalMax+amount);
   log(`${cardOwnerName(key)} gagne ${amount} mana vide (maximum augmenté, indisponible ce tour-ci).`);
 }
 function gainFragileMana(p, key, amount){
@@ -2490,6 +2603,7 @@ function endGame(winnerKey){
   S.gameOver = true;
   S.winnerKey = winnerKey;
   playFinalSfx(winnerKey==='p1' ? 'victory' : 'defeat');
+  render(); // diffuse immédiatement la fin de partie, sans attendre la fin de l'animation de combat en cours
 }
 
 /* ============================================================
