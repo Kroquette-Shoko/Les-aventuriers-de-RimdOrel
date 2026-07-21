@@ -253,10 +253,37 @@ const GEM_ICON_FILES = {Volonté:'gem-vol.png', Aube:'gem-aub.png', 'Crépuscule
 
 // Répliques d'accueil de Bruno — on en ajoutera d'autres plus tard, une est tirée au hasard à chaque visite.
 const BRUNO_LINES = [
-  `Ohhhh, quel plaisir, quelle <em>joie</em>, quel <em>honneur</em> !! Bruno en personne t'accueille dans son humble échoppe — enfin, humble, façon de parler, regarde-moi ces merveilles ! Un petit booster, une carte par-ci par-là, un dos de carte assorti à tes bottes ? Sers-toi, mon trésor, l'or de ta bourse ne demande qu'à briller entre mes mains ✨🃏✨`
+  `Ohhhh, quel plaisir, quelle <em>joie</em>, quel <em>honneur</em> !! Bruno en personne t'accueille dans son humble échoppe — enfin, humble, façon de parler, regarde-moi ces merveilles ! Un petit booster, une carte par-ci par-là, un dos de carte assorti à tes bottes ? Sers-toi, mon trésor, l'or de ta bourse ne demande qu'à briller entre mes mains ✨🃏✨`,
+  `Psss, viens par ici, toi... Bruno a du <em>nouveau</em> sous le comptoir, du <em>frais</em>, du <em>croustillant</em> — enfin, façon de parler, ce sont des cartes, pas des viennoiseries. Quoique, à ce prix-là, ça devrait presque en être ! 🥐🃏`,
+  `Un client ! Un VRAI client, avec de la <em>prestance</em>, avec du <em>goût</em> ! Bruno le sent d'ici, tu es de ceux qui savent reconnaître une bonne affaire quand elle leur saute au visage ✨`,
+  `Ahhh, te revoilà ! Bruno n'a JAMAIS douté que tu reviendrais — entre nous et cette échoppe poussiéreuse, on formait déjà un petit <em>trio</em> du destin, non ? 🃏`,
+  `Dis-moi, mon ami, as-tu déjà tenu une carte Mythique entre tes mains ? Non ? Alors qu'attends-tu, la fortune n'attend pas les indécis ! 💰`,
+  `Bruno a personnellement soufflé sur chaque booster de cette étagère pour en chasser la malchance — c'est un service que peu de marchands offrent, tu sais 😤✨`,
+  `Entre nous, mon trésor... les meilleures affaires ne durent jamais bien longtemps. Bruno ne dit que ça, hein, il ne <em>pousse</em> personne à l'achat, jamais de la vie 😇`,
+  `Ohhh, ce regard ! Ce regard qui dit "je vais craquer" ! Bruno le reconnaît entre mille, il l'a vu sur des centaines de visages avant le tien 🫢`,
+  `Tu sais, dans ma jeunesse, un simple dos de carte pouvait changer le cours d'une bataille... enfin, façon de parler, mais avoue que ça sonnerait bien sur une pancarte 🎴`,
+  `Bienvenue, bienvenue ! Ici, chaque pièce d'or que tu dépenses revient directement... dans ma poche. Mais dans ton cœur aussi, promis, un peu 💛`,
+  `Un petit conseil de Bruno, gratuit celui-là (pour une fois) : n'ouvre jamais un booster sans y croire de tout ton être. La chance sent la sincérité ✨🃏`
 ];
+
+// Messages affichés temporairement dans la bulle de Bruno juste après un achat.
+const BRUNO_THANKS_LINES = [
+  `Ohhhh, quelle <em>générosité</em> ! Bruno en a presque une larme à l'œil — de joie, évidemment, purement de joie 🥲✨`,
+  `Un plaisir de faire affaire avec toi, mon trésor ! Reviens vite, Bruno gardera toujours un petit quelque chose de côté pour toi 💛`,
+  `Ahhh, voilà qui fait chanter la caisse de Bruno ! Prends-en bien soin, cette pièce-là a beaucoup voyagé pour arriver jusqu'à moi 🃏`,
+  `Marché conclu ! Bruno salue bien bas un client d'un tel <em>goût</em> — rare, très rare par les temps qui courent 🙇`,
+  `Que la chance te sourie autant que ta bourse vient de sourire à Bruno ! Merci, merci mille fois ✨`,
+  `Encore une belle affaire scellée dans les règles de l'art ! Reviens quand tu veux, l'échoppe ne ferme jamais vraiment pour toi 🎴`
+];
+
+let brunoThanksTimeout = null;
 function renderBrunoLine(){
   document.getElementById('vendor-speech').innerHTML = BRUNO_LINES[Math.floor(Math.random()*BRUNO_LINES.length)];
+}
+function showBrunoThanks(){
+  if(brunoThanksTimeout) clearTimeout(brunoThanksTimeout);
+  document.getElementById('vendor-speech').innerHTML = BRUNO_THANKS_LINES[Math.floor(Math.random()*BRUNO_THANKS_LINES.length)];
+  brunoThanksTimeout = setTimeout(()=>{ renderBrunoLine(); brunoThanksTimeout = null; }, 6000);
 }
 
 async function refreshCurrency(){
@@ -451,6 +478,7 @@ async function buyBooster(boosterId, boosterImageUrl){
   if(error){ alert('Erreur : ' + error.message); return; }
   if(data.error){ alert(shopErrorMessage(data.error)); return; }
   playSfx('coin');
+  showBrunoThanks();
   refreshCurrency();
   await openBoosterAnimation(boosterImageUrl, data.cards);
 }
@@ -588,6 +616,7 @@ async function confirmSingleChoice(cardId){
   if(error){ alert('Erreur : ' + error.message); return; }
   if(data.error){ alert(shopErrorMessage(data.error)); return; }
   playSfx('coin');
+  showBrunoThanks();
   showRevealModal('Carte obtenue !', [{ name: data.name, foil: data.foil, rarity: '', card_id: data.card_id }]);
   refreshCurrency();
   renderSingleShelf();
@@ -600,6 +629,7 @@ async function buyCardBack(id){
   if(error){ alert('Erreur : ' + error.message); return; }
   if(data.error){ alert(shopErrorMessage(data.error)); return; }
   playSfx('coin');
+  showBrunoThanks();
   refreshCurrency();
   renderCardBackShelf();
 }
