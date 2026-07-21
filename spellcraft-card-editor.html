@@ -807,7 +807,7 @@ function blankEffect(){
     retrieveSource:'deck', retrieveCriteria:'random', retrieveValue:'2', retrieveCardType:'Créature', retrieveSubtype:'', retrieveKeyword:'charge', retrieveDestination:'hand', retrieveRepeat:'once',
     conjureTypes:['Sortilège'], conjureClass:'any', conjureDestination:'hand',
     conjureCostMode:'any', conjureCostValue:2, conjureAtkMode:'any', conjureAtkValue:1, conjureHpMode:'any', conjureHpValue:1,
-    conjureSubtype:'', conjureMode:'filter', conjureSpecificName:'',
+    conjureSubtype:'', conjureMode:'filter', conjureSpecificName:'', conjureQuantity:1,
     exploreOwner:'own',
     discoverCriteria:'random', discoverValue:'2', discoverCardType:'Créature', discoverSubtype:'', discoverSource:'deck',
     setStatsScope:'board', setStatsOwner:'ally', setStatsAtk:1, setStatsHp:1,
@@ -978,11 +978,22 @@ function flashSaved(){
 function refreshSuggestionLists(){
   const heroes = [...new Set(cards.map(c=>c.hero).filter(Boolean))];
   const sets = [...new Set(cards.map(c=>c.set).filter(Boolean))];
-  const names = [...new Set(cards.map(c=>c.name).filter(Boolean))];
   document.getElementById('hero-suggestions').innerHTML = heroes.map(h=>`<option value="${escapeHtml(h)}">`).join('');
   document.getElementById('set-suggestions').innerHTML = sets.map(s=>`<option value="${escapeHtml(s)}">`).join('');
+  refreshCardNameSuggestions();
+}
+
+// Les noms de cartes proposés pour "Conjurer une carte précise" doivent couvrir
+// TOUS les sets (pas seulement celui en cours d'édition) — chargés à part.
+let allCardNamesCache = null;
+async function refreshCardNameSuggestions(){
   const cardNameList = document.getElementById('card-name-suggestions');
-  if(cardNameList) cardNameList.innerHTML = names.map(n=>`<option value="${escapeHtml(n)}">`).join('');
+  if(!cardNameList) return;
+  if(!allCardNamesCache){
+    const all = await loadAllCardsAcrossSets();
+    allCardNamesCache = [...new Set(all.map(c=>c.name).filter(Boolean))];
+  }
+  cardNameList.innerHTML = allCardNamesCache.map(n=>`<option value="${escapeHtml(n)}">`).join('');
 }
 
 /* ============================================================
@@ -1604,6 +1615,7 @@ function buildEffectRow(ab, eff){
       inp.oninput=()=>{ eff.conjureSpecificName=inp.value; onFormChange(); };
       f.appendChild(inp);
       row.appendChild(f);
+      row.appendChild(buildConjureQuantityField(eff));
       row.appendChild(makeSelectField('Destination', CONJURE_DESTINATIONS.map(d=>({key:d.key,label:d.label==='dans votre main'?'Votre main':'Directement en jeu'})), eff.conjureDestination, v=>{ eff.conjureDestination=v; onFormChange(); }));
     } else {
       const typesField = document.createElement('div');
@@ -1638,6 +1650,7 @@ function buildEffectRow(ab, eff){
       row.appendChild(buildNumericFilterField(eff, 'conjureCostMode', 'conjureCostValue', 'Coût'));
       row.appendChild(buildNumericFilterField(eff, 'conjureAtkMode', 'conjureAtkValue', 'Force'));
       row.appendChild(buildNumericFilterField(eff, 'conjureHpMode', 'conjureHpValue', 'Endurance'));
+      row.appendChild(buildConjureQuantityField(eff));
       row.appendChild(makeSelectField('Destination', CONJURE_DESTINATIONS.map(d=>({key:d.key,label:d.label==='dans votre main'?'Votre main':'Directement en jeu'})), eff.conjureDestination, v=>{ eff.conjureDestination=v; onFormChange(); }));
     }
   }
@@ -1810,6 +1823,16 @@ const NUMERIC_FILTER_MODES = [
   {key:'atLeast', label:'X ou +'},
   {key:'atMost', label:'X ou −'}
 ];
+
+function buildConjureQuantityField(eff){
+  const f = document.createElement('div');
+  f.className='field'; f.innerHTML=`<label class="mini-field">Quantité à conjurer</label>`;
+  const inp = document.createElement('input');
+  inp.type='number'; inp.min=1; inp.max=10; inp.value=eff.conjureQuantity||1;
+  inp.oninput=()=>{ eff.conjureQuantity=Math.max(1, parseInt(inp.value)||1); onFormChange(); };
+  f.appendChild(inp);
+  return f;
+}
 
 function buildNumericFilterField(eff, modeKey, valueKey, label){
   const wrap = document.createElement('div');
@@ -2200,11 +2223,13 @@ function numericFilterPhrase(eff, modeKey, valueKey, label){
 
 function conjureClause(eff){
   const destPhrase = eff.conjureDestination==='battlefield' ? ', directement en jeu' : '';
+  const qty = eff.conjureQuantity||1;
+  const qtyPhrase = qty>1 ? `${qty} exemplaires de ` : '';
   const ownerVerb = eff.conjureTargetOwner==='enemy' ? 'votre adversaire conjure'
     : eff.conjureTargetOwner==='both' ? 'chaque joueur conjure' : 'conjurez';
   if(eff.conjureMode==='specific'){
     const name = eff.conjureSpecificName || '(nom à préciser)';
-    return `${ownerVerb} "${name}"${destPhrase}${followUpClause(eff)}`;
+    return `${ownerVerb} ${qtyPhrase}"${name}"${destPhrase}${followUpClause(eff)}`;
   }
   const types = (eff.conjureTypes && eff.conjureTypes.length) ? eff.conjureTypes : ['carte'];
   const typesPhrase = types.map(t=>t.toLowerCase()).join(' ou ');
@@ -2216,7 +2241,8 @@ function conjureClause(eff){
     numericFilterPhrase(eff, 'conjureHpMode', 'conjureHpValue', 'Endurance')
   ].filter(Boolean);
   const filterPhrase = filters.length ? ` (${filters.join(', ')})` : '';
-  return `${ownerVerb} un(e) ${typesPhrase}${classPhrase}${subtypePhrase}${filterPhrase}${destPhrase}${followUpClause(eff)}`;
+  const article = qty>1 ? `${qty} ` : 'un(e) ';
+  return `${ownerVerb} ${article}${typesPhrase}${classPhrase}${subtypePhrase}${filterPhrase}${destPhrase}${followUpClause(eff)}`;
 }
 
 function condValueText(cond){

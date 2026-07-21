@@ -663,7 +663,7 @@ function mapAbilityEffectRaw(eff, amount){
       types: eff.conjureTypes||['Sortilège'], class: eff.conjureClass||'any', subtype: eff.conjureSubtype,
       costMode: eff.conjureCostMode, costValue: eff.conjureCostValue, atkMode: eff.conjureAtkMode, atkValue: eff.conjureAtkValue,
       hpMode: eff.conjureHpMode, hpValue: eff.conjureHpValue, destination: eff.conjureDestination||'hand',
-      owner: eff.conjureTargetOwner||'self',
+      owner: eff.conjureTargetOwner||'self', quantity: eff.conjureQuantity||1,
       followUp: eff.followUpEnabled ? {enabled:true, type:eff.followUpType, atk:eff.followUpAtk, hp:eff.followUpHp, keyword:eff.followUpKeyword, duration:eff.followUpDuration} : null};
     case 'fight': return {type:'fight'};
     case 'coinFlip': return {type:'coinFlip', owner: eff.coinFlipTargetOwner||'enemy', selection: eff.coinFlipSelectionMode||'all',
@@ -2037,21 +2037,24 @@ function applySpellEffect(effect, caster, casterKey, target){
       if(!chosenRaw){ log(`${cardOwnerName(casterKey)} ne trouve rien à conjurer.`); break; }
       const baseCard = normalizeCardForPool(chosenRaw);
       const targets = ownerTargets(effect, caster, casterKey, casterKey==='p1'?'p2':'p1');
+      const qty = Math.max(1, effect.quantity||1);
       targets.forEach(({p,key})=>{
-        let card = {...baseCard, keywords:[...(baseCard.keywords||[])], subtypes:[...(baseCard.subtypes||[])]};
-        if(effect.followUp && effect.followUp.enabled){
-          if(effect.followUp.type==='buff') card = {...card, atk:(card.atk||0)+effect.followUp.atk, hp:(card.hp||0)+effect.followUp.hp};
-          else if(effect.followUp.type==='grantKeyword') card = {...card, keywords:[...(card.keywords||[]), effect.followUp.keyword]};
+        for(let i=0;i<qty;i++){
+          let card = {...baseCard, keywords:[...(baseCard.keywords||[])], subtypes:[...(baseCard.subtypes||[])]};
+          if(effect.followUp && effect.followUp.enabled){
+            if(effect.followUp.type==='buff') card = {...card, atk:(card.atk||0)+effect.followUp.atk, hp:(card.hp||0)+effect.followUp.hp};
+            else if(effect.followUp.type==='grantKeyword') card = {...card, keywords:[...(card.keywords||[]), effect.followUp.keyword]};
+          }
+          if(effect.destination==='battlefield' && card.type==='Créature' && p.board.length<8){
+            const conjuredInst = instantiateCreature(card);
+            p.board.push(conjuredInst);
+            fireSummonSubtypeTrigger(key, conjuredInst);
+          } else {
+            p.hand.push(card);
+          }
+          log(`${cardOwnerName(key)} conjure ${card.name}.`);
+          fireWatchTrigger('watchConjured', key);
         }
-        if(effect.destination==='battlefield' && card.type==='Créature' && p.board.length<8){
-          const conjuredInst = instantiateCreature(card);
-          p.board.push(conjuredInst);
-          fireSummonSubtypeTrigger(key, conjuredInst);
-        } else {
-          p.hand.push(card);
-        }
-        log(`${cardOwnerName(key)} conjure ${card.name}.`);
-        fireWatchTrigger('watchConjured', key);
       });
       break;
     }
