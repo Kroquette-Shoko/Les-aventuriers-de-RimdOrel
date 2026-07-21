@@ -20,11 +20,11 @@
   --green:#4a9d6b;
 }
 *{box-sizing:border-box;}
-html,body{margin:0;min-height:100%;background:var(--bg-void);color:var(--parchment);font-family:'Inter',sans-serif;}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg-void);color:var(--parchment);font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;}
 
-#app{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:36px 20px 50px;}
+#app{width:100vw;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;}
 
-#sc-auth-slot-wrap{width:100%;max-width:1200px;display:flex;justify-content:flex-end;margin-bottom:6px;}
+#sc-auth-slot-wrap{position:absolute;top:10px;right:16px;z-index:6;width:auto;margin-bottom:0;}
 
 #board-title{
   position:absolute;top:0.5%;left:50%;transform:translateX(-50%);z-index:5;
@@ -33,11 +33,11 @@ html,body{margin:0;min-height:100%;background:var(--bg-void);color:var(--parchme
   pointer-events:none;white-space:nowrap;text-align:center;
 }
 
-/* ---------- Le panneau d'affichage ---------- */
+/* ---------- Le panneau d'affichage : occupe tout l'écran ---------- */
 #board{
-  position:relative;width:100%;max-width:1160px;aspect-ratio:1448/1086;
-  background:url('images/hub-bg-board.png') center/contain no-repeat;
-  margin-top:22px;
+  position:relative;width:100vw;height:calc(100vw * 1086 / 1448);
+  background:url('images/hub-bg-board.png') center/100% 100% no-repeat;
+  margin:0;
 }
 
 .poster{

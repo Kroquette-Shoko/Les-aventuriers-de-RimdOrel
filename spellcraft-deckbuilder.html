@@ -349,6 +349,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
       <div id="mana-curve"></div>
       <div id="deck-list"></div>
       <div id="deck-footer">
+        <button class="btn" onclick="exitDeckBuilding()">✕ Quitter le deck</button>
         <button class="btn" onclick="clearDeck()">Vider</button>
         <button class="btn primary" onclick="saveDeck()">💾 Sauvegarder le deck</button>
       </div>
@@ -1378,6 +1379,16 @@ function clearDeck(){
   renderDeckPanel();
   renderWizardHint();
   renderBinder('spread');
+}
+function exitDeckBuilding(){
+  currentDeck = null;
+  deckBuildStep = null;
+  browsingHeroesStandalone = false;
+  currentPage = 0;
+  renderDeckPanel();
+  renderWizardHint();
+  renderBinder('spread');
+  flashSaved('Retour à la collection.');
 }
 function newDeck(){
   currentDeck = { id:null, name:'Deck sans nom', heroId:null, regionId:null, cards:[], cardBackId:null };
