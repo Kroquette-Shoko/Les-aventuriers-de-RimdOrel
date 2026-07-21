@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Spellcraft — Quêtes</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg-void:#0b0a12;
+  --bg-panel:#171325;
+  --bg-panel-2:#1f1a30;
+  --bg-panel-3:#241f38;
+  --parchment:#efe6c8;
+  --parchment-dim:#d9cfae;
+  --ink:#1c1830;
+  --arcane:#7c5cff;
+  --gold:#d4af37;
+  --blood:#c23b3b;
+  --green:#4a9d6b;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;min-height:100%;background:var(--bg-void);color:var(--parchment);font-family:'Inter',sans-serif;}
+
+#app{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 20px 60px;}
+
+header{width:100%;max-width:1000px;display:flex;align-items:center;gap:14px;margin-bottom:18px;}
+header a.back-link{font-size:11.5px;color:var(--parchment-dim);text-decoration:none;border:1px solid #3a3260;border-radius:8px;padding:6px 12px;}
+header a.back-link:hover{border-color:var(--gold);color:var(--parchment);}
+header h1{font-family:'Cinzel',serif;font-size:22px;color:var(--gold);margin:0;letter-spacing:1px;}
+header .spacer{flex:1;}
+.money-icon{width:22px;height:22px;display:inline-block;vertical-align:-6px;background-color:#f2c94c;-webkit-mask-image:url('images/money.png');mask-image:url('images/money.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;}
+#gold-chip{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;padding:6px 14px;border-radius:18px;background:var(--bg-panel-2);border:1px solid #3a3260;}
+
+main{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:26px;}
+.quest-section h2{font-family:'Cinzel',serif;font-size:16px;color:var(--gold);margin:0 0 10px;letter-spacing:.5px;border-bottom:1px solid #3a3260;padding-bottom:6px;}
+.quest-list{display:flex;flex-direction:column;gap:10px;}
+.quest-card{background:var(--bg-panel);border:1px solid #3a3260;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:16px;}
+.quest-card.completed{border-color:var(--green);}
+.quest-card.claimed{opacity:.5;}
+.quest-info{flex:1;min-width:0;}
+.quest-title{font-weight:700;font-size:14px;margin-bottom:2px;}
+.quest-desc{font-size:12px;color:var(--parchment-dim);margin-bottom:8px;}
+.quest-bar-track{width:100%;height:8px;border-radius:5px;background:var(--bg-panel-3);overflow:hidden;}
+.quest-bar-fill{height:100%;background:linear-gradient(90deg,var(--arcane),var(--gold));transition:width .3s;}
+.quest-progress-text{font-size:10.5px;color:var(--parchment-dim);margin-top:4px;}
+.quest-reward{display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:var(--gold);white-space:nowrap;}
+.quest-claim-btn{background:var(--arcane);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-family:'Cinzel',serif;font-weight:700;cursor:pointer;font-size:12px;white-space:nowrap;}
+.quest-claim-btn:disabled{background:#3a3260;cursor:not-allowed;opacity:.6;}
+.quest-claim-btn.claimed-label{background:none;color:var(--green);border:1px solid var(--green);}
+.empty-note{font-size:12.5px;color:var(--parchment-dim);font-style:italic;}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <header>
+    <a href="spellcraft-hub.html" class="back-link">🏠 Hub</a>
+    <h1>📜 Quêtes</h1>
+    <div class="spacer"></div>
+    <div id="gold-chip"><span class="money-icon"></span><span id="gold-amount">–</span></div>
+    <div id="sc-auth-slot"></div>
+  </header>
+
+  <main>
+    <div class="quest-section">
+      <h2>Quêtes journalières</h2>
+      <div class="quest-list" id="daily-list"><p class="empty-note">Chargement…</p></div>
+    </div>
+    <div class="quest-section">
+      <h2>Quête hebdomadaire</h2>
+      <div class="quest-list" id="weekly-list"></div>
+    </div>
+    <div class="quest-section">
+      <h2>Quête de progression</h2>
+      <div class="quest-list" id="progression-list"></div>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="spellcraft-shared.js"></script>
+<script src="spellcraft-auth.js"></script>
+<script src="spellcraft-catalog.js"></script>
+<script src="spellcraft-economy.js"></script>
+<script>
+
+function rewardLabel(q){
+  if(q.reward_type==='gold') return `<span class="money-icon"></span> ${q.reward_gold}`;
+  if(q.reward_type==='card') return `🃏 Carte`;
+  if(q.reward_type==='card_back') return `🎴 Dos de carte`;
+  if(q.reward_type==='booster') return `📦 Booster`;
+  return '';
+}
+
+function buildQuestCard(q){
+  const pct = Math.min(100, Math.round((q.progress_count / q.target_count) * 100));
+  const card = document.createElement('div');
+  card.className = 'quest-card' + (q.completed ? ' completed' : '') + (q.claimed ? ' claimed' : '');
+  card.innerHTML = `
+    <div class="quest-info">
+      <div class="quest-title">${escapeHtml(q.title)}</div>
+      <div class="quest-desc">${escapeHtml(q.description)}</div>
+      <div class="quest-bar-track"><div class="quest-bar-fill" style="width:${pct}%;"></div></div>
+      <div class="quest-progress-text">${q.progress_count} / ${q.target_count}</div>
+    </div>
+    <div class="quest-reward">${rewardLabel(q)}</div>
+  `;
+  const btn = document.createElement('button');
+  if(q.claimed){
+    btn.className = 'quest-claim-btn claimed-label';
+    btn.textContent = '✓ Récupérée';
+    btn.disabled = true;
+  } else if(q.completed){
+    btn.className = 'quest-claim-btn';
+    btn.textContent = 'Récupérer';
+    btn.onclick = ()=>claimQuest(q.instance_id, card);
+  } else {
+    btn.className = 'quest-claim-btn';
+    btn.textContent = 'En cours';
+    btn.disabled = true;
+  }
+  card.appendChild(btn);
+  return card;
+}
+
+async function claimQuest(instanceId, cardEl){
+  const { data, error } = await sb.rpc('claim_quest_reward', { p_instance_id: instanceId });
+  if(error){ alert('Erreur : ' + error.message); return; }
+  if(data.error){ alert(data.error); return; }
+  playSfx('coin');
+  refreshGold();
+  loadQuests();
+}
+
+async function refreshGold(){
+  const amount = await loadCurrency();
+  document.getElementById('gold-amount').textContent = amount;
+}
+
+async function loadQuests(){
+  const user = await scGetCurrentUser();
+  if(!user){
+    document.getElementById('daily-list').innerHTML = '<p class="empty-note">Connecte-toi pour voir tes quêtes.</p>';
+    document.getElementById('weekly-list').innerHTML = '';
+    document.getElementById('progression-list').innerHTML = '';
+    return;
+  }
+  const { data, error } = await sb.rpc('get_active_quests');
+  if(error || data.error){
+    document.getElementById('daily-list').innerHTML = '<p class="empty-note">Impossible de charger les quêtes pour le moment.</p>';
+    return;
+  }
+  const quests = data.quests || [];
+  const daily = quests.filter(q=>q.category==='daily');
+  const weekly = quests.filter(q=>q.category==='weekly');
+  const progression = quests.filter(q=>q.category==='progression');
+
+  const dailyEl = document.getElementById('daily-list');
+  dailyEl.innerHTML = '';
+  if(daily.length===0) dailyEl.innerHTML = '<p class="empty-note">Aucune quête journalière disponible pour l\'instant.</p>';
+  daily.forEach(q=>dailyEl.appendChild(buildQuestCard(q)));
+
+  const weeklyEl = document.getElementById('weekly-list');
+  weeklyEl.innerHTML = '';
+  if(weekly.length===0) weeklyEl.innerHTML = '<p class="empty-note">Aucune quête hebdomadaire disponible pour l\'instant.</p>';
+  weekly.forEach(q=>weeklyEl.appendChild(buildQuestCard(q)));
+
+  const progEl = document.getElementById('progression-list');
+  progEl.innerHTML = '';
+  if(progression.length===0) progEl.innerHTML = '<p class="empty-note">Toutes les quêtes de progression sont terminées pour l\'instant — reviens plus tard !</p>';
+  progression.forEach(q=>progEl.appendChild(buildQuestCard(q)));
+}
+
+initSpellcraftAuth();
+refreshGold();
+loadQuests();
+sb.auth.onAuthStateChange(()=>{ refreshGold(); loadQuests(); });
+</script>
+</body>
+</html>

@@ -655,6 +655,7 @@ const EFFECT_TYPES = [
   {key:'bounce', label:'Renvoi en main', needsTarget:true, needsValue:false},
   {key:'grantMana', label:'Donne du mana', needsTarget:false, needsValue:true, isGrantMana:true},
   {key:'refillMana', label:'Recharge le mana disponible ce tour-ci', needsTarget:false, needsValue:false},
+  {key:'burnMana', label:'Vide la réserve de mana disponible', needsTarget:false, needsValue:false},
   {key:'discard', label:'Défausser (depuis la main)', needsTarget:false, needsValue:true},
   {key:'explore', label:'Explorer (mise en défausse depuis le deck)', needsTarget:false, needsValue:true, isExplore:true},
   {key:'destroy', label:'Destruction', needsTarget:true, needsValue:false},
@@ -1560,7 +1561,7 @@ function buildEffectRow(ab, eff){
     }
   }
 
-  if(['draw','grantMana','refillMana'].includes(eff.effectType)){
+  if(['draw','grantMana','refillMana','burnMana'].includes(eff.effectType)){
     row.appendChild(makeSelectField('Bénéficiaire', [{key:'self',label:'Vous'},{key:'enemy',label:"L'adversaire"},{key:'both',label:'Les deux'}], eff.manaTargetOwner, v=>{ eff.manaTargetOwner=v; onFormChange(); }));
   }
 
@@ -2071,6 +2072,11 @@ function buildEffectClause(eff){
       if(eff.manaTargetOwner==='enemy') return `votre adversaire recharge tout son mana disponible ce tour-ci`;
       if(eff.manaTargetOwner==='both') return `chaque joueur recharge tout son mana disponible ce tour-ci`;
       return `rechargez tout votre mana disponible ce tour-ci`;
+    }
+    case 'burnMana': {
+      if(eff.manaTargetOwner==='enemy') return `videz toute la réserve de mana disponible de votre adversaire`;
+      if(eff.manaTargetOwner==='both') return `chaque joueur voit sa réserve de mana disponible vidée`;
+      return `videz toute votre réserve de mana disponible`;
     }
     case 'grantKeyword': {
       const kw = KEYWORDS.find(k=>k.key===eff.grantKeywordKey);

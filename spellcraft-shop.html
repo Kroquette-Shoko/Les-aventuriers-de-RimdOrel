@@ -244,6 +244,7 @@ header .spacer{flex:1;}
 <script src="spellcraft-shared.js"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>
+<script src="spellcraft-economy.js"></script>
 <script>
 const RARITY_COLORS = {Basique:'#8a7f6a', Commune:'#c7c2b3', Rare:'#4fb3d9', Épique:'#7c5cff', Mythique:'#d4af37'};
 const BOOSTER_PRICE = 120;
@@ -479,6 +480,7 @@ async function buyBooster(boosterId, boosterImageUrl){
   if(data.error){ alert(shopErrorMessage(data.error)); return; }
   playSfx('coin');
   showBrunoThanks();
+  if(typeof progressQuest==='function'){ progressQuest('open_boosters'); progressQuest('open_boosters_total'); }
   refreshCurrency();
   await openBoosterAnimation(boosterImageUrl, data.cards);
 }

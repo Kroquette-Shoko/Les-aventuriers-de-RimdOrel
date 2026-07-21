@@ -563,6 +563,7 @@ const EFFECT_LABELS = {
   emptyManaEffect: (e)=>`Gagne ${e.amount} mana vide (max augmenté).`,
   fragileManaEffect: (e)=>`Gagne ${e.amount} mana fragile.`,
   refillMana: ()=>`Recharge tout le mana disponible ce tour-ci.`,
+  burnMana: ()=>`Vide toute la réserve de mana disponible.`,
   discardSelf: (e)=>`Défausse ${e.amount} carte${e.amount>1?'s':''} de sa main.`,
   setStats: (e)=>`Fixe les statistiques à ${e.atk}/${e.hp}.`,
   upgrade: ()=>`Donne un mot-clé aléatoire à une créature alliée.`,
@@ -675,6 +676,7 @@ function mapAbilityEffectRaw(eff, amount){
       return {type:t, amount: amount||1, owner: eff.manaTargetOwner||'self'};
     }
     case 'refillMana': return {type:'refillMana', owner: eff.manaTargetOwner||'self'};
+    case 'burnMana': return {type:'burnMana', owner: eff.manaTargetOwner||'enemy'};
     case 'discard': return {type:'discardSelf', amount: amount||1};
     case 'setStats': return {type:'setStats', scope: eff.setStatsScope||'board', owner: eff.setStatsOwner||'ally', atk: eff.setStatsAtk??1, hp: eff.setStatsHp??1};
     case 'setStat': return {type:'setStat', target: eff.setStatTarget||'force', scope: eff.setStatScope||'board', owner: eff.setStatOwner||'ally', value: eff.setStatValue??2};
@@ -1240,6 +1242,7 @@ function fireHeroTrigger(key, triggerName){
 function dealDamageToHero(targetPlayer, targetKey, amount, sourcePlayer){
   modifyHp(targetPlayer, -amount);
   if(!suppressDamagePopups) spawnDamageNumber(document.querySelector(`#hero-${targetKey} .hero-portrait`), amount);
+  if(targetKey==='p2' && typeof progressQuest==='function') progressQuest('deal_damage', amount);
   if(targetPlayer.hp<=0){
     endGame(targetKey==='p1' ? 'p2' : 'p1');
   } else {
@@ -1617,6 +1620,7 @@ function playCard(key, handIndex, targetInfo){
     const inst = instantiateCreature(card);
     p.board.push(inst);
     log(`${cardOwnerName(key)} invoque ${card.name}.`);
+    if(key==='p1' && typeof progressQuest==='function') progressQuest('play_creatures');
     if(card.onPlayEffect){
       if(card.onPlayEffect.type==='summonCopy'){
         const n = card.onPlayEffect.amount||1;
@@ -1656,6 +1660,7 @@ function playCard(key, handIndex, targetInfo){
     fireWatchTrigger('watchPlay', key);
     fireWatchTrigger('watchSpell', key);
     triggerOpponentPlayTraps(key, card, null);
+    if(key==='p1' && typeof progressQuest==='function') progressQuest('cast_spells');
   }
   else if(card.type==='Piège'){
     return setTrap(key, handIndex);
@@ -1984,6 +1989,15 @@ function applySpellEffect(effect, caster, casterKey, target){
       targets.forEach(({p,key})=>{
         p.manaNormal = p.manaNormalMax;
         log(`${cardOwnerName(key)} recharge tout son mana disponible.`);
+      });
+      break;
+    }
+    case 'burnMana': {
+      const targets = ownerTargets(effect, caster, casterKey, casterKey==='p1'?'p2':'p1');
+      targets.forEach(({p,key})=>{
+        p.manaNormal = 0;
+        p.manaFragile = 0;
+        log(`${cardOwnerName(key)} voit sa réserve de mana disponible entièrement vidée.`);
       });
       break;
     }
@@ -2604,6 +2618,14 @@ function endGame(winnerKey){
   S.winnerKey = winnerKey;
   playFinalSfx(winnerKey==='p1' ? 'victory' : 'defeat');
   render(); // diffuse immédiatement la fin de partie, sans attendre la fin de l'animation de combat en cours
+  if(typeof progressQuest==='function'){
+    progressQuest('play_games');
+    progressQuest('play_games_total');
+    if(winnerKey==='p1'){
+      progressQuest('win_games');
+      progressQuest('win_games_total');
+    }
+  }
 }
 
 /* ============================================================
