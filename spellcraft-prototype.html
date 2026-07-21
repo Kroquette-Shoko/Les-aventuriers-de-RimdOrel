@@ -963,6 +963,7 @@ function applyManaGain(p, key){
   const altAb = region && region.triggeredEffects && region.triggeredEffects.manaAlternative;
   if(altAb && conditionsMet(altAb.conditions, p, key)){
     log(`${cardOwnerName(key)} : ${region.name} déclenche son effet alternatif au lieu du mana normal ce tour-ci.`);
+    p.manaNormal = p.manaNormalMax; // le mana déjà acquis les tours précédents se remplit quand même
     fireResolvedEffect(altAb, p, key, null, null, null);
     firePermanentTriggers(key, 'onManaGained');
     return;
