@@ -86,21 +86,24 @@ main{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:26px;}
 <script>
 
 function rewardLabel(q){
-  if(q.reward_type==='gold') return `<span class="money-icon"></span> ${q.reward_gold}`;
-  if(q.reward_type==='card') return `🃏 Carte`;
-  if(q.reward_type==='card_back') return `🎴 Dos de carte`;
-  if(q.reward_type==='booster') return `📦 Booster`;
-  return '';
+  const rewards = q.rewards || [];
+  return rewards.map(r=>{
+    if(r.type==='gold') return `<span class="money-icon"></span> ${r.amount}`;
+    if(r.type==='card') return `🃏 ${r.count>1?r.count+'x ':''}${r.rarity}${r.foil?' ✨Foil':''}`;
+    if(r.type==='booster') return `📦 ${r.count>1?r.count+'x ':''}Booster ${r.set==='base'?'(set de base)':'(dernier set)'}`;
+    return '';
+  }).join(' + ');
 }
 
 function buildQuestCard(q){
   const pct = Math.min(100, Math.round((q.progress_count / q.target_count) * 100));
   const card = document.createElement('div');
   card.className = 'quest-card' + (q.completed ? ' completed' : '') + (q.claimed ? ' claimed' : '');
+  const desc = q.assigned_class ? `${escapeHtml(q.description)} <strong style="color:var(--gold);">(${escapeHtml(q.assigned_class)})</strong>` : escapeHtml(q.description);
   card.innerHTML = `
     <div class="quest-info">
       <div class="quest-title">${escapeHtml(q.title)}</div>
-      <div class="quest-desc">${escapeHtml(q.description)}</div>
+      <div class="quest-desc">${desc}</div>
       <div class="quest-bar-track"><div class="quest-bar-fill" style="width:${pct}%;"></div></div>
       <div class="quest-progress-text">${q.progress_count} / ${q.target_count}</div>
     </div>

@@ -1620,7 +1620,10 @@ function playCard(key, handIndex, targetInfo){
     const inst = instantiateCreature(card);
     p.board.push(inst);
     log(`${cardOwnerName(key)} invoque ${card.name}.`);
-    if(key==='p1' && typeof progressQuest==='function') progressQuest('play_creatures');
+    if(key==='p1' && typeof progressQuest==='function'){
+      progressQuest('play_creatures');
+      progressQuest('play_class_cards', 1, card.class);
+    }
     if(card.onPlayEffect){
       if(card.onPlayEffect.type==='summonCopy'){
         const n = card.onPlayEffect.amount||1;
@@ -1660,7 +1663,10 @@ function playCard(key, handIndex, targetInfo){
     fireWatchTrigger('watchPlay', key);
     fireWatchTrigger('watchSpell', key);
     triggerOpponentPlayTraps(key, card, null);
-    if(key==='p1' && typeof progressQuest==='function') progressQuest('cast_spells');
+    if(key==='p1' && typeof progressQuest==='function'){
+      progressQuest('cast_spells');
+      progressQuest('play_class_cards', 1, card.class);
+    }
   }
   else if(card.type==='Piège'){
     return setTrap(key, handIndex);
@@ -2624,6 +2630,7 @@ function endGame(winnerKey){
     if(winnerKey==='p1'){
       progressQuest('win_games');
       progressQuest('win_games_total');
+      progressQuest('win_with_base_hero', 1, null, S.p1.hero && S.p1.hero.set);
     }
   }
 }

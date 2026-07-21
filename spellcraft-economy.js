@@ -44,10 +44,10 @@ async function grantMatchCurrency(won){
 
 // Fait progresser toutes les quêtes correspondant à ce type de condition
 // (silencieux en cas d'échec — ne doit jamais bloquer le déroulement du jeu).
-async function progressQuest(conditionType, amount){
+async function progressQuest(conditionType, amount, cardClass, heroSetName){
   try{
     const user = await scGetCurrentUser();
     if(!user) return;
-    await sb.rpc('progress_quest', { p_condition_type: conditionType, p_amount: amount||1 });
+    await sb.rpc('progress_quest', { p_condition_type: conditionType, p_amount: amount||1, p_card_class: cardClass||null, p_hero_set_name: heroSetName||null });
   }catch(e){ console.error('Erreur de progression de quête', e); }
 }
