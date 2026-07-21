@@ -555,7 +555,7 @@ const WATCH_TRIGGERS = ['watchPlay','watchDeath','watchAttack','watchDamaged','w
 const TRIGGERS_BY_TYPE = {
   'Créature': ['onPlay','onAttack','onDamaged','onHealed','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype', ...WATCH_TRIGGERS,'activated'],
   'Héros':    ['gameStart','onPlay','onDamaged','onHealed','onKill','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype', ...WATCH_TRIGGERS,'activated'],
-  'Région':   ['gameStart','onPlay','onDestroyed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion', ...WATCH_TRIGGERS,'activated'],
+  'Région':   ['gameStart','onPlay','onDestroyed','onReturnFromGraveyard','manaAlternative','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion', ...WATCH_TRIGGERS,'activated'],
   'Artefact': ['onPlay','onUse','onDestroyed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype', ...WATCH_TRIGGERS,'activated'],
   'Sortilège':['onPlay'],
   'Piège':    ['onOpponentAttack','onOpponentSpell','onOpponentPlayCreature','onOpponentPlayCard','onOpponentEndTurn','onOpponentTargetsAlly','onAllySurvivesCombat','onEnemySurvivesCombat','beforeAllyFights','onAllyBlocked']
@@ -572,6 +572,7 @@ const TRIGGER_TEXT = {
   onKill: 'Quand cette carte élimine une créature',
   onRevive: 'Quand cette carte revient du cimetière',
   onReturnFromGraveyard: 'Quand vous ramenez une créature de la défausse',
+  manaAlternative: 'Remplace le gain de mana ce tour-ci (au lieu du mana normal, si les conditions sont remplies)',
   onUse: 'À chaque utilisation',
   startOfTurn: 'Au début de votre tour',
   startOfTurnX: 'Au début de votre tour X',
@@ -1570,8 +1571,23 @@ function buildEffectRow(ab, eff){
         row.appendChild(makeSelectField('Mot-clé', KEYWORDS.map(k=>({key:k.key,label:k.label})), eff.retrieveKeyword, v=>{ eff.retrieveKeyword=v; onFormChange(); }));
       }
     }
-    row.appendChild(makeSelectField('Destination', RETRIEVE_DESTINATIONS, eff.retrieveDestination, v=>{ eff.retrieveDestination=v; onFormChange(); }));
+    row.appendChild(makeSelectField('Destination', RETRIEVE_DESTINATIONS, eff.retrieveDestination, v=>{ eff.retrieveDestination=v; rebuildAbilitiesUI(); onFormChange(); }));
     row.appendChild(makeSelectField('Répétition', RETRIEVE_REPEAT, eff.retrieveRepeat, v=>{ eff.retrieveRepeat=v; onFormChange(); }));
+    if(eff.retrieveDestination==='battlefield'){
+      const bonusWrap = document.createElement('div');
+      bonusWrap.className='field'; bonusWrap.style.flexBasis='100%';
+      bonusWrap.innerHTML = `<label class="mini-field">Bonus de statistiques à l'arrivée (facultatif, peut être négatif)</label>`;
+      const grid = document.createElement('div'); grid.className='grid2';
+      const atkF = document.createElement('div'); atkF.innerHTML=`<label class="mini-field">Bonus Force</label>`;
+      const atkI = document.createElement('input'); atkI.type='number'; atkI.min=-10; atkI.max=10; atkI.value=eff.retrieveAtkBonus||0;
+      atkI.oninput=()=>{ eff.retrieveAtkBonus=parseInt(atkI.value)||0; onFormChange(); }; atkF.appendChild(atkI); grid.appendChild(atkF);
+      const hpF = document.createElement('div'); hpF.innerHTML=`<label class="mini-field">Bonus Endurance</label>`;
+      const hpI = document.createElement('input'); hpI.type='number'; hpI.min=-10; hpI.max=10; hpI.value=eff.retrieveHpBonus||0;
+      hpI.oninput=()=>{ eff.retrieveHpBonus=parseInt(hpI.value)||0; onFormChange(); }; hpF.appendChild(hpI); grid.appendChild(hpF);
+      bonusWrap.appendChild(grid);
+      row.appendChild(bonusWrap);
+      row.appendChild(makeSelectField('Mot-clé donné à l\'arrivée (facultatif)', [{key:'',label:'Aucun'}, ...KEYWORDS.map(k=>({key:k.key,label:k.label}))], eff.retrieveKeywordGrant||'', v=>{ eff.retrieveKeywordGrant=v; onFormChange(); }));
+    }
   }
 
   if(def.isConjure){
@@ -2159,7 +2175,17 @@ function retrieveClause(eff){
   }
   const destPhrase = eff.retrieveDestination==='battlefield' ? 'mettez-la directement en jeu' : 'ajoutez-la à votre main';
   const repeatPhrase = eff.retrieveRepeat==='asManyAsPossible' ? '. Répétez autant de fois que possible' : '';
-  return `cherchez dans ${sourceLabel} ${critPhrase} et ${destPhrase}${repeatPhrase}`;
+  let bonusPhrase = '';
+  if(eff.retrieveDestination==='battlefield' && (eff.retrieveAtkBonus || eff.retrieveHpBonus)){
+    const a = eff.retrieveAtkBonus||0, h = eff.retrieveHpBonus||0;
+    bonusPhrase = ` avec ${a>=0?'+':''}${a}/${h>=0?'+':''}${h}`;
+  }
+  let keywordPhrase = '';
+  if(eff.retrieveDestination==='battlefield' && eff.retrieveKeywordGrant){
+    const kw = KEYWORDS.find(k=>k.key===eff.retrieveKeywordGrant);
+    keywordPhrase = `${bonusPhrase ? ' et' : ' avec'} ${kw?kw.label:'?'}`;
+  }
+  return `cherchez dans ${sourceLabel} ${critPhrase} et ${destPhrase}${bonusPhrase}${keywordPhrase}${repeatPhrase}`;
 }
 
 function numericFilterPhrase(eff, modeKey, valueKey, label){

@@ -655,7 +655,8 @@ function mapAbilityEffectRaw(eff, amount){
     case 'explore': return {type:'explore', amount: amount||1, owner: eff.exploreOwner||'own'};
     case 'retrieve': return {type:'retrieve', source: eff.retrieveSource||'deck', criteria: eff.retrieveCriteria||'random',
       value: eff.retrieveValue, cardType: eff.retrieveCardType, subtype: eff.retrieveSubtype, keyword: eff.retrieveKeyword,
-      destination: eff.retrieveDestination||'hand', repeat: eff.retrieveRepeat||'once'};
+      destination: eff.retrieveDestination||'hand', repeat: eff.retrieveRepeat||'once',
+      atkBonus: eff.retrieveAtkBonus||0, hpBonus: eff.retrieveHpBonus||0, keywordGrant: eff.retrieveKeywordGrant||''};
     case 'discover': return {type:'discover', criteria: eff.discoverCriteria||'random', value: eff.discoverValue,
       cardType: eff.discoverCardType, subtype: eff.discoverSubtype};
     case 'conjure': return {type:'conjure', mode: eff.conjureMode||'filter', specificName: eff.conjureSpecificName,
@@ -932,10 +933,17 @@ function cardOwnerName(key){ return key==='p1' ? 'Vous' : 'L\'adversaire'; }
    RESSOURCES — mana normal / fragile / vide
    ============================================================ */
 function applyManaGain(p, key){
+  const region = p.region;
+  const altAb = region && region.triggeredEffects && region.triggeredEffects.manaAlternative;
+  if(altAb && conditionsMet(altAb.conditions, p, key)){
+    log(`${cardOwnerName(key)} : ${region.name} déclenche son effet alternatif au lieu du mana normal ce tour-ci.`);
+    fireResolvedEffect(altAb, p, key, null, null, null);
+    firePermanentTriggers(key, 'onManaGained');
+    return;
+  }
   p.manaNormalMax = Math.min(10, p.manaNormalMax+1);
   p.manaNormal = p.manaNormalMax;
   p.manaGainedThisTurn = (p.manaGainedThisTurn||0) + 1;
-  const region = p.region;
   if(region.manaRule==='bonusFragile'){
     p.manaFragile += 1;
     p.manaGainedThisTurn += 1;
@@ -1973,6 +1981,9 @@ function applySpellEffect(effect, caster, casterKey, target){
         let retrievedInst = null;
         if(effect.destination==='battlefield' && chosen.type==='Créature' && caster.board.length<8){
           retrievedInst = instantiateCreature(chosen);
+          if(effect.atkBonus) retrievedInst.curAtk = Math.max(0, retrievedInst.curAtk + effect.atkBonus);
+          if(effect.hpBonus) retrievedInst.curHp += effect.hpBonus;
+          if(effect.keywordGrant && !retrievedInst.keywords.includes(effect.keywordGrant)) retrievedInst.keywords.push(effect.keywordGrant);
           caster.board.push(retrievedInst);
           fireSummonSubtypeTrigger(casterKey, retrievedInst);
         } else {
@@ -1995,6 +2006,7 @@ function applySpellEffect(effect, caster, casterKey, target){
       } else {
         if(!doOnce()) log(`${cardOwnerName(casterKey)} ne trouve rien à récupérer.`);
       }
+      cleanupDeaths();
       break;
     }
     case 'discover': {
@@ -2155,33 +2167,13 @@ function fireTrap(ownerKey, triggerType, target){
   trap.activeTrap = false; trap.reservedMana = undefined;
   showCardReveal(trap);
   fireWatchTrigger('watchTrap', ownerKey);
-  if(target && trap.effect){
-    switch(trap.effect.type){
-      case 'damage':
-        target.curHp -= trap.effect.amount;
-        spawnDamageNumber(document.querySelector(`[data-inst-id="${target.instId}"]`), trap.effect.amount);
-        log(`${trap.name} inflige ${trap.effect.amount} dégâts à ${target.name}.`);
-        break;
-      case 'stun':
-        target.stunned = true;
-        log(`${trap.name} étourdit ${target.name}.`);
-        break;
-      case 'freeze':
-        target.frozen = true;
-        log(`${trap.name} gèle ${target.name}.`);
-        break;
-      case 'destroy':
-        target.curHp = -9999;
-        log(`${trap.name} détruit ${target.name}.`);
-        break;
-      case 'silence':
-        target.keywords = [];
-        log(`${trap.name} réduit ${target.name} au silence.`);
-        break;
+  if(trap.effect){
+    if(target && effectNeedsTarget(trap.effect)){
+      const targetPlayer = p.board && p.board.includes && p.board.includes(target) ? p : S[ownerKey==='p1'?'p2':'p1'];
+      fireResolvedEffect(trap.effect, p, ownerKey, null, {isHeroTarget:false, creature:target, player:targetPlayer}, null);
+    } else {
+      fireResolvedEffect(trap.effect, p, ownerKey, null, null, target);
     }
-    cleanupDeaths();
-  } else if(trap.effect && ['damage','stun','freeze','destroy','silence'].includes(trap.effect.type)){
-    log(`${trap.name} n'a pas de cible valable dans ce contexte et ne produit pas d'effet.`);
   }
   render();
 }
@@ -2352,6 +2344,8 @@ function anyBlockerAvailable(){
   return S.p1.board.some(c=>!c.hasBlockedThisTurn && !c.frozen && !c.stunned);
 }
 function finishBlocking(){
+  if(S.phase!=='declareBlockersMe') return; // déjà validé une fois, un second clic (double-clic) ne fait rien
+  S.phase = 'resolvingCombat'; // verrouille immédiatement, avant tout traitement asynchrone
   const atkKey = S.active, defKey = S.active==='p1' ? 'p2' : 'p1';
   const atkP = S[atkKey], defP = S[defKey];
   const orderedAttackerIds = atkP.board.map(c=>c.instId).filter(id=>(atkP.attackers||[]).includes(id));
