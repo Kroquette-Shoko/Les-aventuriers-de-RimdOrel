@@ -240,3 +240,90 @@ async function loadLegacyMonolithicCards(){
   legacy.forEach(migrateCard);
   return legacy;
 }
+
+/* ============================================================
+   SYSTÈME SONORE — effets sonores (sfx/) et musique de fond (music/)
+   ============================================================ */
+const SFX_VARIANTS = {
+  coin: ['coin-1','coin-2','coin-3'],
+  draw: ['draw-1','draw-2'],
+};
+let sfxMuted = false;
+try { sfxMuted = localStorage.getItem('sfxMuted') === 'true'; } catch(e){}
+
+function setSfxMuted(muted){
+  sfxMuted = muted;
+  try { localStorage.setItem('sfxMuted', muted ? 'true' : 'false'); } catch(e){}
+  if(muted) stopMusic();
+}
+
+// Joue un effet sonore ponctuel depuis sfx/. Si `key` correspond à une famille
+// de variantes (ex: 'coin', 'draw'), une variante est choisie au hasard à
+// chaque appel pour éviter la répétition exacte du même son.
+function playSfx(key, volume=0.6){
+  if(sfxMuted || !key) return;
+  try{
+    let file = key;
+    if(SFX_VARIANTS[key]){
+      const arr = SFX_VARIANTS[key];
+      file = arr[Math.floor(Math.random()*arr.length)];
+    }
+    const audio = new Audio(`sfx/${file}.mp3`);
+    audio.volume = volume;
+    audio.play().catch(()=>{});
+  }catch(e){}
+}
+
+let currentMusicAudio = null;
+let musicGeneration = 0;
+
+// Musique simple, en boucle (ex: musique de la boutique).
+function playMusic(name, {loop=true, volume=0.4}={}){
+  if(sfxMuted) return;
+  stopMusic();
+  try{
+    currentMusicAudio = new Audio(`music/${name}.ogg`);
+    currentMusicAudio.loop = loop;
+    currentMusicAudio.volume = volume;
+    currentMusicAudio.play().catch(()=>{});
+  }catch(e){}
+}
+
+// Relais aléatoire entre plusieurs pistes : quand l'une se termine, une autre
+// (différente de la précédente si possible) prend le relais automatiquement.
+const COMBAT_MUSIC_POOL = ['combat-1','combat-2','combat-3','combat-4'];
+let lastCombatTrack = null;
+function playCombatMusicRotation(volume=0.35){
+  if(sfxMuted) return;
+  stopMusic();
+  const myGen = ++musicGeneration;
+  const playNext = ()=>{
+    if(myGen !== musicGeneration) return; // une autre musique a pris le relais depuis
+    let choices = COMBAT_MUSIC_POOL.filter(t=>t!==lastCombatTrack);
+    if(choices.length===0) choices = COMBAT_MUSIC_POOL;
+    const track = choices[Math.floor(Math.random()*choices.length)];
+    lastCombatTrack = track;
+    try{
+      const audio = new Audio(`music/${track}.ogg`);
+      audio.loop = false;
+      audio.volume = volume;
+      audio.addEventListener('ended', playNext);
+      audio.play().catch(()=>{});
+      currentMusicAudio = audio;
+    }catch(e){}
+  };
+  playNext();
+}
+
+function stopMusic(){
+  musicGeneration++; // invalide toute rotation de musique de combat en cours
+  if(currentMusicAudio){
+    try{ currentMusicAudio.pause(); currentMusicAudio.currentTime = 0; }catch(e){}
+    currentMusicAudio = null;
+  }
+}
+// Coupe la musique en cours pour jouer un son "final" (victoire/défaite) par-dessus.
+function playFinalSfx(key, volume=0.8){
+  stopMusic();
+  playSfx(key, volume);
+}

@@ -351,6 +351,7 @@ body.targeting *{cursor:crosshair !important;}
     </div>
     <div id="log-panel">
       <a href="spellcraft-hub.html" style="display:inline-block;margin-bottom:10px;font-size:11px;color:var(--parchment-dim);text-decoration:none;border:1px solid #3a3260;border-radius:6px;padding:5px 10px;">🏠 Retour au hub</a>
+      <button id="sfx-toggle-btn" onclick="toggleSfxMuted()" style="display:inline-block;margin-bottom:10px;margin-left:6px;font-size:11px;color:var(--parchment-dim);background:none;border:1px solid #3a3260;border-radius:6px;padding:5px 10px;cursor:pointer;">🔊 Son</button>
       <h3>Journal</h3>
       <div id="log"></div>
     </div>
@@ -823,7 +824,7 @@ function drawCard(p, key){
     DRAW_ANIM_IN_PROGRESS = true;
     processDrawAnimQueue();
   }
-  if(key) firePermanentTriggers(key, 'onDraw');
+  if(key){ firePermanentTriggers(key, 'onDraw'); playSfx('draw'); }
   return card;
 }
 
@@ -900,8 +901,11 @@ let S = {
 
 function startGame(p1Hero, p1Region, p1Deck, p2Hero, p2Region, p2Deck, p2IsAI){
   matchCurrencyGranted = false;
+  playSfx('match-found');
+  playCombatMusicRotation();
   S.p1 = newPlayer(p1Hero, p1Region, p1Deck, false);
   S.p2 = newPlayer(p2Hero, p2Region, p2Deck, p2IsAI!==false);
+  playSfx('shuffle');
   S.turn = 1;
   S.active = 'p1';
   S.phase = 'main';
@@ -929,6 +933,19 @@ function triggerGameStart(p, key){
 }
 
 let ACTIVE_CARD_POOL = CARD_DB;
+
+function toggleSfxMuted(){
+  setSfxMuted(!sfxMuted);
+  const btn = document.getElementById('sfx-toggle-btn');
+  if(btn) btn.textContent = sfxMuted ? '🔇 Son coupé' : '🔊 Son';
+  if(!sfxMuted && !currentMusicAudio && S.p1 && !S.gameOver){
+    playCombatMusicRotation();
+  }
+}
+document.addEventListener('DOMContentLoaded', ()=>{
+  const btn = document.getElementById('sfx-toggle-btn');
+  if(btn) btn.textContent = sfxMuted ? '🔇 Son coupé' : '🔊 Son';
+});
 
 function startDemoGame(){
   ACTIVE_CARD_POOL = CARD_DB;
@@ -2478,6 +2495,7 @@ function runAI(){
 function endGame(winnerKey){
   S.gameOver = true;
   S.winnerKey = winnerKey;
+  playFinalSfx(winnerKey==='p1' ? 'victory' : 'defeat');
 }
 
 /* ============================================================

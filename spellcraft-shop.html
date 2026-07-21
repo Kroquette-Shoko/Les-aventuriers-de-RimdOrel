@@ -188,6 +188,7 @@ header .spacer{flex:1;}
     <a class="back-link" href="spellcraft-hub.html">← Retour au hub</a>
     <h1>🛒 Boutique</h1>
     <div class="spacer"></div>
+    <button id="sfx-toggle-btn" onclick="toggleSfxMuted()" class="btn small" style="margin-right:6px;">🔊 Son</button>
     <div id="sc-auth-slot"></div>
   </header>
 
@@ -450,6 +451,7 @@ async function buyBooster(boosterId, boosterImageUrl){
   const { data, error } = await sb.rpc('buy_booster', { p_booster_id: boosterId });
   if(error){ alert('Erreur : ' + error.message); return; }
   if(data.error){ alert(shopErrorMessage(data.error)); return; }
+  playSfx('coin');
   refreshCurrency();
   await openBoosterAnimation(boosterImageUrl, data.cards);
 }
@@ -586,6 +588,7 @@ async function confirmSingleChoice(cardId){
   const { data, error } = await sb.rpc('buy_single_card', { p_card_id: cardId });
   if(error){ alert('Erreur : ' + error.message); return; }
   if(data.error){ alert(shopErrorMessage(data.error)); return; }
+  playSfx('coin');
   showRevealModal('Carte obtenue !', [{ name: data.name, foil: data.foil, rarity: '', card_id: data.card_id }]);
   refreshCurrency();
   renderSingleShelf();
@@ -597,6 +600,7 @@ async function buyCardBack(id){
   const { data, error } = await sb.rpc('buy_card_back', { p_card_back_id: id });
   if(error){ alert('Erreur : ' + error.message); return; }
   if(data.error){ alert(shopErrorMessage(data.error)); return; }
+  playSfx('coin');
   refreshCurrency();
   renderCardBackShelf();
 }
@@ -651,8 +655,22 @@ async function showRevealModal(title, items){
 function openModal(id){ document.getElementById(id).classList.add('show'); }
 function closeModal(id){ document.getElementById(id).classList.remove('show'); }
 
+function toggleSfxMuted(){
+  setSfxMuted(!sfxMuted);
+  const btn = document.getElementById('sfx-toggle-btn');
+  if(btn) btn.textContent = sfxMuted ? '🔇 Son coupé' : '🔊 Son';
+  if(!sfxMuted && !currentMusicAudio){
+    playMusic('bruno-shop', {loop:true, volume:0.3});
+  }
+}
+document.addEventListener('DOMContentLoaded', ()=>{
+  const btn = document.getElementById('sfx-toggle-btn');
+  if(btn) btn.textContent = sfxMuted ? '🔇 Son coupé' : '🔊 Son';
+});
+
 async function initShop(){
   renderBrunoLine();
+  playMusic('bruno-shop', {loop:true, volume:0.3});
   await renderBoosterShelf();
   await renderSingleShelf();
   await renderCardBackShelf();
