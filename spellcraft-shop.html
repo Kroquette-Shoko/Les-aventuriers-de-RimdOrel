@@ -37,12 +37,19 @@ header .spacer{flex:1;}
 #currency-bar{display:flex;align-items:center;gap:10px;background:var(--bg-panel);border:1px solid #3a3260;border-radius:12px;padding:8px 14px;flex-wrap:wrap;}
 .currency-chip{display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;padding:4px 9px;border-radius:14px;background:var(--bg-panel-2);}
 .currency-chip .dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.currency-chip .gem-icon{width:14px;height:14px;flex-shrink:0;background-size:contain;background-repeat:no-repeat;background-position:center;}
 .currency-chip.gold .dot{background:var(--gold);}
-.currency-chip.aube .dot{background:#e0b93a;}
-.currency-chip.crepuscule .dot{background:#c23b3b;}
-.currency-chip.volonte .dot{background:#4a9d6b;}
-.currency-chip.prima .dot{background:#3a7fd8;}
-.currency-chip.arcane .dot{background:#7c5cff;}
+.currency-chip.aube .gem-icon{background-color:#d4af37;-webkit-mask-image:url('images/gem-aub.png');mask-image:url('images/gem-aub.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;}
+.currency-chip.crepuscule .gem-icon{background-color:#8a5cf0;-webkit-mask-image:url('images/gem-crep.png');mask-image:url('images/gem-crep.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;}
+.currency-chip.volonte .gem-icon{background-color:#c23b3b;-webkit-mask-image:url('images/gem-vol.png');mask-image:url('images/gem-vol.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;}
+.currency-chip.prima .gem-icon{background-color:#3fae5c;-webkit-mask-image:url('images/gem-prim.png');mask-image:url('images/gem-prim.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;}
+.currency-chip.arcane .gem-icon{background-color:#5b9bd5;-webkit-mask-image:url('images/gem-arc.png');mask-image:url('images/gem-arc.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;}
+.money-icon{width:14px;height:14px;display:inline-block;vertical-align:-2px;background-image:url('images/money.png');background-size:contain;background-repeat:no-repeat;background-position:center;}
+.frag-toast-icon{width:14px;height:14px;vertical-align:-2px;margin-right:3px;}
+.frag-summary-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);opacity:0;transition:opacity .3s,transform .3s;background:rgba(15,12,20,.94);border:1px solid var(--gold);border-radius:12px;padding:12px 20px;z-index:200;display:flex;flex-direction:column;gap:5px;box-shadow:0 10px 30px rgba(0,0,0,.6);}
+.frag-summary-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.frag-toast-title{font-family:'Cinzel',serif;color:var(--gold);font-size:13px;margin-bottom:2px;}
+.frag-toast-row{font-size:12.5px;display:flex;align-items:center;}
 
 /* ---------- comptoir du vendeur ---------- */
 #vendor-area{
@@ -185,12 +192,12 @@ header .spacer{flex:1;}
   </header>
 
   <div id="currency-bar">
-    <div class="currency-chip gold"><span class="dot"></span><span id="cur-gold">–</span> Or</div>
-    <div class="currency-chip aube" title="Diamant (fragments Aube)"><span class="dot"></span>💎 <span id="cur-aube">–</span></div>
-    <div class="currency-chip crepuscule" title="Obsidienne (fragments Crépuscule)"><span class="dot"></span>⚫ <span id="cur-crepuscule">–</span></div>
-    <div class="currency-chip volonte" title="Rubis (fragments Volonté)"><span class="dot"></span>🔴 <span id="cur-volonte">–</span></div>
-    <div class="currency-chip prima" title="Émeraude (fragments Prima)"><span class="dot"></span>🟢 <span id="cur-prima">–</span></div>
-    <div class="currency-chip arcane" title="Saphir (fragments Arcane)"><span class="dot"></span>🔵 <span id="cur-arcane">–</span></div>
+    <div class="currency-chip gold"><span class="money-icon"></span><span id="cur-gold">–</span> Or</div>
+    <div class="currency-chip aube" title="Diamant (fragments Aube)"><span class="gem-icon"></span> <span id="cur-aube">–</span></div>
+    <div class="currency-chip crepuscule" title="Obsidienne (fragments Crépuscule)"><span class="gem-icon"></span> <span id="cur-crepuscule">–</span></div>
+    <div class="currency-chip volonte" title="Rubis (fragments Volonté)"><span class="gem-icon"></span> <span id="cur-volonte">–</span></div>
+    <div class="currency-chip prima" title="Émeraude (fragments Prima)"><span class="gem-icon"></span> <span id="cur-prima">–</span></div>
+    <div class="currency-chip arcane" title="Saphir (fragments Arcane)"><span class="gem-icon"></span> <span id="cur-arcane">–</span></div>
   </div>
 
   <div id="vendor-area">
@@ -242,6 +249,7 @@ const RARITY_COLORS = {Basique:'#8a7f6a', Commune:'#c7c2b3', Rare:'#4fb3d9', Ép
 const BOOSTER_PRICE = 120;
 const SINGLE_CARD_PRICES = {Basique:20, Commune:50, Rare:150, 'Épique':250, 'Mythique':500};
 const GEM_NAMES = {Volonté:'Rubis', Aube:'Diamant', 'Crépuscule':'Obsidienne', Arcane:'Saphir', Prima:'Émeraude'};
+const GEM_ICON_FILES = {Volonté:'gem-vol.png', Aube:'gem-aub.png', 'Crépuscule':'gem-crep.png', Arcane:'gem-arc.png', Prima:'gem-prim.png'};
 
 // Répliques d'accueil de Bruno — on en ajoutera d'autres plus tard, une est tirée au hasard à chaque visite.
 const BRUNO_LINES = [
@@ -277,7 +285,7 @@ async function renderBoosterShelf(){
       <div class="shop-item-art" style="${b.image_url?`background-image:url('${b.image_url}');background-size:cover;`:''}">${b.image_url?'':'📦'}</div>
       <div class="shop-item-name">${escapeHtmlShop(b.name)}</div>
       <div class="shop-item-desc">6 cartes du set correspondant.</div>
-      <div class="shop-item-price">🪙 ${b.price}</div>
+      <div class="shop-item-price"><span class="money-icon"></span> ${b.price}</div>
       <button class="buy-btn" onclick="buyBooster('${b.id}', ${b.image_url ? `'${b.image_url}'` : 'null'})">Acheter</button>
     </div>
   `).join('');
@@ -315,7 +323,7 @@ async function renderSingleShelf(){
     wrap.appendChild(label);
     const price = document.createElement('div');
     price.className = 'shop-item-price';
-    price.textContent = `🪙 ${SINGLE_CARD_PRICES[c.rarity] ?? 50}`;
+    price.innerHTML = `<span class="money-icon"></span> ${SINGLE_CARD_PRICES[c.rarity] ?? 50}`;
     wrap.appendChild(price);
     const btn = document.createElement('button');
     if(alreadyBought){
@@ -375,7 +383,7 @@ async function renderCardBackShelf(){
       <div class="shop-item">
         <div class="shop-item-art" style="${cb.image_url?`background-image:url('${cb.image_url}');background-size:cover;`:''}">${cb.image_url?'':'🎴'}</div>
         <div class="shop-item-name">${escapeHtmlShop(cb.name)}</div>
-        <div class="shop-item-price">🪙 ${cb.price}</div>
+        <div class="shop-item-price"><span class="money-icon"></span> ${cb.price}</div>
         ${btnHtml}
       </div>
     `;
@@ -453,7 +461,10 @@ async function getEquippedCardBackUrl(){
   return data ? data.image_url : null;
 }
 
+let lastBoosterResult = null;
+
 async function openBoosterAnimation(boosterImageUrl, cardsResult){
+  lastBoosterResult = cardsResult;
   const overlay = document.getElementById('booster-open-overlay');
   const packStage = document.getElementById('pack-stage');
   const cardsStage = document.getElementById('cards-stage');
@@ -513,7 +524,10 @@ function dealBoosterCards(cardsStage, cardsResult, fullCards, backUrl, actions){
       banner = document.createElement('div');
       banner.className = 'fragments-banner';
       banner.style.display = 'none';
-      const gemLabel = (res.fragment_classes||[]).map(c => GEM_NAMES[c] || c).join(' + ');
+      const gemLabel = (res.fragment_classes||[]).map(c => {
+        const icon = GEM_ICON_FILES[c] ? `<img src="images/${GEM_ICON_FILES[c]}" class="frag-toast-icon">` : '';
+        return `${icon}${GEM_NAMES[c] || c}`;
+      }).join(' + ');
       banner.innerHTML = `Déjà au max<br>+${res.fragment_amount ?? '?'} ${gemLabel||'fragments'}`;
       flip.appendChild(banner);
     }
@@ -538,6 +552,34 @@ function dealBoosterCards(cardsStage, cardsResult, fullCards, backUrl, actions){
 
 function closeBoosterOpening(){
   document.getElementById('booster-open-overlay').classList.remove('show');
+  showFragmentSummaryToast(lastBoosterResult);
+  lastBoosterResult = null;
+}
+
+// Résumé persistant (par classe) des fragments obtenus dans ce booster, affiché
+// une fois de retour à la liste — pour éviter de perdre l'info après l'animation.
+function showFragmentSummaryToast(cardsResult){
+  if(!cardsResult) return;
+  const totals = {};
+  cardsResult.forEach(res=>{
+    if(res.result!=='fragments') return;
+    (res.fragment_classes||[]).forEach(cls=>{
+      totals[cls] = (totals[cls]||0) + (res.fragment_amount || 1);
+    });
+  });
+  const classes = Object.keys(totals);
+  if(classes.length===0) return;
+  const rows = classes.map(cls=>{
+    const iconFile = GEM_ICON_FILES[cls];
+    const iconHtml = iconFile ? `<img src="images/${iconFile}" class="frag-toast-icon">` : '';
+    return `<span class="frag-toast-row">${iconHtml}+${totals[cls]} ${GEM_NAMES[cls]||cls} (${cls})</span>`;
+  }).join('');
+  const toast = document.createElement('div');
+  toast.className = 'frag-summary-toast';
+  toast.innerHTML = `<div class="frag-toast-title">Fragments obtenus</div>${rows}`;
+  document.body.appendChild(toast);
+  setTimeout(()=>toast.classList.add('show'), 10);
+  setTimeout(()=>{ toast.classList.remove('show'); setTimeout(()=>toast.remove(), 400); }, 5000);
 }
 
 async function confirmSingleChoice(cardId){
