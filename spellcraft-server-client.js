@@ -32,6 +32,11 @@ async function gsCallAction(action, params = {}) {
   return data;
 }
 
+// Récupère l'état actuel directement (sans attendre une diffusion) —
+// à appeler juste après gsConnect, car créer/rejoindre une partie ne
+// diffuse rien par elle-même.
+async function gsFetchState() { return gsCallAction('getState'); }
+
 // ------------------------------------------------------------
 // Création / rejointe
 // ------------------------------------------------------------
