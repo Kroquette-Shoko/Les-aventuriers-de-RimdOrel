@@ -1536,7 +1536,7 @@ function buildEffectRow(ab, eff){
     if(eff.targetCategory!=='player'){
       const ownerOptions = eff.targetCategory==='creature' ? TARGET_OWNERS : TARGET_OWNERS.filter(o=>o.key!=='self');
       row.appendChild(makeSelectField('Propriétaire', ownerOptions, eff.targetOwner, v=>{ eff.targetOwner=v; rebuildAbilitiesUI(); onFormChange(); }));
-      if(eff.targetOwner!=='self'){
+      if(eff.targetOwner!=='self' && eff.targetOwner!=='trigger'){
         row.appendChild(makeSelectField('Sélection', SELECTION_MODES, eff.selectionMode, v=>{ eff.selectionMode=v; rebuildAbilitiesUI(); onFormChange(); }));
         if(eff.selectionMode!=='all'){
           const countField = document.createElement('div');
