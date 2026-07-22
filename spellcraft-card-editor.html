@@ -725,7 +725,8 @@ const TARGET_OWNERS = [
   {key:'ally', label:'Alliée / vous'},
   {key:'enemy', label:'Ennemie / adversaire'},
   {key:'any', label:'Peu importe'},
-  {key:'random', label:'Au hasard (un camp tiré une fois)'}
+  {key:'random', label:'Au hasard (un camp tiré une fois)'},
+  {key:'trigger', label:'Celle qui déclenche l\'effet'}
 ];
 const SELECTION_MODES = [
   {key:'chosen', label:'Désignée par le joueur'},
@@ -1981,6 +1982,7 @@ function dynamicValueLabel(obj, dynFieldName, dv){
 
 function targetPhrase(eff){
   if(eff.targetOwner==='self') return 'cette carte';
+  if(eff.targetOwner==='trigger') return 'la carte qui a déclenché cet effet';
   if(eff.targetCategory==='hero'){
     if(eff.targetOwner==='random') return 'un héros tiré au hasard (allié ou ennemi)';
     return eff.targetOwner==='enemy' ? 'le héros ennemi' : 'votre héros';

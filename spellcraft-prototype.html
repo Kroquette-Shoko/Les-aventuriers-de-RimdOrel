@@ -617,16 +617,26 @@ function fireResolvedEffect(eff, p, key, sourceCreature, targetOverride, eventCr
     applySpellEffect(resolved, p, key, targetOverride, sourceCreature);
   } else if(effectNeedsTarget(resolved)){
     const oppKey = key==='p1' ? 'p2' : 'p1';
-    const eventCreatureIsAlly = eventCreature && p.board.includes(eventCreature);
-    const eventCreatureIsEnemy = eventCreature && S[oppKey].board.includes(eventCreature);
-    const eventCreatureMatchesWanted =
-      (resolved.targetOwner==='enemy' && eventCreatureIsEnemy) ||
-      (resolved.targetOwner!=='enemy' && eventCreatureIsAlly);
-    if(eventCreature && eventCreatureMatchesWanted && TARGETED_EFFECTS.includes(resolved.type)){
-      const owner = eventCreatureIsEnemy ? S[oppKey] : p;
-      applySpellEffect(resolved, p, key, {isHeroTarget:false, creature:eventCreature, player:owner}, sourceCreature);
+    if(resolved.targetOwner==='trigger'){
+      // "Celle qui déclenche l'effet" : toujours la créature-événement, quel que soit son camp.
+      if(eventCreature){
+        const owner = S[oppKey].board.includes(eventCreature) ? S[oppKey] : p;
+        applySpellEffect(resolved, p, key, {isHeroTarget:false, creature:eventCreature, player:owner}, sourceCreature);
+      } else {
+        log(`${cardOwnerName(key)} : aucune carte n'a déclenché cet effet, rien à cibler.`);
+      }
     } else {
-      applySpellEffect(resolved, p, key, autoResolveTargetForTriggeredEffect(resolved, p, key, sourceCreature), sourceCreature);
+      const eventCreatureIsAlly = eventCreature && p.board.includes(eventCreature);
+      const eventCreatureIsEnemy = eventCreature && S[oppKey].board.includes(eventCreature);
+      const eventCreatureMatchesWanted =
+        (resolved.targetOwner==='enemy' && eventCreatureIsEnemy) ||
+        (resolved.targetOwner!=='enemy' && eventCreatureIsAlly);
+      if(eventCreature && eventCreatureMatchesWanted && TARGETED_EFFECTS.includes(resolved.type)){
+        const owner = eventCreatureIsEnemy ? S[oppKey] : p;
+        applySpellEffect(resolved, p, key, {isHeroTarget:false, creature:eventCreature, player:owner}, sourceCreature);
+      } else {
+        applySpellEffect(resolved, p, key, autoResolveTargetForTriggeredEffect(resolved, p, key, sourceCreature), sourceCreature);
+      }
     }
   } else {
     applySpellEffect(resolved, p, key, {}, sourceCreature);
@@ -1247,9 +1257,10 @@ function fireHeroTrigger(key, triggerName){
   fireResolvedEffect(eff, p, key, null, null, null);
 }
 
-function dealDamageToHero(targetPlayer, targetKey, amount, sourcePlayer){
+function dealDamageToHero(targetPlayer, targetKey, amount, sourcePlayer, isCreatureHit){
   modifyHp(targetPlayer, -amount);
   if(!suppressDamagePopups) spawnDamageNumber(document.querySelector(`#hero-${targetKey} .hero-portrait`), amount);
+  if(isCreatureHit && amount>0) playSfx(amount<=4 ? 'hitLight' : amount<=10 ? 'hitMedium' : 'hitLarge');
   if(targetKey==='p2' && typeof progressQuest==='function') progressQuest('deal_damage', amount);
   if(targetPlayer.hp<=0){
     endGame(targetKey==='p1' ? 'p2' : 'p1');
@@ -1306,7 +1317,7 @@ function applyDamage(dealer, dealerP, dealerKey, target, targetP, targetKey, def
   }
   if(dealer.keywords.includes('pierce') && target.curHp<0){
     const excess = -target.curHp;
-    dealDamageToHero(targetP, targetKey, excess, dealerP);
+    dealDamageToHero(targetP, targetKey, excess, dealerP, true);
     log(`Perçant : ${excess} dégâts excédentaires passent au héros ennemi.`);
   }
   fireCreatureTrigger(targetKey, target, 'onDamaged');
@@ -2358,9 +2369,11 @@ function confirmAttackers(){
   S.attackPhaseDone = true;
   if(ids.length===0){
     log('Vous ne déclarez aucun attaquant. Pas de combat ce tour-ci.');
+    playSfx('pass');
     render();
     return;
   }
+  playSfx('attack');
   p.attackers = ids;
   ids.forEach(id=>{
     const c = p.board.find(x=>x.instId===id);
@@ -2450,7 +2463,7 @@ function resolveCombat(atkKey, defKey){
       }
     } else {
       const dmg = attacker.curAtk;
-      dealDamageToHero(defP, defKey, dmg, atkP);
+      dealDamageToHero(defP, defKey, dmg, atkP, true);
       if(attacker.keywords.includes('lifesteal')) modifyHp(atkP, dmg);
       log(`${attacker.name} frappe le héros pour ${dmg}.`);
       events.push({type:'hero', attackerInstId:attId, defKey, dmg});
@@ -2601,7 +2614,7 @@ function finishBlocking(){
     const attacker = atkP.board.find(c=>c.instId===attId);
     if(!attacker || attacker.hasBeenBlocked) return; // déjà combattu au moins une fois : jamais de dégâts au héros
     const dmg = attacker.curAtk;
-    dealDamageToHero(defP, defKey, dmg, atkP);
+    dealDamageToHero(defP, defKey, dmg, atkP, true);
     if(attacker.keywords.includes('lifesteal')) modifyHp(atkP, dmg);
     log(`${attacker.name} frappe le héros pour ${dmg}.`);
     events.push({type:'hero', attackerInstId:attId, defKey, dmg});
@@ -2729,13 +2742,18 @@ function cardEl(card, opts={}){
   if(inPlay){
     if(kw.includes('fearful')) el.classList.add('kw-fearful');
     if(kw.includes('flying')) el.classList.add('kw-flying');
-    if(kw.includes('stealth')) el.classList.add('kw-stealth');
+    if(kw.includes('stealth') && card.summonSick) el.classList.add('kw-stealth');
     if(kw.includes('initiative')) el.classList.add('kw-initiative');
     if(kw.includes('lifesteal')) el.classList.add('kw-lifesteal');
   }
 
   const hasArmorShield = inPlay && kw.includes('armor') && !card.armorUsed;
-  const activeKeywordIcons = inPlay ? kw.filter(k=>KEYWORD_ICON_FILES[k]) : [];
+  const activeKeywordIcons = inPlay ? kw.filter(k=>{
+    if(!KEYWORD_ICON_FILES[k]) return false;
+    if(k==='armor' && card.armorUsed) return false; // absorbée : plus rien à montrer
+    if(k==='stealth' && !card.summonSick) return false; // protection terminée (passé le tour où elle est arrivée)
+    return true;
+  }) : [];
 
   const kwText = kw.map(k=>KEYWORD_LABELS[k]).filter(Boolean).join(', ');
   const isHero = card.type==='Héros';
@@ -2978,6 +2996,7 @@ function targetableKeysForEffect(eff){
   if(owner==='ally') return ['p1'];
   if(owner==='any') return ['p1','p2'];
   if(owner==='random') return [];
+  if(owner==='trigger') return []; // pas un ciblage interactif : résolu automatiquement via la créature-événement
   return ['p2']; // 'enemy' et repli par défaut (comportement historique)
 }
 

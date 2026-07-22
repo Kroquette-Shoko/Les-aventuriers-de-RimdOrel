@@ -289,6 +289,7 @@ const SFX_OGG_FILES = new Set([
   'hit-large-1','hit-large-2','hit-large-3',
   'artefact',
   'cast-1','cast-2','cast-3',
+  'attack','pass',
 ]);
 
 // Joue un effet sonore ponctuel depuis sfx/. Si `key` correspond à une famille
