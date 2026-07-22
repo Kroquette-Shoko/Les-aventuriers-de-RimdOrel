@@ -1278,7 +1278,7 @@ function lungeToward(el, targetEl, duration){
   ], { duration: duration||650, easing:'ease-in-out' });
 }
 
-function applyDamage(dealer, dealerP, dealerKey, target, targetP, targetKey){
+function applyDamage(dealer, dealerP, dealerKey, target, targetP, targetKey, deferKillTrigger){
   const dmg = dealer.curAtk;
   if(target.keywords.includes('armor') && !target.armorUsed){
     target.armorUsed = true;
@@ -1302,7 +1302,13 @@ function applyDamage(dealer, dealerP, dealerKey, target, targetP, targetKey){
   }
   fireCreatureTrigger(targetKey, target, 'onDamaged');
   fireWatchTrigger('watchDamaged', targetKey);
-  if(target.curHp<=0) fireCreatureTrigger(dealerKey, dealer, 'onKill');
+  if(target.curHp<=0){
+    // en plein combat (les deux créatures s'affrontent), on ne sait pas encore
+    // si l'attaquant lui-même va survivre au coup en retour — on diffère donc
+    // le déclenchement pour vérifier sa survie avant de le laisser en profiter.
+    if(deferKillTrigger) dealer._pendingOnKill = dealerKey;
+    else fireCreatureTrigger(dealerKey, dealer, 'onKill');
+  }
   return dmg;
 }
 
@@ -2440,15 +2446,25 @@ function resolveOneCombat(attacker, atkP, atkKey, blocker, defP, defKey){
   const initB = blocker.keywords.includes('initiative');
   let dmgToBlocker = 0, dmgToAttacker = 0;
   if(initA && !initB){
-    dmgToBlocker = applyDamage(attacker, atkP, atkKey, blocker, defP, defKey);
-    if(blocker.curHp>0) dmgToAttacker = applyDamage(blocker, defP, defKey, attacker, atkP, atkKey);
+    dmgToBlocker = applyDamage(attacker, atkP, atkKey, blocker, defP, defKey, true);
+    if(blocker.curHp>0) dmgToAttacker = applyDamage(blocker, defP, defKey, attacker, atkP, atkKey, true);
   } else if(initB && !initA){
-    dmgToAttacker = applyDamage(blocker, defP, defKey, attacker, atkP, atkKey);
-    if(attacker.curHp>0) dmgToBlocker = applyDamage(attacker, atkP, atkKey, blocker, defP, defKey);
+    dmgToAttacker = applyDamage(blocker, defP, defKey, attacker, atkP, atkKey, true);
+    if(attacker.curHp>0) dmgToBlocker = applyDamage(attacker, atkP, atkKey, blocker, defP, defKey, true);
   } else {
-    dmgToBlocker = applyDamage(attacker, atkP, atkKey, blocker, defP, defKey);
-    dmgToAttacker = applyDamage(blocker, defP, defKey, attacker, atkP, atkKey);
+    dmgToBlocker = applyDamage(attacker, atkP, atkKey, blocker, defP, defKey, true);
+    dmgToAttacker = applyDamage(blocker, defP, defKey, attacker, atkP, atkKey, true);
   }
+  // les deux échanges de dégâts sont maintenant faits : on ne laisse une
+  // créature profiter de son "Quand elle tue" que si elle a vraiment
+  // survécu au coup en retour, pas grâce à un effet qu'elle vient de gagner.
+  [attacker, blocker].forEach(c=>{
+    if(c._pendingOnKill){
+      const key = c._pendingOnKill;
+      delete c._pendingOnKill;
+      if(c.curHp>0) fireCreatureTrigger(key, c, 'onKill');
+    }
+  });
   return {dmgToBlocker, dmgToAttacker};
 }
 
