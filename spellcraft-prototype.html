@@ -1168,6 +1168,7 @@ function startTurn(key, first){
   p.relics.forEach(r=>{ fireCreatureTrigger(key, r, 'onUse'); r.charges--; });
   const deadRelics = p.relics.filter(r=>r.charges<=0);
   p.discard.push(...deadRelics);
+  if(deadRelics.length>0) playSfx('artefact');
   p.artifactsDiedThisTurn = (p.artifactsDiedThisTurn||0) + deadRelics.length;
   p.relics = p.relics.filter(r=>r.charges>0);
 
@@ -1294,6 +1295,7 @@ function applyDamage(dealer, dealerP, dealerKey, target, targetP, targetKey, def
   }
   target.curHp -= dmg;
   if(!suppressDamagePopups) spawnDamageNumber(document.querySelector(`[data-inst-id="${target.instId}"]`), dmg);
+  if(dmg>0) playSfx(dmg<=4 ? 'hitLight' : dmg<=10 ? 'hitMedium' : 'hitLarge');
   if(dealer.keywords.includes('toxic') && dmg>0){
     target.curHp = Math.min(target.curHp, 0);
     log(`${target.name} est empoisonnée par Toxique et meurt.`);
@@ -1336,6 +1338,7 @@ function cleanupDeaths(){
         } else {
           p.discard.push(c);
           log(`${c.name} meurt.`);
+          playSfx('card-death');
           dead.push({creature:c, key});
           p.creaturesDiedThisTurn = (p.creaturesDiedThisTurn||0) + 1;
         }
@@ -1633,6 +1636,7 @@ function playCard(key, handIndex, targetInfo){
     const inst = instantiateCreature(card);
     p.board.push(inst);
     log(`${cardOwnerName(key)} invoque ${card.name}.`);
+    playSfx('cardPlay');
     if(key==='p1' && typeof progressQuest==='function'){
       progressQuest('play_creatures');
       progressQuest('play_class_cards', 1, card.class);
@@ -1664,6 +1668,7 @@ function playCard(key, handIndex, targetInfo){
     payExtraCost(key, p, card, chosenSacrifice);
     if(p.pendingDiscount && (p.pendingDiscount.cardType==='Toutes' || p.pendingDiscount.cardType===card.type)) p.pendingDiscount = null;
     showCardReveal(card);
+    playSfx('cast');
     fireResolvedEffect(card.effect, p, key, null, targetInfo || {}, null);
     p.discard.push(card);
     fireWatchTrigger('watchPlay', key);
@@ -1693,6 +1698,7 @@ function playCard(key, handIndex, targetInfo){
     p.artifactsArrivedThisTurn = (p.artifactsArrivedThisTurn||0) + 1;
     fireWatchTrigger('watchPlay', key);
     log(`${cardOwnerName(key)} active ${card.name}.`);
+    playSfx('artefact');
     const onPlayEff = relicInst.triggeredEffects && relicInst.triggeredEffects.onPlay;
     if(onPlayEff && conditionsMet(onPlayEff.conditions, p, key)){
       if(onPlayEff.targetOwner==='self' && TARGETED_EFFECTS.includes(onPlayEff.type)){
@@ -2071,6 +2077,7 @@ function applySpellEffect(effect, caster, casterKey, target, sourceCreatureCtx){
         log(`${cardOwnerName(casterKey)} retire ${effect.amount} utilisation(s) à ${r.name}.`);
         const deadR = ownerP.relics.filter(x=>x.charges<=0);
         ownerP.discard.push(...deadR);
+        if(deadR.length>0) playSfx('artefact');
         ownerP.artifactsDiedThisTurn = (ownerP.artifactsDiedThisTurn||0) + deadR.length;
         ownerP.relics = ownerP.relics.filter(x=>x.charges>0);
       } else {
@@ -2384,6 +2391,7 @@ function fireTrap(ownerKey, triggerType, target){
   p.hand.splice(idx,1);
   p.discard.push(trap);
   log(`${cardOwnerName(ownerKey)} déclenche ${trap.name} ! (${trap.reservedMana||trap.cost} mana réservé consommé)`);
+  playSfx('trap');
   trap.activeTrap = false; trap.reservedMana = undefined;
   showCardReveal(trap);
   fireWatchTrigger('watchTrap', ownerKey);

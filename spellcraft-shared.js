@@ -247,6 +247,12 @@ async function loadLegacyMonolithicCards(){
 const SFX_VARIANTS = {
   coin: ['coin-1','coin-2','coin-3'],
   draw: ['draw-1','draw-2'],
+  cardPlay: ['card-play-1','card-play-2','card-play-3','card-play-4'],
+  trap: ['trap-1','trap-2','trap-3','trap-4'],
+  hitLight: ['hit-light-1','hit-light-2','hit-light-3'],
+  hitMedium: ['hit-medium-1','hit-medium-2','hit-medium-3'],
+  hitLarge: ['hit-large-1','hit-large-2','hit-large-3'],
+  cast: ['cast-1','cast-2','cast-3'],
 };
 let sfxMuted = false;
 let musicVolumeLevel = 0.7;
@@ -270,6 +276,21 @@ function setSfxVolumeLevel(v){
   try { localStorage.setItem('sfxVolumeLevel', sfxVolumeLevel); } catch(e){}
 }
 
+// Certains sfx sont en .mp3 (premiers ajoutés), les plus récents en .ogg.
+const SFX_OGG_FILES = new Set([
+  'card-play-1','card-play-2','card-play-3','card-play-4',
+  'clic',
+  'epic-drop','mythic-drop',
+  'quest-loot',
+  'card-death',
+  'trap-1','trap-2','trap-3','trap-4',
+  'hit-light-1','hit-light-2','hit-light-3',
+  'hit-medium-1','hit-medium-2','hit-medium-3',
+  'hit-large-1','hit-large-2','hit-large-3',
+  'artefact',
+  'cast-1','cast-2','cast-3',
+]);
+
 // Joue un effet sonore ponctuel depuis sfx/. Si `key` correspond à une famille
 // de variantes (ex: 'coin', 'draw'), une variante est choisie au hasard à
 // chaque appel pour éviter la répétition exacte du même son.
@@ -281,7 +302,8 @@ function playSfx(key, volume=0.6){
       const arr = SFX_VARIANTS[key];
       file = arr[Math.floor(Math.random()*arr.length)];
     }
-    const audio = new Audio(`sfx/${file}.mp3`);
+    const ext = SFX_OGG_FILES.has(file) ? 'ogg' : 'mp3';
+    const audio = new Audio(`sfx/${file}.${ext}`);
     audio.volume = volume * sfxVolumeLevel;
     audio.play().catch(()=>{});
   }catch(e){}
@@ -398,3 +420,11 @@ function injectOptionsMenu(){
   document.getElementById('sc-mute-checkbox').onchange = (e)=>setSfxMuted(e.target.checked);
 }
 document.addEventListener('DOMContentLoaded', injectOptionsMenu);
+
+// Son de clic générique — couvre la quasi-totalité des boutons de l'interface
+// (changer de page, nouveau deck, phases de tour, choix de deck, etc.) sans
+// avoir à le câbler un par un partout.
+document.addEventListener('click', (e)=>{
+  const btn = e.target.closest('.btn, .phase-btn, .poster, button, .nav-arrow');
+  if(btn && !btn.disabled) playSfx('clic', 0.35);
+});

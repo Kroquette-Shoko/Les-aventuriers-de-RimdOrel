@@ -573,6 +573,8 @@ function dealBoosterCards(cardsStage, cardsResult, fullCards, backUrl, actions){
       if(flip.classList.contains('flipped')) return;
       flip.classList.add('flipped');
       if(banner) banner.style.display = 'block';
+      if(full.rarity==='Épique') playSfx('epic-drop');
+      else if(full.rarity==='Mythique') playSfx('mythic-drop');
       flippedCount++;
       if(flippedCount===cardsResult.length){
         actions.classList.add('show');
