@@ -43,6 +43,16 @@
   <button onclick="testEndTurn()">Terminer le tour</button>
   <button onclick="testProcessAi()">Faire jouer l'IA</button>
 </div>
+<div class="row">
+  <button onclick="testAttackWithAll()">Attaquer avec tout mon plateau</button>
+</div>
+<div class="row">
+  <p style="font-size:11px;color:#c8beb0;margin:4px 0;">Pour bloquer : copie les <code>instId</code> depuis l'état brut en bas de page.</p>
+  <input id="blocker-id-input" placeholder="instId du bloqueur" style="width:220px;">
+  <input id="attacker-id-input" placeholder="instId de l'attaquant" style="width:220px;">
+  <button onclick="testAssignBlock()">Bloquer</button>
+  <button onclick="testFinishBlocking()">Terminer le blocage</button>
+</div>
 
 <h2>3) Chat</h2>
 <div class="row">
@@ -62,6 +72,7 @@
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-server-client.js"></script>
 <script>
+let LAST_KNOWN_STATE = null;
 function logLine(msg, cls){
   const el = document.getElementById('log');
   const line = document.createElement('div');
@@ -76,6 +87,7 @@ function showResult(label, res){
   return res;
 }
 function displayState(state){
+  LAST_KNOWN_STATE = state;
   document.getElementById('state-display').textContent = JSON.stringify(state, null, 2);
 }
 function onStateUpdate(state){
@@ -94,9 +106,20 @@ function onChatMessage(msg){
 const TEST_DECK = {
   hero: { name: 'Héros de test', hp: 30 },
   cards: [
-    { id:'t1', name:'Test Créature 1', type:'Créature', cost:1, atk:1, hp:1 },
-    { id:'t2', name:'Test Créature 2', type:'Créature', cost:2, atk:2, hp:2 },
-    { id:'t3', name:'Test Créature 3', type:'Créature', cost:3, atk:3, hp:3 }
+    { id:'t1', name:'Test Créature 1', type:'Créature', cost:1, atk:1, hp:1, keywords:[] },
+    { id:'t2', name:'Test Créature 2', type:'Créature', cost:2, atk:2, hp:2, keywords:[] },
+    { id:'t3', name:'Test Créature 3', type:'Créature', cost:3, atk:3, hp:3, keywords:[] },
+    { id:'t4', name:'Test Armure', type:'Créature', cost:2, atk:2, hp:2, keywords:['armor'] },
+    { id:'t5', name:'Test Toxique', type:'Créature', cost:1, atk:1, hp:1, keywords:['toxic'] },
+    { id:'t6', name:'Test Vol de vie', type:'Créature', cost:2, atk:3, hp:2, keywords:['lifesteal'] },
+    { id:'t7', name:'Test Perçant', type:'Créature', cost:3, atk:5, hp:3, keywords:['pierce'] },
+    { id:'t8', name:'Test Initiative', type:'Créature', cost:2, atk:2, hp:1, keywords:['initiative'] },
+    { id:'t9', name:'Test Vol', type:'Créature', cost:2, atk:2, hp:2, keywords:['flying'] },
+    { id:'t10', name:'Test Portée', type:'Créature', cost:2, atk:2, hp:2, keywords:['reach'] },
+    { id:'t11', name:'Test Tenace', type:'Créature', cost:2, atk:2, hp:1, keywords:['relentless'] },
+    { id:'t12', name:'Test Protecteur', type:'Créature', cost:2, atk:1, hp:4, keywords:['protecteur'] },
+    { id:'t13', name:'Test Charge', type:'Créature', cost:2, atk:2, hp:2, keywords:['charge'] },
+    { id:'t14', name:'Test Peureux', type:'Créature', cost:1, atk:2, hp:1, keywords:['fearful'] }
   ]
 };
 
@@ -138,6 +161,22 @@ async function testMulligan(){ showResult('Mulligan', await gsMulligan([])); }
 async function testPlayCard(){ showResult('Jouer carte 0', await gsPlayCardSimple(0)); }
 async function testEndTurn(){ showResult('Terminer le tour', await gsEndTurn()); }
 async function testProcessAi(){ showResult('Tour de l\'IA', await gsProcessAiTurn()); }
+
+async function testAttackWithAll(){
+  const state = LAST_KNOWN_STATE;
+  if(!state){ logLine('Pas encore d\'état de partie chargé.', 'log-error'); return; }
+  const myKey = GS_ROLE; // 'player1' ou 'player2'
+  const myBoard = (state[myKey] && state[myKey].board) || [];
+  const ids = myBoard.map(c=>c.instId);
+  showResult('Attaquer avec ' + ids.length + ' créature(s)', await gsDeclareAttackers(ids));
+}
+async function testAssignBlock(){
+  const blockerId = document.getElementById('blocker-id-input').value.trim();
+  const attackerId = document.getElementById('attacker-id-input').value.trim();
+  if(!blockerId || !attackerId){ logLine('Renseigne les deux instId avant de bloquer.', 'log-error'); return; }
+  showResult('Bloquer', await gsAssignBlock(blockerId, attackerId));
+}
+async function testFinishBlocking(){ showResult('Terminer le blocage', await gsFinishBlocking()); }
 
 async function testSendChat(){
   const input = document.getElementById('chat-input');
