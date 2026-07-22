@@ -2,77 +2,152 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Spellcraft — Test serveur</title>
+<title>Spellcraft — Test serveur (visuel)</title>
 <style>
-  body{background:#0b0a12;color:#efe6c8;font-family:'Inter',sans-serif;padding:20px;max-width:700px;margin:0 auto;}
-  h1{color:#d4af37;font-size:18px;}
-  h2{color:#d4af37;font-size:14px;border-bottom:1px solid #3a3260;padding-bottom:4px;margin-top:24px;}
-  button{background:#7c5cff;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:12.5px;cursor:pointer;margin:4px 4px 4px 0;}
-  button:hover{filter:brightness(1.15);}
-  input{background:#171325;border:1px solid #3a3260;color:#efe6c8;border-radius:6px;padding:7px 10px;font-size:12.5px;margin:4px 4px 4px 0;}
-  pre{background:#171325;border:1px solid #3a3260;border-radius:8px;padding:12px;font-size:11px;overflow:auto;max-height:400px;white-space:pre-wrap;}
-  .row{margin-bottom:8px;}
-  #log{font-size:11.5px;color:#c8beb0;max-height:150px;overflow-y:auto;background:#0b0a12;border:1px solid #2b2440;padding:8px;border-radius:6px;}
-  .log-line{margin-bottom:3px;}
-  .log-error{color:#c23b3b;}
-  .log-ok{color:#4a9d6b;}
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Inter:wght@400;600;700&display=swap');
+:root{
+  --bg:#0b0a12; --panel:#171325; --panel2:#1f1a30; --gold:#d4af37; --parchment:#efe6c8;
+  --dim:#9d92b0; --blood:#c23b3b; --green:#4a9d6b; --arcane:#7c5cff;
+}
+*{box-sizing:border-box;}
+body{background:var(--bg);color:var(--parchment);font-family:'Inter',sans-serif;margin:0;padding:14px;}
+h1{font-family:'Cinzel',serif;color:var(--gold);font-size:18px;margin:0 0 8px;}
+.setup-panel{background:var(--panel);border:1px solid #3a3260;border-radius:10px;padding:12px;margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+input{background:var(--panel2);border:1px solid #3a3260;color:var(--parchment);border-radius:6px;padding:7px 10px;font-size:12.5px;}
+button{background:var(--arcane);color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;}
+button:hover{filter:brightness(1.15);}
+button.secondary{background:var(--panel2);border:1px solid #3a3260;}
+button:disabled{opacity:.4;cursor:not-allowed;}
+code{background:#0b0a12;padding:1px 5px;border-radius:4px;font-size:11px;}
+
+#session-code-display{font-family:'Cinzel',serif;font-weight:700;color:var(--gold);font-size:20px;letter-spacing:4px;}
+
+.board-wrap{display:none;}
+.board-wrap.show{display:block;}
+
+.player-row{background:var(--panel);border:1px solid #3a3260;border-radius:10px;padding:10px 14px;margin-bottom:8px;}
+.player-row.active-turn{border-color:var(--gold);}
+.player-head{display:flex;align-items:center;gap:14px;margin-bottom:8px;font-size:12.5px;}
+.player-head .name{font-family:'Cinzel',serif;font-weight:700;color:var(--gold);}
+.stat{background:var(--panel2);border-radius:14px;padding:3px 10px;}
+.hp{color:var(--blood);}
+.mana{color:#6fd0ff;}
+
+.zone-label{font-size:10px;text-transform:uppercase;color:var(--dim);letter-spacing:.5px;margin:6px 0 4px;}
+.card-row{display:flex;gap:8px;flex-wrap:wrap;min-height:70px;}
+
+.mini-card{width:86px;background:#f7f2e2;color:#231d33;border-radius:8px;border:2.5px solid #8a7f6a;padding:4px 5px;font-size:9.5px;cursor:pointer;position:relative;user-select:none;transition:transform .1s;}
+.mini-card:hover{transform:translateY(-4px);}
+.mini-card.selected{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold);}
+.mini-card.disabled{opacity:.4;cursor:not-allowed;}
+.mini-card.disabled:hover{transform:none;}
+.mini-card .mc-name{font-family:'Cinzel',serif;font-weight:700;text-align:center;line-height:1.15;min-height:24px;margin-bottom:3px;}
+.mini-card .mc-cost{position:absolute;top:-6px;left:-6px;width:18px;height:18px;border-radius:50%;background:#155a94;color:#fff;font-weight:700;font-size:9px;display:flex;align-items:center;justify-content:center;border:1.5px solid #0c2b45;}
+.mini-card .mc-stats{display:flex;justify-content:space-between;font-weight:700;}
+.mini-card .mc-atk{color:var(--blood);}
+.mini-card .mc-hp{color:var(--green);}
+.mini-card .mc-kw{font-size:7.5px;color:#5a4f3f;text-align:center;margin-top:2px;line-height:1.1;}
+
+.phase-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0;padding:10px;background:var(--panel2);border-radius:8px;}
+.phase-status{font-size:12px;color:var(--dim);}
+
+#log{font-size:11px;color:var(--dim);max-height:130px;overflow-y:auto;background:var(--panel);border:1px solid #2b2440;padding:8px;border-radius:6px;margin-top:12px;}
+.log-line{margin-bottom:2px;}
+.log-error{color:var(--blood);}
+.log-ok{color:var(--green);}
+
+#chat-box{display:flex;gap:6px;margin-top:6px;}
+#chat-log{font-size:11.5px;color:var(--dim);max-height:110px;overflow-y:auto;background:var(--panel);border:1px solid #2b2440;padding:8px;border-radius:6px;margin-top:8px;}
 </style>
 </head>
 <body>
 
-<h1>🧪 Test de la couche serveur — Spellcraft</h1>
-<div id="sc-auth-slot" style="margin-bottom:14px;"></div>
-<p style="font-size:12px;color:#c8beb0;">Page technique, pas pour les joueurs — sert juste à vérifier que la fonction serveur et la synchronisation fonctionnent avant de les brancher au vrai jeu.</p>
+<h1>🧪 Test serveur — plateau visuel</h1>
+<div id="sc-auth-slot" style="margin-bottom:10px;"></div>
 
-<h2>1) Session</h2>
-<div class="row">
-  <button onclick="testCreateVsAI()">Créer une partie contre l'IA</button>
-  <button onclick="testCreateForFriend()">Créer une partie (attendre un ami)</button>
-</div>
-<div class="row">
-  <input id="join-code-input" placeholder="Code à 6 caractères" maxlength="6">
-  <button onclick="testJoinAsPlayer()">Rejoindre comme joueur</button>
-  <button onclick="testJoinAsSpectator()">Rejoindre comme spectateur</button>
-</div>
-<div class="row" id="session-info" style="font-size:12.5px;color:#d4af37;"></div>
-
-<h2>2) Actions</h2>
-<div class="row">
-  <button onclick="testMulligan()">Mulligan (ne rien renvoyer)</button>
-  <button onclick="testPlayCard()">Jouer la carte n°0 de la main</button>
-  <button onclick="testEndTurn()">Terminer le tour</button>
-  <button onclick="testProcessAi()">Faire jouer l'IA</button>
-</div>
-<div class="row">
-  <button onclick="testAttackWithAll()">Attaquer avec tout mon plateau</button>
-</div>
-<div class="row">
-  <p style="font-size:11px;color:#c8beb0;margin:4px 0;">Pour bloquer : copie les <code>instId</code> depuis l'état brut en bas de page.</p>
-  <input id="blocker-id-input" placeholder="instId du bloqueur" style="width:220px;">
-  <input id="attacker-id-input" placeholder="instId de l'attaquant" style="width:220px;">
-  <button onclick="testAssignBlock()">Bloquer</button>
-  <button onclick="testFinishBlocking()">Terminer le blocage</button>
+<div class="setup-panel">
+  <button onclick="uiCreateVsAI()">Créer contre l'IA</button>
+  <button class="secondary" onclick="uiCreateForFriend()">Créer (attendre un ami)</button>
+  <span>ou</span>
+  <input id="join-code-input" placeholder="Code à 6 caractères" maxlength="6" style="text-transform:uppercase;">
+  <button class="secondary" onclick="uiJoinAsPlayer()">Rejoindre</button>
+  <button class="secondary" onclick="uiJoinAsSpectator()">Regarder</button>
+  <span id="session-code-display"></span>
 </div>
 
-<h2>3) Chat</h2>
-<div class="row">
-  <input id="chat-input" placeholder="Message..." style="width:300px;">
-  <button onclick="testSendChat()">Envoyer</button>
-</div>
-<div id="chat-log" style="font-size:11.5px;color:#c8beb0;max-height:100px;overflow-y:auto;margin-bottom:8px;"></div>
+<div class="board-wrap" id="board-wrap">
 
-<h2>Journal</h2>
+  <div class="player-row" id="row-opponent">
+    <div class="player-head">
+      <span class="name" id="opp-name">Adversaire</span>
+      <span class="stat hp">❤ <span id="opp-hp">–</span></span>
+      <span class="stat mana">💧 <span id="opp-mana">–</span></span>
+    </div>
+    <div class="zone-label">Plateau</div>
+    <div class="card-row" id="opp-board"></div>
+    <div class="zone-label">Main (<span id="opp-hand-count">0</span> cartes cachées)</div>
+  </div>
+
+  <div class="phase-actions" id="phase-actions"></div>
+  <div class="phase-status" id="phase-status"></div>
+
+  <div class="player-row active-turn" id="row-me">
+    <div class="player-head">
+      <span class="name" id="me-name">Moi</span>
+      <span class="stat hp">❤ <span id="me-hp">–</span></span>
+      <span class="stat mana">💧 <span id="me-mana">–</span></span>
+    </div>
+    <div class="zone-label">Plateau</div>
+    <div class="card-row" id="me-board"></div>
+    <div class="zone-label">Main</div>
+    <div class="card-row" id="me-hand"></div>
+  </div>
+
+  <div id="chat-log"></div>
+  <div id="chat-box">
+    <input id="chat-input" placeholder="Message..." style="flex:1;">
+    <button class="secondary" onclick="uiSendChat()">Envoyer</button>
+  </div>
+</div>
+
 <div id="log"></div>
-
-<h2>État de la partie (brut)</h2>
-<pre id="state-display">(pas encore de partie)</pre>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="spellcraft-shared.js"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-server-client.js"></script>
 <script>
-let LAST_KNOWN_STATE = null;
+
+const KW_LABELS = {
+  armor:'Armure', toxic:'Toxique', lifesteal:'Vol de vie', pierce:'Perçant',
+  initiative:'Initiative', flying:'Vol', reach:'Portée', fearful:'Peureux',
+  protecteur:'Protecteur', relentless:'Tenace', charge:'Charge'
+};
+
+const TEST_DECK = {
+  hero: { name: 'Héros de test', hp: 30 },
+  cards: [
+    { id:'t1', name:'Sans mot-clé', type:'Créature', cost:1, atk:1, hp:1, keywords:[] },
+    { id:'t2', name:'Armure', type:'Créature', cost:2, atk:2, hp:2, keywords:['armor'] },
+    { id:'t3', name:'Toxique', type:'Créature', cost:2, atk:1, hp:2, keywords:['toxic'] },
+    { id:'t4', name:'Vol de vie', type:'Créature', cost:2, atk:2, hp:2, keywords:['lifesteal'] },
+    { id:'t5', name:'Perçant', type:'Créature', cost:2, atk:3, hp:2, keywords:['pierce'] },
+    { id:'t6', name:'Initiative', type:'Créature', cost:2, atk:2, hp:1, keywords:['initiative'] },
+    { id:'t7', name:'Vol', type:'Créature', cost:2, atk:2, hp:2, keywords:['flying'] },
+    { id:'t8', name:'Portée', type:'Créature', cost:2, atk:2, hp:2, keywords:['reach'] },
+    { id:'t9', name:'Peureux', type:'Créature', cost:1, atk:2, hp:1, keywords:['fearful'] },
+    { id:'t10', name:'Protecteur', type:'Créature', cost:2, atk:1, hp:6, keywords:['protecteur'] },
+    { id:'t11', name:'Tenace', type:'Créature', cost:3, atk:2, hp:2, keywords:['relentless'] },
+    { id:'t12', name:'Charge', type:'Créature', cost:2, atk:2, hp:2, keywords:['charge'] }
+  ]
+};
+
+let LAST_STATE = null;
+let MY_KEY = null, OPP_KEY = null;
+let SELECTING_ATTACKERS = false;
+let SELECTED_ATTACKER_IDS = [];
+let SELECTED_BLOCKER_ID = null;
+
 function logLine(msg, cls){
   const el = document.getElementById('log');
   const line = document.createElement('div');
@@ -81,108 +156,211 @@ function logLine(msg, cls){
   el.prepend(line);
 }
 function showResult(label, res){
-  if(res && res.error){ logLine(`${label} → erreur : ${res.error}`, 'log-error'); }
-  else { logLine(`${label} → ok`, 'log-ok'); }
-  if(res && res.state) displayState(res.state);
+  if(res && res.error){ logLine(`${label} → ${res.error}`, 'log-error'); }
+  else logLine(`${label} → ok`, 'log-ok');
   return res;
 }
-function displayState(state){
-  LAST_KNOWN_STATE = state;
-  document.getElementById('state-display').textContent = JSON.stringify(state, null, 2);
+
+// ---------------- Connexion / session ----------------
+
+async function uiCreateVsAI(){
+  const res = await gsCreateSession(TEST_DECK, true);
+  if(res.error) return logLine('Créer → ' + res.error, 'log-error');
+  afterConnected(res.code);
 }
+async function uiCreateForFriend(){
+  const res = await gsCreateSession(TEST_DECK, false);
+  if(res.error) return logLine('Créer → ' + res.error, 'log-error');
+  afterConnected(res.code);
+}
+async function uiJoinAsPlayer(){
+  const code = document.getElementById('join-code-input').value.trim().toUpperCase();
+  const res = await gsJoinAsPlayer(code, TEST_DECK);
+  if(res.error) return logLine('Rejoindre → ' + res.error, 'log-error');
+  afterConnected(code);
+}
+async function uiJoinAsSpectator(){
+  const code = document.getElementById('join-code-input').value.trim().toUpperCase();
+  const res = await gsJoinAsSpectator(code);
+  if(res.error) return logLine('Regarder → ' + res.error, 'log-error');
+  afterConnected(code);
+}
+
+function afterConnected(code){
+  document.getElementById('session-code-display').textContent = code || '';
+  document.getElementById('board-wrap').classList.add('show');
+  MY_KEY = GS_ROLE === 'player2' ? 'player2' : 'player1';
+  OPP_KEY = MY_KEY === 'player1' ? 'player2' : 'player1';
+  gsConnect(onStateUpdate, onChatMessage);
+  logLine('Connecté (rôle : ' + GS_ROLE + ')', 'log-ok');
+}
+
+// ---------------- Rendu ----------------
+
 function onStateUpdate(state){
-  logLine('État reçu en direct (diffusion serveur)');
-  displayState(state);
+  LAST_STATE = state;
+  render();
 }
+
+function cardHtml(c){
+  const kwLine = (c.keywords||[]).map(k=>KW_LABELS[k]||k).join(', ');
+  return `
+    <div class="mc-cost">${c.cost ?? ''}</div>
+    <div class="mc-name">${escapeHtmlUI(c.name||'')}</div>
+    <div class="mc-stats"><span class="mc-atk">⚔${c.curAtk ?? c.atk ?? 0}</span><span class="mc-hp">♥${c.curHp ?? c.hp ?? 0}</span></div>
+    ${kwLine ? `<div class="mc-kw">${escapeHtmlUI(kwLine)}</div>` : ''}
+  `;
+}
+function escapeHtmlUI(s){ return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+function render(){
+  if(!LAST_STATE || !MY_KEY) return;
+  const S = LAST_STATE;
+  const me = S[MY_KEY], opp = S[OPP_KEY];
+  const myTurn = S.active === MY_KEY;
+
+  document.getElementById('me-name').textContent = myTurn ? 'Moi (à mon tour)' : 'Moi';
+  document.getElementById('opp-name').textContent = S.active === OPP_KEY ? 'Adversaire (à son tour)' : 'Adversaire';
+  document.getElementById('me-hp').textContent = me.hp;
+  document.getElementById('opp-hp').textContent = opp.hp;
+  document.getElementById('me-mana').textContent = `${me.manaNormal}/${me.manaNormalMax}`;
+  document.getElementById('opp-mana').textContent = `${opp.manaNormal}/${opp.manaNormalMax}`;
+  document.getElementById('opp-hand-count').textContent = (opp.hand||[]).length;
+  document.getElementById('row-me').classList.toggle('active-turn', myTurn);
+  document.getElementById('row-opponent').classList.toggle('active-turn', !myTurn);
+
+  const oppBoardEl = document.getElementById('opp-board');
+  oppBoardEl.innerHTML = '';
+  (opp.board||[]).forEach(c=>{
+    const el = document.createElement('div');
+    el.className = 'mini-card';
+    el.innerHTML = cardHtml(c);
+    if(S.phase==='declareBlockersMe' && S.active===OPP_KEY && SELECTED_BLOCKER_ID && (opp.attackers||[]).includes(c.instId)){
+      el.onclick = ()=>uiAssignBlock(c.instId);
+    }
+    oppBoardEl.appendChild(el);
+  });
+
+  const meBoardEl = document.getElementById('me-board');
+  meBoardEl.innerHTML = '';
+  (me.board||[]).forEach(c=>{
+    const el = document.createElement('div');
+    el.className = 'mini-card';
+    if(SELECTED_ATTACKER_IDS.includes(c.instId)) el.classList.add('selected');
+    if(c.instId===SELECTED_BLOCKER_ID) el.classList.add('selected');
+    el.innerHTML = cardHtml(c);
+    if(SELECTING_ATTACKERS && !c.summonSick && !c.keywords?.includes('protecteur')){
+      el.onclick = ()=>uiToggleAttacker(c.instId);
+    } else if(S.phase==='declareBlockersMe' && S.active===OPP_KEY && !c.hasBlockedThisTurn && !c.keywords?.includes('fearful')){
+      el.onclick = ()=>{ SELECTED_BLOCKER_ID = c.instId; render(); };
+    }
+    meBoardEl.appendChild(el);
+  });
+
+  const handEl = document.getElementById('me-hand');
+  handEl.innerHTML = '';
+  (me.hand||[]).forEach((c,i)=>{
+    const el = document.createElement('div');
+    el.className = 'mini-card';
+    const affordable = (c.cost||0) <= (me.manaNormal + me.manaFragile);
+    if(!(myTurn && S.phase==='main' && affordable)) el.classList.add('disabled');
+    el.innerHTML = cardHtml(c);
+    if(myTurn && S.phase==='main' && affordable) el.onclick = ()=>uiPlayCard(i);
+    handEl.appendChild(el);
+  });
+
+  renderPhaseActions(S, myTurn);
+}
+
+function renderPhaseActions(S, myTurn){
+  const el = document.getElementById('phase-actions');
+  const statusEl = document.getElementById('phase-status');
+  el.innerHTML = '';
+  statusEl.textContent = '';
+
+  if(S.gameOver){
+    statusEl.textContent = `Partie terminée — victoire de ${S.winnerKey===MY_KEY ? 'moi' : (S.winnerKey===OPP_KEY?"l'adversaire":S.winnerKey)}.`;
+    return;
+  }
+
+  if(S.phase==='mulligan'){
+    const done = S.mulliganDone && S.mulliganDone[MY_KEY];
+    el.innerHTML = done ? '' : `<button onclick="uiMulligan()">Garder ma main (mulligan)</button>`;
+    statusEl.textContent = done ? "En attente de l'adversaire pour le mulligan..." : 'Phase de mulligan.';
+    return;
+  }
+
+  if(myTurn && S.phase==='main'){
+    if(SELECTING_ATTACKERS){
+      el.innerHTML = `
+        <button onclick="uiConfirmAttackers()">Confirmer les attaquants (${SELECTED_ATTACKER_IDS.length})</button>
+        <button class="secondary" onclick="uiCancelSelectAttackers()">Annuler</button>
+      `;
+      statusEl.textContent = 'Clique tes créatures pour les désigner comme attaquantes.';
+    } else {
+      el.innerHTML = `
+        <button onclick="uiStartSelectAttackers()">Passer à l'attaque</button>
+        <button class="secondary" onclick="uiEndTurn()">Terminer le tour (sans attaquer)</button>
+        <button class="secondary" onclick="uiProcessAi()">Faire jouer l'IA (debug)</button>
+      `;
+      statusEl.textContent = "Ton tour — joue des cartes en cliquant dessus, ou passe à l'attaque.";
+    }
+  } else if(!myTurn && S.phase==='declareBlockersMe'){
+    el.innerHTML = `<button onclick="uiFinishBlocking()">Terminer le blocage</button>`;
+    statusEl.textContent = SELECTED_BLOCKER_ID
+      ? "Clique maintenant l'attaquant adverse à bloquer avec cette créature."
+      : "L'adversaire attaque — clique une de tes créatures pour la faire bloquer.";
+  } else if(!myTurn){
+    el.innerHTML = `<button class="secondary" onclick="uiProcessAi()">Faire jouer l'IA (debug)</button>`;
+    statusEl.textContent = "Tour de l'adversaire...";
+  }
+}
+
+// ---------------- Actions ----------------
+
+async function uiMulligan(){ showResult('Mulligan', await gsMulligan([])); }
+async function uiPlayCard(i){ showResult('Jouer carte', await gsPlayCardSimple(i)); }
+async function uiEndTurn(){ showResult('Fin de tour', await gsEndTurn()); }
+async function uiProcessAi(){ showResult('Tour IA', await gsProcessAiTurn()); }
+
+function uiStartSelectAttackers(){ SELECTING_ATTACKERS = true; SELECTED_ATTACKER_IDS = []; render(); }
+function uiCancelSelectAttackers(){ SELECTING_ATTACKERS = false; SELECTED_ATTACKER_IDS = []; render(); }
+function uiToggleAttacker(id){
+  const idx = SELECTED_ATTACKER_IDS.indexOf(id);
+  if(idx>=0) SELECTED_ATTACKER_IDS.splice(idx,1); else SELECTED_ATTACKER_IDS.push(id);
+  render();
+}
+async function uiConfirmAttackers(){
+  const res = await gsDeclareAttackers(SELECTED_ATTACKER_IDS);
+  showResult('Déclarer attaquants', res);
+  SELECTING_ATTACKERS = false; SELECTED_ATTACKER_IDS = [];
+}
+
+async function uiAssignBlock(attackerId){
+  if(!SELECTED_BLOCKER_ID) return;
+  const res = await gsAssignBlock(SELECTED_BLOCKER_ID, attackerId);
+  showResult('Bloquer', res);
+  SELECTED_BLOCKER_ID = null;
+}
+async function uiFinishBlocking(){
+  showResult('Terminer le blocage', await gsFinishBlocking());
+  SELECTED_BLOCKER_ID = null;
+}
+
+// ---------------- Chat ----------------
+
 function onChatMessage(msg){
   const el = document.getElementById('chat-log');
   const line = document.createElement('div');
-  line.textContent = `${msg.sender_name}${msg.is_spectator ? ' (spectateur)' : ''} : ${msg.message}`;
+  line.textContent = `${msg.sender_name}${msg.is_spectator?' (spectateur)':''} : ${msg.message}`;
   el.appendChild(line);
   el.scrollTop = el.scrollHeight;
 }
-
-// Deck factice minimal, juste pour tester le flux (pas le vrai catalogue)
-const TEST_DECK = {
-  hero: { name: 'Héros de test', hp: 30 },
-  cards: [
-    { id:'t1', name:'Test Créature 1', type:'Créature', cost:1, atk:1, hp:1, keywords:[] },
-    { id:'t2', name:'Test Créature 2', type:'Créature', cost:2, atk:2, hp:2, keywords:[] },
-    { id:'t3', name:'Test Créature 3', type:'Créature', cost:3, atk:3, hp:3, keywords:[] },
-    { id:'t4', name:'Test Armure', type:'Créature', cost:2, atk:2, hp:2, keywords:['armor'] },
-    { id:'t5', name:'Test Toxique', type:'Créature', cost:1, atk:1, hp:1, keywords:['toxic'] },
-    { id:'t6', name:'Test Vol de vie', type:'Créature', cost:2, atk:3, hp:2, keywords:['lifesteal'] },
-    { id:'t7', name:'Test Perçant', type:'Créature', cost:3, atk:5, hp:3, keywords:['pierce'] },
-    { id:'t8', name:'Test Initiative', type:'Créature', cost:2, atk:2, hp:1, keywords:['initiative'] },
-    { id:'t9', name:'Test Vol', type:'Créature', cost:2, atk:2, hp:2, keywords:['flying'] },
-    { id:'t10', name:'Test Portée', type:'Créature', cost:2, atk:2, hp:2, keywords:['reach'] },
-    { id:'t11', name:'Test Tenace', type:'Créature', cost:2, atk:2, hp:1, keywords:['relentless'] },
-    { id:'t12', name:'Test Protecteur', type:'Créature', cost:2, atk:1, hp:4, keywords:['protecteur'] },
-    { id:'t13', name:'Test Charge', type:'Créature', cost:2, atk:2, hp:2, keywords:['charge'] },
-    { id:'t14', name:'Test Peureux', type:'Créature', cost:1, atk:2, hp:1, keywords:['fearful'] }
-  ]
-};
-
-async function testCreateVsAI(){
-  const res = await gsCreateSession(TEST_DECK, true);
-  if(res.error){ logLine('Créer (vs IA) → ' + res.error, 'log-error'); return; }
-  document.getElementById('session-info').textContent = `Session ${res.sessionId} — code ${res.code} — tu es player1, contre l'IA`;
-  gsConnect(onStateUpdate, onChatMessage);
-  logLine('Partie créée contre l\'IA, code : ' + res.code, 'log-ok');
-}
-
-async function testCreateForFriend(){
-  const res = await gsCreateSession(TEST_DECK, false);
-  if(res.error){ logLine('Créer → ' + res.error, 'log-error'); return; }
-  document.getElementById('session-info').textContent = `Session ${res.sessionId} — code ${res.code} — tu es player1, en attente`;
-  gsConnect(onStateUpdate, onChatMessage);
-  logLine('Partie créée, donne ce code à un autre onglet/compte pour tester : ' + res.code, 'log-ok');
-}
-
-async function testJoinAsPlayer(){
-  const code = document.getElementById('join-code-input').value.trim().toUpperCase();
-  const res = await gsJoinAsPlayer(code, TEST_DECK);
-  if(res.error){ logLine('Rejoindre → ' + res.error, 'log-error'); return; }
-  document.getElementById('session-info').textContent = `Session ${res.sessionId} — tu es player2`;
-  gsConnect(onStateUpdate, onChatMessage);
-  logLine('Partie rejointe en tant que joueur', 'log-ok');
-}
-
-async function testJoinAsSpectator(){
-  const code = document.getElementById('join-code-input').value.trim().toUpperCase();
-  const res = await gsJoinAsSpectator(code);
-  if(res.error){ logLine('Rejoindre (spectateur) → ' + res.error, 'log-error'); return; }
-  document.getElementById('session-info').textContent = `Session ${res.session_id} — tu es spectateur`;
-  gsConnect(onStateUpdate, onChatMessage);
-  logLine('Partie rejointe en tant que spectateur', 'log-ok');
-}
-
-async function testMulligan(){ showResult('Mulligan', await gsMulligan([])); }
-async function testPlayCard(){ showResult('Jouer carte 0', await gsPlayCardSimple(0)); }
-async function testEndTurn(){ showResult('Terminer le tour', await gsEndTurn()); }
-async function testProcessAi(){ showResult('Tour de l\'IA', await gsProcessAiTurn()); }
-
-async function testAttackWithAll(){
-  const state = LAST_KNOWN_STATE;
-  if(!state){ logLine('Pas encore d\'état de partie chargé.', 'log-error'); return; }
-  const myKey = GS_ROLE; // 'player1' ou 'player2'
-  const myBoard = (state[myKey] && state[myKey].board) || [];
-  const ids = myBoard.map(c=>c.instId);
-  showResult('Attaquer avec ' + ids.length + ' créature(s)', await gsDeclareAttackers(ids));
-}
-async function testAssignBlock(){
-  const blockerId = document.getElementById('blocker-id-input').value.trim();
-  const attackerId = document.getElementById('attacker-id-input').value.trim();
-  if(!blockerId || !attackerId){ logLine('Renseigne les deux instId avant de bloquer.', 'log-error'); return; }
-  showResult('Bloquer', await gsAssignBlock(blockerId, attackerId));
-}
-async function testFinishBlocking(){ showResult('Terminer le blocage', await gsFinishBlocking()); }
-
-async function testSendChat(){
+async function uiSendChat(){
   const input = document.getElementById('chat-input');
   const user = await scGetCurrentUser();
   const res = await gsSendChatMessage(input.value, user ? user.email : 'Testeur');
-  if(res.error){ logLine('Chat → ' + res.error, 'log-error'); return; }
+  if(res.error) logLine('Chat → ' + res.error, 'log-error');
   input.value = '';
 }
 
