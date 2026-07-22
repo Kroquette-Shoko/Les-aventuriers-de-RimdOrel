@@ -1766,9 +1766,9 @@ function ownerTargets(effect, caster, casterKey, targetKey){
   return [{p:caster, key:casterKey}];
 }
 
-function conditionsMet(conditions, caster, casterKey){
+function conditionsMet(conditions, caster, casterKey, target){
   if(!conditions || conditions.length===0) return true;
-  return conditions.every(cond=>evalCondition(cond, caster, casterKey));
+  return conditions.every(cond=>evalCondition(cond, caster, casterKey, target));
 }
 
 function resolveDynamicValue(key, caster, casterKey, sourceCreature, targetCreature){
@@ -1808,7 +1808,7 @@ function compareValues(actual, mode, wanted){
   return actual>=wanted; // atLeast par défaut
 }
 
-function evalCondition(cond, caster, casterKey){
+function evalCondition(cond, caster, casterKey, target){
   const oppKey = casterKey==='p1' ? 'p2' : 'p1';
   const val = conditionValue(cond, caster, casterKey);
   switch(cond.conditionType){
@@ -1851,7 +1851,7 @@ function evalCondition(cond, caster, casterKey){
       let stat = 0;
       if(cond.statScope==='anyBoard') stat = caster.board.length ? Math.max(...caster.board.map(c=>cond.statType==='endurance'?c.curHp:c.curAtk)) : 0;
       else if(cond.statScope==='anyHand') stat = caster.hand.filter(c=>c.type==='Créature').length ? Math.max(...caster.hand.filter(c=>c.type==='Créature').map(c=>cond.statType==='endurance'?c.hp:c.atk)) : 0;
-      // 'target' : pas de cible garantie disponible au moment de l'évaluation de condition ; traité comme 0
+      else if(cond.statScope==='target' && target && target.creature) stat = cond.statType==='endurance' ? target.creature.curHp : target.creature.curAtk;
       const comp = {greater:(a,b)=>a>b, less:(a,b)=>a<b, equal:(a,b)=>a===b}[cond.statCompareMode||'greater'];
       return comp(stat, val);
     }
@@ -1890,7 +1890,7 @@ function evalCondition(cond, caster, casterKey){
 
 function applySpellEffect(effect, caster, casterKey, target, sourceCreatureCtx){
   if(!effect) return;
-  if(!conditionsMet(effect.conditions, caster, casterKey)){
+  if(!conditionsMet(effect.conditions, caster, casterKey, target)){
     log(`${cardOwnerName(casterKey)} : condition non remplie, l'effet ne se déclenche pas.`);
     render();
     return;
