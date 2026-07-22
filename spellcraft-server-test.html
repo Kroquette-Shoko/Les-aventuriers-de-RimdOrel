@@ -189,8 +189,8 @@ async function uiJoinAsSpectator(){
 function afterConnected(code){
   document.getElementById('session-code-display').textContent = code || '';
   document.getElementById('board-wrap').classList.add('show');
-  MY_KEY = GS_ROLE === 'player2' ? 'player2' : 'player1';
-  OPP_KEY = MY_KEY === 'player1' ? 'player2' : 'player1';
+  MY_KEY = GS_ROLE === 'p2' ? 'p2' : 'p1';
+  OPP_KEY = MY_KEY === 'p1' ? 'p2' : 'p1';
   gsConnect(onStateUpdate, onChatMessage);
   logLine('Connecté (rôle : ' + GS_ROLE + ')', 'log-ok');
 }

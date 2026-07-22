@@ -12,7 +12,8 @@
 // ============================================================
 
 let GS_SESSION_ID = null;
-let GS_ROLE = null; // 'player1' | 'player2' | 'spectator'
+let GS_ROLE = null; // 'p1' | 'p2' | 'spectator'
+let GS_VS_AI = false;
 let GS_CHANNEL = null;
 let GS_PRESENCE_CHANNEL = null;
 let GS_ON_STATE_UPDATE = null; // callback fourni par le jeu : (state) => void
@@ -41,7 +42,8 @@ async function gsCreateSession(deck, vsAI) {
   if (error) return { error: error.message || String(error) };
   if (data.error) return data;
   GS_SESSION_ID = data.sessionId;
-  GS_ROLE = 'player1';
+  GS_ROLE = 'p1';
+  GS_VS_AI = !!vsAI;
   return data; // { ok, sessionId, code }
 }
 
@@ -52,7 +54,7 @@ async function gsJoinAsPlayer(code, deck) {
   if (error) return { error: error.message || String(error) };
   if (data.error) return data;
   GS_SESSION_ID = data.sessionId;
-  GS_ROLE = 'player2';
+  GS_ROLE = 'p2';
   return data;
 }
 
@@ -101,6 +103,7 @@ function gsConnect(onStateUpdate, onChatMessage) {
 // ------------------------------------------------------------
 function gsSetupPresence() {
   if (GS_ROLE === 'spectator') return;
+  if (GS_VS_AI) return; // l'IA n'envoie jamais de présence — pas de déconnexion à surveiller contre elle
 
   GS_PRESENCE_CHANNEL = sb.channel(`presence-${GS_SESSION_ID}`, {
     config: { presence: { key: GS_ROLE } }
@@ -108,7 +111,7 @@ function gsSetupPresence() {
 
   GS_PRESENCE_CHANNEL.on('presence', { event: 'sync' }, () => {
     const state = GS_PRESENCE_CHANNEL.presenceState();
-    const opponentKey = GS_ROLE === 'player1' ? 'player2' : 'player1';
+    const opponentKey = GS_ROLE === 'p1' ? 'p2' : 'p1';
     if (state[opponentKey] && state[opponentKey].length > 0) {
       GS_OPPONENT_LAST_SEEN = Date.now();
     }
@@ -123,7 +126,7 @@ function gsSetupPresence() {
 }
 
 function gsStartDisconnectWatch() {
-  const opponentKey = GS_ROLE === 'player1' ? 'player2' : 'player1';
+  const opponentKey = GS_ROLE === 'p1' ? 'p2' : 'p1';
   GS_OPPONENT_LAST_SEEN = Date.now(); // au démarrage, on laisse une chance à l'adversaire de se connecter
   if (GS_DISCONNECT_TIMER) clearInterval(GS_DISCONNECT_TIMER);
   GS_DISCONNECT_TIMER = setInterval(() => {
