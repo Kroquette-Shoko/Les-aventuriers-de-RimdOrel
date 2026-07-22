@@ -16,9 +16,18 @@ async function mpCreateRoom(deck){
     host_id: user.id,
     host_deck: deck,
     status: 'waiting'
-  }).select('id').single();
+  }).select('id, room_code').single();
   if(error) return { error: error.message };
-  return { id: data.id };
+  return { id: data.id, code: data.room_code };
+}
+
+// Retrouve l'id d'un salon à partir de son code à 6 caractères (tapé par l'invité).
+async function mpGetRoomIdFromCode(code){
+  const normalized = (code||'').trim().toUpperCase();
+  if(normalized.length!==6) return null;
+  const { data, error } = await sb.from('game_rooms').select('id').eq('room_code', normalized).single();
+  if(error || !data) return null;
+  return data.id;
 }
 
 async function mpJoinRoom(roomId, deck){

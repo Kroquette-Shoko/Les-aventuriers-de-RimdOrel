@@ -3613,8 +3613,54 @@ function renderOpponentModeChoice(){
     <div class="dsel-actions" style="flex-direction:column;gap:10px;max-width:320px;margin:16px auto 0;">
       <button class="phase-btn" onclick="renderDeckSelectStep2()">🤖 Contre l'IA</button>
       <button class="phase-btn secondary" onclick="renderMultiplayerCreate()">⚔️ Défier un ami</button>
+      <button class="phase-btn secondary" onclick="renderMultiplayerJoinByCode()">🔑 Rejoindre avec un code</button>
     </div>
   `;
+}
+
+function renderMultiplayerJoinByCode(){
+  const box = dsBox();
+  box.innerHTML = `
+    <h1>Rejoindre avec un code</h1>
+    <p class="sub">Tape le code à 6 caractères que ton ami t'a donné :</p>
+    <input type="text" maxlength="6" id="mp-code-input" placeholder="AFD67Y" autocomplete="off"
+      style="width:100%;box-sizing:border-box;background:var(--bg-panel-2);border:1px solid #3a3260;color:var(--parchment);
+      border-radius:8px;padding:14px 12px;font-size:22px;letter-spacing:6px;text-align:center;text-transform:uppercase;
+      font-family:'Cinzel',serif;font-weight:700;margin-bottom:12px;">
+    <p class="sub" id="mp-code-error" style="color:var(--blood);display:none;"></p>
+    <div class="dsel-actions">
+      <button class="phase-btn" onclick="mpSubmitJoinCode()">Rejoindre</button>
+      <button class="phase-btn secondary" onclick="renderOpponentModeChoice()">Retour</button>
+    </div>
+  `;
+  const input = document.getElementById('mp-code-input');
+  input.focus();
+  input.oninput = ()=>{ input.value = input.value.toUpperCase().replace(/[^A-Z0-9]/g,''); };
+  input.onkeydown = (e)=>{ if(e.key==='Enter') mpSubmitJoinCode(); };
+}
+
+async function mpSubmitJoinCode(){
+  const input = document.getElementById('mp-code-input');
+  const errEl = document.getElementById('mp-code-error');
+  const code = input.value.trim();
+  if(code.length!==6){
+    errEl.textContent = 'Le code doit faire exactement 6 caractères.';
+    errEl.style.display = 'block';
+    return;
+  }
+  errEl.style.display = 'none';
+  const box = dsBox();
+  box.innerHTML = `<h1>Rejoindre avec un code</h1><p class="sub">Recherche du salon...</p>`;
+  const roomId = await mpGetRoomIdFromCode(code);
+  if(!roomId){
+    renderMultiplayerJoinByCode();
+    setTimeout(()=>{
+      const errEl2 = document.getElementById('mp-code-error');
+      if(errEl2){ errEl2.textContent = "Aucun salon ne correspond à ce code."; errEl2.style.display = 'block'; }
+    }, 0);
+    return;
+  }
+  renderMultiplayerJoin(roomId);
 }
 
 async function renderMultiplayerCreate(){
@@ -3628,7 +3674,12 @@ async function renderMultiplayerCreate(){
   const link = mpInviteLink(res.id);
   box.innerHTML = `
     <h1>Invitation créée !</h1>
-    <p class="sub">Envoie ce lien à ton ami pour qu'il te rejoigne :</p>
+    <p class="sub">Donne ce code à ton ami pour qu'il te rejoigne :</p>
+    <div style="font-family:'Cinzel',serif;font-weight:700;font-size:34px;letter-spacing:10px;color:var(--gold);
+      text-align:center;background:var(--bg-panel-2);border:1px solid #3a3260;border-radius:10px;padding:14px;margin-bottom:14px;">
+      ${escapeHtmlGS(res.code || '——————')}
+    </div>
+    <p class="sub">Ou envoie-lui directement ce lien :</p>
     <input type="text" readonly value="${escapeHtmlGS(link)}" onclick="this.select()" id="mp-invite-link-input"
       style="width:100%;box-sizing:border-box;background:var(--bg-panel-2);border:1px solid #3a3260;color:var(--parchment);border-radius:8px;padding:10px 12px;font-size:12px;margin-bottom:12px;">
     <div class="dsel-actions">
