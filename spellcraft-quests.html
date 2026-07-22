@@ -236,6 +236,7 @@ async function loadQuests(){
 }
 
 initSpellcraftAuth();
+playMusic('menu', {loop:true, volume:0.35});
 refreshGold();
 loadQuests();
 sb.auth.onAuthStateChange(()=>{ refreshGold(); loadQuests(); });

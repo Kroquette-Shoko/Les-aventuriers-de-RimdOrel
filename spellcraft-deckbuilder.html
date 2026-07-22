@@ -1653,6 +1653,7 @@ function renderAll(){
 }
 loadAll();
 initSpellcraftAuth();
+playMusic('menu', {loop:true, volume:0.35});
 loadOwnedCardBacks().then(()=>{ if(currentDeck) populateDeckCardBackSelect(); });
 sb.auth.onAuthStateChange(()=>{ loadOwnedCardBacks().then(()=>{ if(currentDeck) populateDeckCardBackSelect(); }); });
 </script>

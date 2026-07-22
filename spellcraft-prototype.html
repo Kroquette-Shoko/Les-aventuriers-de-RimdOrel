@@ -3550,6 +3550,7 @@ function deckSummary(d, collection){
 /* storageGet/storageSet viennent de spellcraft-shared.js */
 
 async function initGameSetup(){
+  playMusic('menu', {loop:true, volume:0.35});
   LOADED_COLLECTION = await loadAllCardsAcrossSets();
   LOADED_DECKS = await loadUserDecks();
 

@@ -3083,6 +3083,7 @@ async function initEditorData(){
   await loadShopAdmin();
 }
 initSpellcraftAuth().then(initEditorData);
+playMusic('menu', {loop:true, volume:0.35});
 sb.auth.onAuthStateChange(async (event)=>{
   if(event==='SIGNED_IN'){
     await migrateLocalCatalogToSupabaseIfNeeded();
