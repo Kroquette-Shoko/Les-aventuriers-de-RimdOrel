@@ -3686,6 +3686,10 @@ async function renderMultiplayerCreate(){
       <button class="phase-btn secondary" onclick="mpCopyInviteLink()">📋 Copier le lien</button>
     </div>
     <p class="sub" style="margin-top:20px;">⏳ En attente que ton ami rejoigne...</p>
+    <div class="dsel-actions" style="margin-top:10px;">
+      <button class="phase-btn secondary" onclick="renderOpponentModeChoice()">↩ Annuler</button>
+      <a href="spellcraft-hub.html" class="phase-btn secondary" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;">🏠 Menu principal</a>
+    </div>
   `;
   mpWaitForGuest(res.id, (room)=>{
     box.innerHTML = `<h1>Partie trouvée !</h1><p class="sub">Ton ami a rejoint avec son deck. Lancement de la partie...</p>`;
@@ -3739,11 +3743,19 @@ async function renderMultiplayerJoin(roomId){
       box.innerHTML = `
         <h1>Tu as rejoint la partie !</h1>
         <p class="sub">En attente que l'hôte lance la partie...</p>
+        <div class="dsel-actions" style="margin-top:10px;">
+          <a href="spellcraft-hub.html" class="phase-btn secondary" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;">🏠 Menu principal</a>
+        </div>
       `;
       mpStartAsGuest(roomId);
     };
     list.appendChild(item);
   });
+  const backActions = document.createElement('div');
+  backActions.className='dsel-actions';
+  backActions.style.marginTop = '10px';
+  backActions.innerHTML = `<a href="spellcraft-hub.html" class="phase-btn secondary" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;">🏠 Menu principal</a>`;
+  box.appendChild(backActions);
 }
 
 function renderDeckSelectStep2(){
@@ -3772,8 +3784,18 @@ function renderDeckSelectStep2(){
   });
   const actions = document.createElement('div');
   actions.className='dsel-actions';
-  actions.innerHTML = `<button class="phase-btn secondary" onclick="launchWithChosenDeck(null)">Adversaire de démo à la place</button>`;
+  actions.innerHTML = `
+    <button class="phase-btn secondary" onclick="launchWithChosenDeck(null)">Adversaire de démo à la place</button>
+  `;
   box.appendChild(actions);
+  const backActions = document.createElement('div');
+  backActions.className='dsel-actions';
+  backActions.style.marginTop = '10px';
+  backActions.innerHTML = `
+    <button class="phase-btn secondary" onclick="renderOpponentModeChoice()">↩ Retour</button>
+    <a href="spellcraft-hub.html" class="phase-btn secondary" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;">🏠 Menu principal</a>
+  `;
+  box.appendChild(backActions);
 }
 
 function launchWithChosenDeck(p2SavedDeck, p2IsAI){

@@ -313,6 +313,7 @@ function playSfx(key, volume=0.6){
 let currentMusicAudio = null;
 let currentMusicBaseVolume = 0.4;
 let musicGeneration = 0;
+let pendingMusicRetry = null;
 
 // Musique simple, en boucle (ex: musique de la boutique).
 function playMusic(name, {loop=true, volume=0.4}={}){
@@ -323,7 +324,11 @@ function playMusic(name, {loop=true, volume=0.4}={}){
     currentMusicAudio = new Audio(`music/${name}.ogg`);
     currentMusicAudio.loop = loop;
     currentMusicAudio.volume = volume * musicVolumeLevel;
-    currentMusicAudio.play().catch(()=>{});
+    currentMusicAudio.play().catch(()=>{
+      // bloquée par la politique anti-autoplay (aucune interaction avec la page pour l'instant) :
+      // on retentera dès que l'utilisateur clique quelque part.
+      pendingMusicRetry = ()=>playMusic(name, {loop, volume});
+    });
   }catch(e){}
 }
 
@@ -347,7 +352,9 @@ function playCombatMusicRotation(volume=0.35){
       audio.loop = false;
       audio.volume = volume * musicVolumeLevel;
       audio.addEventListener('ended', playNext);
-      audio.play().catch(()=>{});
+      audio.play().catch(()=>{
+        pendingMusicRetry = playNext;
+      });
       currentMusicAudio = audio;
     }catch(e){}
   };
@@ -420,12 +427,122 @@ function injectOptionsMenu(){
   document.getElementById('sc-sfx-vol-slider').oninput = (e)=>setSfxVolumeLevel(e.target.value/100);
   document.getElementById('sc-mute-checkbox').onchange = (e)=>setSfxMuted(e.target.checked);
 }
+
+/* ---------- Bouton de retour testeur (bug / suggestion), en bas à gauche de chaque page ---------- */
+function injectFeedbackButton(){
+  if(document.getElementById('sc-feedback-btn')) return; // déjà injecté
+  const style = document.createElement('style');
+  style.textContent = `
+    #sc-feedback-btn{position:fixed;bottom:10px;left:10px;z-index:99999;
+      background:rgba(23,19,37,.85);border:1px solid rgba(212,175,55,.45);color:#f2ead2;
+      border-radius:22px;padding:9px 16px;font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;
+      cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.4);display:flex;align-items:center;gap:6px;}
+    #sc-feedback-btn:hover{border-color:#d4af37;}
+    #sc-feedback-modal{display:none;position:fixed;bottom:56px;left:10px;z-index:99999;
+      background:rgba(15,12,20,.97);border:1px solid #d4af37;border-radius:12px;padding:16px 18px;width:280px;
+      box-shadow:0 12px 34px rgba(0,0,0,.6);font-family:'Inter',sans-serif;color:#f2ead2;}
+    #sc-feedback-modal.show{display:block;}
+    #sc-feedback-modal .sc-fb-title{font-family:'Cinzel',serif;font-weight:700;color:#d4af37;margin-bottom:10px;font-size:14px;}
+    #sc-feedback-modal label{display:block;font-size:11px;color:#c8beb0;margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px;margin-top:10px;}
+    #sc-feedback-modal select, #sc-feedback-modal textarea{width:100%;box-sizing:border-box;background:#0b0a12;border:1px solid #3a3260;
+      color:#f2ead2;border-radius:6px;padding:8px;font-family:'Inter',sans-serif;font-size:12.5px;}
+    #sc-feedback-modal textarea{resize:vertical;min-height:80px;}
+    #sc-feedback-modal .sc-fb-actions{display:flex;gap:8px;margin-top:12px;}
+    #sc-feedback-modal button.sc-fb-send{flex:1;background:linear-gradient(180deg,#7c5cff,#5537c2);color:#fff;border:none;border-radius:8px;padding:9px;font-weight:700;cursor:pointer;font-size:12.5px;}
+    #sc-feedback-modal button.sc-fb-cancel{background:none;border:1px solid #3a3260;color:#c8beb0;border-radius:8px;padding:9px 12px;cursor:pointer;font-size:12.5px;}
+    #sc-feedback-modal .sc-fb-status{font-size:11.5px;margin-top:8px;display:none;}
+  `;
+  document.head.appendChild(style);
+
+  const btn = document.createElement('button');
+  btn.id = 'sc-feedback-btn';
+  btn.innerHTML = `🐞 Feedback`;
+
+  const modal = document.createElement('div');
+  modal.id = 'sc-feedback-modal';
+  modal.innerHTML = `
+    <div class="sc-fb-title">Un bug ? Une idée ?</div>
+    <label>Catégorie</label>
+    <select id="sc-fb-category">
+      <option value="bug">🐞 Bug</option>
+      <option value="suggestion">💡 Suggestion</option>
+      <option value="autre">✏️ Autre</option>
+    </select>
+    <label>Message</label>
+    <textarea id="sc-fb-message" placeholder="Décris ce que tu as vu ou ce que tu proposes..."></textarea>
+    <div class="sc-fb-actions">
+      <button class="sc-fb-send" id="sc-fb-send-btn">Envoyer</button>
+      <button class="sc-fb-cancel" id="sc-fb-cancel-btn">Annuler</button>
+    </div>
+    <div class="sc-fb-status" id="sc-fb-status"></div>
+  `;
+
+  document.body.appendChild(btn);
+  document.body.appendChild(modal);
+
+  btn.onclick = (e)=>{ e.stopPropagation(); modal.classList.toggle('show'); };
+  document.getElementById('sc-fb-cancel-btn').onclick = ()=>modal.classList.remove('show');
+  document.addEventListener('click', (e)=>{
+    if(modal.classList.contains('show') && !modal.contains(e.target) && e.target!==btn){
+      modal.classList.remove('show');
+    }
+  });
+
+  document.getElementById('sc-fb-send-btn').onclick = async ()=>{
+    const statusEl = document.getElementById('sc-fb-status');
+    const message = document.getElementById('sc-fb-message').value.trim();
+    if(!message){
+      statusEl.textContent = 'Écris un message avant d\'envoyer.';
+      statusEl.style.color = '#c23b3b';
+      statusEl.style.display = 'block';
+      return;
+    }
+    const category = document.getElementById('sc-fb-category').value;
+    try{
+      const user = await scGetCurrentUser();
+      if(!user){
+        statusEl.textContent = 'Connecte-toi pour envoyer un retour.';
+        statusEl.style.color = '#c23b3b';
+        statusEl.style.display = 'block';
+        return;
+      }
+      const { error } = await sb.from('feedback_reports').insert({
+        user_id: user.id,
+        category,
+        message,
+        page: window.location.pathname.split('/').pop(),
+        user_agent: navigator.userAgent
+      });
+      if(error){
+        statusEl.textContent = 'Erreur : ' + error.message;
+        statusEl.style.color = '#c23b3b';
+        statusEl.style.display = 'block';
+        return;
+      }
+      statusEl.textContent = 'Merci, ton retour a bien été envoyé !';
+      statusEl.style.color = '#4a9d6b';
+      statusEl.style.display = 'block';
+      document.getElementById('sc-fb-message').value = '';
+      setTimeout(()=>{ modal.classList.remove('show'); statusEl.style.display='none'; }, 1800);
+    }catch(e){
+      statusEl.textContent = 'Erreur inattendue.';
+      statusEl.style.color = '#c23b3b';
+      statusEl.style.display = 'block';
+    }
+  };
+}
 document.addEventListener('DOMContentLoaded', injectOptionsMenu);
+document.addEventListener('DOMContentLoaded', injectFeedbackButton);
 
 // Son de clic générique — couvre la quasi-totalité des boutons de l'interface
 // (changer de page, nouveau deck, phases de tour, choix de deck, etc.) sans
 // avoir à le câbler un par un partout.
 document.addEventListener('click', (e)=>{
+  if(pendingMusicRetry){
+    const fn = pendingMusicRetry;
+    pendingMusicRetry = null;
+    fn();
+  }
   const btn = e.target.closest('.btn, .phase-btn, .poster, button, .nav-arrow');
   if(btn && !btn.disabled) playSfx('clic', 0.35);
 });
