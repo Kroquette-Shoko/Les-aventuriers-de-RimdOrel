@@ -90,7 +90,7 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 #discard-modal .close-btn{align-self:flex-end;background:var(--arcane);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-family:'Cinzel',serif;font-weight:700;cursor:pointer;}
 
 #card-preview{position:fixed;z-index:80;pointer-events:none;display:none;opacity:0;transition:opacity .15s ease;}
-#card-preview .card{transform:scale(2.6);transform-origin:top left;box-shadow:0 16px 34px rgba(0,0,0,.65);}
+#card-preview .card{transform:scale(2.0);transform-origin:top left;box-shadow:0 16px 34px rgba(0,0,0,.65);}
 #card-preview.show{display:block;opacity:1;}
 
 #card-reveal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:85;opacity:0;background:rgba(5,4,10,0);transition:opacity .3s ease, background .3s ease;}
@@ -614,7 +614,7 @@ function mapAbilityEffect(ab){
 function fireResolvedEffect(eff, p, key, sourceCreature, targetOverride, eventCreature){
   const resolved = resolveEffectDynamicValues(eff, p, key, sourceCreature, (targetOverride && targetOverride.creature) || eventCreature);
   if(targetOverride){
-    applySpellEffect(resolved, p, key, targetOverride);
+    applySpellEffect(resolved, p, key, targetOverride, sourceCreature);
   } else if(effectNeedsTarget(resolved)){
     const oppKey = key==='p1' ? 'p2' : 'p1';
     const eventCreatureIsAlly = eventCreature && p.board.includes(eventCreature);
@@ -624,12 +624,12 @@ function fireResolvedEffect(eff, p, key, sourceCreature, targetOverride, eventCr
       (resolved.targetOwner!=='enemy' && eventCreatureIsAlly);
     if(eventCreature && eventCreatureMatchesWanted && TARGETED_EFFECTS.includes(resolved.type)){
       const owner = eventCreatureIsEnemy ? S[oppKey] : p;
-      applySpellEffect(resolved, p, key, {isHeroTarget:false, creature:eventCreature, player:owner});
+      applySpellEffect(resolved, p, key, {isHeroTarget:false, creature:eventCreature, player:owner}, sourceCreature);
     } else {
-      applySpellEffect(resolved, p, key, autoResolveTargetForTriggeredEffect(resolved, p, key, sourceCreature));
+      applySpellEffect(resolved, p, key, autoResolveTargetForTriggeredEffect(resolved, p, key, sourceCreature), sourceCreature);
     }
   } else {
-    applySpellEffect(resolved, p, key, {});
+    applySpellEffect(resolved, p, key, {}, sourceCreature);
   }
   if(eff._thenEffects){
     eff._thenEffects.forEach(e2=>{
@@ -742,6 +742,10 @@ function extractTriggeredEffects(rawCard){
       mapped._triggerSubtype = (ab.triggerSubtype||'').trim();
       mapped._triggerOwner = ab.triggerOwner||'ally';
       mapped._triggerTurn = ab.triggerTurn||1;
+      if(ab.trigger==='activated'){
+        mapped._activationCost = ab.activationCost||2;
+        mapped._activationCooldown = ab.activationCooldown||0;
+      }
       if(map[ab.trigger]){
         // deux capacités différentes partagent le même déclencheur : on les
         // chaîne au lieu de laisser la seconde écraser silencieusement la première.
@@ -1156,9 +1160,12 @@ function startTurn(key, first){
   // début de tour : déclenche les capacités "début de votre tour" sur tous les permanents
   firePermanentTriggers(key, 'startOfTurn');
   firePermanentTriggers(key, 'startOfTurnX');
+  p.board.forEach(c=>{ if(c._activationCooldownRemaining>0) c._activationCooldownRemaining--; });
+  p.relics.forEach(r=>{ if(r._activationCooldownRemaining>0) r._activationCooldownRemaining--; });
+  if(p.region && p.region._activationCooldownRemaining>0) p.region._activationCooldownRemaining--;
 
   // reliques : décompte des charges (indépendant de leur capacité éventuelle)
-  p.relics.forEach(r=>{ r.charges--; });
+  p.relics.forEach(r=>{ fireCreatureTrigger(key, r, 'onUse'); r.charges--; });
   const deadRelics = p.relics.filter(r=>r.charges<=0);
   p.discard.push(...deadRelics);
   p.artifactsDiedThisTurn = (p.artifactsDiedThisTurn||0) + deadRelics.length;
@@ -1457,7 +1464,7 @@ function effectNeedsTarget(effect){
 function hasValidTarget(effect, casterKey){
   if(!effect || !effectNeedsTarget(effect)) return true;
   if(effect.targetOwner==='self') return true;
-  const wantsHero = (effect.type==='damage' || effect.type==='heal');
+  const wantsHero = (effect.type==='damage' || effect.type==='heal') && effect.targetCategory!=='creature';
   if(wantsHero) return true; // le héros (allié ou ennemi selon le cas) est toujours une cible disponible
   const keys = targetableKeysForEffect(effect);
   return keys.some(k => S[k] && S[k].board.some(c => isTargetableCreature(c, false)));
@@ -1631,22 +1638,15 @@ function playCard(key, handIndex, targetInfo){
       progressQuest('play_class_cards', 1, card.class);
     }
     if(card.onPlayEffect){
-      if(card.onPlayEffect.type==='summonCopy'){
-        const n = card.onPlayEffect.amount||1;
-        let made = 0;
-        for(let i=0;i<n && p.board.length<8;i++){ p.board.push(instantiateCreature(card)); made++; }
-        log(`${cardOwnerName(key)} invoque ${made} copie(s) supplémentaire(s) de ${card.name}.`);
-      } else {
-        const selfTargetInfo = {isHeroTarget:false, creature:inst, player:p};
-        if(card.onPlayEffect.targetOwner==='self' && TARGETED_EFFECTS.includes(card.onPlayEffect.type)){
-          fireResolvedEffect(card.onPlayEffect, p, key, inst, selfTargetInfo, null);
-        } else if(targetInfo && targetInfo.selfTarget){
-          fireResolvedEffect(card.onPlayEffect, p, key, inst, selfTargetInfo, null);
-        } else if(targetInfo){
-          fireResolvedEffect(card.onPlayEffect, p, key, inst, targetInfo, null);
-        } else if(!effectNeedsTarget(card.onPlayEffect)){
-          fireResolvedEffect(card.onPlayEffect, p, key, inst, {}, null);
-        }
+      const selfTargetInfo = {isHeroTarget:false, creature:inst, player:p};
+      if(card.onPlayEffect.targetOwner==='self' && TARGETED_EFFECTS.includes(card.onPlayEffect.type)){
+        fireResolvedEffect(card.onPlayEffect, p, key, inst, selfTargetInfo, null);
+      } else if(targetInfo && targetInfo.selfTarget){
+        fireResolvedEffect(card.onPlayEffect, p, key, inst, selfTargetInfo, null);
+      } else if(targetInfo){
+        fireResolvedEffect(card.onPlayEffect, p, key, inst, targetInfo, null);
+      } else if(!effectNeedsTarget(card.onPlayEffect)){
+        fireResolvedEffect(card.onPlayEffect, p, key, inst, {}, null);
       }
     }
     fireSummonSubtypeTrigger(key, inst);
@@ -1871,7 +1871,7 @@ function evalCondition(cond, caster, casterKey){
   }
 }
 
-function applySpellEffect(effect, caster, casterKey, target){
+function applySpellEffect(effect, caster, casterKey, target, sourceCreatureCtx){
   if(!effect) return;
   if(!conditionsMet(effect.conditions, caster, casterKey)){
     log(`${cardOwnerName(casterKey)} : condition non remplie, l'effet ne se déclenche pas.`);
@@ -1882,6 +1882,7 @@ function applySpellEffect(effect, caster, casterKey, target){
   if(target && target.creature && !target.isHeroTarget && TARGETED_EFFECTS.includes(effect.type)){
     const designatedKey = target.player===S.p1 ? 'p1' : target.player===S.p2 ? 'p2' : casterKey;
     fireWatchTrigger('watchTargeted', designatedKey, target.creature);
+    if(designatedKey!==casterKey) fireTrap(designatedKey, 'onOpponentTargetsAlly', target.creature);
   }
   switch(effect.type){
     case 'damage': {
@@ -1901,13 +1902,16 @@ function applySpellEffect(effect, caster, casterKey, target){
       if(target && target.isHeroTarget){
         modifyHp(target.player, effect.amount);
         log(`${cardOwnerName(casterKey)} restaure ${effect.amount} PV à un héros.`);
+        fireHeroTrigger(target.player===S.p1?'p1':'p2', 'onHealed');
       } else if(target && target.creature){
         target.creature.curHp = Math.min(target.creature.hp, target.creature.curHp + effect.amount);
         log(`${cardOwnerName(casterKey)} restaure ${effect.amount} PV à ${target.creature.name}.`);
         fireWatchTrigger('watchHealed', target.player===S.p1?'p1':'p2');
+        fireCreatureTrigger(target.player===S.p1?'p1':'p2', target.creature, 'onHealed');
       } else {
         modifyHp(caster, effect.amount);
         log(`${cardOwnerName(casterKey)} récupère ${effect.amount} PV.`);
+        fireHeroTrigger(casterKey, 'onHealed');
       }
       break;
     case 'stun':
@@ -1983,17 +1987,18 @@ function applySpellEffect(effect, caster, casterKey, target){
         p.manaNormal += effect.amount;
         p.manaGainedThisTurn = (p.manaGainedThisTurn||0) + effect.amount;
         log(`${cardOwnerName(key)} gagne ${effect.amount} mana utilisable immédiatement.`);
+        firePermanentTriggers(key, 'onManaGainedNonRegion');
       });
       break;
     }
     case 'emptyManaEffect': {
       const targets = ownerTargets(effect, caster, casterKey, casterKey==='p1'?'p2':'p1');
-      targets.forEach(({p,key})=>gainEmptyMana(p, key, effect.amount));
+      targets.forEach(({p,key})=>{ gainEmptyMana(p, key, effect.amount); firePermanentTriggers(key, 'onManaGainedNonRegion'); });
       break;
     }
     case 'fragileManaEffect': {
       const targets = ownerTargets(effect, caster, casterKey, casterKey==='p1'?'p2':'p1');
-      targets.forEach(({p,key})=>gainFragileMana(p, key, effect.amount));
+      targets.forEach(({p,key})=>{ gainFragileMana(p, key, effect.amount); firePermanentTriggers(key, 'onManaGainedNonRegion'); });
       break;
     }
     case 'refillMana': {
@@ -2013,6 +2018,21 @@ function applySpellEffect(effect, caster, casterKey, target){
       });
       break;
     }
+    case 'summonCopy': {
+      const template = sourceCreatureCtx || (target && target.creature);
+      if(!template || template.type!=='Créature'){
+        log(`${cardOwnerName(casterKey)} n'a pas de créature source à copier.`);
+        break;
+      }
+      const n = effect.amount||1;
+      let made = 0;
+      for(let i=0;i<n && caster.board.length<8; i++){ caster.board.push(instantiateCreature(template)); made++; }
+      if(made>0){
+        log(`${cardOwnerName(casterKey)} invoque ${made} copie(s) supplémentaire(s) de ${template.name}.`);
+        fireSummonSubtypeTrigger(casterKey, caster.board[caster.board.length-1]);
+      }
+      break;
+    }
     case 'discardSelf': {
       let n = Math.min(effect.amount, caster.hand.length);
       for(let i=0;i<n;i++){
@@ -2020,6 +2040,7 @@ function applySpellEffect(effect, caster, casterKey, target){
         caster.discard.push(caster.hand.splice(idx,1)[0]);
       }
       log(`${cardOwnerName(casterKey)} défausse ${n} carte${n>1?'s':''}.`);
+      if(n>0) firePermanentTriggers(casterKey, 'onHandDiscard');
       break;
     }
     case 'setStat': {
@@ -2258,6 +2279,32 @@ function applySpellEffect(effect, caster, casterKey, target){
 /* ============================================================
    POUVOIR DE HÉROS
    ============================================================ */
+// Active la capacité "Capacité activée (payez du mana)" d'une créature, d'une
+// région ou d'un artefact — le pendant générique de useHeroPower, mais pour
+// n'importe quel permanent qui a un déclencheur "activated" configuré.
+function activatePermanent(key, permanent, targetInfo){
+  const p = S[key];
+  const eff = permanent.triggeredEffects && permanent.triggeredEffects.activated;
+  if(!eff) return;
+  const cost = eff._activationCost||0;
+  if(availableMana(p) < cost){
+    log(`Pas assez de mana pour activer ${permanent.name}.`);
+    return;
+  }
+  if(permanent._activationCooldownRemaining>0){
+    log(`${permanent.name} est encore en recharge (${permanent._activationCooldownRemaining} tour(s)).`);
+    return;
+  }
+  const needsT = effectNeedsTarget(eff);
+  if(needsT && !targetInfo) return 'needs-target';
+  spendMana(p, cost);
+  permanent._activationCooldownRemaining = eff._activationCooldown||0;
+  fireResolvedEffect(eff, p, key, permanent.type ? permanent : null, targetInfo || {}, null);
+  log(`${cardOwnerName(key)} active ${permanent.name}.`);
+  if(permanent.type==='Artefact') p.artifactsActivatedThisTurn = (p.artifactsActivatedThisTurn||0) + 1;
+  render();
+}
+
 function useHeroPower(key, targetInfo){
   const p = S[key];
   const hero = p.hero;
@@ -2442,6 +2489,8 @@ function playOneCombatEvent(ev){
 
 function resolveOneCombat(attacker, atkP, atkKey, blocker, defP, defKey){
   log(`${attacker.name} affronte ${blocker.name}.`);
+  fireTrap(atkKey, 'beforeAllyFights', attacker);
+  fireTrap(defKey, 'beforeAllyFights', blocker);
   const initA = attacker.keywords.includes('initiative');
   const initB = blocker.keywords.includes('initiative');
   let dmgToBlocker = 0, dmgToAttacker = 0;
@@ -2465,6 +2514,8 @@ function resolveOneCombat(attacker, atkP, atkKey, blocker, defP, defKey){
       if(c.curHp>0) fireCreatureTrigger(key, c, 'onKill');
     }
   });
+  if(attacker.curHp>0){ fireTrap(atkKey, 'onAllySurvivesCombat', attacker); fireTrap(defKey, 'onEnemySurvivesCombat', attacker); }
+  if(blocker.curHp>0){ fireTrap(defKey, 'onAllySurvivesCombat', blocker); fireTrap(atkKey, 'onEnemySurvivesCombat', blocker); }
   return {dmgToBlocker, dmgToAttacker};
 }
 
@@ -2817,7 +2868,7 @@ function renderHero(key){
 
   el.innerHTML = `
     <div class="hero-top">
-      <div class="hero-portrait" style="${heroPortraitStyle}">${hero.image ? '' : hero.name[0]}<span class="hp-badge">${p.hp}</span></div>
+      <div class="hero-portrait" id="hero-portrait-${key}" style="${heroPortraitStyle}">${hero.image ? '' : hero.name[0]}<span class="hp-badge">${p.hp}</span></div>
       <div class="hero-info">
         <div class="hero-name">${hero.name}</div>
         <div class="region-tag">${region.name}</div>
@@ -2833,6 +2884,7 @@ function renderHero(key){
     </div>
   `;
   attachHoverPreview(document.getElementById(`region-thumb-${key}`), regionPreviewCard(region));
+  attachHoverPreview(document.getElementById(`hero-portrait-${key}`), hero);
 
   if(key==='p1'){
     const btn = document.createElement('button');
@@ -2849,7 +2901,7 @@ function renderHero(key){
   }
   if(S.pendingCard && targetableKeysForEffect(pendingTargetedEffect()).includes(key)){
     const eff = pendingTargetedEffect();
-    const wantsHero = eff && (eff.type==='damage' || eff.type==='heal');
+    const wantsHero = eff && (eff.type==='damage' || eff.type==='heal') && eff.targetCategory!=='creature';
     if(wantsHero){
       el.style.cursor='crosshair';
       el.onclick = ()=>resolvePendingTarget({isHeroTarget:true, player:S[key], key});
@@ -2922,7 +2974,7 @@ function targetableKeysForEffect(eff){
 }
 
 function isTargetableCreature(c, isHeroPower){
-  if(!isHeroPower && c.keywords.includes('stealth') && !c.hasAttacked) return false;
+  if(!isHeroPower && c.keywords.includes('stealth') && c.summonSick) return false;
   return true;
 }
 
@@ -2945,6 +2997,7 @@ function shouldHighlightCreature(key, c){
   if(S.pendingCard){
     const eff = pendingTargetedEffect();
     if(!effectNeedsTarget(eff)) return false;
+    if(eff.targetCategory==='hero' || eff.targetCategory==='player') return false; // catégorie "héros uniquement" : jamais de créature ciblable
     if(!targetableKeysForEffect(eff).includes(key)) return false;
     return isTargetableCreature(c, !!S.pendingCard.isHeroPower);
   }
@@ -3014,6 +3067,13 @@ function onCreatureClick(key, c, ev){
       assignBlock(c.instId);
       return;
     }
+    return;
+  }
+
+  // clic normal (pas de ciblage ni blocage en cours) sur une de mes propres
+  // créatures avec une capacité "activée" : on tente de l'activer.
+  if(key==='p1' && S.active==='p1' && S.phase==='main' && c.triggeredEffects && c.triggeredEffects.activated){
+    activatePermanent('p1', c);
   }
 }
 
@@ -3061,6 +3121,13 @@ function renderZone(key){
     badge.className = 'relic-charges-badge';
     badge.textContent = `⚡${r.charges}`;
     slot.appendChild(badge);
+    if(key==='p1' && r.triggeredEffects && r.triggeredEffects.activated){
+      slot.style.cursor = 'pointer';
+      slot.title = `Activer ${r.name}`;
+      slot.onclick = ()=>{
+        if(S.active==='p1' && S.phase==='main') activatePermanent('p1', r);
+      };
+    }
     el.appendChild(slot);
   });
 }
@@ -3402,7 +3469,7 @@ function showPreview(card, x, y){
   box.innerHTML='';
   box.style.display='flex'; box.style.alignItems='center'; box.style.gap='16px';
 
-  const cw = 150*2.2, ch = 204*2.2;
+  const cw = 150*2.0, ch = 204*2.0;
   const mainSlot = document.createElement('div');
   mainSlot.style.cssText = `width:${cw}px;height:${ch}px;position:relative;`;
   mainSlot.appendChild(cardEl(card, {isPreview:true}));
