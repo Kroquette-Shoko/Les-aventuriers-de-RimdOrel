@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Spellcraft — Test serveur</title>
+<style>
+  body{background:#0b0a12;color:#efe6c8;font-family:'Inter',sans-serif;padding:20px;max-width:700px;margin:0 auto;}
+  h1{color:#d4af37;font-size:18px;}
+  h2{color:#d4af37;font-size:14px;border-bottom:1px solid #3a3260;padding-bottom:4px;margin-top:24px;}
+  button{background:#7c5cff;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:12.5px;cursor:pointer;margin:4px 4px 4px 0;}
+  button:hover{filter:brightness(1.15);}
+  input{background:#171325;border:1px solid #3a3260;color:#efe6c8;border-radius:6px;padding:7px 10px;font-size:12.5px;margin:4px 4px 4px 0;}
+  pre{background:#171325;border:1px solid #3a3260;border-radius:8px;padding:12px;font-size:11px;overflow:auto;max-height:400px;white-space:pre-wrap;}
+  .row{margin-bottom:8px;}
+  #log{font-size:11.5px;color:#c8beb0;max-height:150px;overflow-y:auto;background:#0b0a12;border:1px solid #2b2440;padding:8px;border-radius:6px;}
+  .log-line{margin-bottom:3px;}
+  .log-error{color:#c23b3b;}
+  .log-ok{color:#4a9d6b;}
+</style>
+</head>
+<body>
+
+<h1>🧪 Test de la couche serveur — Spellcraft</h1>
+<p style="font-size:12px;color:#c8beb0;">Page technique, pas pour les joueurs — sert juste à vérifier que la fonction serveur et la synchronisation fonctionnent avant de les brancher au vrai jeu.</p>
+
+<h2>1) Session</h2>
+<div class="row">
+  <button onclick="testCreateVsAI()">Créer une partie contre l'IA</button>
+  <button onclick="testCreateForFriend()">Créer une partie (attendre un ami)</button>
+</div>
+<div class="row">
+  <input id="join-code-input" placeholder="Code à 6 caractères" maxlength="6">
+  <button onclick="testJoinAsPlayer()">Rejoindre comme joueur</button>
+  <button onclick="testJoinAsSpectator()">Rejoindre comme spectateur</button>
+</div>
+<div class="row" id="session-info" style="font-size:12.5px;color:#d4af37;"></div>
+
+<h2>2) Actions</h2>
+<div class="row">
+  <button onclick="testMulligan()">Mulligan (ne rien renvoyer)</button>
+  <button onclick="testPlayCard()">Jouer la carte n°0 de la main</button>
+  <button onclick="testEndTurn()">Terminer le tour</button>
+  <button onclick="testProcessAi()">Faire jouer l'IA</button>
+</div>
+
+<h2>3) Chat</h2>
+<div class="row">
+  <input id="chat-input" placeholder="Message..." style="width:300px;">
+  <button onclick="testSendChat()">Envoyer</button>
+</div>
+<div id="chat-log" style="font-size:11.5px;color:#c8beb0;max-height:100px;overflow-y:auto;margin-bottom:8px;"></div>
+
+<h2>Journal</h2>
+<div id="log"></div>
+
+<h2>État de la partie (brut)</h2>
+<pre id="state-display">(pas encore de partie)</pre>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="spellcraft-shared.js"></script>
+<script src="spellcraft-auth.js"></script>
+<script src="spellcraft-server-client.js"></script>
+<script>
+function logLine(msg, cls){
+  const el = document.getElementById('log');
+  const line = document.createElement('div');
+  line.className = 'log-line ' + (cls||'');
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  el.prepend(line);
+}
+function showResult(label, res){
+  if(res && res.error){ logLine(`${label} → erreur : ${res.error}`, 'log-error'); }
+  else { logLine(`${label} → ok`, 'log-ok'); }
+  if(res && res.state) displayState(res.state);
+  return res;
+}
+function displayState(state){
+  document.getElementById('state-display').textContent = JSON.stringify(state, null, 2);
+}
+function onStateUpdate(state){
+  logLine('État reçu en direct (diffusion serveur)');
+  displayState(state);
+}
+function onChatMessage(msg){
+  const el = document.getElementById('chat-log');
+  const line = document.createElement('div');
+  line.textContent = `${msg.sender_name}${msg.is_spectator ? ' (spectateur)' : ''} : ${msg.message}`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+// Deck factice minimal, juste pour tester le flux (pas le vrai catalogue)
+const TEST_DECK = {
+  hero: { name: 'Héros de test', hp: 30 },
+  cards: [
+    { id:'t1', name:'Test Créature 1', type:'Créature', cost:1, atk:1, hp:1 },
+    { id:'t2', name:'Test Créature 2', type:'Créature', cost:2, atk:2, hp:2 },
+    { id:'t3', name:'Test Créature 3', type:'Créature', cost:3, atk:3, hp:3 }
+  ]
+};
+
+async function testCreateVsAI(){
+  const res = await gsCreateSession(TEST_DECK, true);
+  if(res.error){ logLine('Créer (vs IA) → ' + res.error, 'log-error'); return; }
+  document.getElementById('session-info').textContent = `Session ${res.sessionId} — code ${res.code} — tu es player1, contre l'IA`;
+  gsConnect(onStateUpdate, onChatMessage);
+  logLine('Partie créée contre l\'IA, code : ' + res.code, 'log-ok');
+}
+
+async function testCreateForFriend(){
+  const res = await gsCreateSession(TEST_DECK, false);
+  if(res.error){ logLine('Créer → ' + res.error, 'log-error'); return; }
+  document.getElementById('session-info').textContent = `Session ${res.sessionId} — code ${res.code} — tu es player1, en attente`;
+  gsConnect(onStateUpdate, onChatMessage);
+  logLine('Partie créée, donne ce code à un autre onglet/compte pour tester : ' + res.code, 'log-ok');
+}
+
+async function testJoinAsPlayer(){
+  const code = document.getElementById('join-code-input').value.trim().toUpperCase();
+  const res = await gsJoinAsPlayer(code, TEST_DECK);
+  if(res.error){ logLine('Rejoindre → ' + res.error, 'log-error'); return; }
+  document.getElementById('session-info').textContent = `Session ${res.sessionId} — tu es player2`;
+  gsConnect(onStateUpdate, onChatMessage);
+  logLine('Partie rejointe en tant que joueur', 'log-ok');
+}
+
+async function testJoinAsSpectator(){
+  const code = document.getElementById('join-code-input').value.trim().toUpperCase();
+  const res = await gsJoinAsSpectator(code);
+  if(res.error){ logLine('Rejoindre (spectateur) → ' + res.error, 'log-error'); return; }
+  document.getElementById('session-info').textContent = `Session ${res.session_id} — tu es spectateur`;
+  gsConnect(onStateUpdate, onChatMessage);
+  logLine('Partie rejointe en tant que spectateur', 'log-ok');
+}
+
+async function testMulligan(){ showResult('Mulligan', await gsMulligan([])); }
+async function testPlayCard(){ showResult('Jouer carte 0', await gsPlayCardSimple(0)); }
+async function testEndTurn(){ showResult('Terminer le tour', await gsEndTurn()); }
+async function testProcessAi(){ showResult('Tour de l\'IA', await gsProcessAiTurn()); }
+
+async function testSendChat(){
+  const input = document.getElementById('chat-input');
+  const user = await scGetCurrentUser();
+  const res = await gsSendChatMessage(input.value, user ? user.email : 'Testeur');
+  if(res.error){ logLine('Chat → ' + res.error, 'log-error'); return; }
+  input.value = '';
+}
+
+initSpellcraftAuth();
+</script>
+</body>
+</html>
