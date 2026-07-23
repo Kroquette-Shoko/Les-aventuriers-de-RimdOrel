@@ -368,6 +368,7 @@ body.targeting *{cursor:crosshair !important;}
   html,body{overflow:auto !important;height:auto !important;min-height:100%;}
   .card.dragging{opacity:.4;}
   .lane.drop-target{outline:3px dashed var(--gold);outline-offset:-4px;background:rgba(212,175,55,.08);}
+  body.action-busy #ai-debug-btn, body.action-busy .phase-btn{opacity:.6;pointer-events:none;cursor:wait;}
 
   /* ---------- Nouvelle disposition : mana / héros / deck en coins séparés ---------- */
   .board-row{display:flex;align-items:center;gap:14px;padding:8px 16px;position:relative;min-height:170px;}
@@ -908,6 +909,24 @@ function renderPhaseBar(){
   const bar = document.getElementById('phase-bar');
   bar.innerHTML = '';
   if(S.gameOver) return;
+
+  if(S.phase==='mulligan'){
+    if(S.mulliganDone[MY_KEY]){
+      const btn = document.createElement('button');
+      btn.className = 'phase-btn';
+      btn.textContent = "En attente de l'adversaire...";
+      btn.disabled = true;
+      bar.appendChild(btn);
+    } else {
+      const btn = document.createElement('button');
+      btn.className = 'phase-btn';
+      btn.textContent = 'Garder ma main (mulligan)';
+      btn.onclick = uiMulligan;
+      bar.appendChild(btn);
+    }
+    return;
+  }
+
   const myTurn = S.active===MY_KEY;
   const canEndTurn = myTurn && S.phase==='main' && !UI.selectingAttackers;
 
@@ -1009,35 +1028,41 @@ function closeDiscardModal(){
 }
 
 // ---------------- Actions ----------------
+// Empêche d'envoyer une nouvelle action tant que la précédente n'a pas
+// fini de se traiter — sinon plusieurs clics rapides se marchent dessus
+// sur le verrou serveur (409 "session-busy") et la partie semble bloquée.
+let ACTION_IN_FLIGHT = false;
+async function runAction(label, fn){
+  if(ACTION_IN_FLIGHT){ debugLog(`${label} → une action est déjà en cours, patiente un instant.`, 'log-error'); return; }
+  ACTION_IN_FLIGHT = true;
+  document.body.classList.add('action-busy');
+  try{
+    const res = await fn();
+    if(res && res.error) debugLog(`${label} → ${res.error}`, 'log-error');
+  } finally {
+    ACTION_IN_FLIGHT = false;
+    document.body.classList.remove('action-busy');
+  }
+}
 
-async function uiPlayCard(i){
-  const res = await gsPlayCardSimple(i);
-  if(res.error) debugLog('Jouer carte → ' + res.error, 'log-error');
-}
-async function uiEndTurn(){
-  const res = await gsEndTurn();
-  if(res.error) debugLog('Fin de tour → ' + res.error, 'log-error');
-}
+async function uiMulligan(){ await runAction('Mulligan', ()=>gsMulligan([])); }
+async function uiPlayCard(i){ await runAction('Jouer carte', ()=>gsPlayCardSimple(i)); }
+async function uiEndTurn(){ await runAction('Fin de tour', ()=>gsEndTurn()); }
 async function uiConfirmAttackers(){
-  const res = await gsDeclareAttackers(UI.selectedAttackers);
-  if(res.error) debugLog('Attaquer → ' + res.error, 'log-error');
+  await runAction('Attaquer', ()=>gsDeclareAttackers(UI.selectedAttackers));
   UI.selectingAttackers = false; UI.selectedAttackers = [];
 }
 async function uiAssignBlock(attackerId){
   if(!UI.pendingBlocker) return;
-  const res = await gsAssignBlock(UI.pendingBlocker, attackerId);
-  if(res.error) debugLog('Bloquer → ' + res.error, 'log-error');
+  const blockerId = UI.pendingBlocker;
   UI.pendingBlocker = null;
+  await runAction('Bloquer', ()=>gsAssignBlock(blockerId, attackerId));
 }
 async function uiFinishBlocking(){
-  const res = await gsFinishBlocking();
-  if(res.error) debugLog('Terminer blocage → ' + res.error, 'log-error');
   UI.pendingBlocker = null;
+  await runAction('Terminer blocage', ()=>gsFinishBlocking());
 }
-async function uiProcessAi(){
-  const res = await gsProcessAiTurn();
-  if(res.error) debugLog('Tour IA → ' + res.error, 'log-error');
-}
+async function uiProcessAi(){ await runAction('Tour IA', ()=>gsProcessAiTurn()); }
 
 // ---------------- Chat ----------------
 
