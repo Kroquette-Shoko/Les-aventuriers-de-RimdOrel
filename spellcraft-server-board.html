@@ -368,6 +368,10 @@ body.targeting *{cursor:crosshair !important;}
 </style>
 
 <div id="setup-panel">
+  <div style="width:100%;">
+    <p style="font-size:11.5px;color:#c8beb0;margin:2px 0 8px;">Choisis ton deck :</p>
+    <div id="deck-select-list" style="max-height:160px;overflow-y:auto;margin-bottom:10px;"></div>
+  </div>
   <button onclick="uiCreateVsAI()">Créer contre l'IA</button>
   <button class="secondary" onclick="uiCreateForFriend()">Créer (attendre un ami)</button>
   <span>ou</span>
@@ -424,6 +428,7 @@ body.targeting *{cursor:crosshair !important;}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="spellcraft-shared.js"></script>
 <script src="spellcraft-auth.js"></script>
+<script src="spellcraft-catalog.js"></script>
 <script src="spellcraft-server-client.js"></script>
 <script>
 
@@ -440,26 +445,46 @@ const KEYWORD_LABELS = {
 };
 function escapeHtmlGS(s){ return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
-const TEST_DECK = {
-  hero: { name:'Héros de test', type:'Héros', hp:30, image:'', activeText:'', activeEffect:null },
-  region: { name:'Région de test', type:'Région', manaRule:'default', image:'' },
-  cards: [
-    { id:'t1', name:'Sans mot-clé', type:'Créature', class:'Neutre', cost:1, atk:1, hp:1, keywords:[], text:'' },
-    { id:'t2', name:'Armure', type:'Créature', class:'Neutre', cost:2, atk:2, hp:2, keywords:['armor'], text:'Armure.' },
-    { id:'t3', name:'Toxique', type:'Créature', class:'Neutre', cost:2, atk:1, hp:2, keywords:['toxic'], text:'Toxique.' },
-    { id:'t4', name:'Vol de vie', type:'Créature', class:'Neutre', cost:2, atk:2, hp:2, keywords:['lifesteal'], text:'Vol de vie.' },
-    { id:'t5', name:'Perçant', type:'Créature', class:'Neutre', cost:2, atk:3, hp:2, keywords:['pierce'], text:'Perçant.' },
-    { id:'t6', name:'Initiative', type:'Créature', class:'Neutre', cost:2, atk:2, hp:1, keywords:['initiative'], text:'Initiative.' },
-    { id:'t7', name:'Vol', type:'Créature', class:'Neutre', cost:2, atk:2, hp:2, keywords:['flying'], text:'Vol.' },
-    { id:'t8', name:'Portée', type:'Créature', class:'Neutre', cost:2, atk:2, hp:2, keywords:['reach'], text:'Portée.' },
-    { id:'t9', name:'Peureux', type:'Créature', class:'Neutre', cost:1, atk:2, hp:1, keywords:['fearful'], text:'Peureux.' },
-    { id:'t10', name:'Protecteur', type:'Créature', class:'Neutre', cost:2, atk:1, hp:6, keywords:['protecteur'], text:'Protecteur.' },
-    { id:'t11', name:'Tenace', type:'Créature', class:'Neutre', cost:3, atk:2, hp:2, keywords:['relentless'], text:'Tenace.' },
-    { id:'t12', name:'Charge', type:'Créature', class:'Neutre', cost:2, atk:2, hp:2, keywords:['charge'], text:'Charge.' },
-    { id:'t13', name:'Sans mot-clé 2', type:'Créature', class:'Neutre', cost:1, atk:2, hp:1, keywords:[], text:'' },
-    { id:'t14', name:'Sans mot-clé 3', type:'Créature', class:'Neutre', cost:3, atk:3, hp:3, keywords:[], text:'' }
-  ]
-};
+let LOADED_COLLECTION = [];
+let LOADED_DECKS = [];
+let CHOSEN_DECK_ID = null;
+
+function deckSummary(d, collection){
+  const hero = collection.find(c=>c.id===d.heroId);
+  const region = collection.find(c=>c.id===d.regionId);
+  const total = (d.cards||[]).reduce((s,c)=>s+c.count,0);
+  return { hero, region, total, valid: !!hero && !!region && total>0 };
+}
+
+async function initDeckSelection(){
+  LOADED_COLLECTION = await loadAllCardsAcrossSets();
+  LOADED_DECKS = (await loadUserDecks()).filter(d=>deckSummary(d, LOADED_COLLECTION).valid);
+  const listEl = document.getElementById('deck-select-list');
+  listEl.innerHTML = '';
+  if(LOADED_DECKS.length===0){
+    listEl.innerHTML = '<p style="font-size:12px;color:#c8beb0;">Aucun deck valide trouvé — construis-en un dans le classeur d\'abord.</p>';
+    return;
+  }
+  LOADED_DECKS.forEach(d=>{
+    const sum = deckSummary(d, LOADED_COLLECTION);
+    const btn = document.createElement('button');
+    btn.className = 'secondary';
+    btn.style.display = 'block';
+    btn.style.width = '100%';
+    btn.style.textAlign = 'left';
+    btn.style.marginBottom = '6px';
+    btn.textContent = `${d.name} — ${sum.hero?.name || '?'} / ${sum.region?.name || '?'} (${sum.total} cartes)`;
+    btn.onclick = ()=>{ CHOSEN_DECK_ID = d.id; highlightChosenDeck(); };
+    listEl.appendChild(btn);
+  });
+}
+function highlightChosenDeck(){
+  document.querySelectorAll('#deck-select-list button').forEach(b=>b.style.borderColor = '#3a3260');
+  const idx = LOADED_DECKS.findIndex(d=>d.id===CHOSEN_DECK_ID);
+  if(idx>=0) document.querySelectorAll('#deck-select-list button')[idx].style.borderColor = 'var(--gold)';
+}
+
+const TEST_DECK = null; // remplacé par la vraie sélection de deck ci-dessus
 
 let S = null; // état de la partie reçu du serveur
 let MY_KEY = null, OPP_KEY = null;
@@ -484,18 +509,21 @@ function logGame(msg){
 // ---------------- Connexion / session ----------------
 
 async function uiCreateVsAI(){
-  const res = await gsCreateSession(TEST_DECK, true);
+  if(!CHOSEN_DECK_ID){ debugLog('Choisis un deck avant de créer une partie.', 'log-error'); return; }
+  const res = await gsCreateSession(CHOSEN_DECK_ID, true);
   if(res.error) return debugLog('Créer → ' + res.error, 'log-error');
   afterConnected(res.code);
 }
 async function uiCreateForFriend(){
-  const res = await gsCreateSession(TEST_DECK, false);
+  if(!CHOSEN_DECK_ID){ debugLog('Choisis un deck avant de créer une partie.', 'log-error'); return; }
+  const res = await gsCreateSession(CHOSEN_DECK_ID, false);
   if(res.error) return debugLog('Créer → ' + res.error, 'log-error');
   afterConnected(res.code);
 }
 async function uiJoinAsPlayer(){
+  if(!CHOSEN_DECK_ID){ debugLog('Choisis un deck avant de rejoindre.', 'log-error'); return; }
   const code = document.getElementById('join-code-input').value.trim().toUpperCase();
-  const res = await gsJoinAsPlayer(code, TEST_DECK);
+  const res = await gsJoinAsPlayer(code, CHOSEN_DECK_ID);
   if(res.error) return debugLog('Rejoindre → ' + res.error, 'log-error');
   afterConnected(code);
 }
@@ -561,15 +589,18 @@ function cardEl(card, opts={}){
   const isHero = card.type==='Héros';
   const isRegion = card.type==='Région';
   const isCreature = card.type==='Créature';
-  const artStyle = card.image ? `background-image:url('${card.image.replace(/'/g,"")}');` : '';
+  const posX = card.imagePosX ?? 50, posY = card.imagePosY ?? 50, zoom = card.imageZoom ?? 100;
+  const sizeVal = zoom>100 ? zoom+'%' : 'cover';
+  const artStyle = card.image ? `background-image:url('${card.image.replace(/'/g,"")}');background-position:${posX}% ${posY}%;background-size:${sizeVal};` : '';
 
+  const setInitial = card.set ? card.set.trim().charAt(0).toUpperCase() : '✦';
   el.innerHTML = `
     <div class="card-art" style="${artStyle}">
       ${(isHero || isRegion) ? '' : `<div class="card-cost">${card.cost ?? 0}</div>`}
       ${isHero ? `<div class="card-hero-hp">${card.curHp ?? card.hp ?? 0}</div>` : ''}
       <div class="card-typeline">${escapeHtmlGS(card.type||'')}</div>
     </div>
-    <div class="card-divider"><div class="card-set-icon"><span>✦</span></div></div>
+    <div class="card-divider"><div class="card-set-icon">${card.setLogo ? `<div class="card-set-logo-img" style="background-image:url('${card.setLogo.replace(/'/g,"")}')"></div>` : `<span>${escapeHtmlGS(setInitial)}</span>`}</div></div>
     <div class="card-body">
       <div class="card-name">${escapeHtmlGS(card.name||'')}</div>
       <div class="card-kw">${escapeHtmlGS(kwText)}</div>
@@ -577,7 +608,7 @@ function cardEl(card, opts={}){
     </div>
     <div class="card-footer">
       ${isCreature ? `<div class="card-atk">⚔${card.curAtk ?? card.atk ?? 0}</div>` : `<div></div>`}
-      <div class="card-rarity-gem rarity-Commune"></div>
+      <div class="card-rarity-gem rarity-${card.rarity||'Commune'}"></div>
       ${isCreature ? `<div class="card-hp">♥${card.curHp ?? card.hp ?? 0}</div>` : `<div></div>`}
     </div>
     ${isSick ? `<div class="zzz"><span>Z</span><span>Z</span><span>Z</span></div>` : ''}
@@ -616,18 +647,21 @@ function renderGameOverOverlay(){
 function renderHero(key, slot){
   const p = S[key];
   const el = document.getElementById(`hero-${slot}`);
-  const reservedAmount = 0;
   const normalDots = Array.from({length:p.manaNormalMax}, (_,i)=>{
     const filled = i<p.manaNormal;
     return `<span class="mana-dot ${filled?'filled':'empty'}"></span>`;
   }).join('');
   const fragileDots = Array.from({length:p.manaFragile}, ()=>`<span class="mana-dot fragile"></span>`).join('');
-  const heroName = (p.hero && p.hero.name) || (slot==='p1' ? 'Moi' : 'Adversaire');
-  const regionName = (p.region && p.region.name) || 'Région';
+  const hero = p.hero || {};
+  const region = p.region || {};
+  const heroName = hero.name || (slot==='p1' ? 'Moi' : 'Adversaire');
+  const regionName = region.name || 'Région';
+  const heroPortraitStyle = hero.image ? `background-image:url('${hero.image.replace(/'/g,"")}');background-position:${hero.imagePosX??50}% ${hero.imagePosY??50}%;background-size:${(hero.imageZoom??100)>100?hero.imageZoom+'%':'cover'};` : '';
+  const regionThumbStyle = region.image ? `background-image:url('${region.image.replace(/'/g,"")}');background-position:${region.imagePosX??50}% ${region.imagePosY??50}%;background-size:${(region.imageZoom??100)>100?region.imageZoom+'%':'cover'};` : '';
 
   el.innerHTML = `
     <div class="hero-top">
-      <div class="hero-portrait" id="hero-portrait-${slot}">${heroName[0]||'?'}<span class="hp-badge">${p.hp}</span></div>
+      <div class="hero-portrait" id="hero-portrait-${slot}" style="${heroPortraitStyle}">${hero.image ? '' : (heroName[0]||'?')}<span class="hp-badge">${p.hp}</span></div>
       <div class="hero-info">
         <div class="hero-name">${escapeHtmlGS(heroName)}</div>
         <div class="region-tag">${escapeHtmlGS(regionName)}</div>
@@ -638,16 +672,15 @@ function renderHero(key, slot){
       </div>
     </div>
     <div class="mana-bar">
-      <div class="mana-region-thumb" id="region-thumb-${slot}" title="${escapeHtmlGS(regionName)}"></div>
+      <div class="mana-region-thumb" id="region-thumb-${slot}" style="${regionThumbStyle}" title="${escapeHtmlGS(regionName)}"></div>
       <div class="mana-dots">${normalDots}${fragileDots}</div>
     </div>
   `;
 
   if(slot==='p1'){
-    const myTurn = S.active===MY_KEY;
     const btn = document.createElement('button');
     btn.className='power-btn';
-    btn.textContent = 'Pouvoir (bientôt)';
+    btn.textContent = hero.activeText || 'Pouvoir (bientôt)';
     btn.disabled = true; // pouvoirs de héros : lot capacités/déclencheurs
     el.appendChild(btn);
   }
@@ -853,7 +886,7 @@ async function uiSendChat(){
   input.value = '';
 }
 
-initSpellcraftAuth();
+initSpellcraftAuth().then(initDeckSelection);
 </script>
 </body>
 </html>

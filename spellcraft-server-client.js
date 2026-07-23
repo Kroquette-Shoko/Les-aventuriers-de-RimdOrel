@@ -40,9 +40,9 @@ async function gsFetchState() { return gsCallAction('getState'); }
 // ------------------------------------------------------------
 // Création / rejointe
 // ------------------------------------------------------------
-async function gsCreateSession(deck, vsAI) {
+async function gsCreateSession(deckId, vsAI) {
   const { data, error } = await sb.functions.invoke('game-action', {
-    body: { action: 'createSession', deck, vsAI }
+    body: { action: 'createSession', deckId, vsAI }
   });
   if (error) return { error: error.message || String(error) };
   if (data.error) return data;
@@ -52,9 +52,9 @@ async function gsCreateSession(deck, vsAI) {
   return data; // { ok, sessionId, code }
 }
 
-async function gsJoinAsPlayer(code, deck) {
+async function gsJoinAsPlayer(code, deckId) {
   const { data, error } = await sb.functions.invoke('game-action', {
-    body: { action: 'joinAsPlayer', code, deck }
+    body: { action: 'joinAsPlayer', code, deckId }
   });
   if (error) return { error: error.message || String(error) };
   if (data.error) return data;
