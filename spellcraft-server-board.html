@@ -605,7 +605,6 @@ function afterConnected(code){
   document.getElementById('setup-panel').style.display = 'none';
   document.getElementById('app-outer').classList.add('show');
   document.getElementById('ai-debug-btn').style.display = 'block';
-  setupHandDropZone();
   MY_KEY = GS_ROLE === 'p2' ? 'p2' : 'p1';
   OPP_KEY = MY_KEY === 'p1' ? 'p2' : 'p1';
   gsConnect(onStateUpdate, onChatMessage);
@@ -876,42 +875,76 @@ function renderHand(){
     const canPlay = myTurn && S.phase==='main' && affordable && !UI.selectingAttackers;
     const el2 = cardEl(card, {});
     if(!canPlay) el2.style.opacity = '.5';
-    el2.draggable = canPlay;
     if(canPlay){
       el2.style.cursor = 'grab';
-      el2.addEventListener('dragstart', (ev)=>{
-        DRAGGED_HAND_INDEX = i;
-        el2.classList.add('dragging');
-        ev.dataTransfer.effectAllowed = 'move';
-        ev.dataTransfer.setData('text/plain', String(i)); // requis par la norme HTML5 (sinon Firefox refuse le survol)
-      });
-      el2.addEventListener('dragend', ()=>{
-        el2.classList.remove('dragging');
-        DRAGGED_HAND_INDEX = null;
-      });
+      el2.style.touchAction = 'none';
+      el2.addEventListener('pointerdown', (ev)=>startCardDrag(ev, i, el2));
     }
     el.appendChild(el2);
   });
 }
 
-let DRAGGED_HAND_INDEX = null;
+// ---------------- Glisser-déposer "fait maison" (événements de pointeur) ----------------
+// Remplace le drag-and-drop HTML5 natif, trop capricieux selon les
+// navigateurs — ici on suit nous-mêmes le curseur/doigt avec un clone visuel.
+let DRAG_STATE = null;
 
-function setupHandDropZone(){
+function startCardDrag(ev, handIndex, sourceEl){
+  ev.preventDefault();
+  const rect = sourceEl.getBoundingClientRect();
+  const ghost = sourceEl.cloneNode(true);
+  ghost.style.position = 'fixed';
+  ghost.style.left = rect.left + 'px';
+  ghost.style.top = rect.top + 'px';
+  ghost.style.width = rect.width + 'px';
+  ghost.style.margin = '0';
+  ghost.style.zIndex = '9999';
+  ghost.style.pointerEvents = 'none';
+  ghost.style.transform = 'scale(1.08) rotate(-2deg)';
+  ghost.style.boxShadow = '0 16px 30px rgba(0,0,0,.6)';
+  ghost.classList.add('drag-ghost');
+  document.body.appendChild(ghost);
+
+  sourceEl.style.opacity = '.3';
+
+  DRAG_STATE = {
+    handIndex, ghost,
+    offsetX: ev.clientX - rect.left,
+    offsetY: ev.clientY - rect.top,
+    sourceEl
+  };
+
+  document.addEventListener('pointermove', onCardDragMove);
+  document.addEventListener('pointerup', onCardDragEnd);
+}
+
+function onCardDragMove(ev){
+  if(!DRAG_STATE) return;
+  const { ghost, offsetX, offsetY } = DRAG_STATE;
+  ghost.style.left = (ev.clientX - offsetX) + 'px';
+  ghost.style.top = (ev.clientY - offsetY) + 'px';
+
   const zone = document.getElementById('lane-p1');
-  zone.addEventListener('dragover', (ev)=>{
-    if(DRAGGED_HAND_INDEX===null) return;
-    ev.preventDefault();
-    ev.dataTransfer.dropEffect = 'move';
-    zone.classList.add('drop-target');
-  });
-  zone.addEventListener('dragleave', ()=>{ zone.classList.remove('drop-target'); });
-  zone.addEventListener('drop', (ev)=>{
-    ev.preventDefault();
-    zone.classList.remove('drop-target');
-    if(DRAGGED_HAND_INDEX===null) return;
-    uiPlayCard(DRAGGED_HAND_INDEX);
-    DRAGGED_HAND_INDEX = null;
-  });
+  const zoneRect = zone.getBoundingClientRect();
+  const over = ev.clientX>=zoneRect.left && ev.clientX<=zoneRect.right && ev.clientY>=zoneRect.top && ev.clientY<=zoneRect.bottom;
+  zone.classList.toggle('drop-target', over);
+}
+
+function onCardDragEnd(ev){
+  if(!DRAG_STATE) return;
+  const { handIndex, ghost, sourceEl } = DRAG_STATE;
+  const zone = document.getElementById('lane-p1');
+  const zoneRect = zone.getBoundingClientRect();
+  const over = ev.clientX>=zoneRect.left && ev.clientX<=zoneRect.right && ev.clientY>=zoneRect.top && ev.clientY<=zoneRect.bottom;
+
+  zone.classList.remove('drop-target');
+  ghost.remove();
+  if(sourceEl) sourceEl.style.opacity = '';
+  document.removeEventListener('pointermove', onCardDragMove);
+  document.removeEventListener('pointerup', onCardDragEnd);
+  DRAG_STATE = null;
+
+  if(over) uiPlayCard(handIndex);
 }
 
 function renderPhaseBar(){
