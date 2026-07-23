@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Spellcraft — Plateau serveur</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg-void:#0b0a12;
+  --bg-panel:#171325;
+  --bg-panel-2:#1f1a30;
+  --parchment:#efe6c8;
+  --parchment-dim:#d9cfae;
+  --ink:#1c1830;
+  --arcane:#7c5cff;
+  --gold:#d4af37;
+  --blood:#c23b3b;
+  --frost:#4fb3d9;
+  --green:#4a9d6b;
+  --aube:#d4af37; --crepuscule:#4b0082; --prima:#228b22; --volonte:#8b0000; --arcane-c:#4682b4; --neutre:#c0c0c0;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);font-family:'Inter',sans-serif;overflow:hidden;}
+.title-font{font-family:'Cinzel',serif;}
+
+#app-outer{height:100vh;width:100vw;}
+#app{display:flex;height:100%;width:100%;min-height:0;}
+
+/* ---------- Board ---------- */
+#board{flex:1;position:relative;display:flex;flex-direction:column;padding:12px 16px 40px;gap:8px;min-width:0;min-height:0;}
+#board-scroll-area{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;gap:8px;overflow-y:auto;overflow-x:hidden;padding-right:2px;}
+
+.hero-row{display:flex;flex-direction:column;gap:6px;padding:8px 14px;background:var(--bg-panel);border-radius:14px;border:1px solid #2b2440;max-width:400px;width:fit-content;flex-shrink:0;}
+.draw-anim-card{
+  position:fixed;width:150px;height:204px;z-index:150;pointer-events:none;
+  transform-origin:top left;
+  filter:drop-shadow(0 10px 24px rgba(0,0,0,.65));
+}
+.hero-row.enemy{align-self:flex-end;}
+.hero-row.self{align-self:flex-start;}
+
+.hero-top{display:flex;align-items:center;gap:14px;}
+
+.hero-portrait{width:60px;height:60px;border-radius:50%;background:radial-gradient(circle at 35% 30%, var(--arcane), #2a1f55);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:700;font-size:20px;color:#fff;flex-shrink:0;border:3px solid var(--gold);position:relative;}
+.hp-badge{position:absolute;bottom:-6px;right:-9px;min-width:26px;height:26px;padding:0 5px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#e85858,#8a1f1f);border:2px solid #4a0f0f;color:#fff;font-family:'Cinzel',serif;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.65);z-index:2;}
+
+.hero-info{display:flex;flex-direction:column;gap:4px;flex:1;min-width:0;}
+.hero-name{font-family:'Cinzel',serif;font-size:17px;font-weight:600;color:var(--parchment);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+.dot.hp{background:var(--blood);}
+
+.hpbar-wrap{width:110px;height:7px;background:#2b2440;border-radius:6px;overflow:hidden;}
+.hpbar{height:100%;background:linear-gradient(90deg,var(--blood),#e06060);transition:width .3s;}
+
+.power-btn{background:var(--bg-panel-2);border:1.5px solid var(--frost);color:var(--frost);border-radius:9px;padding:6px 12px;font-family:'Inter';font-size:11.5px;font-weight:600;cursor:pointer;white-space:normal;text-align:left;line-height:1.3;width:100%;}
+.power-btn:disabled{opacity:.35;cursor:not-allowed;border-color:#444;color:#777;}
+.power-btn:not(:disabled):hover{background:var(--frost);color:var(--ink);}
+
+.region-tag{font-size:12.5px;color:var(--green);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+.mana-bar{display:flex;align-items:center;gap:10px;}
+.mana-region-thumb{width:32px;height:32px;border-radius:7px;background-size:cover;background-position:center;background-color:var(--bg-panel-2);border:2px solid var(--green);flex-shrink:0;cursor:pointer;box-shadow:0 2px 5px rgba(0,0,0,.5);}
+.mana-dots{display:flex;flex-wrap:wrap;gap:4px;align-content:center;}
+.mana-dot{width:12px;height:12px;border-radius:50%;border:1.5px solid rgba(0,0,0,.45);flex-shrink:0;}
+.mana-dot.filled{background:radial-gradient(circle at 35% 30%,#8fe0ff,#155a94);box-shadow:0 0 5px rgba(111,208,255,.7);}
+.mana-dot.empty{background:#241f38;}
+.mana-dot.fragile{background:radial-gradient(circle at 35% 30%,#d8f4ff,var(--frost));box-shadow:0 0 5px rgba(79,179,217,.75);}
+.mana-dot.reserved{outline:2px dashed var(--gold);outline-offset:1.5px;}
+
+.zone-badges{display:flex;gap:8px;margin-left:auto;flex-shrink:0;}
+.badge{display:flex;flex-direction:column;align-items:center;justify-content:center;width:50px;height:58px;border-radius:8px;background:var(--bg-panel-2);border:1px solid #3a3260;cursor:pointer;user-select:none;}
+.badge-label{font-size:8px;text-transform:uppercase;letter-spacing:.3px;color:var(--parchment-dim);margin-top:1px;}
+.badge:hover{border-color:var(--gold);}
+.badge .badge-icon{font-size:17px;line-height:1;}
+.badge .badge-count{font-size:12px;font-weight:700;color:var(--parchment);}
+.badge.deck .badge-icon{color:var(--gold);}
+.badge.discard .badge-icon{color:#8a7fb0;}
+.badge.discard:not(.has-cards){opacity:.4;cursor:default;}
+
+.board-divider{display:flex;align-items:center;gap:12px;margin:0 4px;}
+.divider-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,#4a4270 15%,#4a4270 85%,transparent);}
+
+#discard-modal{position:fixed;inset:0;background:rgba(5,4,10,.88);display:none;align-items:center;justify-content:center;z-index:60;}
+#discard-modal.show{display:flex;}
+#discard-modal .modal-box{background:var(--bg-panel);border:1px solid #3a3260;border-radius:12px;padding:20px 24px;max-width:520px;max-height:70vh;display:flex;flex-direction:column;gap:12px;}
+#discard-modal h2{font-family:'Cinzel',serif;font-size:17px;color:var(--gold);margin:0;}
+#discard-list{overflow-y:auto;display:flex;flex-wrap:wrap;gap:8px;padding-right:4px;}
+#discard-modal .close-btn{align-self:flex-end;background:var(--arcane);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-family:'Cinzel',serif;font-weight:700;cursor:pointer;}
+
+#card-preview{position:fixed;z-index:80;pointer-events:none;display:none;opacity:0;transition:opacity .15s ease;}
+#card-preview .card{transform:scale(2.0);transform-origin:top left;box-shadow:0 16px 34px rgba(0,0,0,.65);}
+#card-preview.show{display:block;opacity:1;}
+
+#card-reveal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:85;opacity:0;background:rgba(5,4,10,0);transition:opacity .3s ease, background .3s ease;}
+#card-reveal.show{opacity:1;background:rgba(5,4,10,.5);}
+#card-reveal-inner .card{transform:scale(2.3);box-shadow:0 24px 60px rgba(0,0,0,.75), 0 0 70px rgba(124,92,255,.45);}
+#card-reveal.show #card-reveal-inner{animation:card-reveal-pop .3s ease-out;}
+@keyframes card-reveal-pop{0%{transform:scale(.7);opacity:0;}100%{transform:scale(1);opacity:1;}}
+
+/* ---------- Lanes ---------- */
+.lane{display:flex;gap:10px;justify-content:center;align-items:center;min-height:220px;padding:6px;background:radial-gradient(ellipse at center, #1c1730 0%, transparent 75%);border-radius:10px;flex-wrap:wrap;}
+.lane.enemy{transform:scaleY(-1);}
+.lane.enemy .card-slot{transform:scaleY(-1);}
+.slot-empty{width:150px;height:204px;border:1.5px dashed #332c50;border-radius:11px;}
+
+/* ---------- Cards ---------- */
+.card{
+  --cc: var(--neutre);
+  width:150px;height:204px;background:#f7f2e2;color:#231d33;border-radius:11px;
+  position:relative;cursor:pointer;flex-shrink:0;
+  box-shadow:0 3px 8px rgba(0,0,0,.5);
+  border:4px solid var(--cc);
+  transition:transform .12s ease, box-shadow .12s ease;
+  display:flex;flex-direction:column;overflow:hidden;
+  user-select:none;
+}
+.card.class-Aube{--cc:var(--aube);}
+.card.class-Crépuscule{--cc:var(--crepuscule);}
+.card.class-Prima{--cc:var(--prima);}
+.card.class-Volonté{--cc:var(--volonte);}
+.card.class-Arcane{--cc:var(--arcane-c);}
+.card.class-Neutre{--cc:var(--neutre);}
+
+.card-foil-layer{position:absolute;inset:0;border-radius:inherit;overflow:hidden;pointer-events:none;z-index:9;}
+.card-foil-layer::before{
+  content:'';position:absolute;top:-60%;left:-70%;width:70%;height:220%;
+  background:linear-gradient(115deg,
+    transparent 0%, rgba(255,90,90,.5) 14%, rgba(255,210,80,.5) 28%,
+    rgba(120,255,150,.5) 42%, rgba(80,190,255,.5) 56%, rgba(190,110,255,.5) 70%,
+    rgba(255,120,200,.5) 84%, transparent 100%);
+  transform:translateX(-40%) rotate(8deg);
+  mix-blend-mode:color-dodge;
+  opacity:.55;
+}
+.card.foil-play .card-foil-layer::before{animation:foil-sweep 1.05s ease-in-out;}
+@keyframes foil-sweep{
+  0%{transform:translateX(-160%) rotate(8deg);opacity:0;}
+  15%{opacity:.9;}
+  85%{opacity:.9;}
+  100%{transform:translateX(160%) rotate(8deg);opacity:0;}
+}
+.card:hover{transform:translateY(-6px);box-shadow:0 8px 16px rgba(0,0,0,.6);}
+.card.selected{outline:3px solid var(--arcane);transform:translateY(-6px);}
+.card.attacking{outline:3px solid var(--blood);}
+.card.blocked-by::after{content:"🛡";position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:14px;z-index:5;}
+.card.self-targetable{cursor:crosshair;box-shadow:0 0 0 3px var(--gold), 0 4px 14px rgba(212,175,55,.5);animation:self-target-pulse 1.3s ease-in-out infinite;}
+@keyframes self-target-pulse{0%,100%{box-shadow:0 0 0 3px var(--gold), 0 4px 14px rgba(212,175,55,.5);}50%{box-shadow:0 0 0 5px var(--gold), 0 4px 20px rgba(212,175,55,.8);}}
+.card.targetable{outline:3px solid var(--blood);animation:pulse 1s infinite;}
+.card.dragging{opacity:.35;}
+.card.trap-pending{outline:3px dashed var(--gold);outline-offset:2px;opacity:.75;cursor:default;}
+.card.trap-active{outline:3px solid var(--gold);outline-offset:2px;box-shadow:0 0 16px rgba(212,175,55,.6);cursor:default;animation:trap-armed-pulse 1.8s ease-in-out infinite;}
+.trap-wolf-icon{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:34px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.8));z-index:10;pointer-events:none;}
+@keyframes trap-armed-pulse{0%,100%{box-shadow:0 0 12px rgba(212,175,55,.45);}50%{box-shadow:0 0 22px rgba(212,175,55,.85);}}
+#lane-p1.drop-hover, #hero-p2.drop-hover{outline:3px dashed var(--gold);outline-offset:4px;border-radius:12px;}
+.card-slot.drop-hover .card{outline:3px dashed var(--gold);}
+.card.frozen{filter:hue-rotate(180deg) saturate(1.4) brightness(.9);}
+.card.stunned{filter:grayscale(.7) brightness(.75);}
+.card.summon-sick{transform:rotate(-4deg);}
+.card.summon-sick:hover{transform:rotate(-4deg) translateY(-6px);}
+.zzz{position:absolute;top:2px;right:3px;display:flex;align-items:flex-end;z-index:4;pointer-events:none;}
+.zzz span{font-family:'Cinzel',serif;font-weight:700;color:#ffd76b;text-shadow:0 1px 2px rgba(0,0,0,.7);animation:zzz-float 1.8s ease-in-out infinite;display:inline-block;}
+.zzz span:nth-child(1){font-size:9px;animation-delay:0s;}
+.zzz span:nth-child(2){font-size:12px;animation-delay:.3s;margin-left:1px;}
+.zzz span:nth-child(3){font-size:15px;animation-delay:.6s;margin-left:1px;}
+@keyframes zzz-float{
+  0%{opacity:0;transform:translateY(3px) scale(.6);}
+  30%{opacity:1;transform:translateY(0) scale(1);}
+  70%{opacity:1;transform:translateY(-3px) scale(1.12);}
+  100%{opacity:0;transform:translateY(-7px) scale(.75);}
+}
+
+.card.kw-fearful{animation:fearful-tremble 5s ease-in-out infinite;}
+@keyframes fearful-tremble{
+  0%,92%,100%{transform:translateX(0) rotate(0);}
+  93%{transform:translateX(-3px) rotate(-1.5deg);}
+  94%{transform:translateX(3px) rotate(1.5deg);}
+  95%{transform:translateX(-3px) rotate(-1.5deg);}
+  96%{transform:translateX(3px) rotate(1.5deg);}
+  97%{transform:translateX(-2px) rotate(-1deg);}
+  98%{transform:translateX(0) rotate(0);}
+}
+
+.card-armor-shield{position:absolute;inset:0;z-index:3;pointer-events:none;background:linear-gradient(135deg, rgba(255,215,110,.32), rgba(255,215,110,.04) 60%);box-shadow:inset 0 0 12px rgba(255,215,110,.6);animation:armor-glow 2.2s ease-in-out infinite;}
+@keyframes armor-glow{0%,100%{opacity:.65;}50%{opacity:1;}}
+
+.status-stack-tr{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);display:flex;flex-direction:row;align-items:center;justify-content:center;gap:3px;z-index:6;pointer-events:none;max-width:80%;flex-wrap:wrap-reverse;}
+.kw-icon{width:24px;height:24px;filter:invert(1) drop-shadow(0 1px 2px rgba(0,0,0,.7));}
+@keyframes protection-pulse{0%,100%{opacity:.7;transform:scale(1);}50%{opacity:1;transform:scale(1.18);}}
+
+/* Vol : la carte plane, ombre portée dessous via drop-shadow (respecte la découpe de la carte) */
+.card.kw-flying{transform:translateY(-9px);filter:drop-shadow(0 16px 7px rgba(0,0,0,.5));}
+.card.kw-flying:hover{transform:translateY(-15px);}
+
+/* Furtif : légèrement transparente, volutes de fumée à des coins différents */
+.card.kw-stealth{opacity:.78;}
+.card.kw-stealth::before, .card.kw-stealth::after{
+  content:'';position:absolute;width:20px;height:20px;border-radius:50%;
+  background:radial-gradient(circle, rgba(255,255,255,.6), transparent 70%);
+  filter:blur(2px);pointer-events:none;z-index:5;
+  animation:smoke-wisp 4s ease-in-out infinite;
+}
+.card.kw-stealth::before{top:-4px;left:-4px;animation-delay:0s;}
+.card.kw-stealth::after{bottom:10px;right:-4px;animation-delay:2s;}
+@keyframes smoke-wisp{
+  0%{opacity:0;transform:translateY(4px) scale(.6);}
+  30%{opacity:.75;transform:translateY(-2px) scale(1);}
+  70%{opacity:.35;transform:translateY(-10px) scale(1.35);}
+  100%{opacity:0;transform:translateY(-16px) scale(1.6);}
+}
+
+/* Perçant : petit pic acéré animé */
+@keyframes pierce-jab{0%,100%{transform:translateX(0) rotate(-30deg);}50%{transform:translateX(2px) rotate(-30deg) scale(1.15);}}
+
+/* Initiative : reflet métallique qui balaie la carte */
+.card.kw-initiative::before{
+  content:'';position:absolute;top:0;left:-60%;width:35%;height:100%;
+  background:linear-gradient(115deg, transparent, rgba(255,255,255,.7), transparent);
+  transform:skewX(-20deg);pointer-events:none;z-index:5;
+  animation:initiative-shine 2.8s ease-in-out infinite;
+}
+@keyframes initiative-shine{0%{left:-60%;}55%{left:120%;}100%{left:120%;}}
+
+/* Vol de vie : lueur violette-rose périodique */
+.card.kw-lifesteal{animation:lifesteal-glow 6s ease-in-out infinite;}
+@keyframes lifesteal-glow{
+  0%,84%,100%{filter:none;}
+  90%{filter:drop-shadow(0 0 7px rgba(255,90,220,.85)) brightness(1.08);}
+  95%{filter:drop-shadow(0 0 12px rgba(200,80,255,.95)) brightness(1.15);}
+}
+
+/* Choisi pour attaquer : épées */
+.card.attack-selecting{transform:translateY(-20px);box-shadow:0 12px 22px rgba(194,59,59,.55);}
+.card.attack-selecting:hover{transform:translateY(-24px);}
+.sword-icons{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:32px;height:32px;z-index:8;pointer-events:none;filter:drop-shadow(0 2px 5px rgba(0,0,0,.7));}
+.sword-icons img{width:100%;height:100%;filter:invert(21%) sepia(85%) saturate(2500%) hue-rotate(340deg) brightness(90%);}
+.sword-icons.confirmed{font-size:28px;animation:sword-clash 1.3s ease-in-out infinite;}
+@keyframes sword-clash{0%,100%{transform:translate(-50%,-50%) rotate(-5deg);}50%{transform:translate(-50%,-50%) rotate(5deg);}}
+@keyframes pulse{0%,100%{outline-color:var(--blood);}50%{outline-color:#ff8a8a;}}
+
+.card-art{position:relative;height:42%;background:linear-gradient(135deg,#c9bd93,#a89968);background-size:cover;background-position:center;flex-shrink:0;}
+.card-cost{position:absolute;top:6px;left:6px;width:27px;height:27px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#6fd0ff,#155a94);border:2px solid #0c2b45;color:#fff;font-family:'Cinzel',serif;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;z-index:2;}
+.card-hero-hp{position:absolute;top:5px;right:6px;width:31px;height:31px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#7de08f,#1f7a3d);border:2px solid #0c3d1a;color:#fff;font-family:'Cinzel',serif;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;z-index:2;}
+.card-divider{height:7px;flex-shrink:0;position:relative;background:var(--cc);display:flex;align-items:center;justify-content:center;}
+.card-set-icon{width:15px;height:15px;background:var(--gold);border:1.5px solid #7a611c;transform:rotate(45deg);box-shadow:0 2px 5px rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;}
+.card-set-icon span{transform:rotate(-45deg);font-size:6.5px;font-weight:700;color:#3a2c05;font-family:'Cinzel',serif;}
+.card-set-logo-img{position:absolute;width:200%;height:200%;top:-50%;left:-50%;background-size:cover;background-position:center;transform:rotate(-45deg);}
+.card-body{flex:1;padding:3px 7px 2px;display:flex;flex-direction:column;min-height:0;}
+.card-name{font-family:'Cinzel',serif;font-weight:700;font-size:11px;text-align:center;text-decoration:underline;text-underline-offset:2.5px;color:#1c1830;line-height:1.2;margin-bottom:3px;min-height:24px;}
+.card-kw{font-size:8px;color:var(--arcane);font-weight:700;min-height:10px;text-align:center;}
+.card-text{font-size:8.2px;line-height:1.2;flex:1;color:#2a2338;overflow-y:auto;white-space:pre-wrap;text-align:center;}
+.card-typeline{position:absolute;left:0;top:0;bottom:0;width:11px;background:rgba(15,12,20,.6);color:#f2ead2;writing-mode:vertical-rl;transform:rotate(180deg);display:flex;align-items:flex-start;justify-content:flex-start;font-size:5px;letter-spacing:.2px;text-transform:uppercase;padding:5px 0 16px;text-align:center;z-index:1;}
+.card-footer{height:27px;flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:space-between;padding:0 7px 4px;}
+.card-atk,.card-hp{width:20px;height:20px;border-radius:50%;background:#efe6c8;border:2px solid #1c1830;display:flex;align-items:center;justify-content:center;gap:1px;font-weight:700;font-size:9.5px;}
+.atk-icon{width:9px;height:9px;filter:invert(21%) sepia(85%) saturate(2500%) hue-rotate(340deg) brightness(85%);}
+.card-atk{color:var(--blood);}
+.card-hp{color:var(--green);}
+.card-rarity-gem{position:absolute;left:50%;bottom:5px;transform:translateX(-50%) rotate(45deg);width:10px;height:10px;border:2px solid rgba(0,0,0,.35);box-shadow:0 0 4px currentColor;}
+.card-rarity-gem.rarity-Basique{background:#6b6558;color:#6b6558;}
+.card-rarity-gem.rarity-Commune{background:#c7c2b3;color:#c7c2b3;}
+.card-rarity-gem.rarity-Rare{background:var(--frost);color:var(--frost);}
+.card-rarity-gem.rarity-Épique{background:var(--arcane);color:var(--arcane);}
+.card-rarity-gem.rarity-Mythique{background:var(--gold);color:var(--gold);}
+.charges{color:var(--frost);font-size:11px;font-weight:700;position:absolute;bottom:5px;right:6px;z-index:2;}
+
+.hand-row{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:9px;justify-content:center;padding:55px 14px 6px;pointer-events:none;scrollbar-width:none;background:transparent !important;box-shadow:none;border:none;}
+.hand-row::-webkit-scrollbar{height:0;width:0;background:transparent;}
+.hand-card-slot{pointer-events:auto;}
+.hand-card-slot{flex-shrink:0;transform-origin:bottom center;transition:transform .15s ease;}
+.hand-card-slot:hover{transform:translateY(-8px) rotate(0deg) scale(1.05) !important;z-index:5;position:relative;}
+
+.side-zone{position:absolute;display:flex;flex-direction:column;gap:8px;z-index:6;}
+.side-zone.self{right:16px;top:calc(50% + 100px);}
+.side-zone.enemy{right:16px;top:50%;transform:translateY(-50%);}
+.relic-slot{width:78px;height:106px;position:relative;overflow:hidden;border-radius:8px;box-shadow:0 4px 10px rgba(0,0,0,.5);cursor:default;}
+.relic-slot .card{transform:scale(.52);transform-origin:top left;}
+.relic-charges-badge{position:absolute;bottom:3px;right:3px;background:rgba(15,12,20,.8);border:1px solid var(--gold);color:var(--gold);font-size:9.5px;font-weight:700;border-radius:9px;padding:1px 6px;z-index:2;}
+.mini-tag{width:52px;height:44px;border-radius:6px;background:var(--bg-panel-2);border:1px solid var(--frost);display:flex;align-items:center;justify-content:center;font-size:8px;text-align:center;padding:2px;position:relative;}
+.mini-tag.relic{border-color:var(--gold);}
+
+.phase-bar{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-shrink:0;}
+.phase-btn{background:linear-gradient(180deg,var(--arcane),#5537c2);color:#fff;border:none;border-radius:10px;padding:10px 22px;font-family:'Cinzel',serif;font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 4px 12px rgba(124,92,255,.4);letter-spacing:.4px;white-space:nowrap;}
+.phase-btn.small{padding:6px 14px;font-size:11px;box-shadow:none;}
+.phase-btn:hover{filter:brightness(1.15);}
+.phase-btn:disabled{opacity:.4;cursor:not-allowed;filter:none;}
+.phase-btn.secondary{background:var(--bg-panel-2);border:1px solid #3a3260;box-shadow:none;}
+.phase-label{font-family:'Cinzel',serif;font-size:12px;color:var(--parchment-dim);}
+
+/* ---------- Log panel ---------- */
+#log-panel{width:230px;background:var(--bg-panel);border-left:1px solid #2b2440;padding:14px 14px 40px;display:flex;flex-direction:column;min-height:0;}
+
+/* Bouton d'options : décalé sous le bouton Menu principal pour ne pas le chevaucher (taille déjà correcte par défaut) */
+#sc-options-gear{top:66px !important;right:14px !important;}
+#sc-options-modal{top:160px !important;}
+#log-panel h3{font-family:'Cinzel',serif;font-size:13px;margin:0 0 10px;color:var(--gold);letter-spacing:1px;}
+#log{flex:1;overflow-y:auto;font-size:11px;line-height:1.5;color:var(--parchment-dim);display:flex;flex-direction:column-reverse;}
+#log div{padding:3px 0;border-bottom:1px solid #241f38;}
+
+#overlay{position:fixed;inset:0;background:rgba(5,4,10,.88);display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;z-index:50;}
+#overlay.show{display:flex;}
+#overlay h1{font-family:'Cinzel',serif;font-size:36px;color:var(--gold);}
+#overlay button{background:var(--arcane);color:#fff;border:none;border-radius:10px;padding:12px 26px;font-family:'Cinzel',serif;font-weight:700;cursor:pointer;font-size:14px;}
+
+#mulligan-overlay{position:fixed;inset:0;background:rgba(5,4,10,.92);display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;z-index:55;}
+#mulligan-overlay.show{display:flex;}
+#mulligan-overlay h2{font-family:'Cinzel',serif;font-size:26px;color:var(--gold);margin:0;}
+#mulligan-overlay .mulligan-sub{font-size:13px;color:var(--parchment-dim);margin:0 0 6px;max-width:420px;text-align:center;}
+#mulligan-cards{display:flex;gap:16px;}
+.mulligan-card-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:transform .15s;}
+.mulligan-card-wrap:hover{transform:translateY(-6px);}
+.mulligan-card-wrap.marked .card{opacity:.4;filter:grayscale(70%);}
+.mulligan-tag{font-family:'Cinzel',serif;font-size:12px;font-weight:700;color:var(--green);padding:4px 12px;border-radius:14px;border:1px solid var(--green);}
+.mulligan-card-wrap.marked .mulligan-tag{color:var(--blood);border-color:var(--blood);}
+.mulligan-confirm-btn{background:var(--arcane);color:#fff;border:none;border-radius:10px;padding:12px 28px;font-family:'Cinzel',serif;font-weight:700;cursor:pointer;font-size:14px;margin-top:8px;}
+
+.tip{position:fixed;transform:translate(-50%,-100%);font-size:11px;color:var(--parchment-dim);background:rgba(0,0,0,.6);padding:5px 12px;border-radius:20px;pointer-events:none;text-align:center;max-width:280px;z-index:45;transition:left .15s ease, top .15s ease;}
+
+#targeting-layer{position:fixed;inset:0;pointer-events:none;z-index:40;width:100%;height:100%;}
+#block-arrows-layer{position:fixed;inset:0;pointer-events:none;z-index:35;width:100%;height:100%;}
+.block-arrow-line{stroke:var(--blood);stroke-width:3;stroke-linecap:round;filter:drop-shadow(0 0 5px rgba(194,59,59,.75));stroke-dasharray:10 6;animation:block-arrow-dash .6s linear infinite;}
+.block-arrow-head{fill:var(--blood);filter:drop-shadow(0 0 5px rgba(194,59,59,.75));}
+@keyframes block-arrow-dash{to{stroke-dashoffset:-16;}}
+
+.dmg-popup{position:fixed;transform:translate(-50%,-50%);font-family:'Cinzel',serif;font-weight:700;font-size:24px;color:#ff5252;text-shadow:0 2px 5px rgba(0,0,0,.85);z-index:95;pointer-events:none;animation:dmg-float 1.4s ease-out forwards;}
+@keyframes dmg-float{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.5);}
+  15%{opacity:1;transform:translate(-50%,-62%) scale(1.2);}
+  100%{opacity:0;transform:translate(-50%,-150%) scale(1);}
+}
+#target-line{stroke:var(--arcane);stroke-width:3;stroke-linecap:round;filter:drop-shadow(0 0 6px var(--arcane));stroke-dasharray:11 7;animation:dash .5s linear infinite;}
+#target-origin{fill:var(--arcane);opacity:.9;}
+#target-arrow{fill:var(--arcane);filter:drop-shadow(0 0 6px var(--arcane));}
+@keyframes dash{to{stroke-dashoffset:-18;}}
+
+body.targeting *{cursor:crosshair !important;}
+
+#deck-select-box h1{font-family:'Cinzel',serif;font-size:22px;color:var(--gold);margin:0 0 6px;}
+#deck-select-box p.sub{color:var(--parchment-dim);font-size:13px;margin:0 0 20px;line-height:1.5;}
+.deck-pick-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg-panel-2);border:1px solid #3a3260;border-radius:10px;cursor:pointer;margin-bottom:10px;transition:border-color .15s;}
+.deck-pick-item:hover{border-color:var(--gold);}
+.deck-pick-item .dp-icon{width:38px;height:38px;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--arcane),#2a1f55);display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:700;color:#fff;flex-shrink:0;}
+.deck-pick-item .dp-info{flex:1;min-width:0;}
+.deck-pick-item .dp-name{font-family:'Cinzel',serif;font-size:14px;color:var(--parchment);}
+.deck-pick-item .dp-meta{font-size:11.5px;color:var(--parchment-dim);margin-top:2px;}
+.dsel-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;}
+.dsel-empty{text-align:center;padding:30px 10px;color:var(--parchment-dim);font-size:13px;line-height:1.6;}
+</style>
+</head>
+<body>
+
+<div id="app-outer">
+<style>
+  #setup-panel{background:var(--panel,#171325);border:1px solid #3a3260;border-radius:10px;padding:14px;margin:14px auto;max-width:600px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-family:'Inter',sans-serif;}
+  #setup-panel input{background:#0b0a12;border:1px solid #3a3260;color:#efe6c8;border-radius:6px;padding:7px 10px;font-size:12.5px;}
+  #setup-panel button{background:#7c5cff;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:12.5px;font-weight:700;cursor:pointer;}
+  #setup-panel button.secondary{background:#1f1a30;border:1px solid #3a3260;}
+  #session-code-display{font-family:'Cinzel',serif;font-weight:700;color:var(--gold);font-size:18px;letter-spacing:3px;}
+  #app-outer{display:none;}
+  #app-outer.show{display:block;}
+  #chat-panel{position:fixed;bottom:10px;right:10px;width:260px;background:var(--panel,#171325);border:1px solid #3a3260;border-radius:10px;padding:10px;font-family:'Inter',sans-serif;z-index:50;}
+  #chat-log{font-size:11px;color:#c8beb0;max-height:110px;overflow-y:auto;margin-bottom:6px;}
+  #chat-panel input{width:100%;box-sizing:border-box;background:#0b0a12;border:1px solid #3a3260;color:#efe6c8;border-radius:6px;padding:6px 8px;font-size:11.5px;}
+  #debug-log{position:fixed;bottom:10px;left:10px;width:300px;max-height:150px;overflow-y:auto;background:rgba(11,10,18,.9);border:1px solid #3a3260;border-radius:8px;padding:8px;font-size:10.5px;color:#9d92b0;z-index:50;font-family:monospace;}
+  .log-error{color:#c23b3b;}
+  .log-ok{color:#4a9d6b;}
+  .ai-debug-btn{position:fixed;top:10px;right:10px;z-index:60;}
+</style>
+
+<div id="setup-panel">
+  <button onclick="uiCreateVsAI()">Créer contre l'IA</button>
+  <button class="secondary" onclick="uiCreateForFriend()">Créer (attendre un ami)</button>
+  <span>ou</span>
+  <input id="join-code-input" placeholder="Code à 6 caractères" maxlength="6" style="text-transform:uppercase;">
+  <button class="secondary" onclick="uiJoinAsPlayer()">Rejoindre</button>
+  <button class="secondary" onclick="uiJoinAsSpectator()">Regarder</button>
+  <span id="session-code-display"></span>
+</div>
+
+<div id="sc-auth-slot" style="text-align:center;margin-bottom:8px;"></div>
+
+<button class="ai-debug-btn phase-btn secondary" id="ai-debug-btn" style="display:none;" onclick="uiProcessAi()">Faire jouer l'IA (debug)</button>
+
+<div id="app-outer">
+  <div id="app">
+    <div id="board">
+      <div id="board-scroll-area">
+        <div class="hero-row enemy" id="hero-p2"></div>
+        <div class="side-zone enemy" id="zone-p2"></div>
+        <div class="lane enemy" id="lane-p2"></div>
+        <div class="board-divider">
+          <div class="divider-line"></div>
+          <div class="phase-bar" id="phase-bar"></div>
+        </div>
+        <div class="lane self" id="lane-p1"></div>
+        <div class="side-zone self" id="zone-p1"></div>
+      </div>
+      <div class="hero-row self" id="hero-p1"></div>
+    </div>
+    <div id="log-panel">
+      <a href="spellcraft-hub.html" style="display:inline-block;margin-bottom:10px;font-size:15px;font-weight:800;color:var(--gold);text-decoration:none;border:1.5px solid var(--gold);border-radius:8px;padding:10px 16px;">🏠 Menu principal</a>
+      <h3>Journal</h3>
+      <div id="log"></div>
+    </div>
+  </div>
+  <div class="hand-row" id="hand-p1"></div>
+</div>
+
+<div class="tip" id="tip"></div>
+<div id="card-preview"></div>
+
+<div id="overlay">
+  <h1 id="overlay-text"></h1>
+  <button onclick="location.reload()">Rejouer</button>
+</div>
+
+<div id="chat-panel">
+  <div id="chat-log"></div>
+  <input id="chat-input" placeholder="Message..." onkeydown="if(event.key==='Enter') uiSendChat()">
+</div>
+
+<div id="debug-log"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="spellcraft-shared.js"></script>
+<script src="spellcraft-auth.js"></script>
+<script src="spellcraft-server-client.js"></script>
+<script>
+
+const KEYWORD_ICON_FILES = {
+  charge:'kw-charge.png', flying:'kw-vol.png', reach:'kw-portee.png', pierce:'kw-percant.png',
+  lifesteal:'kw-volDeVie.png', initiative:'kw-initiative.png', armor:'kw-armure.png',
+  stealth:'kw-furtif.png', relentless:'kw-tenace.png', fearful:'kw-peureux.png',
+  protecteur:'kw-protecteur.png', toxic:'kw-toxique.png'
+};
+const KEYWORD_LABELS = {
+  charge:'Charge', flying:'Vol', reach:'Portée', pierce:'Perçant', lifesteal:'Vol de vie',
+  initiative:'Initiative', armor:'Armure', stealth:'Furtif', relentless:'Tenace',
+  fearful:'Peureux', protecteur:'Protecteur', toxic:'Toxique'
+};
+function escapeHtmlGS(s){ return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+const TEST_DECK = {
+  hero: { name:'Héros de test', type:'Héros', hp:30, image:'', activeText:'', activeEffect:null },
+  region: { name:'Région de test', type:'Région', manaRule:'default', image:'' },
+  cards: [
+    { id:'t1', name:'Sans mot-clé', type:'Créature', class:'Neutre', cost:1, atk:1, hp:1, keywords:[], text:'' },
+    { id:'t2', name:'Armure', type:'Créature', class:'Neutre', cost:2, atk:2, hp:2, keywords:['armor'], text:'Armure.' },
+    { id:'t3', name:'Toxique', type:'Créature', class:'Neutre', cost:2, atk:1, hp:2, keywords:['toxic'], text:'Toxique.' },
+    { id:'t4', name:'Vol de vie', type:'Créature', class:'Neutre', cost:2, atk:2, hp:2, keywords:['lifesteal'], text:'Vol de vie.' },
+    { id:'t5', name:'Perçant', type:'Créature', class:'Neutre', cost:2, atk:3, hp:2, keywords:['pierce'], text:'Perçant.' },
+    { id:'t6', name:'Initiative', type:'Créature', class:'Neutre', cost:2, atk:2, hp:1, keywords:['initiative'], text:'Initiative.' },
+    { id:'t7', name:'Vol', type:'Créature', class:'Neutre', cost:2, atk:2, hp:2, keywords:['flying'], text:'Vol.' },
+    { id:'t8', name:'Portée', type:'Créature', class:'Neutre', cost:2, atk:2, hp:2, keywords:['reach'], text:'Portée.' },
+    { id:'t9', name:'Peureux', type:'Créature', class:'Neutre', cost:1, atk:2, hp:1, keywords:['fearful'], text:'Peureux.' },
+    { id:'t10', name:'Protecteur', type:'Créature', class:'Neutre', cost:2, atk:1, hp:6, keywords:['protecteur'], text:'Protecteur.' },
+    { id:'t11', name:'Tenace', type:'Créature', class:'Neutre', cost:3, atk:2, hp:2, keywords:['relentless'], text:'Tenace.' },
+    { id:'t12', name:'Charge', type:'Créature', class:'Neutre', cost:2, atk:2, hp:2, keywords:['charge'], text:'Charge.' },
+    { id:'t13', name:'Sans mot-clé 2', type:'Créature', class:'Neutre', cost:1, atk:2, hp:1, keywords:[], text:'' },
+    { id:'t14', name:'Sans mot-clé 3', type:'Créature', class:'Neutre', cost:3, atk:3, hp:3, keywords:[], text:'' }
+  ]
+};
+
+let S = null; // état de la partie reçu du serveur
+let MY_KEY = null, OPP_KEY = null;
+let UI = { selectingAttackers:false, selectedAttackers:[], pendingBlocker:null };
+
+function debugLog(msg, cls){
+  const el = document.getElementById('debug-log');
+  const line = document.createElement('div');
+  line.className = cls||'';
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  el.prepend(line);
+}
+function logGame(msg){
+  const el = document.getElementById('log');
+  if(!el) return;
+  const line = document.createElement('div');
+  line.textContent = msg;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+
+// ---------------- Connexion / session ----------------
+
+async function uiCreateVsAI(){
+  const res = await gsCreateSession(TEST_DECK, true);
+  if(res.error) return debugLog('Créer → ' + res.error, 'log-error');
+  afterConnected(res.code);
+}
+async function uiCreateForFriend(){
+  const res = await gsCreateSession(TEST_DECK, false);
+  if(res.error) return debugLog('Créer → ' + res.error, 'log-error');
+  afterConnected(res.code);
+}
+async function uiJoinAsPlayer(){
+  const code = document.getElementById('join-code-input').value.trim().toUpperCase();
+  const res = await gsJoinAsPlayer(code, TEST_DECK);
+  if(res.error) return debugLog('Rejoindre → ' + res.error, 'log-error');
+  afterConnected(code);
+}
+async function uiJoinAsSpectator(){
+  const code = document.getElementById('join-code-input').value.trim().toUpperCase();
+  const res = await gsJoinAsSpectator(code);
+  if(res.error) return debugLog('Regarder → ' + res.error, 'log-error');
+  afterConnected(code);
+}
+
+function afterConnected(code){
+  document.getElementById('session-code-display').textContent = code || '';
+  document.getElementById('setup-panel').style.display = 'none';
+  document.getElementById('app-outer').classList.add('show');
+  document.getElementById('ai-debug-btn').style.display = 'block';
+  MY_KEY = GS_ROLE === 'p2' ? 'p2' : 'p1';
+  OPP_KEY = MY_KEY === 'p1' ? 'p2' : 'p1';
+  gsConnect(onStateUpdate, onChatMessage);
+  debugLog('Connecté (rôle : ' + GS_ROLE + ')', 'log-ok');
+  gsFetchState().then(res=>{
+    if(res.error){ debugLog('État initial → ' + res.error, 'log-error'); return; }
+    onStateUpdate(res.state);
+  });
+}
+
+function onStateUpdate(state){
+  if(!state || !state.p1){
+    debugLog("En attente d'un adversaire pour démarrer la partie...", 'log-ok');
+    return;
+  }
+  // vue toujours du point de vue du joueur local : si je suis p2 côté
+  // serveur, j'affiche quand même "moi" en bas et "adversaire" en haut,
+  // en lisant simplement S[MY_KEY]/S[OPP_KEY] partout dans le rendu.
+  S = state;
+  render();
+}
+
+// ---------------- cardEl (adapté du prototype) ----------------
+
+function cardEl(card, opts={}){
+  const el = document.createElement('div');
+  el.className = `card class-${card.class||'Neutre'}`;
+  if(opts.attacking) el.classList.add('attacking');
+  if(opts.targetable) el.classList.add('targetable');
+  const inPlay = !!opts.inPlay;
+  const isSick = inPlay && card.summonSick && !card.keywords?.includes('charge');
+  if(inPlay && opts.attackSelecting) el.classList.add('attack-selecting');
+  if(isSick) el.classList.add('summon-sick');
+  const kw = card.keywords || [];
+  if(inPlay){
+    if(kw.includes('fearful')) el.classList.add('kw-fearful');
+    if(kw.includes('flying')) el.classList.add('kw-flying');
+    if(kw.includes('initiative')) el.classList.add('kw-initiative');
+    if(kw.includes('lifesteal')) el.classList.add('kw-lifesteal');
+  }
+  const hasArmorShield = inPlay && kw.includes('armor') && !card.armorUsed;
+  const activeKeywordIcons = inPlay ? kw.filter(k=>{
+    if(!KEYWORD_ICON_FILES[k]) return false;
+    if(k==='armor' && card.armorUsed) return false;
+    return true;
+  }) : [];
+  const kwText = kw.map(k=>KEYWORD_LABELS[k]).filter(Boolean).join(', ');
+  const isHero = card.type==='Héros';
+  const isRegion = card.type==='Région';
+  const isCreature = card.type==='Créature';
+  const artStyle = card.image ? `background-image:url('${card.image.replace(/'/g,"")}');` : '';
+
+  el.innerHTML = `
+    <div class="card-art" style="${artStyle}">
+      ${(isHero || isRegion) ? '' : `<div class="card-cost">${card.cost ?? 0}</div>`}
+      ${isHero ? `<div class="card-hero-hp">${card.curHp ?? card.hp ?? 0}</div>` : ''}
+      <div class="card-typeline">${escapeHtmlGS(card.type||'')}</div>
+    </div>
+    <div class="card-divider"><div class="card-set-icon"><span>✦</span></div></div>
+    <div class="card-body">
+      <div class="card-name">${escapeHtmlGS(card.name||'')}</div>
+      <div class="card-kw">${escapeHtmlGS(kwText)}</div>
+      <div class="card-text">${escapeHtmlGS(card.text||'')}</div>
+    </div>
+    <div class="card-footer">
+      ${isCreature ? `<div class="card-atk">⚔${card.curAtk ?? card.atk ?? 0}</div>` : `<div></div>`}
+      <div class="card-rarity-gem rarity-Commune"></div>
+      ${isCreature ? `<div class="card-hp">♥${card.curHp ?? card.hp ?? 0}</div>` : `<div></div>`}
+    </div>
+    ${isSick ? `<div class="zzz"><span>Z</span><span>Z</span><span>Z</span></div>` : ''}
+    ${hasArmorShield ? `<div class="card-armor-shield" title="Armure"></div>` : ''}
+    ${activeKeywordIcons.length ? `<div class="status-stack-tr">
+        ${activeKeywordIcons.map(k=>`<img class="kw-icon" src="images/${KEYWORD_ICON_FILES[k]}" title="${KEYWORD_LABELS[k]||k}">`).join('')}
+      </div>` : ''}
+  `;
+  if(opts.onClick) el.onclick = opts.onClick;
+  return el;
+}
+
+// ---------------- Rendu principal ----------------
+
+function render(){
+  if(!S) return;
+  renderHero(MY_KEY, 'p1');
+  renderHero(OPP_KEY, 'p2');
+  renderLane(MY_KEY, 'p1');
+  renderLane(OPP_KEY, 'p2');
+  renderZone(MY_KEY, 'p1');
+  renderZone(OPP_KEY, 'p2');
+  renderHand();
+  renderPhaseBar();
+  renderGameOverOverlay();
+}
+
+function renderGameOverOverlay(){
+  const overlay = document.getElementById('overlay');
+  if(!S.gameOver){ overlay.classList.remove('show'); return; }
+  document.getElementById('overlay-text').textContent = S.winnerKey===MY_KEY ? 'Victoire !' : 'Défaite...';
+  overlay.classList.add('show');
+}
+
+// key = camp réel côté serveur (p1/p2) ; slot = 'p1' (moi, en bas) ou 'p2' (adversaire, en haut)
+function renderHero(key, slot){
+  const p = S[key];
+  const el = document.getElementById(`hero-${slot}`);
+  const reservedAmount = 0;
+  const normalDots = Array.from({length:p.manaNormalMax}, (_,i)=>{
+    const filled = i<p.manaNormal;
+    return `<span class="mana-dot ${filled?'filled':'empty'}"></span>`;
+  }).join('');
+  const fragileDots = Array.from({length:p.manaFragile}, ()=>`<span class="mana-dot fragile"></span>`).join('');
+  const heroName = (p.hero && p.hero.name) || (slot==='p1' ? 'Moi' : 'Adversaire');
+  const regionName = (p.region && p.region.name) || 'Région';
+
+  el.innerHTML = `
+    <div class="hero-top">
+      <div class="hero-portrait" id="hero-portrait-${slot}">${heroName[0]||'?'}<span class="hp-badge">${p.hp}</span></div>
+      <div class="hero-info">
+        <div class="hero-name">${escapeHtmlGS(heroName)}</div>
+        <div class="region-tag">${escapeHtmlGS(regionName)}</div>
+      </div>
+      <div class="zone-badges">
+        <div class="badge deck" title="Cartes restantes"><span class="badge-icon">🂠</span><span class="badge-count">${p.deck.length}</span><span class="badge-label">Deck</span></div>
+        <div class="badge discard ${p.discard.length>0?'has-cards':''}" title="Défausse"><span class="badge-icon">🪦</span><span class="badge-count">${p.discard.length}</span><span class="badge-label">Défausse</span></div>
+      </div>
+    </div>
+    <div class="mana-bar">
+      <div class="mana-region-thumb" id="region-thumb-${slot}" title="${escapeHtmlGS(regionName)}"></div>
+      <div class="mana-dots">${normalDots}${fragileDots}</div>
+    </div>
+  `;
+
+  if(slot==='p1'){
+    const myTurn = S.active===MY_KEY;
+    const btn = document.createElement('button');
+    btn.className='power-btn';
+    btn.textContent = 'Pouvoir (bientôt)';
+    btn.disabled = true; // pouvoirs de héros : lot capacités/déclencheurs
+    el.appendChild(btn);
+  }
+}
+
+// key = camp réel serveur, slot = 'p1'/'p2' pour l'affichage (moi en bas, adversaire en haut)
+function renderLane(key, slot){
+  const el = document.getElementById(`lane-${slot}`);
+  el.innerHTML = '';
+  const p = S[key];
+  (p.board||[]).slice(0,8).forEach(c=>{
+    const isMine = key===MY_KEY;
+    const attackSelecting = isMine && UI.selectingAttackers && UI.selectedAttackers.includes(c.instId);
+    const attackConfirmed = (p.attackers||[]).includes(c.instId) && S.phase!=='main';
+    const attacking = attackSelecting || attackConfirmed;
+    const targetable = isBlockTargetable(key, c);
+
+    const cardWrap = document.createElement('div');
+    cardWrap.className = 'card-slot';
+    cardWrap.style.position = 'relative';
+    cardWrap.dataset.instId = c.instId;
+    const el2 = cardEl(c, { attacking, attackSelecting, targetable, inPlay:true, onClick: ()=>onBoardCreatureClick(key, c) });
+    cardWrap.appendChild(el2);
+
+    if(isMine && c.hasBlockedThisTurn){
+      el2.style.opacity = '.5';
+      const tag = document.createElement('div');
+      tag.style.cssText = 'position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:12px;z-index:5;';
+      tag.textContent = '🛡';
+      cardWrap.appendChild(tag);
+    }
+    if(!isMine && c.hasBeenBlocked && S.phase==='declareBlockersMe'){
+      const tag = document.createElement('div');
+      tag.style.cssText = 'position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:12px;z-index:5;';
+      tag.textContent = '🔒';
+      cardWrap.appendChild(tag);
+    }
+    if(c.instId===UI.pendingBlocker){
+      el2.style.outline = '3px solid var(--gold)';
+    }
+    el.appendChild(cardWrap);
+  });
+}
+
+// Une créature adverse est-elle cliquable en ce moment pour lui assigner
+// mon bloqueur déjà sélectionné (elle doit être parmi les attaquants) ?
+function isBlockTargetable(key, c){
+  if(!UI.pendingBlocker) return false;
+  if(key!==OPP_KEY) return false;
+  if(S.phase!=='declareBlockersMe' || S.active!==OPP_KEY) return false;
+  return (S[OPP_KEY].attackers||[]).includes(c.instId);
+}
+
+function onBoardCreatureClick(key, c){
+  const isMine = key===MY_KEY;
+  // sélection des attaquants (mon tour, phase principale)
+  if(isMine && UI.selectingAttackers){
+    const idx = UI.selectedAttackers.indexOf(c.instId);
+    if(idx>=0) UI.selectedAttackers.splice(idx,1); else UI.selectedAttackers.push(c.instId);
+    render();
+    return;
+  }
+  // choix du bloqueur (l'adversaire m'attaque)
+  if(isMine && S.phase==='declareBlockersMe' && S.active===OPP_KEY && !c.hasBlockedThisTurn && !c.keywords?.includes('fearful')){
+    UI.pendingBlocker = c.instId;
+    render();
+    return;
+  }
+  // assignation du blocage sur un attaquant adverse
+  if(!isMine && isBlockTargetable(key, c)){
+    uiAssignBlock(c.instId);
+    return;
+  }
+}
+
+function renderZone(key, slot){
+  const el = document.getElementById(`zone-${slot}`);
+  el.innerHTML = '';
+  const p = S[key];
+  (p.relics||[]).forEach(r=>{
+    const wrap = document.createElement('div');
+    wrap.className = 'relic-slot';
+    wrap.appendChild(cardEl(r));
+    el.appendChild(wrap);
+  });
+}
+
+function renderHand(){
+  const el = document.getElementById('hand-p1');
+  el.innerHTML = '';
+  const p = S[MY_KEY];
+  const myTurn = S.active===MY_KEY;
+  (p.hand||[]).forEach((card, i)=>{
+    const affordable = (card.cost||0) <= (p.manaNormal + p.manaFragile);
+    const canPlay = myTurn && S.phase==='main' && affordable && !UI.selectingAttackers;
+    const el2 = cardEl(card, { onClick: canPlay ? ()=>uiPlayCard(i) : null });
+    if(!canPlay) el2.style.opacity = '.5';
+    el.appendChild(el2);
+  });
+}
+
+function renderPhaseBar(){
+  const bar = document.getElementById('phase-bar');
+  bar.innerHTML = '';
+  if(S.gameOver) return;
+  const myTurn = S.active===MY_KEY;
+
+  if(!myTurn){
+    const btn = document.createElement('button');
+    btn.className = 'phase-btn';
+    if(S.phase==='declareBlockersMe'){
+      btn.textContent = 'Passer (fin du blocage)';
+      btn.onclick = uiFinishBlocking;
+    } else {
+      btn.textContent = 'Tour adverse';
+      btn.disabled = true;
+    }
+    bar.appendChild(btn);
+    return;
+  }
+
+  if(S.phase==='main'){
+    if(!UI.selectingAttackers){
+      const atk = document.createElement('button');
+      atk.className = 'phase-btn';
+      atk.textContent = '⚔ Passer au combat';
+      atk.onclick = ()=>{ UI.selectingAttackers = true; UI.selectedAttackers = []; render(); };
+      bar.appendChild(atk);
+
+      const end = document.createElement('button');
+      end.className = 'phase-btn secondary small';
+      end.textContent = 'Finir le tour';
+      end.onclick = uiEndTurn;
+      bar.appendChild(end);
+    } else {
+      const confirm = document.createElement('button');
+      confirm.className = 'phase-btn';
+      confirm.textContent = UI.selectedAttackers.length ? `Valider ${UI.selectedAttackers.length} attaquant(s)` : 'Passer (aucun attaquant)';
+      confirm.onclick = uiConfirmAttackers;
+      bar.appendChild(confirm);
+
+      const cancel = document.createElement('button');
+      cancel.className = 'phase-btn secondary small';
+      cancel.textContent = 'Annuler';
+      cancel.onclick = ()=>{ UI.selectingAttackers = false; UI.selectedAttackers = []; render(); };
+      bar.appendChild(cancel);
+    }
+  } else if(S.phase==='declareBlockersMe'){
+    const btn = document.createElement('button');
+    btn.className = 'phase-btn';
+    btn.textContent = "En attente du blocage adverse...";
+    btn.disabled = true;
+    bar.appendChild(btn);
+  }
+}
+
+// ---------------- Actions ----------------
+
+async function uiPlayCard(i){
+  const res = await gsPlayCardSimple(i);
+  if(res.error) debugLog('Jouer carte → ' + res.error, 'log-error');
+}
+async function uiEndTurn(){
+  const res = await gsEndTurn();
+  if(res.error) debugLog('Fin de tour → ' + res.error, 'log-error');
+}
+async function uiConfirmAttackers(){
+  const res = await gsDeclareAttackers(UI.selectedAttackers);
+  if(res.error) debugLog('Attaquer → ' + res.error, 'log-error');
+  UI.selectingAttackers = false; UI.selectedAttackers = [];
+}
+async function uiAssignBlock(attackerId){
+  if(!UI.pendingBlocker) return;
+  const res = await gsAssignBlock(UI.pendingBlocker, attackerId);
+  if(res.error) debugLog('Bloquer → ' + res.error, 'log-error');
+  UI.pendingBlocker = null;
+}
+async function uiFinishBlocking(){
+  const res = await gsFinishBlocking();
+  if(res.error) debugLog('Terminer blocage → ' + res.error, 'log-error');
+  UI.pendingBlocker = null;
+}
+async function uiProcessAi(){
+  const res = await gsProcessAiTurn();
+  if(res.error) debugLog('Tour IA → ' + res.error, 'log-error');
+}
+
+// ---------------- Chat ----------------
+
+function onChatMessage(msg){
+  const el = document.getElementById('chat-log');
+  const line = document.createElement('div');
+  line.textContent = `${msg.sender_name}${msg.is_spectator?' (spectateur)':''} : ${msg.message}`;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+}
+async function uiSendChat(){
+  const input = document.getElementById('chat-input');
+  if(!input.value.trim()) return;
+  const user = await scGetCurrentUser();
+  const res = await gsSendChatMessage(input.value, user ? user.email : 'Testeur');
+  if(res.error) debugLog('Chat → ' + res.error, 'log-error');
+  input.value = '';
+}
+
+initSpellcraftAuth();
+</script>
+</body>
+</html>
