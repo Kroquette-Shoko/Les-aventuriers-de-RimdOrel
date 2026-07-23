@@ -366,6 +366,8 @@ body.targeting *{cursor:crosshair !important;}
   .log-ok{color:#4a9d6b;}
   .ai-debug-btn{position:fixed;top:10px;right:10px;z-index:60;}
   html,body{overflow:auto !important;height:auto !important;min-height:100%;}
+  .card.dragging{opacity:.4;}
+  .lane.drop-target{outline:3px dashed var(--gold);outline-offset:-4px;background:rgba(212,175,55,.08);}
 
   /* ---------- Nouvelle disposition : mana / héros / deck en coins séparés ---------- */
   .board-row{display:flex;align-items:center;gap:14px;padding:8px 16px;position:relative;min-height:170px;}
@@ -400,8 +402,6 @@ body.targeting *{cursor:crosshair !important;}
   .artifact-stack .relic-slot .card{transform:scale(.4);transform-origin:top left;}
 
   /* ---------- Menus repliables (journal / chat) ---------- */
-  #chat-toggle-btn{position:fixed;bottom:10px;right:100px;z-index:99998;width:80px;height:44px;border-radius:14px;background:rgba(23,19,37,.85);border:2px solid rgba(212,175,55,.45);color:#f2ead2;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;}
-  #chat-toggle-btn:hover{border-color:#d4af37;}
   .phase-bar-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:6px;position:relative;}
   .menu-toggles-row{display:flex;gap:6px;}
   #chat-toggle-btn, #journal-toggle-btn{width:44px;height:36px;border-radius:10px;background:rgba(23,19,37,.85);border:2px solid rgba(212,175,55,.45);color:#f2ead2;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
@@ -604,6 +604,7 @@ function afterConnected(code){
   document.getElementById('setup-panel').style.display = 'none';
   document.getElementById('app-outer').classList.add('show');
   document.getElementById('ai-debug-btn').style.display = 'block';
+  setupHandDropZone();
   MY_KEY = GS_ROLE === 'p2' ? 'p2' : 'p1';
   OPP_KEY = MY_KEY === 'p1' ? 'p2' : 'p1';
   gsConnect(onStateUpdate, onChatMessage);
@@ -864,9 +865,42 @@ function renderHand(){
   (p.hand||[]).forEach((card, i)=>{
     const affordable = (card.cost||0) <= (p.manaNormal + p.manaFragile);
     const canPlay = myTurn && S.phase==='main' && affordable && !UI.selectingAttackers;
-    const el2 = cardEl(card, { onClick: canPlay ? ()=>uiPlayCard(i) : null });
+    const el2 = cardEl(card, {});
     if(!canPlay) el2.style.opacity = '.5';
+    el2.draggable = canPlay;
+    if(canPlay){
+      el2.style.cursor = 'grab';
+      el2.addEventListener('dragstart', (ev)=>{
+        DRAGGED_HAND_INDEX = i;
+        el2.classList.add('dragging');
+        ev.dataTransfer.effectAllowed = 'move';
+      });
+      el2.addEventListener('dragend', ()=>{
+        el2.classList.remove('dragging');
+        DRAGGED_HAND_INDEX = null;
+      });
+    }
     el.appendChild(el2);
+  });
+}
+
+let DRAGGED_HAND_INDEX = null;
+
+function setupHandDropZone(){
+  const zone = document.getElementById('lane-p1');
+  zone.addEventListener('dragover', (ev)=>{
+    if(DRAGGED_HAND_INDEX===null) return;
+    ev.preventDefault();
+    ev.dataTransfer.dropEffect = 'move';
+    zone.classList.add('drop-target');
+  });
+  zone.addEventListener('dragleave', ()=>{ zone.classList.remove('drop-target'); });
+  zone.addEventListener('drop', (ev)=>{
+    ev.preventDefault();
+    zone.classList.remove('drop-target');
+    if(DRAGGED_HAND_INDEX===null) return;
+    uiPlayCard(DRAGGED_HAND_INDEX);
+    DRAGGED_HAND_INDEX = null;
   });
 }
 
