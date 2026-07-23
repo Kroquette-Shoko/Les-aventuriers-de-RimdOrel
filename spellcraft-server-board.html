@@ -265,6 +265,7 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .charges{color:var(--frost);font-size:11px;font-weight:700;position:absolute;bottom:5px;right:6px;z-index:2;}
 
 .hand-row{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:9px;justify-content:center;padding:55px 14px 6px;pointer-events:none;scrollbar-width:none;background:transparent !important;box-shadow:none;border:none;}
+.hand-row .card{pointer-events:auto;}
 .hand-row::-webkit-scrollbar{height:0;width:0;background:transparent;}
 .hand-card-slot{pointer-events:auto;}
 .hand-card-slot{flex-shrink:0;transform-origin:bottom center;transition:transform .15s ease;}
@@ -875,6 +876,9 @@ function renderHand(){
     const canPlay = myTurn && S.phase==='main' && affordable && !UI.selectingAttackers;
     const el2 = cardEl(card, {});
     if(!canPlay) el2.style.opacity = '.5';
+    el2.onmouseenter = (ev)=>showHeroPreview(card, ev);
+    el2.onmousemove = moveHeroPreview;
+    el2.onmouseleave = hidePreview;
     if(canPlay){
       el2.style.cursor = 'grab';
       el2.style.touchAction = 'none';
