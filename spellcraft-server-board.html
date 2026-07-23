@@ -626,6 +626,14 @@ function onStateUpdate(state){
   // en lisant simplement S[MY_KEY]/S[OPP_KEY] partout dans le rendu.
   S = state;
   render();
+
+  // Si c'est le tour de l'IA (et qu'elle a fini son mulligan), on déclenche
+  // son tour automatiquement — le bouton de debug reste utilisable en secours,
+  // mais on ne doit plus jamais avoir besoin d'y penser pour que la partie avance.
+  const activeIsAI = S[S.active] && S[S.active].isAI;
+  if(activeIsAI && !S.gameOver && S.phase!=='mulligan' && !ACTION_IN_FLIGHT){
+    setTimeout(()=>{ uiProcessAi(); }, 700);
+  }
 }
 
 // ---------------- cardEl (adapté du prototype) ----------------
@@ -1036,16 +1044,19 @@ async function uiEndTurn(){ await runAction('Fin de tour', ()=>gsEndTurn()); }
 async function uiConfirmAttackers(){
   await runAction('Attaquer', ()=>gsDeclareAttackers(UI.selectedAttackers));
   UI.selectingAttackers = false; UI.selectedAttackers = [];
+  render();
 }
 async function uiAssignBlock(attackerId){
   if(!UI.pendingBlocker) return;
   const blockerId = UI.pendingBlocker;
   UI.pendingBlocker = null;
   await runAction('Bloquer', ()=>gsAssignBlock(blockerId, attackerId));
+  render();
 }
 async function uiFinishBlocking(){
   UI.pendingBlocker = null;
   await runAction('Terminer blocage', ()=>gsFinishBlocking());
+  render();
 }
 async function uiProcessAi(){ await runAction('Tour IA', ()=>gsProcessAiTurn()); }
 
