@@ -393,6 +393,8 @@ function injectOptionsMenu(){
     #sc-options-modal label.sc-opt-label{display:block;font-size:11.5px;color:#c8beb0;margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px;}
     #sc-options-modal input[type=range]{width:100%;margin-bottom:14px;accent-color:#d4af37;}
     #sc-options-modal .sc-opt-mute{display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer;padding-top:2px;border-top:1px solid rgba(212,175,55,.2);padding-top:10px;}
+    #sc-options-modal .sc-opt-hub{display:block;margin-top:10px;padding-top:10px;border-top:1px solid rgba(212,175,55,.2);font-size:12.5px;font-weight:700;color:#d4af37;text-decoration:none;text-align:center;}
+    #sc-options-modal .sc-opt-hub:hover{text-decoration:underline;}
   `;
   document.head.appendChild(style);
 
@@ -401,6 +403,7 @@ function injectOptionsMenu(){
   gear.title = 'Options';
   gear.innerHTML = `<span class="sc-gear-icon"></span>`;
 
+  const onHubPage = window.location.pathname.endsWith('spellcraft-hub.html');
   const modal = document.createElement('div');
   modal.id = 'sc-options-modal';
   modal.innerHTML = `
@@ -412,6 +415,7 @@ function injectOptionsMenu(){
     <label class="sc-opt-mute">
       <input type="checkbox" id="sc-mute-checkbox" ${sfxMuted?'checked':''}> Tout couper
     </label>
+    ${onHubPage ? '' : '<a class="sc-opt-hub" href="spellcraft-hub.html">🏠 Menu principal</a>'}
   `;
 
   document.body.appendChild(gear);

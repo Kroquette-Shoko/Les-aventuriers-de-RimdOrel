@@ -357,7 +357,8 @@ body.targeting *{cursor:crosshair !important;}
   #session-code-display{font-family:'Cinzel',serif;font-weight:700;color:var(--gold);font-size:18px;letter-spacing:3px;}
   #app-outer{display:none;}
   #app-outer.show{display:block;}
-  #chat-panel{position:fixed;bottom:10px;right:10px;width:260px;background:var(--panel,#171325);border:1px solid #3a3260;border-radius:10px;padding:10px;font-family:'Inter',sans-serif;z-index:50;}
+  #chat-panel{position:fixed;bottom:64px;right:10px;width:260px;background:var(--panel,#171325);border:1px solid #3a3260;border-radius:10px;padding:10px;font-family:'Inter',sans-serif;z-index:50;display:none;}
+  #chat-panel.show{display:block;}
   #chat-log{font-size:11px;color:#c8beb0;max-height:110px;overflow-y:auto;margin-bottom:6px;}
   #chat-panel input{width:100%;box-sizing:border-box;background:#0b0a12;border:1px solid #3a3260;color:#efe6c8;border-radius:6px;padding:6px 8px;font-size:11.5px;}
   #debug-log{position:fixed;bottom:10px;left:10px;width:300px;max-height:150px;overflow-y:auto;background:rgba(11,10,18,.9);border:1px solid #3a3260;border-radius:8px;padding:8px;font-size:10.5px;color:#9d92b0;z-index:50;font-family:monospace;}
@@ -365,6 +366,44 @@ body.targeting *{cursor:crosshair !important;}
   .log-ok{color:#4a9d6b;}
   .ai-debug-btn{position:fixed;top:10px;right:10px;z-index:60;}
   html,body{overflow:auto !important;height:auto !important;min-height:100%;}
+
+  /* ---------- Nouvelle disposition : zone héros / zone deck / artefacts ---------- */
+  .board-row{display:flex;align-items:center;gap:14px;padding:8px 14px;}
+  .board-row.enemy{flex-direction:row;}
+  .board-row.self{flex-direction:row;}
+
+  .hero-zone{display:flex;align-items:flex-end;gap:8px;flex-shrink:0;background:var(--bg-panel);border-radius:14px;border:1px solid #2b2440;padding:10px;cursor:pointer;}
+  .board-row.enemy .hero-zone{flex-direction:row-reverse;} /* miroir : mana à droite du portrait côté J2 */
+
+  .mana-vertical-track{width:34px;height:150px;border-radius:10px;background:#0b0a12;border:1px solid #3a3260;position:relative;display:flex;flex-direction:column-reverse;overflow:hidden;flex-shrink:0;}
+  .mana-vertical-region-thumb{position:absolute;inset:0;background-size:cover;background-position:center;opacity:.55;}
+  .mana-vertical-fill{position:relative;display:flex;flex-direction:column-reverse;align-items:center;gap:3px;padding:4px 0;width:100%;}
+  .mana-vertical-dot{width:16px;height:16px;border-radius:50%;border:1.5px solid rgba(0,0,0,.5);flex-shrink:0;}
+  .mana-vertical-dot.filled{background:radial-gradient(circle at 35% 30%,#8fe0ff,#155a94);box-shadow:0 0 5px rgba(111,208,255,.7);}
+  .mana-vertical-dot.fragile{background:radial-gradient(circle at 35% 30%,#d8f4ff,var(--frost));box-shadow:0 0 5px rgba(79,179,217,.75);}
+
+  .hero-portrait-big{width:120px;height:120px;border-radius:50%;background:radial-gradient(circle at 35% 30%, var(--arcane), #2a1f55);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:700;font-size:38px;color:#fff;flex-shrink:0;border:4px solid var(--gold);position:relative;}
+  .hp-badge-big{position:absolute;bottom:-10px;right:-14px;min-width:44px;height:44px;padding:0 8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#e85858,#8a1f1f);border:3px solid #4a0f0f;color:#fff;font-family:'Cinzel',serif;font-weight:700;font-size:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,.65);z-index:2;}
+
+  .deck-zone{display:flex;align-items:center;gap:10px;flex-shrink:0;background:var(--bg-panel);border-radius:14px;border:1px solid #2b2440;padding:10px;}
+  .board-row.enemy .deck-zone{flex-direction:row-reverse;}
+  .deck-back-visual{width:70px;height:98px;border-radius:8px;background:linear-gradient(135deg,#241f38,#171325);border:2px solid var(--gold);box-shadow:0 4px 10px rgba(0,0,0,.5);flex-shrink:0;}
+  .deck-counts{display:flex;flex-direction:column;gap:6px;}
+
+  .artifact-stack{display:flex;flex-direction:column;gap:6px;align-items:center;margin-top:8px;}
+  .artifact-stack .relic-slot{width:60px;height:82px;}
+  .artifact-stack .relic-slot .card{transform:scale(.4);transform-origin:top left;}
+
+  /* ---------- Menus repliables (journal / chat) ---------- */
+  #journal-toggle-btn{position:fixed;top:98px;right:10px;z-index:99998;width:80px;height:44px;border-radius:14px;background:rgba(23,19,37,.85);border:2px solid rgba(212,175,55,.45);color:#f2ead2;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;}
+  #journal-toggle-btn:hover{border-color:#d4af37;}
+  #journal-panel{position:fixed;top:150px;right:10px;width:280px;max-height:50vh;background:var(--bg-panel);border:1px solid #3a3260;border-radius:12px;padding:12px;z-index:99997;display:none;flex-direction:column;}
+  #journal-panel.show{display:flex;}
+  #journal-panel h3{margin:0 0 8px;font-family:'Cinzel',serif;color:var(--gold);font-size:14px;}
+  #journal-panel #log{flex:1;overflow-y:auto;font-size:11.5px;max-height:40vh;}
+
+  #chat-toggle-btn{position:fixed;bottom:10px;right:100px;z-index:99998;width:80px;height:44px;border-radius:14px;background:rgba(23,19,37,.85);border:2px solid rgba(212,175,55,.45);color:#f2ead2;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;}
+  #chat-toggle-btn:hover{border-color:#d4af37;}
 </style>
 
 <div id="setup-panel">
@@ -389,26 +428,35 @@ body.targeting *{cursor:crosshair !important;}
   <div id="app">
     <div id="board">
       <div id="board-scroll-area">
-        <div class="hero-row enemy" id="hero-p2"></div>
-        <div class="side-zone enemy" id="zone-p2"></div>
-        <div class="lane enemy" id="lane-p2"></div>
+        <div class="board-row enemy">
+          <div class="deck-zone" id="deck-zone-p2"></div>
+          <div class="lane enemy" id="lane-p2"></div>
+          <div class="hero-zone" id="hero-zone-p2"></div>
+        </div>
         <div class="board-divider">
+          <div class="artifact-stack" id="artifacts-p2"></div>
           <div class="divider-line"></div>
           <div class="phase-bar" id="phase-bar"></div>
+          <div class="artifact-stack" id="artifacts-p1"></div>
         </div>
-        <div class="lane self" id="lane-p1"></div>
-        <div class="side-zone self" id="zone-p1"></div>
+        <div class="board-row self">
+          <div class="hero-zone" id="hero-zone-p1"></div>
+          <div class="lane self" id="lane-p1"></div>
+          <div class="deck-zone" id="deck-zone-p1"></div>
+        </div>
       </div>
-      <div class="hero-row self" id="hero-p1"></div>
-    </div>
-    <div id="log-panel">
-      <a href="spellcraft-hub.html" style="display:inline-block;margin-bottom:10px;font-size:15px;font-weight:800;color:var(--gold);text-decoration:none;border:1.5px solid var(--gold);border-radius:8px;padding:10px 16px;">🏠 Menu principal</a>
-      <h3>Journal</h3>
-      <div id="log"></div>
     </div>
   </div>
   <div class="hand-row" id="hand-p1"></div>
 </div>
+
+<button id="journal-toggle-btn" title="Journal" onclick="toggleJournal()">📜</button>
+<div id="journal-panel">
+  <h3>Journal</h3>
+  <div id="log"></div>
+</div>
+
+<button id="chat-toggle-btn" title="Chat" onclick="toggleChat()">💬</button>
 
 <div class="tip" id="tip"></div>
 <div id="card-preview"></div>
@@ -416,6 +464,14 @@ body.targeting *{cursor:crosshair !important;}
 <div id="overlay">
   <h1 id="overlay-text"></h1>
   <button onclick="location.reload()">Rejouer</button>
+</div>
+
+<div class="modal-overlay" id="discard-modal" onclick="if(event.target===this) closeDiscardModal()">
+  <div class="modal-box">
+    <h2>Défausse</h2>
+    <div id="discard-modal-list"></div>
+    <button class="close-btn" onclick="closeDiscardModal()">Fermer</button>
+  </div>
 </div>
 
 <div id="chat-panel">
@@ -625,12 +681,14 @@ function cardEl(card, opts={}){
 
 function render(){
   if(!S) return;
-  renderHero(MY_KEY, 'p1');
-  renderHero(OPP_KEY, 'p2');
+  renderHeroZone(MY_KEY, 'p1');
+  renderHeroZone(OPP_KEY, 'p2');
+  renderDeckZone(MY_KEY, 'p1');
+  renderDeckZone(OPP_KEY, 'p2');
   renderLane(MY_KEY, 'p1');
   renderLane(OPP_KEY, 'p2');
-  renderZone(MY_KEY, 'p1');
-  renderZone(OPP_KEY, 'p2');
+  renderArtifactStack(MY_KEY, 'p1');
+  renderArtifactStack(OPP_KEY, 'p2');
   renderHand();
   renderPhaseBar();
   renderGameOverOverlay();
@@ -643,39 +701,35 @@ function renderGameOverOverlay(){
   overlay.classList.add('show');
 }
 
-// key = camp réel côté serveur (p1/p2) ; slot = 'p1' (moi, en bas) ou 'p2' (adversaire, en haut)
-function renderHero(key, slot){
+// key = camp réel côté serveur (p1/p2) ; slot = 'p1' (moi) ou 'p2' (adversaire)
+// — la zone héros contient la barre de mana verticale (illustration de région
+// en fond, empilement vers le haut à chaque mana gagné) et le portrait du
+// héros en grand avec ses PV. Survoler la zone montre l'aperçu du héros.
+function renderHeroZone(key, slot){
   const p = S[key];
-  const el = document.getElementById(`hero-${slot}`);
-  const normalDots = Array.from({length:p.manaNormalMax}, (_,i)=>{
-    const filled = i<p.manaNormal;
-    return `<span class="mana-dot ${filled?'filled':'empty'}"></span>`;
-  }).join('');
-  const fragileDots = Array.from({length:p.manaFragile}, ()=>`<span class="mana-dot fragile"></span>`).join('');
+  const el = document.getElementById(`hero-zone-${slot}`);
   const hero = p.hero || {};
   const region = p.region || {};
   const heroName = hero.name || (slot==='p1' ? 'Moi' : 'Adversaire');
-  const regionName = region.name || 'Région';
   const heroPortraitStyle = hero.image ? `background-image:url('${hero.image.replace(/'/g,"")}');background-position:${hero.imagePosX??50}% ${hero.imagePosY??50}%;background-size:${(hero.imageZoom??100)>100?hero.imageZoom+'%':'cover'};` : '';
   const regionThumbStyle = region.image ? `background-image:url('${region.image.replace(/'/g,"")}');background-position:${region.imagePosX??50}% ${region.imagePosY??50}%;background-size:${(region.imageZoom??100)>100?region.imageZoom+'%':'cover'};` : '';
 
+  const normalDots = Array.from({length:p.manaNormalMax}, (_,i)=>{
+    const filled = i<p.manaNormal;
+    return `<span class="mana-vertical-dot ${filled?'filled':''}"></span>`;
+  }).join('');
+  const fragileDots = Array.from({length:p.manaFragile}, ()=>`<span class="mana-vertical-dot fragile"></span>`).join('');
+
   el.innerHTML = `
-    <div class="hero-top">
-      <div class="hero-portrait" id="hero-portrait-${slot}" style="${heroPortraitStyle}">${hero.image ? '' : (heroName[0]||'?')}<span class="hp-badge">${p.hp}</span></div>
-      <div class="hero-info">
-        <div class="hero-name">${escapeHtmlGS(heroName)}</div>
-        <div class="region-tag">${escapeHtmlGS(regionName)}</div>
-      </div>
-      <div class="zone-badges">
-        <div class="badge deck" title="Cartes restantes"><span class="badge-icon">🂠</span><span class="badge-count">${p.deck.length}</span><span class="badge-label">Deck</span></div>
-        <div class="badge discard ${p.discard.length>0?'has-cards':''}" title="Défausse"><span class="badge-icon">🪦</span><span class="badge-count">${p.discard.length}</span><span class="badge-label">Défausse</span></div>
-      </div>
+    <div class="mana-vertical-track" title="${escapeHtmlGS(region.name||'Région')}">
+      <div class="mana-vertical-region-thumb" style="${regionThumbStyle}"></div>
+      <div class="mana-vertical-fill">${normalDots}${fragileDots}</div>
     </div>
-    <div class="mana-bar">
-      <div class="mana-region-thumb" id="region-thumb-${slot}" style="${regionThumbStyle}" title="${escapeHtmlGS(regionName)}"></div>
-      <div class="mana-dots">${normalDots}${fragileDots}</div>
-    </div>
+    <div class="hero-portrait-big" id="hero-portrait-${slot}" style="${heroPortraitStyle}">${hero.image ? '' : (heroName[0]||'?')}<span class="hp-badge-big">${p.hp}</span></div>
   `;
+  el.onmouseenter = (ev)=>showHeroPreview(hero, ev);
+  el.onmousemove = moveHeroPreview;
+  el.onmouseleave = hidePreview;
 
   if(slot==='p1'){
     const btn = document.createElement('button');
@@ -684,6 +738,33 @@ function renderHero(key, slot){
     btn.disabled = true; // pouvoirs de héros : lot capacités/déclencheurs
     el.appendChild(btn);
   }
+}
+
+// La zone deck : visuel du dos de carte + nombre de cartes restantes +
+// nombre de cartes en défausse (clic pour en voir le contenu).
+function renderDeckZone(key, slot){
+  const p = S[key];
+  const el = document.getElementById(`deck-zone-${slot}`);
+  el.innerHTML = `
+    <div class="deck-back-visual" title="${p.deck.length} carte(s) restante(s)"></div>
+    <div class="deck-counts">
+      <div class="badge deck" title="Cartes restantes"><span class="badge-icon">🂠</span><span class="badge-count">${p.deck.length}</span><span class="badge-label">Deck</span></div>
+      <div class="badge discard ${p.discard.length>0?'has-cards':''}" title="Défausse" id="discard-badge-${slot}"><span class="badge-icon">🪦</span><span class="badge-count">${p.discard.length}</span><span class="badge-label">Défausse</span></div>
+    </div>
+  `;
+  document.getElementById(`discard-badge-${slot}`).onclick = ()=>openDiscardModal(key);
+}
+
+function renderArtifactStack(key, slot){
+  const el = document.getElementById(`artifacts-${slot}`);
+  el.innerHTML = '';
+  const p = S[key];
+  (p.relics||[]).forEach(r=>{
+    const wrap = document.createElement('div');
+    wrap.className = 'relic-slot';
+    wrap.appendChild(cardEl(r));
+    el.appendChild(wrap);
+  });
 }
 
 // key = camp réel serveur, slot = 'p1'/'p2' pour l'affichage (moi en bas, adversaire en haut)
@@ -756,18 +837,6 @@ function onBoardCreatureClick(key, c){
   }
 }
 
-function renderZone(key, slot){
-  const el = document.getElementById(`zone-${slot}`);
-  el.innerHTML = '';
-  const p = S[key];
-  (p.relics||[]).forEach(r=>{
-    const wrap = document.createElement('div');
-    wrap.className = 'relic-slot';
-    wrap.appendChild(cardEl(r));
-    el.appendChild(wrap);
-  });
-}
-
 function renderHand(){
   const el = document.getElementById('hand-p1');
   el.innerHTML = '';
@@ -835,6 +904,58 @@ function renderPhaseBar(){
     btn.disabled = true;
     bar.appendChild(btn);
   }
+}
+
+// ---------------- Aperçu du héros au survol ----------------
+
+function showHeroPreview(hero, ev){
+  const box = document.getElementById('card-preview');
+  box.innerHTML = '';
+  box.appendChild(cardEl(hero, {}));
+  box.classList.add('show');
+  moveHeroPreview(ev);
+}
+function moveHeroPreview(ev){
+  const box = document.getElementById('card-preview');
+  const x = Math.min(ev.clientX + 20, window.innerWidth - 260);
+  const y = Math.min(ev.clientY + 20, window.innerHeight - 360);
+  box.style.left = x + 'px';
+  box.style.top = y + 'px';
+}
+function hidePreview(){
+  document.getElementById('card-preview').classList.remove('show');
+}
+
+// ---------------- Menus repliables ----------------
+
+function toggleJournal(){
+  document.getElementById('journal-panel').classList.toggle('show');
+}
+function toggleChat(){
+  document.getElementById('chat-panel').classList.toggle('show');
+}
+
+// ---------------- Défausse ----------------
+
+function openDiscardModal(key){
+  const p = S[key];
+  const box = document.getElementById('discard-modal-list');
+  box.innerHTML = '';
+  if((p.discard||[]).length===0){
+    box.innerHTML = '<p style="font-size:12px;color:#c8beb0;">Défausse vide.</p>';
+  } else {
+    p.discard.forEach(c=>{
+      const wrap = document.createElement('div');
+      wrap.style.display = 'inline-block';
+      wrap.style.margin = '4px';
+      wrap.appendChild(cardEl(c));
+      box.appendChild(wrap);
+    });
+  }
+  document.getElementById('discard-modal').classList.add('show');
+}
+function closeDiscardModal(){
+  document.getElementById('discard-modal').classList.remove('show');
 }
 
 // ---------------- Actions ----------------
