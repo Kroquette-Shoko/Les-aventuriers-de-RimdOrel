@@ -875,54 +875,51 @@ function renderPhaseBar(){
   bar.innerHTML = '';
   if(S.gameOver) return;
   const myTurn = S.active===MY_KEY;
+  const canEndTurn = myTurn && S.phase==='main' && !UI.selectingAttackers;
 
   if(!myTurn){
-    const btn = document.createElement('button');
-    btn.className = 'phase-btn';
     if(S.phase==='declareBlockersMe'){
+      const btn = document.createElement('button');
+      btn.className = 'phase-btn';
       btn.textContent = 'Passer (fin du blocage)';
       btn.onclick = uiFinishBlocking;
-    } else {
-      btn.textContent = 'Tour adverse';
-      btn.disabled = true;
+      bar.appendChild(btn);
     }
-    bar.appendChild(btn);
-    return;
-  }
+  } else if(S.phase==='main' && UI.selectingAttackers){
+    const confirm = document.createElement('button');
+    confirm.className = 'phase-btn';
+    confirm.textContent = UI.selectedAttackers.length ? `Valider ${UI.selectedAttackers.length} attaquant(s)` : 'Passer (aucun attaquant)';
+    confirm.onclick = uiConfirmAttackers;
+    bar.appendChild(confirm);
 
-  if(S.phase==='main'){
-    if(!UI.selectingAttackers){
-      const atk = document.createElement('button');
-      atk.className = 'phase-btn';
-      atk.textContent = '⚔ Passer au combat';
-      atk.onclick = ()=>{ UI.selectingAttackers = true; UI.selectedAttackers = []; render(); };
-      bar.appendChild(atk);
-
-      const end = document.createElement('button');
-      end.className = 'phase-btn secondary small';
-      end.textContent = 'Finir le tour';
-      end.onclick = uiEndTurn;
-      bar.appendChild(end);
-    } else {
-      const confirm = document.createElement('button');
-      confirm.className = 'phase-btn';
-      confirm.textContent = UI.selectedAttackers.length ? `Valider ${UI.selectedAttackers.length} attaquant(s)` : 'Passer (aucun attaquant)';
-      confirm.onclick = uiConfirmAttackers;
-      bar.appendChild(confirm);
-
-      const cancel = document.createElement('button');
-      cancel.className = 'phase-btn secondary small';
-      cancel.textContent = 'Annuler';
-      cancel.onclick = ()=>{ UI.selectingAttackers = false; UI.selectedAttackers = []; render(); };
-      bar.appendChild(cancel);
-    }
-  } else if(S.phase==='declareBlockersMe'){
+    const cancel = document.createElement('button');
+    cancel.className = 'phase-btn secondary small';
+    cancel.textContent = 'Annuler';
+    cancel.onclick = ()=>{ UI.selectingAttackers = false; UI.selectedAttackers = []; render(); };
+    bar.appendChild(cancel);
+  } else if(myTurn && S.phase==='main'){
+    const atk = document.createElement('button');
+    atk.className = 'phase-btn';
+    atk.textContent = '⚔ Passer au combat';
+    atk.onclick = ()=>{ UI.selectingAttackers = true; UI.selectedAttackers = []; render(); };
+    bar.appendChild(atk);
+  } else if(myTurn && S.phase==='declareBlockersMe'){
     const btn = document.createElement('button');
     btn.className = 'phase-btn';
     btn.textContent = "En attente du blocage adverse...";
     btn.disabled = true;
     bar.appendChild(btn);
   }
+
+  // Le bouton "Finir le tour" reste toujours visible — grisé et non
+  // cliquable quand ce n'est pas le moment, plutôt que de disparaître ou
+  // d'être remplacé par un autre libellé.
+  const end = document.createElement('button');
+  end.className = 'phase-btn secondary small';
+  end.textContent = 'Finir le tour';
+  end.disabled = !canEndTurn;
+  if(canEndTurn) end.onclick = uiEndTurn;
+  bar.appendChild(end);
 }
 
 // ---------------- Aperçu du héros au survol ----------------
