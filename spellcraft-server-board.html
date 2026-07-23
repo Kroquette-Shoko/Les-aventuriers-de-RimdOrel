@@ -100,9 +100,9 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 @keyframes card-reveal-pop{0%{transform:scale(.7);opacity:0;}100%{transform:scale(1);opacity:1;}}
 
 /* ---------- Lanes ---------- */
-.lane{display:flex;gap:10px;justify-content:center;align-items:center;min-height:150px;padding:6px;background:radial-gradient(ellipse at center, #1c1730 0%, transparent 75%);border-radius:10px;flex-wrap:wrap;flex:1;margin:0 215px;}
-.board-row.self .lane{align-self:flex-start;}
-.board-row.enemy .lane{align-self:flex-end;}
+.lane{position:absolute;left:220px;right:220px;display:flex;gap:10px;justify-content:center;align-items:flex-start;min-height:150px;padding:6px;background:radial-gradient(ellipse at center, #1c1730 0%, transparent 75%);border-radius:10px;flex-wrap:wrap;}
+.board-row.self .lane{top:4px;}
+.board-row.enemy .lane{bottom:4px;}
 .lane.enemy{transform:scaleY(-1);}
 .lane.enemy .card-slot{transform:scaleY(-1);}
 .slot-empty{width:150px;height:204px;border:1.5px dashed #332c50;border-radius:11px;}
