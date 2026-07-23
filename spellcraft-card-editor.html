@@ -174,6 +174,52 @@ header .spacer{flex:1;}
 .card-rarity-gem.rarity-Mythique{background:var(--gold);color:var(--gold);}
 .charges-tag{position:absolute;right:12px;bottom:8px;color:var(--frost);font-size:10px;font-weight:700;}
 
+/* ---------- NOUVEAU TEMPLATE (frames illustrées) ---------- */
+.ncard{position:relative;flex-shrink:0;user-select:none;}
+.ncard img.nframe-layer{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5;}
+.ncard .nart-layer{position:absolute;background-size:cover;background-repeat:no-repeat;background-color:#3a3450;z-index:1;overflow:hidden;}
+.ncard .nstat-bubble{position:absolute;z-index:6;pointer-events:none;}
+.ncard .nstat-txt{position:absolute;z-index:7;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.85);pointer-events:none;}
+.ncard .nname-banner{position:absolute;z-index:7;pointer-events:none;}
+.ncard .nname-text{position:absolute;z-index:8;text-align:center;font-family:'Cinzel',serif;font-weight:700;color:#2a1f10;text-shadow:0 1px 0 rgba(255,255,255,.25);pointer-events:none;overflow:hidden;}
+.ncard .ncard-text{position:absolute;z-index:8;color:#2a2338;text-align:center;overflow:hidden;pointer-events:none;white-space:pre-wrap;}
+.ncard .nrarity-gem{position:absolute;z-index:8;}
+.ncard .nlegendary-gem{position:absolute;z-index:8;}
+
+.ncard.n-big{width:230px;height:324.5px;}
+.ncard.n-big .nart-layer{left:14.43%;top:10.23%;width:69.97%;height:38.17%;}
+.ncard.n-big .nstat-bubble.n-mana{left:-9%;top:-9%;width:19%;}
+.ncard.n-big .nstat-txt.n-mana{left:-1%;top:-1%;width:17%;height:17%;font-size:15px;}
+.ncard.n-big .nname-banner{left:50%;top:46.5%;width:78%;transform:translateX(-50%);}
+.ncard.n-big .nname-text{left:50%;top:49%;width:70%;transform:translateX(-50%);font-size:13px;height:20px;}
+.ncard.n-big .ncard-text{left:16%;top:59.5%;width:68%;height:30%;font-size:10.5px;line-height:1.32;padding-top:4px;}
+.ncard.n-big .nrarity-gem{left:50%;bottom:2%;width:10%;transform:translateX(-50%);}
+.ncard.n-big .nlegendary-gem{left:50%;bottom:2%;width:10%;transform:translateX(-140%);}
+.ncard.n-big .nstat-bubble.n-atk{left:6%;bottom:5%;width:15%;}
+.ncard.n-big .nstat-txt.n-atk{left:9%;bottom:8%;width:12%;height:12%;font-size:13px;}
+.ncard.n-big .nstat-bubble.n-end{right:6%;bottom:5%;width:15%;}
+.ncard.n-big .nstat-txt.n-end{right:9%;bottom:8%;width:12%;height:12%;font-size:13px;}
+.ncard.n-big .nstat-bubble.n-art{right:6%;bottom:5%;width:15%;}
+.ncard.n-big .nstat-txt.n-art{right:9%;bottom:8%;width:12%;height:12%;font-size:12px;}
+
+.ncard.n-small{width:180px;height:180px;}
+.ncard.n-small .nart-layer{left:20.47%;top:16.28%;width:58.05%;height:44.63%;}
+.ncard.n-small .nstat-bubble.n-mana{left:-8%;top:-8%;width:22%;}
+.ncard.n-small .nstat-txt.n-mana{left:1%;top:-1%;width:19%;height:19%;font-size:13px;}
+.ncard.n-small .nname-text{left:50%;top:64%;width:64%;transform:translateX(-50%);font-size:10.5px;height:16px;}
+.ncard.n-small .ncard-text{display:none;}
+.ncard.n-small .nrarity-gem{left:4%;top:60%;width:11%;}
+.ncard.n-small .nlegendary-gem{left:15%;top:60%;width:11%;}
+.ncard.n-small .nstat-bubble.n-atk{left:8%;bottom:6%;width:17%;}
+.ncard.n-small .nstat-txt.n-atk{left:11%;bottom:9%;width:13%;height:13%;font-size:11px;}
+.ncard.n-small .nstat-bubble.n-end{right:8%;bottom:6%;width:17%;}
+.ncard.n-small .nstat-txt.n-end{right:11%;bottom:9%;width:13%;height:13%;font-size:11px;}
+.ncard.n-small .nstat-bubble.n-art{right:8%;bottom:6%;width:17%;}
+.ncard.n-small .nstat-txt.n-art{right:11%;bottom:9%;width:13%;height:13%;font-size:10px;}
+
+#new-preview-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;}
+#new-preview-wrap .n-preview-label{font-size:10px;color:var(--parchment-dim);text-transform:uppercase;letter-spacing:1px;margin-top:6px;}
+
 #preview-big{margin-bottom:56px;transform:scale(1.35);transform-origin:top center;}
 
 #hero-profile-inline{width:300px;background:linear-gradient(160deg,var(--bg-panel-2),#141021);border:1px solid var(--gold);border-radius:14px;padding:20px 22px;text-align:left;}
@@ -392,6 +438,28 @@ header .spacer{flex:1;}
           </div>
         </div>
 
+        <div class="field" id="f-image-frame-small-wrap" style="display:none">
+          <label>Cadrage de l'image — petit format (plateau) <span class="hint" style="text-transform:none;letter-spacing:0;">— réglage indépendant du grand format</span></label>
+          <div style="display:flex;flex-direction:column;gap:6px;background:var(--bg-panel-2);border:1px solid #3a3260;border-radius:8px;padding:10px 12px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="mini-field" style="width:80px;flex-shrink:0;">Horizontal</span>
+              <input type="range" id="f-image-x-small" min="0" max="100" value="50" oninput="onFormChange()" style="flex:1;">
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="mini-field" style="width:80px;flex-shrink:0;">Vertical</span>
+              <input type="range" id="f-image-y-small" min="0" max="100" value="50" oninput="onFormChange()" style="flex:1;">
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="mini-field" style="width:80px;flex-shrink:0;">Zoom</span>
+              <input type="range" id="f-image-zoom-small" min="100" max="250" value="100" oninput="onFormChange()" style="flex:1;">
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn small" onclick="resetImageFrameSmall()">↺ Recentrer</button>
+              <button class="btn small" onclick="copyImageFrameFromBig()">⇩ Copier le cadrage du grand format</button>
+            </div>
+          </div>
+        </div>
+
         <div class="field">
           <label>Logo du set (URL, optionnel)</label>
           <input type="url" id="f-set-logo" placeholder="https://... (sinon l'initiale du set s'affiche)" oninput="onFormChange()">
@@ -441,6 +509,12 @@ header .spacer{flex:1;}
       <div id="preview-panel">
         <div class="preview-label">Aperçu</div>
         <div id="preview-big"></div>
+        <div id="new-preview-wrap" style="display:none">
+          <div class="n-preview-label">Nouveau template — Big</div>
+          <div id="new-preview-big"></div>
+          <div class="n-preview-label">Nouveau template — Small (plateau)</div>
+          <div id="new-preview-small"></div>
+        </div>
         <div class="preview-meta" id="preview-meta"></div>
       </div>
     </div>
@@ -725,8 +799,7 @@ const TARGET_OWNERS = [
   {key:'ally', label:'Alliée / vous'},
   {key:'enemy', label:'Ennemie / adversaire'},
   {key:'any', label:'Peu importe'},
-  {key:'random', label:'Au hasard (un camp tiré une fois)'},
-  {key:'trigger', label:'Celle qui déclenche l\'effet'}
+  {key:'random', label:'Au hasard (un camp tiré une fois)'}
 ];
 const SELECTION_MODES = [
   {key:'chosen', label:'Désignée par le joueur'},
@@ -1536,7 +1609,7 @@ function buildEffectRow(ab, eff){
     if(eff.targetCategory!=='player'){
       const ownerOptions = eff.targetCategory==='creature' ? TARGET_OWNERS : TARGET_OWNERS.filter(o=>o.key!=='self');
       row.appendChild(makeSelectField('Propriétaire', ownerOptions, eff.targetOwner, v=>{ eff.targetOwner=v; rebuildAbilitiesUI(); onFormChange(); }));
-      if(eff.targetOwner!=='self' && eff.targetOwner!=='trigger'){
+      if(eff.targetOwner!=='self'){
         row.appendChild(makeSelectField('Sélection', SELECTION_MODES, eff.selectionMode, v=>{ eff.selectionMode=v; rebuildAbilitiesUI(); onFormChange(); }));
         if(eff.selectionMode!=='all'){
           const countField = document.createElement('div');
@@ -1982,7 +2055,6 @@ function dynamicValueLabel(obj, dynFieldName, dv){
 
 function targetPhrase(eff){
   if(eff.targetOwner==='self') return 'cette carte';
-  if(eff.targetOwner==='trigger') return 'la carte qui a déclenché cet effet';
   if(eff.targetCategory==='hero'){
     if(eff.targetOwner==='random') return 'un héros tiré au hasard (allié ou ennemi)';
     return eff.targetOwner==='enemy' ? 'le héros ennemi' : 'votre héros';
@@ -2462,6 +2534,9 @@ function readForm(){
     imagePosX: parseInt(document.getElementById('f-image-x').value) || 50,
     imagePosY: parseInt(document.getElementById('f-image-y').value) || 50,
     imageZoom: parseInt(document.getElementById('f-image-zoom').value) || 100,
+    imagePosXSmall: parseInt(document.getElementById('f-image-x-small').value) || 50,
+    imagePosYSmall: parseInt(document.getElementById('f-image-y-small').value) || 50,
+    imageZoomSmall: parseInt(document.getElementById('f-image-zoom-small').value) || 100,
     setLogo: document.getElementById('f-set-logo').value.trim(),
     extraCostEnabled: document.getElementById('f-extracost-enabled').checked,
     extraCostType: document.getElementById('f-extracost-type').value,
@@ -2524,7 +2599,11 @@ function loadCardIntoForm(card){
   document.getElementById('f-image-x').value = card.imagePosX ?? 50;
   document.getElementById('f-image-y').value = card.imagePosY ?? 50;
   document.getElementById('f-image-zoom').value = card.imageZoom ?? 100;
+  document.getElementById('f-image-x-small').value = card.imagePosXSmall ?? 50;
+  document.getElementById('f-image-y-small').value = card.imagePosYSmall ?? 50;
+  document.getElementById('f-image-zoom-small').value = card.imageZoomSmall ?? 100;
   document.getElementById('f-image-frame-wrap').style.display = card.image ? 'block' : 'none';
+  document.getElementById('f-image-frame-small-wrap').style.display = card.image ? 'block' : 'none';
   document.getElementById('f-set-logo').value = card.setLogo || '';
   document.getElementById('f-atk').value = card.atk ?? 1;
   document.getElementById('f-hp').value = card.hp ?? 1;
@@ -2574,7 +2653,11 @@ function newCard(){
   document.getElementById('f-image-x').value = 50;
   document.getElementById('f-image-y').value = 50;
   document.getElementById('f-image-zoom').value = 100;
+  document.getElementById('f-image-x-small').value = 50;
+  document.getElementById('f-image-y-small').value = 50;
+  document.getElementById('f-image-zoom-small').value = 100;
   document.getElementById('f-image-frame-wrap').style.display = 'none';
+  document.getElementById('f-image-frame-small-wrap').style.display = 'none';
   document.getElementById('f-set-logo').value = '';
   document.getElementById('f-atk').value = 1;
   document.getElementById('f-hp').value = 4;
@@ -2597,6 +2680,7 @@ function onFormChange(){
   rebuildAbilitiesSentencesOnly();
   if(!manualMode) document.getElementById('generated-text-box').textContent = buildCardText();
   document.getElementById('f-image-frame-wrap').style.display = document.getElementById('f-image').value.trim() ? 'block' : 'none';
+  document.getElementById('f-image-frame-small-wrap').style.display = document.getElementById('f-image').value.trim() ? 'block' : 'none';
   renderPreview();
 }
 function resetImageFrame(){
@@ -2723,6 +2807,105 @@ function fitTypeline(cardRootEl){
   }
 }
 
+/* ============================================================
+   NOUVEAU TEMPLATE — frames illustrées (big / small)
+   ============================================================ */
+const NCARD_ASSET_BASE = 'images/card/';
+const NCLASS_TO_SLUG = {
+  'Aube':'aube', 'Crépuscule':'crepuscule', 'Volonté':'volonté',
+  'Prima':'prima', 'Arcane':'arcane', 'Neutre':'neutre'
+};
+const NRARITY_TO_SLUG = {
+  'Basique':'basique', 'Commune':'commun', 'Rare':'rare',
+  'Épique':'epique', 'Mythique':'mythique'
+};
+
+function nEl(tag, cls){ const e = document.createElement(tag); if(cls) e.className = cls; return e; }
+function nImg(src, cls){ const i = document.createElement('img'); i.src = src; if(cls) i.className = cls; return i; }
+
+function buildNewCardEl(card, size){
+  const root = nEl('div', `ncard n-${size}`);
+  const slug = NCLASS_TO_SLUG[card.class] || 'neutre';
+  const isHero = card.type==='Héros';
+  const isRegion = card.type==='Région';
+  const hasMana = !isHero && !isRegion;
+  const isCreature = card.type==='Créature';
+  const isArtifact = card.type==='Artefact';
+
+  // Illustration (calibrage indépendant big/small)
+  const posX = size==='big' ? (card.imagePosX ?? 50) : (card.imagePosXSmall ?? 50);
+  const posY = size==='big' ? (card.imagePosY ?? 50) : (card.imagePosYSmall ?? 50);
+  const zoom = size==='big' ? (card.imageZoom ?? 100) : (card.imageZoomSmall ?? 100);
+  const art = nEl('div', 'nart-layer');
+  if(card.image){
+    art.style.backgroundImage = `url('${card.image.replace(/'/g,'')}')`;
+    art.style.backgroundPosition = `${posX}% ${posY}%`;
+    art.style.backgroundSize = zoom>100 ? zoom+'%' : 'cover';
+  }
+  root.appendChild(art);
+
+  // Frame (par-dessus l'illustration, fenêtre transparente)
+  root.appendChild(nImg(`${NCARD_ASSET_BASE}${size==='big'?'big-frame/big-':'small-frame/small-'}${slug}.png`, 'nframe-layer'));
+
+  // Mana
+  if(hasMana){
+    root.appendChild(nImg(`${NCARD_ASSET_BASE}icon/bubble/mana.png`, 'nstat-bubble n-mana'));
+    const t = nEl('div','nstat-txt n-mana'); t.textContent = card.cost ?? 0;
+    root.appendChild(t);
+  }
+  // Force / endurance (créatures)
+  if(isCreature){
+    root.appendChild(nImg(`${NCARD_ASSET_BASE}icon/bubble/attack.png`, 'nstat-bubble n-atk'));
+    const ta = nEl('div','nstat-txt n-atk'); ta.textContent = card.atk ?? 0;
+    root.appendChild(ta);
+    root.appendChild(nImg(`${NCARD_ASSET_BASE}icon/bubble/endurance.png`, 'nstat-bubble n-end'));
+    const te = nEl('div','nstat-txt n-end'); te.textContent = card.hp ?? 0;
+    root.appendChild(te);
+  }
+  // Charges (artefacts)
+  if(isArtifact){
+    root.appendChild(nImg(`${NCARD_ASSET_BASE}icon/bubble/artefact.png`, 'nstat-bubble n-art'));
+    const t = nEl('div','nstat-txt n-art'); t.textContent = (card.charges ?? 0)+'x';
+    root.appendChild(t);
+  }
+
+  // Bandeau de nom (big uniquement — ruban à part)
+  if(size==='big'){
+    root.appendChild(nImg(`${NCARD_ASSET_BASE}icon/bubble/nom.png`, 'nname-banner'));
+  }
+  const nameEl = nEl('div','nname-text'); nameEl.textContent = card.name || '';
+  root.appendChild(nameEl);
+
+  // Texte (big uniquement)
+  if(size==='big'){
+    const textEl = nEl('div','ncard-text'); textEl.textContent = card.text || '';
+    root.appendChild(textEl);
+  }
+
+  // Rareté + super-type Légendaire
+  if(card.rarity && NRARITY_TO_SLUG[card.rarity]){
+    root.appendChild(nImg(`${NCARD_ASSET_BASE}icon/rare/${NRARITY_TO_SLUG[card.rarity]}.png`, 'nrarity-gem'));
+  }
+  if(card.isLegendary){
+    root.appendChild(nImg(`${NCARD_ASSET_BASE}icon/rare/legendaire.png`, 'nlegendary-gem'));
+  }
+
+  return root;
+}
+
+function resetImageFrameSmall(){
+  document.getElementById('f-image-x-small').value = 50;
+  document.getElementById('f-image-y-small').value = 50;
+  document.getElementById('f-image-zoom-small').value = 100;
+  onFormChange();
+}
+function copyImageFrameFromBig(){
+  document.getElementById('f-image-x-small').value = document.getElementById('f-image-x').value;
+  document.getElementById('f-image-y-small').value = document.getElementById('f-image-y').value;
+  document.getElementById('f-image-zoom-small').value = document.getElementById('f-image-zoom').value;
+  onFormChange();
+}
+
 function buildHeroProfileEl(card){
   const box = document.createElement('div');
   box.id = 'hero-profile-inline';
@@ -2791,16 +2974,22 @@ function buildHeroProfileEl(card){
 function renderPreview(){
   const card = readForm();
   const box = document.getElementById('preview-big');
+  const newWrap = document.getElementById('new-preview-wrap');
   box.innerHTML = '';
   if(card.type==='Héros'){
     box.style.transform = 'none';
     box.appendChild(buildHeroProfileEl(card));
+    newWrap.style.display = 'none';
   } else {
-    box.style.transform = '';
-    const cardEl = buildCardEl(card);
-    box.appendChild(cardEl);
-    fitCardText(cardEl);
+    box.style.display = 'none';
+    newWrap.style.display = 'flex';
+    const bigBox = document.getElementById('new-preview-big');
+    const smallBox = document.getElementById('new-preview-small');
+    bigBox.innerHTML = ''; smallBox.innerHTML = '';
+    bigBox.appendChild(buildNewCardEl(card, 'big'));
+    smallBox.appendChild(buildNewCardEl(card, 'small'));
   }
+  if(card.type==='Héros') box.style.display = '';
   document.getElementById('preview-meta').textContent =
     [card.class, card.rarity, card.set].filter(Boolean).join(' · ');
 }
@@ -3083,7 +3272,6 @@ async function initEditorData(){
   await loadShopAdmin();
 }
 initSpellcraftAuth().then(initEditorData);
-playMusic('menu', {loop:true, volume:0.35});
 sb.auth.onAuthStateChange(async (event)=>{
   if(event==='SIGNED_IN'){
     await migrateLocalCatalogToSupabaseIfNeeded();
