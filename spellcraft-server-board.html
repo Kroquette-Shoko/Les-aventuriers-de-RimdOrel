@@ -357,7 +357,7 @@ body.targeting *{cursor:crosshair !important;}
   #session-code-display{font-family:'Cinzel',serif;font-weight:700;color:var(--gold);font-size:18px;letter-spacing:3px;}
   #app-outer{display:none;}
   #app-outer.show{display:block;}
-  #chat-panel{position:fixed;bottom:118px;right:10px;width:260px;background:var(--panel,#171325);border:1px solid #3a3260;border-radius:10px;padding:10px;font-family:'Inter',sans-serif;z-index:50;display:none;}
+  #chat-panel{position:absolute;bottom:100%;right:0;margin-bottom:8px;width:260px;background:var(--panel,#171325);border:1px solid #3a3260;border-radius:10px;padding:10px;font-family:'Inter',sans-serif;z-index:50;display:none;}
   #chat-panel.show{display:block;}
   #chat-log{font-size:11px;color:#c8beb0;max-height:110px;overflow-y:auto;margin-bottom:6px;}
   #chat-panel input{width:100%;box-sizing:border-box;background:#0b0a12;border:1px solid #3a3260;color:#efe6c8;border-radius:6px;padding:6px 8px;font-size:11.5px;}
@@ -372,12 +372,13 @@ body.targeting *{cursor:crosshair !important;}
 
   .mana-box{position:absolute;bottom:8px;width:44px;height:160px;border-radius:12px;background:#0b0a12;border:2px solid #3a3260;overflow:hidden;display:flex;flex-direction:column-reverse;align-items:center;padding-bottom:4px;z-index:6;}
   .board-row.self{margin-top:auto;}
-  .board-row.self .mana-box{left:16px;bottom:22px;}
-  .board-row.enemy .mana-box{right:110px;top:16px;bottom:auto;}
-  .board-row.self .hero-frame{left:72px;bottom:22px;}
+  .board-row.self .mana-box{left:16px;bottom:60px;}
+  .board-row.enemy .mana-box{right:110px;top:16px;bottom:auto;flex-direction:column;padding-bottom:0;padding-top:4px;}
+  .board-row.self .hero-frame{left:72px;bottom:60px;}
   .board-row.enemy .hero-frame{right:166px;top:16px;bottom:auto;}
   .mana-box-region-thumb{width:36px;height:36px;border-radius:8px;background-size:cover;background-position:center;background-color:#241f38;border:1px solid var(--gold);flex-shrink:0;}
   .mana-box-fill{display:flex;flex-direction:column-reverse;align-items:center;gap:3px;padding:5px 0;width:100%;}
+  .board-row.enemy .mana-box-fill{flex-direction:column;}
   .mana-box-dot{width:20px;height:20px;border-radius:50%;border:1.5px solid rgba(0,0,0,.5);flex-shrink:0;}
   .mana-box-dot.filled{background:radial-gradient(circle at 35% 30%,#8fe0ff,#155a94);box-shadow:0 0 6px rgba(111,208,255,.75);}
   .mana-box-dot.fragile{background:radial-gradient(circle at 35% 30%,#d8f4ff,var(--frost));box-shadow:0 0 6px rgba(79,179,217,.8);}
@@ -390,7 +391,7 @@ body.targeting *{cursor:crosshair !important;}
 
   .deck-zone{position:absolute;bottom:22px;display:flex;align-items:center;gap:12px;z-index:6;}
   .board-row.self .deck-zone{right:16px;}
-  .board-row.enemy .deck-zone{left:16px;flex-direction:row-reverse;}
+  .board-row.enemy .deck-zone{left:16px;top:16px;bottom:auto;flex-direction:row-reverse;}
   .deck-back-visual{width:118px;height:165px;border-radius:12px;background:linear-gradient(135deg,#241f38,#171325);border:3px solid var(--gold);box-shadow:0 6px 16px rgba(0,0,0,.55);flex-shrink:0;}
   .deck-counts{display:flex;flex-direction:column;gap:8px;}
 
@@ -399,11 +400,13 @@ body.targeting *{cursor:crosshair !important;}
   .artifact-stack .relic-slot .card{transform:scale(.4);transform-origin:top left;}
 
   /* ---------- Menus repliables (journal / chat) ---------- */
-  #chat-toggle-btn{position:fixed;bottom:64px;right:10px;z-index:99998;width:80px;height:44px;border-radius:14px;background:rgba(23,19,37,.85);border:2px solid rgba(212,175,55,.45);color:#f2ead2;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;}
+  #chat-toggle-btn{position:fixed;bottom:10px;right:100px;z-index:99998;width:80px;height:44px;border-radius:14px;background:rgba(23,19,37,.85);border:2px solid rgba(212,175,55,.45);color:#f2ead2;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;}
   #chat-toggle-btn:hover{border-color:#d4af37;}
-  #journal-toggle-btn{position:fixed;bottom:10px;right:10px;z-index:99998;width:80px;height:44px;border-radius:14px;background:rgba(23,19,37,.85);border:2px solid rgba(212,175,55,.45);color:#f2ead2;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;}
-  #journal-toggle-btn:hover{border-color:#d4af37;}
-  #journal-panel{position:fixed;bottom:64px;right:100px;width:280px;max-height:50vh;background:var(--bg-panel);border:1px solid #3a3260;border-radius:12px;padding:12px;z-index:99997;display:none;flex-direction:column;}
+  .phase-bar-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:6px;position:relative;}
+  .menu-toggles-row{display:flex;gap:6px;}
+  #chat-toggle-btn, #journal-toggle-btn{width:44px;height:36px;border-radius:10px;background:rgba(23,19,37,.85);border:2px solid rgba(212,175,55,.45);color:#f2ead2;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
+  #chat-toggle-btn:hover, #journal-toggle-btn:hover{border-color:#d4af37;}
+  #journal-panel{position:absolute;bottom:100%;right:52px;margin-bottom:8px;width:280px;max-height:50vh;background:var(--bg-panel);border:1px solid #3a3260;border-radius:12px;padding:12px;z-index:99997;display:none;flex-direction:column;}
   #journal-panel.show{display:flex;}
   #journal-panel h3{margin:0 0 8px;font-family:'Cinzel',serif;color:var(--gold);font-size:14px;}
   #journal-panel #log{flex:1;overflow-y:auto;font-size:11.5px;max-height:40vh;}
@@ -440,7 +443,21 @@ body.targeting *{cursor:crosshair !important;}
         <div class="board-divider">
           <div class="artifact-stack" id="artifacts-p2"></div>
           <div class="divider-line"></div>
-          <div class="phase-bar" id="phase-bar"></div>
+          <div class="phase-bar-wrap">
+            <div class="menu-toggles-row">
+              <button id="chat-toggle-btn" title="Chat" onclick="toggleChat()">💬</button>
+              <button id="journal-toggle-btn" title="Journal" onclick="toggleJournal()">📜</button>
+            </div>
+            <div id="journal-panel">
+              <h3>Journal</h3>
+              <div id="log"></div>
+            </div>
+            <div id="chat-panel">
+              <div id="chat-log"></div>
+              <input id="chat-input" placeholder="Message..." onkeydown="if(event.key==='Enter') uiSendChat()">
+            </div>
+            <div class="phase-bar" id="phase-bar"></div>
+          </div>
           <div class="artifact-stack" id="artifacts-p1"></div>
         </div>
         <div class="board-row self">
@@ -454,14 +471,6 @@ body.targeting *{cursor:crosshair !important;}
   </div>
   <div class="hand-row" id="hand-p1"></div>
 </div>
-
-<button id="journal-toggle-btn" title="Journal" onclick="toggleJournal()">📜</button>
-<div id="journal-panel">
-  <h3>Journal</h3>
-  <div id="log"></div>
-</div>
-
-<button id="chat-toggle-btn" title="Chat" onclick="toggleChat()">💬</button>
 
 <div class="tip" id="tip"></div>
 <div id="card-preview"></div>
@@ -477,11 +486,6 @@ body.targeting *{cursor:crosshair !important;}
     <div id="discard-modal-list"></div>
     <button class="close-btn" onclick="closeDiscardModal()">Fermer</button>
   </div>
-</div>
-
-<div id="chat-panel">
-  <div id="chat-log"></div>
-  <input id="chat-input" placeholder="Message..." onkeydown="if(event.key==='Enter') uiSendChat()">
 </div>
 
 <div id="debug-log"></div>
