@@ -100,9 +100,7 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 @keyframes card-reveal-pop{0%{transform:scale(.7);opacity:0;}100%{transform:scale(1);opacity:1;}}
 
 /* ---------- Lanes ---------- */
-.lane{position:absolute;left:220px;right:220px;display:flex;gap:10px;justify-content:center;align-items:flex-start;min-height:150px;padding:6px;background:radial-gradient(ellipse at center, #1c1730 0%, transparent 75%);border-radius:10px;flex-wrap:wrap;}
-.board-row.self .lane{top:4px;}
-.board-row.enemy .lane{bottom:4px;}
+.lane{display:flex;gap:10px;justify-content:center;align-items:center;min-height:100px;padding:6px;background:radial-gradient(ellipse at center, #1c1730 0%, transparent 75%);border-radius:10px;flex-wrap:wrap;margin:0 220px;}
 .lane.enemy{transform:scaleY(-1);}
 .lane.enemy .card-slot{transform:scaleY(-1);}
 .slot-empty{width:150px;height:204px;border:1.5px dashed #332c50;border-radius:11px;}
@@ -360,7 +358,7 @@ body.targeting *{cursor:crosshair !important;}
   #session-code-display{font-family:'Cinzel',serif;font-weight:700;color:var(--gold);font-size:18px;letter-spacing:3px;}
   #app-outer{display:none;}
   #app-outer.show{display:block;}
-  #chat-panel{position:absolute;bottom:100%;right:0;margin-bottom:8px;width:260px;background:var(--panel,#171325);border:1px solid #3a3260;border-radius:10px;padding:10px;font-family:'Inter',sans-serif;z-index:50;display:none;}
+  #chat-panel{position:absolute;bottom:100%;right:0;margin-bottom:50px;width:260px;background:var(--panel,#171325);border:1px solid #3a3260;border-radius:10px;padding:10px;font-family:'Inter',sans-serif;z-index:50;display:none;}
   #chat-panel.show{display:block;}
   #chat-log{font-size:11px;color:#c8beb0;max-height:110px;overflow-y:auto;margin-bottom:6px;}
   #chat-panel input{width:100%;box-sizing:border-box;background:#0b0a12;border:1px solid #3a3260;color:#efe6c8;border-radius:6px;padding:6px 8px;font-size:11.5px;}
@@ -374,7 +372,7 @@ body.targeting *{cursor:crosshair !important;}
   body.action-busy #ai-debug-btn, body.action-busy .phase-btn{opacity:.6;pointer-events:none;cursor:wait;}
 
   /* ---------- Nouvelle disposition : mana / héros / deck en coins séparés ---------- */
-  .board-row{display:flex;align-items:center;gap:14px;padding:8px 16px;position:relative;min-height:200px;}
+  .board-row{display:flex;align-items:center;gap:14px;padding:8px 16px;position:relative;min-height:220px;}
 
   .mana-box{position:absolute;bottom:8px;width:44px;height:160px;border-radius:12px;background:#0b0a12;border:2px solid #3a3260;overflow:hidden;display:flex;flex-direction:column-reverse;align-items:center;padding-bottom:4px;z-index:6;}
   .board-row.self{margin-top:auto;}
@@ -406,11 +404,11 @@ body.targeting *{cursor:crosshair !important;}
   .artifact-stack .relic-slot .card{transform:scale(.4);transform-origin:top left;}
 
   /* ---------- Menus repliables (journal / chat) ---------- */
-  .phase-bar-wrap{display:flex;flex-direction:column;align-items:flex-end;gap:6px;position:relative;}
-  .menu-toggles-row{display:flex;gap:6px;}
+  .phase-bar-wrap{position:relative;}
+  .menu-toggles-row{position:absolute;bottom:100%;right:0;margin-bottom:6px;display:flex;gap:6px;}
   #chat-toggle-btn, #journal-toggle-btn{width:44px;height:36px;border-radius:10px;background:rgba(23,19,37,.85);border:2px solid rgba(212,175,55,.45);color:#f2ead2;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
   #chat-toggle-btn:hover, #journal-toggle-btn:hover{border-color:#d4af37;}
-  #journal-panel{position:absolute;bottom:100%;right:52px;margin-bottom:8px;width:280px;max-height:50vh;background:var(--bg-panel);border:1px solid #3a3260;border-radius:12px;padding:12px;z-index:99997;display:none;flex-direction:column;}
+  #journal-panel{position:absolute;bottom:100%;right:52px;margin-bottom:50px;width:280px;max-height:50vh;background:var(--bg-panel);border:1px solid #3a3260;border-radius:12px;padding:12px;z-index:99997;display:none;flex-direction:column;}
   #journal-panel.show{display:flex;}
   #journal-panel h3{margin:0 0 8px;font-family:'Cinzel',serif;color:var(--gold);font-size:14px;}
   #journal-panel #log{flex:1;overflow-y:auto;font-size:11.5px;max-height:40vh;}
@@ -442,8 +440,8 @@ body.targeting *{cursor:crosshair !important;}
           <div class="deck-zone" id="deck-zone-p2"></div>
           <div class="mana-box" id="mana-box-p2"></div>
           <div class="hero-frame" id="hero-frame-p2"></div>
-          <div class="lane enemy" id="lane-p2"></div>
         </div>
+        <div class="lane enemy" id="lane-p2"></div>
         <div class="board-divider">
           <div class="artifact-stack" id="artifacts-p2"></div>
           <div class="divider-line"></div>
@@ -464,10 +462,10 @@ body.targeting *{cursor:crosshair !important;}
           </div>
           <div class="artifact-stack" id="artifacts-p1"></div>
         </div>
+        <div class="lane self" id="lane-p1"></div>
         <div class="board-row self">
           <div class="mana-box" id="mana-box-p1"></div>
           <div class="hero-frame" id="hero-frame-p1"></div>
-          <div class="lane self" id="lane-p1"></div>
           <div class="deck-zone" id="deck-zone-p1"></div>
         </div>
       </div>
