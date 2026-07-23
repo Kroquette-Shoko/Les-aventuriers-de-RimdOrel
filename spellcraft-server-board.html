@@ -70,7 +70,7 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .mana-dot.reserved{outline:2px dashed var(--gold);outline-offset:1.5px;}
 
 .zone-badges{display:flex;gap:8px;margin-left:auto;flex-shrink:0;}
-.badge{display:flex;flex-direction:column;align-items:center;justify-content:center;width:50px;height:58px;border-radius:8px;background:var(--bg-panel-2);border:1px solid #3a3260;cursor:pointer;user-select:none;}
+.badge{display:flex;flex-direction:column;align-items:center;justify-content:center;width:62px;height:70px;border-radius:8px;background:var(--bg-panel-2);border:1px solid #3a3260;cursor:pointer;user-select:none;}
 .badge-label{font-size:8px;text-transform:uppercase;letter-spacing:.3px;color:var(--parchment-dim);margin-top:1px;}
 .badge:hover{border-color:var(--gold);}
 .badge .badge-icon{font-size:17px;line-height:1;}
@@ -100,7 +100,7 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 @keyframes card-reveal-pop{0%{transform:scale(.7);opacity:0;}100%{transform:scale(1);opacity:1;}}
 
 /* ---------- Lanes ---------- */
-.lane{display:flex;gap:10px;justify-content:center;align-items:center;min-height:220px;padding:6px;background:radial-gradient(ellipse at center, #1c1730 0%, transparent 75%);border-radius:10px;flex-wrap:wrap;}
+.lane{display:flex;gap:10px;justify-content:center;align-items:center;min-height:220px;padding:6px;background:radial-gradient(ellipse at center, #1c1730 0%, transparent 75%);border-radius:10px;flex-wrap:wrap;flex:1;margin:0 215px;}
 .lane.enemy{transform:scaleY(-1);}
 .lane.enemy .card-slot{transform:scaleY(-1);}
 .slot-empty{width:150px;height:204px;border:1.5px dashed #332c50;border-radius:11px;}
@@ -367,28 +367,31 @@ body.targeting *{cursor:crosshair !important;}
   .ai-debug-btn{position:fixed;top:10px;right:10px;z-index:60;}
   html,body{overflow:auto !important;height:auto !important;min-height:100%;}
 
-  /* ---------- Nouvelle disposition : zone héros / zone deck / artefacts ---------- */
-  .board-row{display:flex;align-items:center;gap:14px;padding:8px 14px;}
-  .board-row.enemy{flex-direction:row;}
-  .board-row.self{flex-direction:row;}
+  /* ---------- Nouvelle disposition : mana / héros / deck en coins séparés ---------- */
+  .board-row{display:flex;align-items:center;gap:14px;padding:8px 16px;position:relative;min-height:170px;}
 
-  .hero-zone{display:flex;align-items:flex-end;gap:8px;flex-shrink:0;background:var(--bg-panel);border-radius:14px;border:1px solid #2b2440;padding:10px;cursor:pointer;}
-  .board-row.enemy .hero-zone{flex-direction:row-reverse;} /* miroir : mana à droite du portrait côté J2 */
+  .mana-box{position:absolute;bottom:8px;width:44px;height:160px;border-radius:12px;background:#0b0a12;border:2px solid #3a3260;overflow:hidden;display:flex;flex-direction:column-reverse;align-items:center;padding-bottom:4px;z-index:6;}
+  .board-row.self .mana-box{left:16px;}
+  .board-row.enemy .mana-box{right:16px;}
+  .mana-box-region-thumb{width:36px;height:36px;border-radius:8px;background-size:cover;background-position:center;background-color:#241f38;border:1px solid var(--gold);flex-shrink:0;}
+  .mana-box-fill{display:flex;flex-direction:column-reverse;align-items:center;gap:3px;padding:5px 0;width:100%;}
+  .mana-box-dot{width:20px;height:20px;border-radius:50%;border:1.5px solid rgba(0,0,0,.5);flex-shrink:0;}
+  .mana-box-dot.filled{background:radial-gradient(circle at 35% 30%,#8fe0ff,#155a94);box-shadow:0 0 6px rgba(111,208,255,.75);}
+  .mana-box-dot.fragile{background:radial-gradient(circle at 35% 30%,#d8f4ff,var(--frost));box-shadow:0 0 6px rgba(79,179,217,.8);}
 
-  .mana-vertical-track{width:34px;height:150px;border-radius:10px;background:#0b0a12;border:1px solid #3a3260;position:relative;display:flex;flex-direction:column-reverse;overflow:hidden;flex-shrink:0;}
-  .mana-vertical-region-thumb{position:absolute;inset:0;background-size:cover;background-position:center;opacity:.55;}
-  .mana-vertical-fill{position:relative;display:flex;flex-direction:column-reverse;align-items:center;gap:3px;padding:4px 0;width:100%;}
-  .mana-vertical-dot{width:16px;height:16px;border-radius:50%;border:1.5px solid rgba(0,0,0,.5);flex-shrink:0;}
-  .mana-vertical-dot.filled{background:radial-gradient(circle at 35% 30%,#8fe0ff,#155a94);box-shadow:0 0 5px rgba(111,208,255,.7);}
-  .mana-vertical-dot.fragile{background:radial-gradient(circle at 35% 30%,#d8f4ff,var(--frost));box-shadow:0 0 5px rgba(79,179,217,.75);}
+  .hero-frame{position:absolute;bottom:8px;z-index:7;}
+  .board-row.self .hero-frame{left:72px;}
+  .board-row.enemy .hero-frame{right:72px;}
+  .hero-portrait-big{width:130px;height:130px;border-radius:50%;background:radial-gradient(circle at 35% 30%, var(--arcane), #2a1f55);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:700;font-size:40px;color:#fff;flex-shrink:0;border:4px solid var(--gold);position:relative;cursor:pointer;padding:0;}
+  .hero-portrait-big:hover{border-color:#fff;}
+  .hero-portrait-big.can-activate{border-color:#4a9d6b;box-shadow:0 0 14px rgba(74,157,107,.6);}
+  .hp-badge-big{position:absolute;bottom:-10px;right:-14px;min-width:44px;height:44px;padding:0 8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#e85858,#8a1f1f);border:3px solid #4a0f0f;color:#fff;font-family:'Cinzel',serif;font-weight:700;font-size:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,.65);z-index:2;pointer-events:none;}
 
-  .hero-portrait-big{width:120px;height:120px;border-radius:50%;background:radial-gradient(circle at 35% 30%, var(--arcane), #2a1f55);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:700;font-size:38px;color:#fff;flex-shrink:0;border:4px solid var(--gold);position:relative;}
-  .hp-badge-big{position:absolute;bottom:-10px;right:-14px;min-width:44px;height:44px;padding:0 8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#e85858,#8a1f1f);border:3px solid #4a0f0f;color:#fff;font-family:'Cinzel',serif;font-weight:700;font-size:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,.65);z-index:2;}
-
-  .deck-zone{display:flex;align-items:center;gap:10px;flex-shrink:0;background:var(--bg-panel);border-radius:14px;border:1px solid #2b2440;padding:10px;}
-  .board-row.enemy .deck-zone{flex-direction:row-reverse;}
-  .deck-back-visual{width:70px;height:98px;border-radius:8px;background:linear-gradient(135deg,#241f38,#171325);border:2px solid var(--gold);box-shadow:0 4px 10px rgba(0,0,0,.5);flex-shrink:0;}
-  .deck-counts{display:flex;flex-direction:column;gap:6px;}
+  .deck-zone{position:absolute;bottom:8px;display:flex;align-items:center;gap:12px;z-index:6;}
+  .board-row.self .deck-zone{right:16px;}
+  .board-row.enemy .deck-zone{left:16px;flex-direction:row-reverse;}
+  .deck-back-visual{width:118px;height:165px;border-radius:12px;background:linear-gradient(135deg,#241f38,#171325);border:3px solid var(--gold);box-shadow:0 6px 16px rgba(0,0,0,.55);flex-shrink:0;}
+  .deck-counts{display:flex;flex-direction:column;gap:8px;}
 
   .artifact-stack{display:flex;flex-direction:column;gap:6px;align-items:center;margin-top:8px;}
   .artifact-stack .relic-slot{width:60px;height:82px;}
@@ -430,8 +433,9 @@ body.targeting *{cursor:crosshair !important;}
       <div id="board-scroll-area">
         <div class="board-row enemy">
           <div class="deck-zone" id="deck-zone-p2"></div>
+          <div class="mana-box" id="mana-box-p2"></div>
+          <div class="hero-frame" id="hero-frame-p2"></div>
           <div class="lane enemy" id="lane-p2"></div>
-          <div class="hero-zone" id="hero-zone-p2"></div>
         </div>
         <div class="board-divider">
           <div class="artifact-stack" id="artifacts-p2"></div>
@@ -440,7 +444,8 @@ body.targeting *{cursor:crosshair !important;}
           <div class="artifact-stack" id="artifacts-p1"></div>
         </div>
         <div class="board-row self">
-          <div class="hero-zone" id="hero-zone-p1"></div>
+          <div class="mana-box" id="mana-box-p1"></div>
+          <div class="hero-frame" id="hero-frame-p1"></div>
           <div class="lane self" id="lane-p1"></div>
           <div class="deck-zone" id="deck-zone-p1"></div>
         </div>
@@ -681,8 +686,10 @@ function cardEl(card, opts={}){
 
 function render(){
   if(!S) return;
-  renderHeroZone(MY_KEY, 'p1');
-  renderHeroZone(OPP_KEY, 'p2');
+  renderManaBox(MY_KEY, 'p1');
+  renderManaBox(OPP_KEY, 'p2');
+  renderHeroFrame(MY_KEY, 'p1');
+  renderHeroFrame(OPP_KEY, 'p2');
   renderDeckZone(MY_KEY, 'p1');
   renderDeckZone(OPP_KEY, 'p2');
   renderLane(MY_KEY, 'p1');
@@ -702,42 +709,50 @@ function renderGameOverOverlay(){
 }
 
 // key = camp réel côté serveur (p1/p2) ; slot = 'p1' (moi) ou 'p2' (adversaire)
-// — la zone héros contient la barre de mana verticale (illustration de région
-// en fond, empilement vers le haut à chaque mana gagné) et le portrait du
-// héros en grand avec ses PV. Survoler la zone montre l'aperçu du héros.
-function renderHeroZone(key, slot){
+// — boîte de mana dédiée : illustration de région en fond, empilement des
+// pastilles de mana vers le haut à mesure qu'on en gagne.
+function renderManaBox(key, slot){
   const p = S[key];
-  const el = document.getElementById(`hero-zone-${slot}`);
-  const hero = p.hero || {};
+  const el = document.getElementById(`mana-box-${slot}`);
   const region = p.region || {};
-  const heroName = hero.name || (slot==='p1' ? 'Moi' : 'Adversaire');
-  const heroPortraitStyle = hero.image ? `background-image:url('${hero.image.replace(/'/g,"")}');background-position:${hero.imagePosX??50}% ${hero.imagePosY??50}%;background-size:${(hero.imageZoom??100)>100?hero.imageZoom+'%':'cover'};` : '';
   const regionThumbStyle = region.image ? `background-image:url('${region.image.replace(/'/g,"")}');background-position:${region.imagePosX??50}% ${region.imagePosY??50}%;background-size:${(region.imageZoom??100)>100?region.imageZoom+'%':'cover'};` : '';
-
   const normalDots = Array.from({length:p.manaNormalMax}, (_,i)=>{
     const filled = i<p.manaNormal;
-    return `<span class="mana-vertical-dot ${filled?'filled':''}"></span>`;
+    return `<span class="mana-box-dot ${filled?'filled':''}"></span>`;
   }).join('');
-  const fragileDots = Array.from({length:p.manaFragile}, ()=>`<span class="mana-vertical-dot fragile"></span>`).join('');
+  const fragileDots = Array.from({length:p.manaFragile}, ()=>`<span class="mana-box-dot fragile"></span>`).join('');
+  el.title = region.name || 'Région';
+  el.innerHTML = `
+    <div class="mana-box-region-thumb" style="${regionThumbStyle}"></div>
+    <div class="mana-box-fill">${normalDots}${fragileDots}</div>
+  `;
+}
+
+// Cadre du héros : le portrait lui-même sert de bouton d'activation quand
+// le héros a un pouvoir activable. Survoler affiche son aperçu complet.
+function renderHeroFrame(key, slot){
+  const p = S[key];
+  const el = document.getElementById(`hero-frame-${slot}`);
+  const hero = p.hero || {};
+  const heroName = hero.name || (slot==='p1' ? 'Moi' : 'Adversaire');
+  const heroPortraitStyle = hero.image ? `background-image:url('${hero.image.replace(/'/g,"")}');background-position:${hero.imagePosX??50}% ${hero.imagePosY??50}%;background-size:${(hero.imageZoom??100)>100?hero.imageZoom+'%':'cover'};` : '';
+  const canActivate = slot==='p1' && S.active===MY_KEY && S.phase==='main' && !!hero.activeEffect;
 
   el.innerHTML = `
-    <div class="mana-vertical-track" title="${escapeHtmlGS(region.name||'Région')}">
-      <div class="mana-vertical-region-thumb" style="${regionThumbStyle}"></div>
-      <div class="mana-vertical-fill">${normalDots}${fragileDots}</div>
-    </div>
-    <div class="hero-portrait-big" id="hero-portrait-${slot}" style="${heroPortraitStyle}">${hero.image ? '' : (heroName[0]||'?')}<span class="hp-badge-big">${p.hp}</span></div>
+    <button class="hero-portrait-big ${canActivate?'can-activate':''}" id="hero-portrait-${slot}" style="${heroPortraitStyle}" ${canActivate?'':'disabled'}>
+      ${hero.image ? '' : (heroName[0]||'?')}
+      <span class="hp-badge-big">${p.hp}</span>
+    </button>
   `;
-  el.onmouseenter = (ev)=>showHeroPreview(hero, ev);
-  el.onmousemove = moveHeroPreview;
-  el.onmouseleave = hidePreview;
+  const btn = el.querySelector('.hero-portrait-big');
+  btn.onmouseenter = (ev)=>showHeroPreview(hero, ev);
+  btn.onmousemove = moveHeroPreview;
+  btn.onmouseleave = hidePreview;
+  if(canActivate) btn.onclick = uiActivateHeroPower;
+}
 
-  if(slot==='p1'){
-    const btn = document.createElement('button');
-    btn.className='power-btn';
-    btn.textContent = hero.activeText || 'Pouvoir (bientôt)';
-    btn.disabled = true; // pouvoirs de héros : lot capacités/déclencheurs
-    el.appendChild(btn);
-  }
+async function uiActivateHeroPower(){
+  debugLog('Pouvoir de héros : pas encore câblé (lot capacités/déclencheurs).', 'log-ok');
 }
 
 // La zone deck : visuel du dos de carte + nombre de cartes restantes +
