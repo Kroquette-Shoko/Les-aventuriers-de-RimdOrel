@@ -29,7 +29,7 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 #app{display:flex;height:100%;width:100%;min-height:0;}
 
 /* ---------- Board ---------- */
-#board{flex:1;position:relative;display:flex;flex-direction:column;padding:12px 16px 40px;gap:8px;min-width:0;min-height:0;}
+#board{flex:1;position:relative;display:flex;flex-direction:column;padding:12px 16px 190px;gap:8px;min-width:0;min-height:0;}
 #board-scroll-area{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;gap:8px;overflow-y:auto;overflow-x:hidden;padding-right:2px;}
 
 .hero-row{display:flex;flex-direction:column;gap:6px;padding:8px 14px;background:var(--bg-panel);border-radius:14px;border:1px solid #2b2440;max-width:400px;width:fit-content;flex-shrink:0;}
@@ -100,7 +100,7 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 @keyframes card-reveal-pop{0%{transform:scale(.7);opacity:0;}100%{transform:scale(1);opacity:1;}}
 
 /* ---------- Lanes ---------- */
-.lane{display:flex;gap:10px;justify-content:center;align-items:center;min-height:220px;padding:6px;background:radial-gradient(ellipse at center, #1c1730 0%, transparent 75%);border-radius:10px;flex-wrap:wrap;flex:1;margin:0 215px;}
+.lane{display:flex;gap:10px;justify-content:center;align-items:center;min-height:150px;padding:6px;background:radial-gradient(ellipse at center, #1c1730 0%, transparent 75%);border-radius:10px;flex-wrap:wrap;flex:1;margin:0 215px;}
 .lane.enemy{transform:scaleY(-1);}
 .lane.enemy .card-slot{transform:scaleY(-1);}
 .slot-empty{width:150px;height:204px;border:1.5px dashed #332c50;border-radius:11px;}
@@ -372,7 +372,7 @@ body.targeting *{cursor:crosshair !important;}
   body.action-busy #ai-debug-btn, body.action-busy .phase-btn{opacity:.6;pointer-events:none;cursor:wait;}
 
   /* ---------- Nouvelle disposition : mana / héros / deck en coins séparés ---------- */
-  .board-row{display:flex;align-items:center;gap:14px;padding:8px 16px;position:relative;min-height:170px;}
+  .board-row{display:flex;align-items:center;gap:14px;padding:8px 16px;position:relative;min-height:200px;}
 
   .mana-box{position:absolute;bottom:8px;width:44px;height:160px;border-radius:12px;background:#0b0a12;border:2px solid #3a3260;overflow:hidden;display:flex;flex-direction:column-reverse;align-items:center;padding-bottom:4px;z-index:6;}
   .board-row.self{margin-top:auto;}
@@ -922,6 +922,15 @@ function startCardDrag(ev, handIndex, sourceEl){
   document.addEventListener('pointerup', onCardDragEnd);
 }
 
+function isOverDropZone(ev){
+  const zone = document.getElementById('lane-p1');
+  const zoneRect = zone.getBoundingClientRect();
+  // la zone valide s'étend du haut de la voie de combat jusqu'en bas de
+  // l'écran (donc jusqu'à la main) — pas besoin de viser précisément la
+  // voie elle-même, un petit geste vers le haut depuis la main suffit.
+  return ev.clientX>=zoneRect.left && ev.clientX<=zoneRect.right && ev.clientY>=zoneRect.top;
+}
+
 function onCardDragMove(ev){
   if(!DRAG_STATE) return;
   const { ghost, offsetX, offsetY } = DRAG_STATE;
@@ -929,8 +938,7 @@ function onCardDragMove(ev){
   ghost.style.top = (ev.clientY - offsetY) + 'px';
 
   const zone = document.getElementById('lane-p1');
-  const zoneRect = zone.getBoundingClientRect();
-  const over = ev.clientX>=zoneRect.left && ev.clientX<=zoneRect.right && ev.clientY>=zoneRect.top && ev.clientY<=zoneRect.bottom;
+  const over = isOverDropZone(ev);
   zone.classList.toggle('drop-target', over);
 }
 
@@ -938,8 +946,7 @@ function onCardDragEnd(ev){
   if(!DRAG_STATE) return;
   const { handIndex, ghost, sourceEl } = DRAG_STATE;
   const zone = document.getElementById('lane-p1');
-  const zoneRect = zone.getBoundingClientRect();
-  const over = ev.clientX>=zoneRect.left && ev.clientX<=zoneRect.right && ev.clientY>=zoneRect.top && ev.clientY<=zoneRect.bottom;
+  const over = isOverDropZone(ev);
 
   zone.classList.remove('drop-target');
   ghost.remove();
