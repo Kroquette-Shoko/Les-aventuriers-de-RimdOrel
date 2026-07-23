@@ -349,7 +349,6 @@ body.targeting *{cursor:crosshair !important;}
 </head>
 <body>
 
-<div id="app-outer">
 <style>
   #setup-panel{background:var(--panel,#171325);border:1px solid #3a3260;border-radius:10px;padding:14px;margin:14px auto;max-width:600px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-family:'Inter',sans-serif;}
   #setup-panel input{background:#0b0a12;border:1px solid #3a3260;color:#efe6c8;border-radius:6px;padding:7px 10px;font-size:12.5px;}
@@ -365,6 +364,7 @@ body.targeting *{cursor:crosshair !important;}
   .log-error{color:#c23b3b;}
   .log-ok{color:#4a9d6b;}
   .ai-debug-btn{position:fixed;top:10px;right:10px;z-index:60;}
+  html,body{overflow:auto !important;height:auto !important;min-height:100%;}
 </style>
 
 <div id="setup-panel">
