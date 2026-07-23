@@ -875,6 +875,7 @@ function renderHand(){
         DRAGGED_HAND_INDEX = i;
         el2.classList.add('dragging');
         ev.dataTransfer.effectAllowed = 'move';
+        ev.dataTransfer.setData('text/plain', String(i)); // requis par la norme HTML5 (sinon Firefox refuse le survol)
       });
       el2.addEventListener('dragend', ()=>{
         el2.classList.remove('dragging');
@@ -911,68 +912,52 @@ function renderPhaseBar(){
   if(S.gameOver) return;
 
   if(S.phase==='mulligan'){
+    const btn = document.createElement('button');
+    btn.className = 'phase-btn';
     if(S.mulliganDone[MY_KEY]){
-      const btn = document.createElement('button');
-      btn.className = 'phase-btn';
       btn.textContent = "En attente de l'adversaire...";
       btn.disabled = true;
-      bar.appendChild(btn);
     } else {
-      const btn = document.createElement('button');
-      btn.className = 'phase-btn';
       btn.textContent = 'Garder ma main (mulligan)';
       btn.onclick = uiMulligan;
-      bar.appendChild(btn);
     }
+    bar.appendChild(btn);
     return;
   }
 
   const myTurn = S.active===MY_KEY;
-  const canEndTurn = myTurn && S.phase==='main' && !UI.selectingAttackers;
+  const me = S[MY_KEY];
+  const btn = document.createElement('button');
+  btn.className = 'phase-btn';
 
   if(!myTurn){
     if(S.phase==='declareBlockersMe'){
-      const btn = document.createElement('button');
-      btn.className = 'phase-btn';
       btn.textContent = 'Passer (fin du blocage)';
       btn.onclick = uiFinishBlocking;
-      bar.appendChild(btn);
+    } else {
+      btn.textContent = 'Tour adverse';
+      btn.disabled = true;
     }
-  } else if(S.phase==='main' && UI.selectingAttackers){
-    const confirm = document.createElement('button');
-    confirm.className = 'phase-btn';
-    confirm.textContent = UI.selectedAttackers.length ? `Valider ${UI.selectedAttackers.length} attaquant(s)` : 'Passer (aucun attaquant)';
-    confirm.onclick = uiConfirmAttackers;
-    bar.appendChild(confirm);
-
+  } else if(S.phase==='declareBlockersMe'){
+    btn.textContent = "En attente du blocage adverse...";
+    btn.disabled = true;
+  } else if(UI.selectingAttackers){
+    btn.textContent = UI.selectedAttackers.length ? `Valider ${UI.selectedAttackers.length} attaquant(s)` : "Passer l'attaque";
+    btn.onclick = uiConfirmAttackers;
     const cancel = document.createElement('button');
     cancel.className = 'phase-btn secondary small';
     cancel.textContent = 'Annuler';
     cancel.onclick = ()=>{ UI.selectingAttackers = false; UI.selectedAttackers = []; render(); };
     bar.appendChild(cancel);
-  } else if(myTurn && S.phase==='main'){
-    const atk = document.createElement('button');
-    atk.className = 'phase-btn';
-    atk.textContent = '⚔ Passer au combat';
-    atk.onclick = ()=>{ UI.selectingAttackers = true; UI.selectedAttackers = []; render(); };
-    bar.appendChild(atk);
-  } else if(myTurn && S.phase==='declareBlockersMe'){
-    const btn = document.createElement('button');
-    btn.className = 'phase-btn';
-    btn.textContent = "En attente du blocage adverse...";
-    btn.disabled = true;
-    bar.appendChild(btn);
+  } else if(S.phase==='main' && !me.attackPhaseDone){
+    btn.textContent = '⚔ Passer au combat';
+    btn.onclick = ()=>{ UI.selectingAttackers = true; UI.selectedAttackers = []; render(); };
+  } else if(S.phase==='main' && me.attackPhaseDone){
+    btn.textContent = 'Fin de tour';
+    btn.onclick = uiEndTurn;
   }
 
-  // Le bouton "Finir le tour" reste toujours visible — grisé et non
-  // cliquable quand ce n'est pas le moment, plutôt que de disparaître ou
-  // d'être remplacé par un autre libellé.
-  const end = document.createElement('button');
-  end.className = 'phase-btn secondary small';
-  end.textContent = 'Finir le tour';
-  end.disabled = !canEndTurn;
-  if(canEndTurn) end.onclick = uiEndTurn;
-  bar.appendChild(end);
+  bar.appendChild(btn);
 }
 
 // ---------------- Aperçu du héros au survol ----------------
