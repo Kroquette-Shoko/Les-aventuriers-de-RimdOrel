@@ -264,7 +264,7 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .card-rarity-gem.rarity-Mythique{background:var(--gold);color:var(--gold);}
 .charges{color:var(--frost);font-size:11px;font-weight:700;position:absolute;bottom:5px;right:6px;z-index:2;}
 
-.hand-row{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:9px;justify-content:center;padding:55px 14px 6px;pointer-events:none;scrollbar-width:none;background:transparent !important;box-shadow:none;border:none;}
+.hand-row{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:9px;justify-content:center;padding:55px 14px 6px;pointer-events:auto;scrollbar-width:none;background:transparent !important;box-shadow:none;border:none;transform:translateY(136px);transition:transform .22s ease;}
 .hand-row .card{pointer-events:auto;}
 .hand-row::-webkit-scrollbar{height:0;width:0;background:transparent;}
 .hand-card-slot{pointer-events:auto;}
@@ -610,6 +610,7 @@ function afterConnected(code){
   document.getElementById('setup-panel').style.display = 'none';
   document.getElementById('app-outer').classList.add('show');
   document.getElementById('ai-debug-btn').style.display = 'block';
+  setupHandHoverReveal();
   MY_KEY = GS_ROLE === 'p2' ? 'p2' : 'p1';
   OPP_KEY = MY_KEY === 'p1' ? 'p2' : 'p1';
   gsConnect(onStateUpdate, onChatMessage);
@@ -886,24 +887,10 @@ function renderHand(){
     const canPlay = myTurn && S.phase==='main' && affordable && !UI.selectingAttackers;
     const el2 = cardEl(card, {});
     el2.classList.add('hand-card');
-    el2.style.transition = 'transform .18s ease, opacity .18s ease';
-    if(!myTurn){
-      el2.style.transform = 'scale(.55) translateY(50%)';
-      el2.style.opacity = '.7';
-    }
-    if(!canPlay) el2.style.opacity = (el2.style.opacity==='.7' ? '.4' : '.5');
-    el2.onmouseenter = (ev)=>{
-      if(!myTurn) el2.style.transform = 'scale(.68) translateY(38%)';
-      else el2.style.transform = 'translateY(-22px) scale(1.05)';
-      el2.style.zIndex = '5';
-      showHeroPreview(card, ev);
-    };
+    if(!canPlay) el2.style.opacity = '.5';
+    el2.onmouseenter = (ev)=>showHeroPreview(card, ev);
     el2.onmousemove = moveHeroPreview;
-    el2.onmouseleave = ()=>{
-      el2.style.transform = myTurn ? '' : 'scale(.55) translateY(50%)';
-      el2.style.zIndex = '';
-      hidePreview();
-    };
+    el2.onmouseleave = hidePreview;
     if(canPlay){
       el2.style.cursor = 'grab';
       el2.style.touchAction = 'none';
@@ -911,6 +898,15 @@ function renderHand(){
     }
     el.appendChild(el2);
   });
+}
+
+// La main entière glisse hors de l'écran, ne laissant dépasser qu'un tiers
+// du haut des cartes — un survol de la zone la fait remonter entièrement.
+// La taille des cartes ne change jamais, seule leur position verticale bouge.
+function setupHandHoverReveal(){
+  const el = document.getElementById('hand-p1');
+  el.addEventListener('mouseenter', ()=>{ el.style.transform = 'translateY(0)'; });
+  el.addEventListener('mouseleave', ()=>{ if(!DRAG_STATE) el.style.transform = ''; });
 }
 
 // ---------------- Glisser-déposer "fait maison" (événements de pointeur) ----------------
