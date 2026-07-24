@@ -29,8 +29,8 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 #app{display:flex;height:100%;width:100%;min-height:0;}
 
 /* ---------- Board ---------- */
-#board{flex:1;position:relative;display:flex;flex-direction:column;padding:12px 16px 130px;gap:8px;min-width:0;min-height:0;background:none;}
-#board-scroll-area{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;gap:8px;overflow-y:auto;overflow-x:hidden;padding-right:2px;}
+#board{flex:1;position:relative;display:flex;flex-direction:column;padding:12px 16px 100px;gap:6px;min-width:0;min-height:0;background:none;}
+#board-scroll-area{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;gap:4px;overflow-y:auto;overflow-x:hidden;padding-right:2px;}
 
 .hero-row{display:flex;flex-direction:column;gap:6px;padding:8px 14px;background:var(--bg-panel);border-radius:14px;border:1px solid #2b2440;max-width:400px;width:fit-content;flex-shrink:0;}
 .draw-anim-card{
@@ -100,7 +100,7 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 @keyframes card-reveal-pop{0%{transform:scale(.7);opacity:0;}100%{transform:scale(1);opacity:1;}}
 
 /* ---------- Lanes ---------- */
-.lane{display:flex;gap:10px;justify-content:center;align-items:center;min-height:100px;padding:6px;background:radial-gradient(ellipse at center, #1c1730 0%, transparent 75%);border-radius:10px;flex-wrap:wrap;margin:0 220px;}
+.lane{display:flex;gap:10px;justify-content:center;align-items:center;min-height:80px;padding:6px;background:radial-gradient(ellipse at center, #1c1730 0%, transparent 75%);border-radius:10px;flex-wrap:wrap;margin:0 220px;}
 .lane.enemy{transform:scaleY(-1);}
 .lane.enemy .card-slot{transform:scaleY(-1);}
 .slot-empty{width:150px;height:204px;border:1.5px dashed #332c50;border-radius:11px;}
@@ -367,16 +367,12 @@ body.targeting *{cursor:crosshair !important;}
   .log-ok{color:#4a9d6b;}
   .ai-debug-btn{position:fixed;top:10px;right:10px;z-index:60;}
   html,body{overflow:auto !important;height:auto !important;min-height:100%;}
-  .hand-row .hand-card{transition:transform .18s ease, opacity .18s ease;}
-  .hand-row:not(.my-turn) .hand-card{transform:scale(.62) translateY(46%);opacity:.75;}
-  .hand-row:not(.my-turn) .hand-card:hover{transform:scale(.72) translateY(38%);opacity:1;}
-  .hand-row.my-turn .hand-card:hover{transform:translateY(-22px) scale(1.05);z-index:5;}
   .card.dragging{opacity:.4;}
   .lane.drop-target{outline:3px dashed var(--gold);outline-offset:-4px;background:rgba(212,175,55,.08);}
   body.action-busy #ai-debug-btn, body.action-busy .phase-btn{opacity:.6;pointer-events:none;cursor:wait;}
 
   /* ---------- Nouvelle disposition : mana / héros / deck en coins séparés ---------- */
-  .board-row{display:flex;align-items:center;gap:14px;padding:8px 16px;position:relative;min-height:220px;}
+  .board-row{display:flex;align-items:center;gap:14px;padding:8px 16px;position:relative;min-height:195px;}
 
   .mana-box{position:absolute;bottom:8px;width:44px;height:160px;border-radius:12px;background:#0b0a12;border:2px solid #3a3260;overflow:hidden;display:flex;flex-direction:column-reverse;align-items:center;padding-bottom:4px;z-index:6;}
   .board-row.self{margin-top:auto;}
@@ -403,7 +399,9 @@ body.targeting *{cursor:crosshair !important;}
   .deck-back-visual{width:118px;height:165px;border-radius:12px;background:linear-gradient(135deg,#241f38,#171325);border:3px solid var(--gold);box-shadow:0 6px 16px rgba(0,0,0,.55);flex-shrink:0;}
   .deck-counts{display:flex;flex-direction:column;gap:8px;}
 
-  .artifact-stack{display:flex;flex-direction:column;gap:8px;align-items:center;justify-content:center;}
+  .artifact-stack{position:absolute;display:flex;flex-direction:row;gap:8px;align-items:center;}
+  .board-row.self .artifact-stack{right:158px;bottom:32px;}
+  .board-row.enemy .artifact-stack{left:158px;top:26px;}
   .artifact-stack .relic-slot{width:60px;height:82px;}
   .relic-slot-empty{border:2px dashed #4a4270;border-radius:8px;background:rgba(11,10,18,.4);}
   .relic-slot-empty.drop-target{border-color:var(--gold);background:rgba(212,175,55,.12);}
@@ -444,12 +442,12 @@ body.targeting *{cursor:crosshair !important;}
       <div id="board-scroll-area">
         <div class="board-row enemy">
           <div class="deck-zone" id="deck-zone-p2"></div>
+          <div class="artifact-stack" id="artifacts-p2"></div>
           <div class="mana-box" id="mana-box-p2"></div>
           <div class="hero-frame" id="hero-frame-p2"></div>
         </div>
         <div class="lane enemy" id="lane-p2"></div>
         <div class="board-divider">
-          <div class="artifact-stack" id="artifacts-p2"></div>
           <div class="divider-line"></div>
           <div class="phase-bar-wrap">
             <div class="menu-toggles-row">
@@ -466,12 +464,12 @@ body.targeting *{cursor:crosshair !important;}
             </div>
             <div class="phase-bar" id="phase-bar"></div>
           </div>
-          <div class="artifact-stack" id="artifacts-p1"></div>
         </div>
         <div class="lane self" id="lane-p1"></div>
         <div class="board-row self">
           <div class="mana-box" id="mana-box-p1"></div>
           <div class="hero-frame" id="hero-frame-p1"></div>
+          <div class="artifact-stack" id="artifacts-p1"></div>
           <div class="deck-zone" id="deck-zone-p1"></div>
         </div>
       </div>
@@ -883,16 +881,29 @@ function renderHand(){
   el.innerHTML = '';
   const p = S[MY_KEY];
   const myTurn = S.active===MY_KEY;
-  el.classList.toggle('my-turn', myTurn);
   (p.hand||[]).forEach((card, i)=>{
     const affordable = (card.cost||0) <= (p.manaNormal + p.manaFragile);
     const canPlay = myTurn && S.phase==='main' && affordable && !UI.selectingAttackers;
     const el2 = cardEl(card, {});
     el2.classList.add('hand-card');
-    if(!canPlay) el2.style.opacity = '.5';
-    el2.onmouseenter = (ev)=>showHeroPreview(card, ev);
+    el2.style.transition = 'transform .18s ease, opacity .18s ease';
+    if(!myTurn){
+      el2.style.transform = 'scale(.55) translateY(50%)';
+      el2.style.opacity = '.7';
+    }
+    if(!canPlay) el2.style.opacity = (el2.style.opacity==='.7' ? '.4' : '.5');
+    el2.onmouseenter = (ev)=>{
+      if(!myTurn) el2.style.transform = 'scale(.68) translateY(38%)';
+      else el2.style.transform = 'translateY(-22px) scale(1.05)';
+      el2.style.zIndex = '5';
+      showHeroPreview(card, ev);
+    };
     el2.onmousemove = moveHeroPreview;
-    el2.onmouseleave = hidePreview;
+    el2.onmouseleave = ()=>{
+      el2.style.transform = myTurn ? '' : 'scale(.55) translateY(50%)';
+      el2.style.zIndex = '';
+      hidePreview();
+    };
     if(canPlay){
       el2.style.cursor = 'grab';
       el2.style.touchAction = 'none';
