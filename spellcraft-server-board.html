@@ -372,7 +372,7 @@ body.targeting *{cursor:crosshair !important;}
   body.action-busy #ai-debug-btn, body.action-busy .phase-btn{opacity:.6;pointer-events:none;cursor:wait;}
 
   /* ---------- Nouvelle disposition : mana / héros / deck en coins séparés ---------- */
-  .board-row{display:flex;align-items:center;gap:14px;padding:8px 16px;position:relative;min-height:195px;}
+  .board-row{display:flex;align-items:center;gap:14px;padding:8px 16px;position:relative;min-height:340px;}
 
   .mana-box{position:absolute;bottom:8px;width:44px;height:160px;border-radius:12px;background:#0b0a12;border:2px solid #3a3260;overflow:hidden;display:flex;flex-direction:column-reverse;align-items:center;padding-bottom:4px;z-index:6;}
   .board-row.self{margin-top:auto;}
@@ -399,10 +399,10 @@ body.targeting *{cursor:crosshair !important;}
   .deck-back-visual{width:118px;height:165px;border-radius:12px;background:linear-gradient(135deg,#241f38,#171325);border:3px solid var(--gold);box-shadow:0 6px 16px rgba(0,0,0,.55);flex-shrink:0;}
   .deck-counts{display:flex;flex-direction:column;gap:8px;}
 
-  .artifact-stack{position:absolute;display:flex;flex-direction:row;gap:8px;align-items:center;}
-  .board-row.self .artifact-stack{right:158px;bottom:32px;}
-  .board-row.enemy .artifact-stack{left:158px;top:26px;}
-  .artifact-stack .relic-slot{width:60px;height:82px;}
+  .artifact-stack{position:absolute;display:flex;gap:6px;align-items:center;}
+  .board-row.self .artifact-stack{right:16px;bottom:195px;flex-direction:column;}
+  .board-row.enemy .artifact-stack{left:16px;top:195px;bottom:auto;flex-direction:column;}
+  .artifact-stack .relic-slot{width:48px;height:66px;}
   .relic-slot-empty{border:2px dashed #4a4270;border-radius:8px;background:rgba(11,10,18,.4);}
   .relic-slot-empty.drop-target{border-color:var(--gold);background:rgba(212,175,55,.12);}
   .artifact-stack .relic-slot .card{transform:scale(.4);transform-origin:top left;}
