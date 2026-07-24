@@ -1874,7 +1874,8 @@ function buildEffectRow(ab, eff){
       {key:'deck', label:'Deck (allié)'},
       {key:'discard', label:'Défausse (alliée)'},
       {key:'enemyDeck', label:'Deck adverse'},
-      {key:'enemyDiscard', label:'Défausse adverse'}
+      {key:'enemyDiscard', label:'Défausse adverse'},
+      {key:'elsewhere', label:"Ailleurs (n'importe quelle carte existante, possédée ou non)"}
     ], eff.discoverSource, v=>{ eff.discoverSource=v; onFormChange(); }));
     row.appendChild(makeSelectField('Critère', RETRIEVE_CRITERIA, eff.discoverCriteria, v=>{ eff.discoverCriteria=v; rebuildAbilitiesUI(); onFormChange(); }));
     const dCritDef = RETRIEVE_CRITERIA.find(c=>c.key===eff.discoverCriteria);
@@ -2339,7 +2340,8 @@ function discoverClause(eff){
     deck: 'de votre deck',
     discard: 'de votre défausse',
     enemyDeck: 'du deck adverse',
-    enemyDiscard: 'de la défausse adverse'
+    enemyDiscard: 'de la défausse adverse',
+    elsewhere: "de l'ensemble des cartes existantes"
   }[eff.discoverSource] || 'de votre deck';
   return `révélez 3 cartes ${sourceLabel} ${critPhrase} et choisissez-en une à ajouter à votre main${followUpClause(eff)}`;
 }
