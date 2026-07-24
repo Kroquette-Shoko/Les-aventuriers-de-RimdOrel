@@ -30,7 +30,8 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 
 /* ---------- Board ---------- */
 #board{flex:1;position:relative;display:flex;flex-direction:column;padding:12px 16px 100px;gap:6px;min-width:0;min-height:0;background:none;}
-#board-scroll-area{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;gap:4px;overflow-y:auto;overflow-x:hidden;padding-right:2px;}
+#board-scroll-area{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;gap:4px;overflow-y:auto;overflow-x:hidden;padding-right:2px;scrollbar-width:none;}
+#board-scroll-area::-webkit-scrollbar{width:0;height:0;background:transparent;}
 
 .hero-row{display:flex;flex-direction:column;gap:6px;padding:8px 14px;background:var(--bg-panel);border-radius:14px;border:1px solid #2b2440;max-width:400px;width:fit-content;flex-shrink:0;}
 .draw-anim-card{
@@ -264,7 +265,7 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .card-rarity-gem.rarity-Mythique{background:var(--gold);color:var(--gold);}
 .charges{color:var(--frost);font-size:11px;font-weight:700;position:absolute;bottom:5px;right:6px;z-index:2;}
 
-.hand-row{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:9px;justify-content:center;padding:55px 14px 6px;pointer-events:auto;scrollbar-width:none;background:transparent !important;box-shadow:none;border:none;transform:translateY(136px);transition:transform .22s ease;}
+.hand-row{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:9px;justify-content:center;padding:55px 14px 6px;pointer-events:none;scrollbar-width:none;background:transparent !important;box-shadow:none;border:none;transform:translateY(136px);transition:transform .22s ease;}
 .hand-row .card{pointer-events:auto;}
 .hand-row::-webkit-scrollbar{height:0;width:0;background:transparent;}
 .hand-card-slot{pointer-events:auto;}
@@ -366,7 +367,9 @@ body.targeting *{cursor:crosshair !important;}
   .log-error{color:#c23b3b;}
   .log-ok{color:#4a9d6b;}
   .ai-debug-btn{position:fixed;top:10px;right:10px;z-index:60;}
-  html,body{overflow:auto !important;height:auto !important;min-height:100%;}
+  html,body{overflow:hidden !important;}
+  #board-scroll-area{overflow:hidden !important;}
+  html::-webkit-scrollbar, body::-webkit-scrollbar{width:0;height:0;background:transparent;}
   .card.dragging{opacity:.4;}
   .lane.drop-target{outline:3px dashed var(--gold);outline-offset:-4px;background:rgba(212,175,55,.08);}
   body.action-busy #ai-debug-btn, body.action-busy .phase-btn{opacity:.6;pointer-events:none;cursor:wait;}
@@ -610,7 +613,6 @@ function afterConnected(code){
   document.getElementById('setup-panel').style.display = 'none';
   document.getElementById('app-outer').classList.add('show');
   document.getElementById('ai-debug-btn').style.display = 'block';
-  setupHandHoverReveal();
   MY_KEY = GS_ROLE === 'p2' ? 'p2' : 'p1';
   OPP_KEY = MY_KEY === 'p1' ? 'p2' : 'p1';
   gsConnect(onStateUpdate, onChatMessage);
@@ -718,7 +720,28 @@ function render(){
   renderHand();
   renderPhaseBar();
   renderGameOverOverlay();
+  fitBoardToViewport();
 }
+
+// Le plateau a une hauteur "naturelle" fixe (calculée pour être lisible),
+// mais on la réduit (jamais on ne l'agrandit) pour qu'elle tienne toujours
+// entièrement dans la fenêtre — jamais de barre de défilement.
+function fitBoardToViewport(){
+  const scrollArea = document.getElementById('board-scroll-area');
+  const boardEl = document.getElementById('board');
+  if(!scrollArea || !boardEl) return;
+  scrollArea.style.transform = '';
+  scrollArea.style.transformOrigin = 'top center';
+  requestAnimationFrame(()=>{
+    const available = boardEl.clientHeight;
+    const needed = scrollArea.scrollHeight;
+    if(needed > available && available > 0){
+      const scale = Math.max(0.5, available / needed);
+      scrollArea.style.transform = `scale(${scale})`;
+    }
+  });
+}
+window.addEventListener('resize', ()=>{ if(S) fitBoardToViewport(); });
 
 function renderGameOverOverlay(){
   const overlay = document.getElementById('overlay');
@@ -888,9 +911,9 @@ function renderHand(){
     const el2 = cardEl(card, {});
     el2.classList.add('hand-card');
     if(!canPlay) el2.style.opacity = '.5';
-    el2.onmouseenter = (ev)=>showHeroPreview(card, ev);
-    el2.onmousemove = moveHeroPreview;
-    el2.onmouseleave = hidePreview;
+    el2.addEventListener('mouseenter', (ev)=>{ revealHand(); showHeroPreview(card, ev); });
+    el2.addEventListener('mousemove', moveHeroPreview);
+    el2.addEventListener('mouseleave', ()=>{ scheduleHideHand(); hidePreview(); });
     if(canPlay){
       el2.style.cursor = 'grab';
       el2.style.touchAction = 'none';
@@ -901,12 +924,19 @@ function renderHand(){
 }
 
 // La main entière glisse hors de l'écran, ne laissant dépasser qu'un tiers
-// du haut des cartes — un survol de la zone la fait remonter entièrement.
-// La taille des cartes ne change jamais, seule leur position verticale bouge.
-function setupHandHoverReveal(){
-  const el = document.getElementById('hand-p1');
-  el.addEventListener('mouseenter', ()=>{ el.style.transform = 'translateY(0)'; });
-  el.addEventListener('mouseleave', ()=>{ if(!DRAG_STATE) el.style.transform = ''; });
+// du haut des cartes — survoler une carte la fait toutes remonter. La zone
+// elle-même reste "pointer-events:none" (chaque carte gère son propre survol)
+// pour ne jamais bloquer les clics sur ce qu'il y a derrière (héros, défausse...).
+let HAND_HIDE_TIMER = null;
+function revealHand(){
+  if(HAND_HIDE_TIMER){ clearTimeout(HAND_HIDE_TIMER); HAND_HIDE_TIMER = null; }
+  document.getElementById('hand-p1').style.transform = 'translateY(0)';
+}
+function scheduleHideHand(){
+  if(HAND_HIDE_TIMER) clearTimeout(HAND_HIDE_TIMER);
+  HAND_HIDE_TIMER = setTimeout(()=>{
+    if(!DRAG_STATE) document.getElementById('hand-p1').style.transform = '';
+  }, 120);
 }
 
 // ---------------- Glisser-déposer "fait maison" (événements de pointeur) ----------------
