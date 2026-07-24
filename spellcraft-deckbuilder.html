@@ -95,9 +95,9 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 .binder-page-half.left{left:18%;width:29%;}
 .binder-page-half.right{left:52%;width:29%;}
 .binder-spine{display:none;}
-.binder-slot{width:100%;height:100%;display:flex;align-items:center;justify-content:center;aspect-ratio:300/423.2;}
-.binder-slot .ncard{cursor:pointer;transition:transform .12s;transform-origin:center center;width:100% !important;height:100% !important;}
-.binder-slot .ncard:hover{transform:translateY(-4%) scale(1.03);}
+.binder-slot{width:100%;height:100%;display:flex;align-items:center;justify-content:center;aspect-ratio:300/423.2;overflow:hidden;}
+.binder-slot .ncard{cursor:pointer;transition:transform .12s;transform-origin:center center;transform:scale(var(--slot-scale,.5));}
+.binder-slot .ncard:hover{transform:scale(calc(var(--slot-scale,.5) * 1.03));}
 .binder-slot-empty{width:100%;height:100%;}
 .card-add-badge{position:absolute;top:2px;right:2px;background:var(--green);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 5px;z-index:5;box-shadow:0 2px 4px rgba(0,0,0,.5);}
 .card-owned-badge{position:absolute;bottom:2px;left:2px;background:rgba(15,12,20,.75);border:1px solid var(--gold);color:var(--gold);font-size:8.5px;font-weight:700;border-radius:8px;padding:1px 5px;z-index:5;}
@@ -944,6 +944,21 @@ setInterval(()=>{
   document.querySelectorAll('.card.foil:not(:hover)').forEach(triggerFoilSweep);
 }, 10000);
 
+// Calcule le facteur d'échelle réel de l'emplacement (sa vraie largeur à
+// l'écran, pas une valeur devinée) et l'applique via transform:scale — ça
+// redimensionne vraiment tout, y compris le texte et les nombres, contrairement
+// à un simple changement de width/height qui ne touche pas au texte.
+function fitSlotScale(slotEl, cardEl){
+  requestAnimationFrame(()=>{
+    const slotWidth = slotEl.clientWidth;
+    if(!slotWidth) return;
+    const nativeWidth = 300; // largeur native de .ncard.n-big
+    const scale = slotWidth / nativeWidth;
+    slotEl.style.setProperty('--slot-scale', scale);
+    fitNewCard(cardEl);
+  });
+}
+
 function fitCardText(cardRootEl){
   const textEl = cardRootEl.querySelector('.card-text');
   if(!textEl) return;
@@ -1277,7 +1292,7 @@ function renderBinder(animate){
         const el = buildCardEl(card);
         el.onclick = ()=>onCardClick(card);
         slot.appendChild(el);
-        fitCardText(el);
+        fitSlotScale(slot, el);
         const count = deckCountFor(card.id);
         const isChosenHero = currentDeck && currentDeck.heroId===card.id;
         const isChosenRegion = currentDeck && currentDeck.regionId===card.id;
