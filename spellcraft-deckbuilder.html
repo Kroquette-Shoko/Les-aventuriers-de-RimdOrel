@@ -96,8 +96,8 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 .binder-page-half.right{left:52%;width:29%;}
 .binder-spine{display:none;}
 .binder-slot{width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
-.binder-slot .card{cursor:pointer;transition:transform .12s;width:100%;height:100%;}
-.binder-slot .card:hover{transform:translateY(-4%) scale(1.03);}
+.binder-slot .ncard{cursor:pointer;transition:transform .12s;transform-origin:center center;transform:scale(.5);}
+.binder-slot .ncard:hover{transform:translateY(-4%) scale(.515);}
 .binder-slot-empty{width:100%;height:100%;}
 .card-add-badge{position:absolute;top:2px;right:2px;background:var(--green);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 5px;z-index:5;box-shadow:0 2px 4px rgba(0,0,0,.5);}
 .card-owned-badge{position:absolute;bottom:2px;left:2px;background:rgba(15,12,20,.75);border:1px solid var(--gold);color:var(--gold);font-size:8.5px;font-weight:700;border-radius:8px;padding:1px 5px;z-index:5;}
@@ -133,6 +133,53 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 .card.class-Prima{--class-color:#228b22;}
 .card.class-Volonté{--class-color:#8b0000;}
 .card.class-Arcane{--class-color:#4682b4;}
+
+/* ---------- NOUVEAU TEMPLATE (frames illustrées) ---------- */
+.ncard{position:relative;flex-shrink:0;user-select:none;}
+.ncard img.nframe-layer{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5;}
+.ncard .nart-layer{position:absolute;background-size:cover;background-repeat:no-repeat;background-color:#3a3450;z-index:1;overflow:hidden;}
+.ncard .nstat-wrap{position:absolute;aspect-ratio:1/1;z-index:6;}
+.ncard .nstat-wrap img{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+.ncard .nstat-wrap .nstat-txt{position:absolute;inset:0;z-index:7;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.85);pointer-events:none;}
+.ncard .nname-wrap{position:absolute;z-index:7;display:flex;align-items:center;justify-content:center;}
+.ncard .nname-wrap img{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;}
+.ncard .nname-wrap .nname-text{position:relative;z-index:1;left:auto;right:auto;top:auto;transform:none;width:84%;max-width:84%;}
+.ncard .nname-text{position:absolute;z-index:8;text-align:center;font-family:'Cinzel',serif;font-weight:700;color:#2a1f10;text-shadow:0 1px 0 rgba(255,255,255,.25);pointer-events:none;overflow:hidden;white-space:nowrap;}
+.ncard .ncard-text{position:absolute;z-index:8;color:#2a2338;text-align:center;overflow:hidden;pointer-events:none;white-space:pre-wrap;}
+.ncard .nrarity-gem{position:absolute;z-index:8;aspect-ratio:231/297;}
+.ncard .ntypeline{position:absolute;left:50%;transform:translateX(-50%);z-index:9;text-align:center;color:#3a2f1f;font-style:italic;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ncard .nlegendary-gem{position:absolute;z-index:8;aspect-ratio:231/297;}
+
+.ncard.n-big{width:300px;height:423.2px;}
+.ncard.n-big .nart-layer{left:14.43%;top:10.23%;width:69.97%;height:38.17%;}
+.ncard.n-big .nstat-wrap.n-mana{left:-6.5%;top:-6.5%;width:25.5%;}
+.ncard.n-big .nstat-wrap.n-mana .nstat-txt{font-size:26px;}
+.ncard.n-big .nname-wrap{left:50%;top:45.3%;width:78%;aspect-ratio:663/202;transform:translateX(-50%);}
+.ncard.n-big .nname-wrap .nname-text{font-size:17px;transform:translateY(-8px);}
+.ncard.n-big .ncard-text{left:16%;top:62%;width:68%;height:27.5%;font-size:13.5px;line-height:1.32;padding-top:4px;}
+.ncard.n-big .nrarity-gem{left:50%;bottom:-1%;width:12%;transform:translateX(-50%);}
+.ncard.n-big .ntypeline{bottom:9.5%;width:72%;font-size:10.5px;}
+.ncard.n-big .nlegendary-gem{left:50%;top:-3%;width:12%;transform:translateX(-50%);}
+.ncard.n-big .nstat-wrap.n-atk{left:3%;bottom:1%;width:26%;}
+.ncard.n-big .nstat-wrap.n-atk .nstat-txt{font-size:27px;}
+.ncard.n-big .nstat-wrap.n-end{right:3%;bottom:1%;width:26%;}
+.ncard.n-big .nstat-wrap.n-end .nstat-txt{font-size:27px;}
+.ncard.n-big .nstat-wrap.n-art{right:6%;bottom:5%;width:15%;}
+.ncard.n-big .nstat-wrap.n-art .nstat-txt{font-size:15px;}
+
+.ncard.n-small{width:240px;height:240px;}
+.ncard.n-small .nart-layer{left:20.47%;top:16.28%;width:58.05%;height:44.63%;}
+.ncard.n-small .nstat-wrap.n-mana{left:-1%;top:-3.5%;width:22%;}
+.ncard.n-small .nstat-wrap.n-mana .nstat-txt{font-size:16px;}
+.ncard.n-small .nname-text{left:50%;top:62%;width:76%;transform:translateX(-50%);font-size:14px;height:20px;}
+.ncard.n-small .ncard-text{display:none;}
+.ncard.n-small .nrarity-gem{left:50%;bottom:-0.5%;width:11%;transform:translateX(-50%);}
+.ncard.n-small .ntypeline{bottom:15%;width:64%;font-size:8.5px;}
+.ncard.n-small .nlegendary-gem{left:50%;top:-1%;width:11%;transform:translateX(-50%);}
+.ncard.n-small .nstat-wrap.n-atk{left:6%;bottom:5%;width:22%;}
+.ncard.n-small .nstat-wrap.n-atk .nstat-txt{font-size:19.5px;}
+.ncard.n-small .nstat-wrap.n-end{right:6%;bottom:5%;width:22%;}
+
 
 .card-foil-layer{position:absolute;inset:0;border-radius:inherit;overflow:hidden;pointer-events:none;z-index:9;}
 .card-foil-layer::before{
@@ -230,7 +277,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 .empty-state{color:var(--parchment-dim);font-size:13px;font-style:italic;padding:12px 0;text-align:center;}
 
 #card-preview{position:fixed;z-index:80;pointer-events:none;display:none;opacity:0;transition:opacity .15s ease;}
-#card-preview .card{transform:scale(2.2);transform-origin:top left;box-shadow:0 16px 34px rgba(0,0,0,.65);}
+#card-preview .ncard{transform:scale(1.1);transform-origin:top left;box-shadow:0 16px 34px rgba(0,0,0,.65);}
 #card-preview.show{display:block;opacity:1;}
 
 #hero-profile{position:fixed;z-index:80;pointer-events:none;display:none;opacity:0;transition:opacity .15s ease;width:480px;background:linear-gradient(160deg,var(--bg-panel),#141021);border:1px solid var(--gold);border-radius:16px;padding:20px 24px;box-shadow:0 20px 50px rgba(0,0,0,.7);}
@@ -742,45 +789,150 @@ function matchesComparator(cardValue, mode, targetStr){
 /* ============================================================
    RENDU — carte visuelle
    ============================================================ */
-function buildCardEl(card, opts={}){
-  const el = document.createElement('div');
-  el.className = `card class-${card.class||'Arcane'}`;
-  if(card.classSecondary){
-    const CLASS_COLORS = {Aube:'#d4af37', Crépuscule:'#4b0082', Prima:'#228b22', Volonté:'#8b0000', Arcane:'#4682b4', Neutre:'#c0c0c0'};
-    const c1 = CLASS_COLORS[card.class]||'#c0c0c0', c2 = CLASS_COLORS[card.classSecondary]||'#c0c0c0';
-    el.style.borderImage = `linear-gradient(135deg, ${c1} 45%, ${c2} 55%) 1`;
-  }
-  const posX = card.imagePosX ?? 50, posY = card.imagePosY ?? 50, zoom = card.imageZoom ?? 100;
-  const sizeVal = zoom>100 ? zoom+'%' : 'cover';
-  const artStyle = card.image ? `background-image:url('${card.image.replace(/'/g,"")}');background-position:${posX}% ${posY}%;background-size:${sizeVal};` : '';
+
+/* ============================================================
+   NOUVEAU TEMPLATE — frames illustrées (big / small)
+   ============================================================ */
+
+/* ============================================================
+   NOUVEAU TEMPLATE — frames illustrées (big / small)
+   ============================================================ */
+// Chemins réels (utilisés lors du passage en fichiers, à la fin des itérations) :
+// images/card/big frame/big-{classe}.png · images/card/small frame/small-{classe}.png
+// images/card/icon/bubble/{mana|vie|attack|endurance|artefact|nom}.png
+// images/card/icon/rare/{basique|commun|rare|epique|mythique|legendaire}.png
+function ncardRealPath(size, slug){
+  const folder = size==='big' ? 'big%20frame' : 'small%20frame';
+  return `images/card/${folder}/${size}-${slug}.png`;
+}
+const NCLASS_TO_SLUG = {
+  'Aube':'aube', 'Crépuscule':'crepuscule', 'Volonté':'volonté',
+  'Prima':'prima', 'Arcane':'arcane', 'Neutre':'neutre'
+};
+const NRARITY_TO_SLUG = {
+  'Basique':'basique', 'Commune':'commun', 'Rare':'rare',
+  'Épique':'epique', 'Mythique':'mythique'
+};
+
+function nEl(tag, cls){ const e = document.createElement(tag); if(cls) e.className = cls; return e; }
+function nImg(src, cls){ const i = document.createElement('img'); i.src = src; if(cls) i.className = cls; return i; }
+
+function buildNewCardEl(card, size){
+  const root = nEl('div', `ncard n-${size}`);
+  const slug = NCLASS_TO_SLUG[card.class] || 'neutre';
   const isHero = card.type==='Héros';
   const isRegion = card.type==='Région';
   const hasMana = !isHero && !isRegion;
   const isCreature = card.type==='Créature';
-  const setInitial = card.set ? card.set.trim().charAt(0).toUpperCase() : '✦';
-  el.innerHTML = `
-    ${hasMana ? `<div class="card-mana">${card.cost ?? 0}</div>` : ''}
-    <div class="card-art" style="${artStyle}">
-      ${isHero ? `<div class="card-hero-hp">${card.hp ?? 0}</div>` : ''}
-      <div class="card-typeline">${escapeHtml(card.type||'')}${(card.subtypes&&card.subtypes.length) ? ' - '+escapeHtml(card.subtypes.join(', ')) : ''}</div>
-    </div>
-    <div class="card-divider"><div class="card-set-icon">${card.setLogo ? `<div class="card-set-logo-img" style="background-image:url('${card.setLogo.replace(/'/g,"")}')"></div>` : `<span>${escapeHtml(setInitial)}</span>`}</div></div>
-    <div class="card-body">
-      <div class="card-name">${escapeHtml(card.name || '')}</div>
-      <div class="card-text">${escapeHtml(card.text || '')}</div>
-    </div>
-    <div class="card-footer">
-      ${isCreature ? `<div class="card-atk">⚔${card.atk ?? 0}</div>` : `<div></div>`}
-      <div class="card-rarity-gem rarity-${card.rarity||'Commune'}"></div>
-      ${isCreature ? `<div class="card-hp">♥${card.hp ?? 0}</div>` : `<div></div>`}
-    </div>
-    ${card.foil ? `<div class="card-foil-layer"></div>` : ''}
-  `;
-  if(card.foil){
-    el.classList.add('foil');
-    el.addEventListener('mouseenter', ()=>triggerFoilSweep(el));
+  const isArtifact = card.type==='Artefact';
+
+  // Illustration (calibrage indépendant big/small)
+  const posX = size==='big' ? (card.imagePosX ?? 50) : (card.imagePosXSmall ?? 50);
+  const posY = size==='big' ? (card.imagePosY ?? 50) : (card.imagePosYSmall ?? 50);
+  const zoom = size==='big' ? (card.imageZoom ?? 100) : (card.imageZoomSmall ?? 100);
+  const art = nEl('div', 'nart-layer');
+  if(card.image){
+    art.style.backgroundImage = `url('${card.image.replace(/'/g,'')}')`;
+    art.style.backgroundPosition = `${posX}% ${posY}%`;
+    art.style.backgroundSize = zoom>100 ? zoom+'%' : 'cover';
   }
+  root.appendChild(art);
+
+  // Frame (par-dessus l'illustration, fenêtre transparente)
+  root.appendChild(nImg(ncardRealPath(size, slug), 'nframe-layer'));
+
+  // Mana
+  if(hasMana){
+    const w = nEl('div','nstat-wrap n-mana');
+    w.appendChild(nImg('images/card/icon/bubble/mana.png'));
+    const t = nEl('div','nstat-txt'); t.textContent = card.cost ?? 0;
+    w.appendChild(t);
+    root.appendChild(w);
+  }
+  // Force / endurance (créatures)
+  if(isCreature){
+    const wa = nEl('div','nstat-wrap n-atk');
+    wa.appendChild(nImg('images/card/icon/bubble/attack.png'));
+    const ta = nEl('div','nstat-txt'); ta.textContent = card.atk ?? 0;
+    wa.appendChild(ta);
+    root.appendChild(wa);
+
+    const we = nEl('div','nstat-wrap n-end');
+    we.appendChild(nImg('images/card/icon/bubble/endurance.png'));
+    const te = nEl('div','nstat-txt'); te.textContent = card.hp ?? 0;
+    we.appendChild(te);
+    root.appendChild(we);
+  }
+  // Charges (artefacts)
+  if(isArtifact){
+    const wf = nEl('div','nstat-wrap n-art');
+    wf.appendChild(nImg('images/card/icon/bubble/artefact.png'));
+    const t = nEl('div','nstat-txt'); t.textContent = (card.charges ?? 0)+'x';
+    wf.appendChild(t);
+    root.appendChild(wf);
+  }
+
+  // Bandeau de nom (big uniquement — ruban à part, wrapper pour un centrage vertical fiable)
+  if(size==='big'){
+    const nw = nEl('div','nname-wrap');
+    nw.appendChild(nImg('images/card/icon/bubble/nom.png'));
+    const nameEl = nEl('div','nname-text'); nameEl.textContent = card.name || '';
+    nw.appendChild(nameEl);
+    root.appendChild(nw);
+  } else {
+    const nameEl = nEl('div','nname-text'); nameEl.textContent = card.name || '';
+    root.appendChild(nameEl);
+  }
+
+  // Texte (big uniquement)
+  if(size==='big'){
+    const textEl = nEl('div','ncard-text'); textEl.textContent = card.text || '';
+    root.appendChild(textEl);
+  }
+
+  // Type / sous-types (juste au-dessus de la gemme de rareté)
+  if(card.subtypes && card.subtypes.length){
+    const tl = nEl('div','ntypeline'); tl.textContent = card.subtypes.join(' - ');
+    root.appendChild(tl);
+  }
+
+  // Rareté + super-type Légendaire
+  if(card.rarity && NRARITY_TO_SLUG[card.rarity]){
+    root.appendChild(nImg(`images/card/icon/rare/${NRARITY_TO_SLUG[card.rarity]}.png`, 'nrarity-gem'));
+  }
+  if(card.isLegendary){
+    root.appendChild(nImg('images/card/icon/rare/legendaire.png', 'nlegendary-gem'));
+  }
+
+  return root;
+}
+
+function fitBoxFont(el, minSize){
+  if(!el) return;
+  el.style.fontSize = '';
+  let size = parseFloat(getComputedStyle(el).fontSize);
+  const floor = minSize || 7;
+  let attempts = 0;
+  while(attempts < 26 && size > floor){
+    const overflowH = el.scrollHeight > el.clientHeight + 1;
+    const overflowW = el.scrollWidth > el.clientWidth + 1;
+    if(!overflowH && !overflowW) break;
+    size -= 0.5;
+    el.style.fontSize = size + 'px';
+    attempts++;
+  }
+}
+function fitNewCard(rootEl){
+  if(!rootEl) return;
+  fitBoxFont(rootEl.querySelector('.nname-text'), 6);
+  fitBoxFont(rootEl.querySelector('.ncard-text'), 7);
+}
+
+
+function buildCardEl(card, opts={}){
+  const el = buildNewCardEl(card, 'big');
   if(!opts.isPreview) attachHoverPreview(el, card);
+  requestAnimationFrame(()=>fitNewCard(el));
   return el;
 }
 function triggerFoilSweep(el){
