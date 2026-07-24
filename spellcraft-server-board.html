@@ -29,7 +29,7 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 #app{display:flex;height:100%;width:100%;min-height:0;}
 
 /* ---------- Board ---------- */
-#board{flex:1;position:relative;display:flex;flex-direction:column;padding:12px 16px 190px;gap:8px;min-width:0;min-height:0;}
+#board{flex:1;position:relative;display:flex;flex-direction:column;padding:12px 16px 130px;gap:8px;min-width:0;min-height:0;background:none;}
 #board-scroll-area{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;gap:8px;overflow-y:auto;overflow-x:hidden;padding-right:2px;}
 
 .hero-row{display:flex;flex-direction:column;gap:6px;padding:8px 14px;background:var(--bg-panel);border-radius:14px;border:1px solid #2b2440;max-width:400px;width:fit-content;flex-shrink:0;}
@@ -367,6 +367,10 @@ body.targeting *{cursor:crosshair !important;}
   .log-ok{color:#4a9d6b;}
   .ai-debug-btn{position:fixed;top:10px;right:10px;z-index:60;}
   html,body{overflow:auto !important;height:auto !important;min-height:100%;}
+  .hand-row .hand-card{transition:transform .18s ease, opacity .18s ease;}
+  .hand-row:not(.my-turn) .hand-card{transform:scale(.62) translateY(46%);opacity:.75;}
+  .hand-row:not(.my-turn) .hand-card:hover{transform:scale(.72) translateY(38%);opacity:1;}
+  .hand-row.my-turn .hand-card:hover{transform:translateY(-22px) scale(1.05);z-index:5;}
   .card.dragging{opacity:.4;}
   .lane.drop-target{outline:3px dashed var(--gold);outline-offset:-4px;background:rgba(212,175,55,.08);}
   body.action-busy #ai-debug-btn, body.action-busy .phase-btn{opacity:.6;pointer-events:none;cursor:wait;}
@@ -399,8 +403,10 @@ body.targeting *{cursor:crosshair !important;}
   .deck-back-visual{width:118px;height:165px;border-radius:12px;background:linear-gradient(135deg,#241f38,#171325);border:3px solid var(--gold);box-shadow:0 6px 16px rgba(0,0,0,.55);flex-shrink:0;}
   .deck-counts{display:flex;flex-direction:column;gap:8px;}
 
-  .artifact-stack{display:flex;flex-direction:column;gap:6px;align-items:center;margin-top:8px;}
+  .artifact-stack{display:flex;flex-direction:column;gap:8px;align-items:center;justify-content:center;}
   .artifact-stack .relic-slot{width:60px;height:82px;}
+  .relic-slot-empty{border:2px dashed #4a4270;border-radius:8px;background:rgba(11,10,18,.4);}
+  .relic-slot-empty.drop-target{border-color:var(--gold);background:rgba(212,175,55,.12);}
   .artifact-stack .relic-slot .card{transform:scale(.4);transform-origin:top left;}
 
   /* ---------- Menus repliables (journal / chat) ---------- */
@@ -788,12 +794,18 @@ function renderArtifactStack(key, slot){
   const el = document.getElementById(`artifacts-${slot}`);
   el.innerHTML = '';
   const p = S[key];
-  (p.relics||[]).forEach(r=>{
+  const relics = p.relics || [];
+  for(let i=0; i<2; i++){
     const wrap = document.createElement('div');
     wrap.className = 'relic-slot';
-    wrap.appendChild(cardEl(r));
+    if(relics[i]){
+      wrap.appendChild(cardEl(relics[i]));
+    } else {
+      wrap.classList.add('relic-slot-empty');
+      if(slot==='p1') wrap.dataset.artifactSlot = 'true';
+    }
     el.appendChild(wrap);
-  });
+  }
 }
 
 // key = camp réel serveur, slot = 'p1'/'p2' pour l'affichage (moi en bas, adversaire en haut)
@@ -871,10 +883,12 @@ function renderHand(){
   el.innerHTML = '';
   const p = S[MY_KEY];
   const myTurn = S.active===MY_KEY;
+  el.classList.toggle('my-turn', myTurn);
   (p.hand||[]).forEach((card, i)=>{
     const affordable = (card.cost||0) <= (p.manaNormal + p.manaFragile);
     const canPlay = myTurn && S.phase==='main' && affordable && !UI.selectingAttackers;
     const el2 = cardEl(card, {});
+    el2.classList.add('hand-card');
     if(!canPlay) el2.style.opacity = '.5';
     el2.onmouseenter = (ev)=>showHeroPreview(card, ev);
     el2.onmousemove = moveHeroPreview;
@@ -923,12 +937,20 @@ function startCardDrag(ev, handIndex, sourceEl){
 }
 
 function isOverDropZone(ev){
-  const zone = document.getElementById('lane-p1');
-  const zoneRect = zone.getBoundingClientRect();
+  const lane = document.getElementById('lane-p1');
+  const laneRect = lane.getBoundingClientRect();
   // la zone valide s'étend du haut de la voie de combat jusqu'en bas de
   // l'écran (donc jusqu'à la main) — pas besoin de viser précisément la
   // voie elle-même, un petit geste vers le haut depuis la main suffit.
-  return ev.clientX>=zoneRect.left && ev.clientX<=zoneRect.right && ev.clientY>=zoneRect.top;
+  if(ev.clientX>=laneRect.left && ev.clientX<=laneRect.right && ev.clientY>=laneRect.top) return true;
+
+  // les emplacements d'artefacts comptent aussi comme zone de dépôt valide
+  const slots = document.querySelectorAll('#artifacts-p1 .relic-slot');
+  for(const s of slots){
+    const r = s.getBoundingClientRect();
+    if(ev.clientX>=r.left && ev.clientX<=r.right && ev.clientY>=r.top && ev.clientY<=r.bottom) return true;
+  }
+  return false;
 }
 
 function onCardDragMove(ev){
