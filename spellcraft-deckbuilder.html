@@ -1793,8 +1793,8 @@ async function openCardBackModal(){
     el.innerHTML = ownedCardBacksCache.map(cb=>{
       const isEquipped = equippedCardBackId === cb.id;
       return `
-        <div style="width:120px;text-align:center;">
-          <div style="width:100%;height:80px;border-radius:8px;background:var(--bg-panel-3);margin-bottom:6px;${cb.image_url?`background-image:url('${cb.image_url}');background-size:cover;`:''}"></div>
+        <div style="width:150px;text-align:center;">
+          <div style="width:150px;height:211px;border-radius:11px;background:var(--bg-panel-3);margin-bottom:6px;border:4px solid var(--gold);box-shadow:0 4px 10px rgba(0,0,0,.5);${cb.image_url?`background-image:url('${cb.image_url}');background-size:contain;background-repeat:no-repeat;background-position:center;`:''}"></div>
           <div style="font-size:11.5px;font-weight:700;margin-bottom:6px;">${escapeHtml(cb.name)}</div>
           ${isEquipped
             ? `<button class="btn small" disabled style="background:var(--green);">Équipé ✓</button>`
