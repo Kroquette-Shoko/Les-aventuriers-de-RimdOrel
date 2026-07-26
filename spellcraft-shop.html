@@ -387,13 +387,12 @@ async function renderSingleShelf(){
   el.innerHTML = '';
   data.choices.forEach(c=>{
     const full = fullCards[c.id] || { name: c.name, rarity: c.rarity, class: c.class };
-    console.log('Carte du jour — données reçues :', c.id, full);
     const alreadyBought = boughtToday.has(c.id);
     const wrap = document.createElement('div');
     wrap.className = 'shop-item';
     wrap.style.width = '150px';
     const cardHolder = document.createElement('div');
-    cardHolder.style.cssText = 'display:flex;justify-content:center;';
+    cardHolder.style.cssText = 'display:flex;justify-content:center;width:100%;';
     try {
       cardHolder.appendChild(buildCardEl(full));
     } catch(e) {
