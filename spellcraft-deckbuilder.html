@@ -125,7 +125,6 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 .cardback-select-tile .cardback-visual{width:100%;aspect-ratio:300/423.2;border-radius:11px;border:4px solid var(--gold);box-shadow:0 4px 10px rgba(0,0,0,.5);background-color:var(--bg-panel-3);background-size:contain;background-repeat:no-repeat;background-position:center;transition:transform .15s, box-shadow .15s;}
 .cardback-select-tile:hover .cardback-visual{transform:translateY(-4%);box-shadow:0 8px 18px rgba(0,0,0,.6);}
 .cardback-select-tile.equipped .cardback-visual{border-color:var(--green);}
-.cardback-select-tile .cardback-name{font-size:11.5px;font-weight:700;text-align:center;}
 .cardback-select-tile .cardback-status{font-size:10px;color:var(--green);font-weight:700;}
 
 /* ---------- Card visual (identique aux autres outils) ---------- */
@@ -1031,6 +1030,32 @@ function findSpecificConjure(card){
   return null;
 }
 
+function showCardBackPreview(cb, x, y){
+  const box = document.getElementById('card-preview');
+  box.innerHTML = '';
+  box.style.display = 'flex';
+  box.style.flexDirection = 'column';
+  box.style.alignItems = 'center';
+  box.style.gap = '10px';
+
+  const cw = 155*2.2, ch = 217*2.2;
+  const visual = document.createElement('div');
+  visual.style.cssText = `width:${cw}px;height:${ch}px;border-radius:16px;border:6px solid var(--gold);box-shadow:0 16px 34px rgba(0,0,0,.65);background-color:var(--bg-panel-3);background-size:contain;background-repeat:no-repeat;background-position:center;${cb.image_url?`background-image:url('${cb.image_url.replace(/'/g,"")}');`:''}`;
+  box.appendChild(visual);
+
+  const name = document.createElement('div');
+  name.style.cssText = 'font-family:Cinzel,serif;font-weight:700;font-size:18px;color:var(--parchment);text-shadow:0 2px 4px rgba(0,0,0,.8);';
+  name.textContent = cb.name;
+  box.appendChild(name);
+
+  const w = cw, h = ch + 40;
+  let left = x + 24, top = y - h/2;
+  if(left + w > window.innerWidth - 12) left = x - 24 - w;
+  top = Math.max(12, Math.min(top, window.innerHeight - h - 12));
+  box.style.left = left+'px'; box.style.top = top+'px';
+  box.classList.add('show');
+}
+
 function showPreview(card, x, y){
   if(card.type==='Héros'){ showHeroProfile(card, x, y); return; }
   const box = document.getElementById('card-preview');
@@ -1206,9 +1231,10 @@ function renderCardBackGrid(animate){
         tile.className = 'cardback-select-tile' + (isEquipped ? ' equipped' : '');
         tile.innerHTML = `
           <div class="cardback-visual" style="${cb.image_url?`background-image:url('${cb.image_url.replace(/'/g,"")}');`:''}"></div>
-          <div class="cardback-name">${escapeHtml(cb.name)}</div>
           <div class="cardback-status">${isEquipped ? 'Équipé ✓' : ''}</div>
         `;
+        tile.addEventListener('mouseenter', (ev)=>showCardBackPreview(cb, ev.clientX, ev.clientY));
+        tile.addEventListener('mouseleave', hidePreview);
         if(!isEquipped) tile.onclick = async ()=>{
           const { data, error } = await sb.rpc('equip_card_back', { p_card_back_id: cb.id });
           if(error){ flashError('Erreur : ' + error.message); return; }
