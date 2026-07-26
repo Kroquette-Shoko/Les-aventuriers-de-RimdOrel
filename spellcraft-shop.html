@@ -835,6 +835,7 @@ async function showRevealModal(title, items){
     } else {
       const full = fullCards[it.card_id] || { name: it.name, rarity: it.rarity };
       full.foil = !!it.foil;
+      slot.className = 'reveal-card';
       slot.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:4px;';
       slot.appendChild(buildCardEl(full));
       if(it.foil){
