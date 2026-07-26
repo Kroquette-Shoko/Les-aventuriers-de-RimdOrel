@@ -752,6 +752,8 @@ const CONDITION_TYPES = [
   {key:'chance', label:'Vous avez X% de chance', hasValue:true, valueType:'number'},
   {key:'deckComposition', label:'Composition de votre deck de base', hasValue:false, isDeckComposition:true},
   {key:'manaNotFromRegion', label:'Le mana utilisé ne vient pas de votre région', hasValue:false},
+  {key:'playedCardCost', label:'Le coût de la carte jouée est [comparaison] X', hasValue:true, isPlayedCardCost:true},
+  {key:'playedCardType', label:'Le type de la carte jouée est [type] (si créature : sous-type)', hasValue:false, isPlayedCardType:true},
   {key:'custom', label:'⚠ Condition personnalisée (texte libre)', hasValue:true, valueType:'text'}
 ];
 
@@ -784,6 +786,7 @@ const EFFECT_TYPES = [
   {key:'discover', label:'Réveler (choisir 1 carte parmi 3)', needsTarget:false, needsValue:false, isDiscover:true},
   {key:'conjure', label:'Conjuration (carte hors deck)', needsTarget:false, needsValue:false, isConjure:true},
   {key:'sacrificeEffect', label:'Sacrifice une créature (effet, pas un coût)', needsTarget:true, needsValue:false},
+  {key:'counterCard', label:'Contre : met la carte jouée en défausse et annule son effet', needsTarget:false, needsValue:false},
   {key:'custom', label:'⚠ Effet personnalisé (texte libre)', needsTarget:false, needsValue:false}
 ];
 
@@ -838,6 +841,7 @@ const TARGET_CATEGORIES = [
 ];
 const TARGET_OWNERS = [
   {key:'self', label:'Cette carte'},
+  {key:'trigger', label:'La carte qui déclenche (source du trigger)'},
   {key:'ally', label:'Alliée / vous'},
   {key:'enemy', label:'Ennemie / adversaire'},
   {key:'any', label:'Peu importe'},
@@ -955,7 +959,8 @@ function blankCondition(){
     resourceType:'hp', compareMode:'atLeast', countThisTurnType:'creature', countThisTurnEvent:'died',
     subtypeCardType:'creature', subtypeZone:'board', subtype:'',
     statType:'force', statScope:'target', statCompareMode:'greater',
-    deckCompMode:'singleClassAny', deckCompClass:'Aube', deckCompValue:1 };
+    deckCompMode:'singleClassAny', deckCompClass:'Aube', deckCompValue:1,
+    playedCardCostMode:'greater', playedCardType:'Créature', playedCardSubtype:'' };
 }
 
 let abilities = [];
@@ -1476,7 +1481,7 @@ function rebuildAbilitiesUI(){
       if(ctDef && ctDef.isStatCompare){
         row.appendChild(makeCondSelectField(cond, 'statType', [['force','Force'],['endurance','Endurance']], 'force', 'Statistique'));
         row.appendChild(makeCondSelectField(cond, 'statScope', [['target','La cible de cette capacité'],['anyBoard','Une créature en jeu'],['anyHand','Une créature en main']], 'target', 'De quelle créature'));
-        row.appendChild(makeCondSelectField(cond, 'statCompareMode', [['greater','Supérieure'],['less','Inférieure'],['equal','Égale']], 'greater', 'Comparaison'));
+        row.appendChild(makeCondSelectField(cond, 'statCompareMode', [['greater','Supérieure ou égale'],['less','Inférieure ou égale'],['equal','Égale']], 'greater', 'Comparaison'));
       }
       if(ctDef && ctDef.isDeckComposition){
         row.appendChild(makeCondSelectField(cond, 'deckCompMode', [['singleClassSpecific','Uniquement une classe précise'],['singleClassAny','Une seule classe (peu importe laquelle)'],['maxClasses','Au plus N classes différentes'],['minPerClass','Au moins X cartes de chaque classe']], 'singleClassAny', 'Règle', true));
@@ -1533,6 +1538,22 @@ function rebuildAbilitiesUI(){
         modeSel.onchange=()=>{ cond.healthChangeMode=modeSel.value; onFormChange(); };
         modeField.appendChild(modeSel);
         row.appendChild(modeField);
+      }
+      if(ctDef && ctDef.isPlayedCardCost){
+        row.appendChild(makeCondSelectField(cond, 'playedCardCostMode', [['greater','Supérieur ou égal'],['less','Inférieur ou égal'],['equal','Égal']], 'greater', 'Comparaison'));
+      }
+      if(ctDef && ctDef.isPlayedCardType){
+        row.appendChild(makeCondSelectField(cond, 'playedCardType', [['Créature','Créature'],['Artefact','Artefact'],['Sortilège','Sortilège'],['Piège','Piège']], 'Créature', 'Type', true));
+        if((cond.playedCardType||'Créature')==='Créature'){
+          const subField = document.createElement('div');
+          subField.className='field';
+          subField.innerHTML = `<label class="mini-field">Sous-type (optionnel)</label>`;
+          const subInput = document.createElement('input');
+          subInput.type='text'; subInput.value=cond.playedCardSubtype||''; subInput.placeholder='Ex : Zombie (vide = peu importe)';
+          subInput.oninput=()=>{ cond.playedCardSubtype=subInput.value; onFormChange(); };
+          subField.appendChild(subInput);
+          row.appendChild(subField);
+        }
       }
       if(ctDef && ctDef.hasValue && ctDef.valueType==='text'){
         const valField = document.createElement('div');
@@ -2149,6 +2170,7 @@ function dynamicValueLabel(obj, dynFieldName, dv){
 
 function targetPhrase(eff){
   if(eff.targetOwner==='self') return 'cette carte';
+  if(eff.targetOwner==='trigger') return 'la carte qui a déclenché cet effet';
   if(eff.targetCategory==='hero'){
     if(eff.targetOwner==='random') return 'un héros tiré au hasard (allié ou ennemi)';
     return eff.targetOwner==='enemy' ? 'le héros ennemi' : 'votre héros';
@@ -2287,6 +2309,8 @@ function buildEffectClause(eff){
     }
     case 'sacrificeEffect':
       return `sacrifiez ${targetPhrase(eff)}`;
+    case 'counterCard':
+      return `mettez la carte jouée dans la défausse de son propriétaire et annulez son effet`;
     case 'stun':
       return `étourdissez ${targetPhrase(eff)} (elle ne peut ni attaquer ni bloquer lors de son prochain tour)`;
     case 'grantMana': {
@@ -2484,7 +2508,7 @@ function conditionClause(cond){
     case 'statCompare': {
       const statLabel = cond.statType==='endurance' ? 'endurance' : 'force';
       const scopeLabel = {target:'de la cible',anyBoard:"d'une créature en jeu",anyHand:"d'une créature en main"}[cond.statScope||'target'];
-      const compLabel = {greater:'supérieure',less:'inférieure',equal:'égale'}[cond.statCompareMode||'greater'];
+      const compLabel = {greater:'supérieure ou égale',less:'inférieure ou égale',equal:'égale'}[cond.statCompareMode||'greater'];
       return `la ${statLabel} ${scopeLabel} est ${compLabel} à ${condValueText(cond)}`;
     }
     case 'turnAtLeast': return `on est au tour ${condValueText(cond)} ou plus`;
@@ -2498,6 +2522,15 @@ function conditionClause(cond){
       }
     }
     case 'manaNotFromRegion': return `le mana utilisé pour la payer ne vient pas de votre région`;
+    case 'playedCardCost': {
+      const compLabel = {greater:'supérieur ou égal à',less:'inférieur ou égal à',equal:'égal à'}[cond.playedCardCostMode||'greater'];
+      return `le coût de la carte jouée est ${compLabel} ${condValueText(cond)}`;
+    }
+    case 'playedCardType': {
+      const typeLabel = cond.playedCardType||'Créature';
+      const subPhrase = (typeLabel==='Créature' && cond.playedCardSubtype) ? ` du sous-type ${cond.playedCardSubtype}` : '';
+      return `le type de la carte jouée est ${typeLabel}${subPhrase}`;
+    }
     case 'custom': return cond.value || 'condition personnalisée';
     default: return '';
   }

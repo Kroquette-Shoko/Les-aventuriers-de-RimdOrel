@@ -121,6 +121,12 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
   display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:1fr;gap:3%;
   padding:1%;justify-content:center;justify-items:center;
 }
+.cardback-select-tile{width:100%;height:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;}
+.cardback-select-tile .cardback-visual{width:100%;aspect-ratio:300/423.2;border-radius:11px;border:4px solid var(--gold);box-shadow:0 4px 10px rgba(0,0,0,.5);background-color:var(--bg-panel-3);background-size:contain;background-repeat:no-repeat;background-position:center;transition:transform .15s, box-shadow .15s;}
+.cardback-select-tile:hover .cardback-visual{transform:translateY(-4%);box-shadow:0 8px 18px rgba(0,0,0,.6);}
+.cardback-select-tile.equipped .cardback-visual{border-color:var(--green);}
+.cardback-select-tile .cardback-name{font-size:11.5px;font-weight:700;text-align:center;}
+.cardback-select-tile .cardback-status{font-size:10px;color:var(--green);font-weight:700;}
 
 /* ---------- Card visual (identique aux autres outils) ---------- */
 .card{
@@ -351,7 +357,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
     </div>
     <button class="btn" onclick="jumpToBinderStart()">📖 Voir les cartes</button>
     <button class="btn" onclick="jumpToHeroPage()">🦸 Voir les héros</button>
-    <button class="btn" onclick="openCardBackModal()">🎴 Voir les dos de carte</button>
+    <button class="btn" onclick="jumpToCardBackPage()">🎴 Voir les dos de carte</button>
     <select class="select-mini" id="sort-select" onchange="onFilterChange()">
       <option value="class-cost-name">Tri : Classe → Coût → Alphabétique</option>
       <option value="name-asc">Nom (A → Z)</option>
@@ -706,13 +712,26 @@ function jumpToHeroPage(){
   const heroList = collection.filter(c=>c.type==='Héros' && !(c.subtypes||[]).some(s=>s.trim().toLowerCase()==='conjuration'));
   if(heroList.length===0){ flashError("Aucun héros dans la collection pour l'instant."); return; }
   browsingHeroesStandalone = true;
+  browsingCardBacksStandalone = false;
+  currentPage = 0;
+  renderBinder('spread');
+}
+
+let browsingCardBacksStandalone = false;
+async function jumpToCardBackPage(){
+  if(browsingCardBacksStandalone){ flashSaved('Tu es déjà sur tes dos de cartes.'); return; }
+  await loadOwnedCardBacks();
+  if(ownedCardBacksCache.length===0){ flashError("Tu ne possèdes encore aucun dos de carte — direction la Boutique !"); return; }
+  browsingCardBacksStandalone = true;
+  browsingHeroesStandalone = false;
   currentPage = 0;
   renderBinder('spread');
 }
 
 function jumpToBinderStart(){
-  if(currentPage===0 && !browsingHeroesStandalone){ flashSaved('Déjà au début du classeur.'); return; }
+  if(currentPage===0 && !browsingHeroesStandalone && !browsingCardBacksStandalone){ flashSaved('Déjà au début du classeur.'); return; }
   browsingHeroesStandalone = false;
+  browsingCardBacksStandalone = false;
   currentPage = 0;
   renderBinder('spread');
 }
@@ -1162,6 +1181,84 @@ function hidePreview(){
    ============================================================ */
 const HERO_PAGE_SIZE = 3;
 
+function renderCardBackGrid(animate){
+  const filtered = filters.search ? ownedCardBacksCache.filter(cb=>cb.name.toLowerCase().includes(filters.search)) : ownedCardBacksCache;
+  const totalPages = Math.max(1, Math.ceil(filtered.length / SPREAD_SIZE));
+  if(currentPage >= totalPages) currentPage = totalPages - 1;
+  if(currentPage < 0) currentPage = 0;
+
+  document.getElementById('results-count').textContent = `${filtered.length} dos de carte`;
+  document.getElementById('page-indicator').textContent = `Feuillet ${currentPage+1} / ${totalPages}`;
+  document.getElementById('prev-page').disabled = currentPage<=0;
+  document.getElementById('next-page').disabled = currentPage>=totalPages-1;
+
+  const buildCardBackHalf = (backs, side)=>{
+    const half = document.createElement('div');
+    half.className = 'binder-page-half ' + side;
+    for(let i=0;i<PAGE_SIZE;i++){
+      const slot = document.createElement('div');
+      slot.className = 'binder-slot';
+      if(backs[i]){
+        const cb = backs[i];
+        const isEquipped = equippedCardBackId === cb.id;
+        slot.style.position = 'relative';
+        const tile = document.createElement('div');
+        tile.className = 'cardback-select-tile' + (isEquipped ? ' equipped' : '');
+        tile.innerHTML = `
+          <div class="cardback-visual" style="${cb.image_url?`background-image:url('${cb.image_url.replace(/'/g,"")}');`:''}"></div>
+          <div class="cardback-name">${escapeHtml(cb.name)}</div>
+          <div class="cardback-status">${isEquipped ? 'Équipé ✓' : ''}</div>
+        `;
+        if(!isEquipped) tile.onclick = async ()=>{
+          const { data, error } = await sb.rpc('equip_card_back', { p_card_back_id: cb.id });
+          if(error){ flashError('Erreur : ' + error.message); return; }
+          if(data.error){ flashError(data.error==='not-owned' ? "Tu ne possèdes pas ce dos de carte." : data.error); return; }
+          equippedCardBackId = cb.id;
+          renderCardBackGrid(false);
+        };
+        slot.appendChild(tile);
+      } else {
+        slot.innerHTML = '<div class="binder-slot-empty"></div>';
+      }
+      half.appendChild(slot);
+    }
+    return half;
+  };
+
+  const doRender = ()=>{
+    const pages = document.getElementById('binder-pages');
+    pages.innerHTML = '';
+    pages.className = '';
+    const start = currentPage*SPREAD_SIZE;
+    const spread = filtered.slice(start, start+SPREAD_SIZE);
+    if(spread.length===0){
+      pages.innerHTML = `<div class="empty-state">Tu ne possèdes encore aucun dos de carte — direction la Boutique !</div>`;
+      return;
+    }
+    pages.appendChild(buildCardBackHalf(spread.slice(0, PAGE_SIZE), 'left'));
+    pages.appendChild(buildCardBackHalf(spread.slice(PAGE_SIZE, SPREAD_SIZE), 'right'));
+  };
+
+  if(!animate){ doRender(); return; }
+  const pages = document.getElementById('binder-pages');
+  pages.style.transformOrigin = 'center center';
+  pages.style.transition = 'transform .2s ease-in, opacity .2s ease-in';
+  pages.style.transform = 'perspective(1400px) rotateY(-90deg)';
+  pages.style.opacity = '0.35';
+  setTimeout(()=>{
+    doRender();
+    const pages2 = document.getElementById('binder-pages');
+    pages2.style.transition = 'none';
+    pages2.style.transform = 'perspective(1400px) rotateY(90deg)';
+    pages2.style.opacity = '0.35';
+    requestAnimationFrame(()=>{
+      pages2.style.transition = 'transform .2s ease-out, opacity .2s ease-out';
+      pages2.style.transform = 'perspective(1400px) rotateY(0deg)';
+      pages2.style.opacity = '1';
+    });
+  }, 200);
+}
+
 function renderHeroSelectionGrid(animate){
   const heroes = collection.filter(c=>c.type==='Héros' && !(c.subtypes||[]).some(s=>s.trim().toLowerCase()==='conjuration'));
   const filtered = filters.search ? heroes.filter(h=>h.name.toLowerCase().includes(filters.search)) : heroes;
@@ -1214,6 +1311,7 @@ function renderHeroSelectionGrid(animate){
 }
 
 function renderBinder(animate){
+  if(browsingCardBacksStandalone){ renderCardBackGrid(animate); return; }
   if((currentDeck && deckBuildStep==='hero') || browsingHeroesStandalone){ renderHeroSelectionGrid(animate); return; }
   browsingHeroesStandalone = false;
   document.getElementById('binder-pages').className = '';
