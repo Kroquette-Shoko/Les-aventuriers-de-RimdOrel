@@ -387,13 +387,19 @@ async function renderSingleShelf(){
   el.innerHTML = '';
   data.choices.forEach(c=>{
     const full = fullCards[c.id] || { name: c.name, rarity: c.rarity, class: c.class };
+    console.log('Carte du jour — données reçues :', c.id, full);
     const alreadyBought = boughtToday.has(c.id);
     const wrap = document.createElement('div');
     wrap.className = 'shop-item';
     wrap.style.width = '150px';
     const cardHolder = document.createElement('div');
     cardHolder.style.cssText = 'display:flex;justify-content:center;';
-    cardHolder.appendChild(buildCardEl(full));
+    try {
+      cardHolder.appendChild(buildCardEl(full));
+    } catch(e) {
+      console.error('Erreur buildCardEl (cartes à l’unité) :', e, full);
+      cardHolder.innerHTML = `<div style="color:#e88;font-size:11px;padding:8px;border:1px dashed #e88;">Erreur carte : ${e.message}</div>`;
+    }
     wrap.appendChild(cardHolder);
     const label = document.createElement('div');
     label.className = 'shop-item-desc';
