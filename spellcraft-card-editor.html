@@ -976,6 +976,7 @@ function blankEffect(){
     conjureQuantityMode:'fixed', conjureQuantityDynamic:'thisAtk',
     exploreOwner:'own',
     discoverCriteria:'random', discoverValue:'2', discoverCardType:'Créature', discoverSubtype:'', discoverSource:'deck',
+    discoverSpecificNames:[],
     setStatsScope:'board', setStatsOwner:'ally', setStatsAtk:1, setStatsHp:1,
     setStatTarget:'force', setStatScope:'board', setStatOwner:'ally', setStatValue:2,
     setCostScope:'deck', setCostOwner:'ally', setCostValue:1,
@@ -2161,9 +2162,37 @@ function buildEffectRow(ab, eff){
       {key:'enemyDiscard', label:'Défausse adverse'},
       {key:'elsewhere', label:"Ailleurs (n'importe quelle carte existante, possédée ou non)"}
     ], eff.discoverSource, v=>{ eff.discoverSource=v; onFormChange(); }));
-    row.appendChild(makeSelectField('Critère', RETRIEVE_CRITERIA, eff.discoverCriteria, v=>{ eff.discoverCriteria=v; rebuildAbilitiesUI(); onFormChange(); }));
-    const dCritDef = RETRIEVE_CRITERIA.find(c=>c.key===eff.discoverCriteria);
-    if(dCritDef && dCritDef.hasValue){
+    const DISCOVER_CRITERIA = [...RETRIEVE_CRITERIA, {key:'specificList', label:'Liste de cartes précises (plusieurs, nommées)', hasValue:false}];
+    row.appendChild(makeSelectField('Critère', DISCOVER_CRITERIA, eff.discoverCriteria, v=>{ eff.discoverCriteria=v; rebuildAbilitiesUI(); onFormChange(); }));
+    const dCritDef = DISCOVER_CRITERIA.find(c=>c.key===eff.discoverCriteria);
+    if(eff.discoverCriteria==='specificList'){
+      const listBox = document.createElement('div');
+      listBox.className='field';
+      listBox.style.width='100%';
+      listBox.innerHTML = `<label class="mini-field">Options proposées (une carte précise par ligne — le joueur choisira parmi celles-ci)</label>`;
+      if(!eff.discoverSpecificNames || eff.discoverSpecificNames.length===0) eff.discoverSpecificNames=[''];
+      eff.discoverSpecificNames.forEach((name, i)=>{
+        const lineWrap = document.createElement('div');
+        lineWrap.style.cssText='display:flex;gap:6px;margin-bottom:6px;';
+        const inp = document.createElement('input');
+        inp.type='text'; inp.value=name||''; inp.placeholder='Ex : Golem de Pierre'; inp.style.flex='1';
+        inp.setAttribute('list','card-name-suggestions');
+        inp.oninput=()=>{ eff.discoverSpecificNames[i]=inp.value; onFormChange(); };
+        lineWrap.appendChild(inp);
+        if(eff.discoverSpecificNames.length>1){
+          const rm = document.createElement('button');
+          rm.className='mini-btn'; rm.textContent='✕';
+          rm.onclick=()=>{ eff.discoverSpecificNames.splice(i,1); rebuildAbilitiesUI(); onFormChange(); };
+          lineWrap.appendChild(rm);
+        }
+        listBox.appendChild(lineWrap);
+      });
+      const addBtn = document.createElement('button');
+      addBtn.className='add-row-btn'; addBtn.textContent='+ Ajouter une option';
+      addBtn.onclick=()=>{ eff.discoverSpecificNames.push(''); rebuildAbilitiesUI(); onFormChange(); };
+      listBox.appendChild(addBtn);
+      row.appendChild(listBox);
+    } else if(dCritDef && dCritDef.hasValue){
       if(dCritDef.valueType==='number'){
         const f = document.createElement('div');
         f.className='field'; f.innerHTML=`<label class="mini-field">Valeur</label>`;
@@ -2603,6 +2632,11 @@ function buildEffectClause(eff, ab){
 }
 
 function discoverClause(eff){
+  if(eff.discoverCriteria==='specificList'){
+    const names = (eff.discoverSpecificNames||[]).filter(Boolean);
+    const namesPhrase = names.length ? names.map(n=>`« ${n} »`).join(', ') : '(aucune carte définie)';
+    return `choisissez une carte parmi ${namesPhrase} et ajoutez-la à votre main${followUpClause(eff)}`;
+  }
   let critPhrase;
   switch(eff.discoverCriteria){
     case 'random': critPhrase = 'au hasard'; break;
