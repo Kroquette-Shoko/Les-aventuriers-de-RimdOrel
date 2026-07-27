@@ -88,8 +88,10 @@ header .spacer{flex:1;}
 .ability-row{display:flex;gap:10px;align-items:flex-end;margin-bottom:10px;flex-wrap:wrap;}
 .ability-row .field{margin-bottom:0;flex:1;min-width:140px;}
 
-.conditions-box, .effects-box{background:var(--bg-panel-3);border-radius:8px;padding:10px 12px;margin-top:10px;}
-.conditions-box h4, .effects-box h4{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--parchment-dim);margin:0 0 8px;display:flex;align-items:center;gap:8px;}
+.conditions-box, .effects-box, .trigger-list-box{background:var(--bg-panel-3);border-radius:8px;padding:10px 12px;margin-top:10px;}
+.conditions-box h4, .effects-box h4, .trigger-list-box h4{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--parchment-dim);margin:0 0 8px;display:flex;align-items:center;gap:8px;}
+.trigger-entry-box{padding-bottom:10px;margin-bottom:10px;border-bottom:1px dashed #3a3260;}
+.trigger-entry-box:last-of-type{border-bottom:none;margin-bottom:6px;padding-bottom:0;}
 .condition-row, .effect-row{display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;flex-wrap:wrap;padding-bottom:8px;border-bottom:1px dashed #3a3260;}
 .condition-row:last-child, .effect-row:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0;}
 .condition-row .field, .effect-row .field{margin-bottom:0;flex:1;min-width:120px;}
@@ -925,19 +927,22 @@ let uidCounter = 1;
 const newId = () => 'card_' + Date.now() + '_' + (uidCounter++);
 const rowId = () => 'row_' + Date.now() + '_' + Math.floor(Math.random()*99999);
 
+function blankTriggerEntry(){
+  return {
+    id: rowId(), trigger: null, triggerSubtype: '', triggerOwner: 'ally', triggerTurn: 1,
+    activationCost: 2, activationCooldown: 0,
+    extraCostEnabled: false, extraCostType: 'sacrificeCreature', extraCostAmount: 1, extraCostCustom: ''
+  };
+}
 function blankAbility(){
   return {
     id: rowId(),
-    trigger: null,
-    triggerSubtype: '',
-    triggerOwner: 'ally',
-    triggerTurn: 1,
+    kind: 'triggered', // 'triggered' | 'continuous'
+    triggers: [ blankTriggerEntry() ], // ignoré si kind==='continuous'
     conditions: [],
     effects: [ blankEffect() ],
     chainMode: 'sequential',
-    evolves: false, evolveCondition:'', evolveText:'',
-    activationCost: 2, activationCooldown: 0,
-    extraCostEnabled: false, extraCostType: 'sacrificeCreature', extraCostAmount: 1, extraCostCustom: ''
+    evolves: false, evolveCondition:'', evolveText:''
   };
 }
 function blankEffect(){
@@ -1275,6 +1280,20 @@ function renderSubtypeChips(){
 /* ============================================================
    ABILITÉS — construction dynamique de l'UI
    ============================================================ */
+function addTriggerEntry(abilityId){
+  const ab = abilities.find(a=>a.id===abilityId);
+  if(!ab) return;
+  ab.triggers.push(blankTriggerEntry());
+  rebuildAbilitiesUI();
+  onFormChange();
+}
+function removeTriggerEntry(abilityId, entryId){
+  const ab = abilities.find(a=>a.id===abilityId);
+  if(!ab || ab.triggers.length<=1) return; // toujours au moins un déclencheur
+  ab.triggers = ab.triggers.filter(t=>t.id!==entryId);
+  rebuildAbilitiesUI();
+  onFormChange();
+}
 function addAbility(){
   abilities.push(blankAbility());
   rebuildAbilitiesUI();
@@ -1318,7 +1337,9 @@ function rebuildAbilitiesUI(){
   const isSpellLike = currentType==='Sortilège';
 
   abilities.forEach((ab, idx)=>{
-    if(!ab.trigger || !availableTriggers.includes(ab.trigger)) ab.trigger = availableTriggers[0];
+    if(!ab.kind) ab.kind = 'triggered';
+    if(!ab.triggers || ab.triggers.length===0) ab.triggers = [ blankTriggerEntry() ];
+    ab.triggers.forEach(te=>{ if(!te.trigger || !availableTriggers.includes(te.trigger)) te.trigger = availableTriggers[0]; });
 
     const box = document.createElement('div');
     box.className = 'ability-card';
@@ -1333,110 +1354,158 @@ function rebuildAbilitiesUI(){
     header.appendChild(delBtn);
     box.appendChild(header);
 
-    // trigger row (hidden for Sortilège — toujours "à la résolution")
+    // type de capacité : continue ou à déclencheur(s) — masqué pour Sortilège
+    // (toujours "à la résolution", un seul déclencheur implicite)
     if(!isSpellLike){
-      const trow = document.createElement('div');
-      trow.className='ability-row';
-      trow.innerHTML = `<div class="field"><label>Déclencheur</label></div>`;
-      const sel = document.createElement('select');
-      availableTriggers.forEach(t=>{
-        const opt = document.createElement('option');
-        opt.value=t; opt.textContent = TRIGGER_SHORT_NAME[t] ? `${TRIGGER_SHORT_NAME[t]} — ${TRIGGER_TEXT[t]}` : TRIGGER_TEXT[t];
-        if(t===ab.trigger) opt.selected=true;
-        sel.appendChild(opt);
+      const kindRow = document.createElement('div');
+      kindRow.className='ability-row';
+      kindRow.innerHTML = `<div class="field"><label>Quel type de capacité ?</label></div>`;
+      const kindSel = document.createElement('select');
+      [['triggered','Déclencheur'],['continuous','Continue']].forEach(([k,l])=>{
+        const opt=document.createElement('option'); opt.value=k; opt.textContent=l;
+        if(ab.kind===k) opt.selected=true;
+        kindSel.appendChild(opt);
       });
-      sel.onchange = ()=>{ ab.trigger=sel.value; rebuildAbilitiesUI(); onFormChange(); };
-      trow.querySelector('.field').appendChild(sel);
-      box.appendChild(trow);
+      kindSel.onchange = ()=>{ ab.kind=kindSel.value; rebuildAbilitiesUI(); onFormChange(); };
+      kindRow.querySelector('.field').appendChild(kindSel);
+      box.appendChild(kindRow);
+    }
 
-      if(WATCH_TRIGGERS.includes(ab.trigger)){
-        const orow = document.createElement('div');
-        orow.className='ability-row';
-        orow.innerHTML = `<div class="field"><label class="mini-field">Concerne les cartes</label></div>`;
-        const osel = document.createElement('select');
-        [['ally','Alliées'],['enemy','Ennemies'],['both','Les deux']].forEach(([k,l])=>{
-          const opt = document.createElement('option'); opt.value=k; opt.textContent=l;
-          if((ab.triggerOwner||'ally')===k) opt.selected=true;
-          osel.appendChild(opt);
+    // liste des déclencheurs (un ou plusieurs) — masquée pour Sortilège et pour les capacités continues
+    if(!isSpellLike && ab.kind==='triggered'){
+      const trigList = document.createElement('div');
+      trigList.className = 'trigger-list-box';
+      trigList.innerHTML = `<h4>Déclencheur(s)</h4>`;
+
+      ab.triggers.forEach((te, tIdx)=>{
+        const tBox = document.createElement('div');
+        tBox.className = 'trigger-entry-box';
+
+        const trow = document.createElement('div');
+        trow.className='ability-row';
+        trow.innerHTML = `<div class="field"><label class="mini-field">Déclencheur ${ab.triggers.length>1 ? String.fromCharCode(65+tIdx) : ''}</label></div>`;
+        const sel = document.createElement('select');
+        availableTriggers.forEach(t=>{
+          const opt = document.createElement('option');
+          opt.value=t; opt.textContent = TRIGGER_SHORT_NAME[t] ? `${TRIGGER_SHORT_NAME[t]} — ${TRIGGER_TEXT[t]}` : TRIGGER_TEXT[t];
+          if(t===te.trigger) opt.selected=true;
+          sel.appendChild(opt);
         });
-        osel.onchange = ()=>{ ab.triggerOwner=osel.value; onFormChange(); };
-        orow.querySelector('.field').appendChild(osel);
-        box.appendChild(orow);
-      }
-
-      if(ab.trigger==='startOfTurnX' || ab.trigger==='endOfTurnX'){
-        const xrow = document.createElement('div');
-        xrow.className='ability-row';
-        xrow.innerHTML = `<div class="field"><label class="mini-field">Numéro du tour</label>
-          <input type="number" id="trigturn-${ab.id}" min="1" max="30" value="${ab.triggerTurn||1}"></div>`;
-        xrow.querySelector(`#trigturn-${ab.id}`).oninput = (e)=>{ ab.triggerTurn=parseInt(e.target.value)||1; onFormChange(); };
-        box.appendChild(xrow);
-      }
-
-      if(ab.trigger==='onSummonSubtype'){
-        const srow = document.createElement('div');
-        srow.className='ability-row';
-        srow.innerHTML = `<div class="field"><label class="mini-field">Sous-type concerné</label>
-          <input type="text" id="trigsub-${ab.id}" value="${escapeHtml(ab.triggerSubtype||'')}" placeholder="Ex : Vampire"></div>`;
-        srow.querySelector(`#trigsub-${ab.id}`).oninput = (e)=>{ ab.triggerSubtype=e.target.value; onFormChange(); };
-        box.appendChild(srow);
-      }
-
-      if(ab.trigger==='activated'){
-        const arow = document.createElement('div');
-        arow.className='ability-row';
-        arow.innerHTML = `
-          <div class="field"><label class="mini-field">Coût en mana</label>
-            <input type="number" id="actcost-${ab.id}" min="0" max="10" value="${ab.activationCost}">
-          </div>
-          <div class="field"><label class="mini-field">Cooldown (tours, 0 = aucun)</label>
-            <input type="number" id="actcd-${ab.id}" min="0" max="10" value="${ab.activationCooldown}">
-          </div>`;
-        arow.querySelector(`#actcost-${ab.id}`).oninput = (e)=>{ ab.activationCost=parseInt(e.target.value)||0; onFormChange(); };
-        arow.querySelector(`#actcd-${ab.id}`).oninput = (e)=>{ ab.activationCooldown=parseInt(e.target.value)||0; onFormChange(); };
-        box.appendChild(arow);
-
-        const ecToggle = document.createElement('label');
-        ecToggle.className='evolve-toggle';
-        ecToggle.innerHTML = `<input type="checkbox" ${ab.extraCostEnabled?'checked':''}> Coût additionnel (au-delà du mana)`;
-        ecToggle.querySelector('input').onchange=(e)=>{ ab.extraCostEnabled=e.target.checked; rebuildAbilitiesUI(); onFormChange(); };
-        box.appendChild(ecToggle);
-
-        if(ab.extraCostEnabled){
-          const ecRow = document.createElement('div');
-          ecRow.className='ability-row';
-          const ecTypeField = document.createElement('div');
-          ecTypeField.className='field';
-          ecTypeField.innerHTML = `<label class="mini-field">Type de coût</label>`;
-          const ecSel = document.createElement('select');
-          [['sacrificeCreature','Sacrifier une créature alliée'],['discardCard','Défausser une carte'],['loseLife','Perdre des PV'],['custom','⚠ Personnalisé (texte libre)']].forEach(([k,l])=>{
-            const opt=document.createElement('option'); opt.value=k; opt.textContent=l;
-            if(k===ab.extraCostType) opt.selected=true;
-            ecSel.appendChild(opt);
-          });
-          ecSel.onchange=()=>{ ab.extraCostType=ecSel.value; rebuildAbilitiesUI(); onFormChange(); };
-          ecTypeField.appendChild(ecSel);
-          ecRow.appendChild(ecTypeField);
-
-          if(ab.extraCostType==='loseLife'){
-            const f = document.createElement('div');
-            f.className='field'; f.innerHTML=`<label class="mini-field">PV perdus</label>`;
-            const inp = document.createElement('input');
-            inp.type='number'; inp.min=1; inp.max=20; inp.value=ab.extraCostAmount||1;
-            inp.oninput=()=>{ ab.extraCostAmount=parseInt(inp.value)||1; onFormChange(); };
-            f.appendChild(inp); ecRow.appendChild(f);
-          }
-          if(ab.extraCostType==='custom'){
-            const f = document.createElement('div');
-            f.className='field'; f.innerHTML=`<label class="mini-field">Décris le coût</label>`;
-            const inp = document.createElement('input');
-            inp.type='text'; inp.value=ab.extraCostCustom||''; inp.placeholder="Ex : renvoyez une carte dans votre main";
-            inp.oninput=()=>{ ab.extraCostCustom=inp.value; onFormChange(); };
-            f.appendChild(inp); ecRow.appendChild(f);
-          }
-          box.appendChild(ecRow);
+        sel.onchange = ()=>{ te.trigger=sel.value; rebuildAbilitiesUI(); onFormChange(); };
+        trow.querySelector('.field').appendChild(sel);
+        if(ab.triggers.length>1){
+          const rmBtn = document.createElement('button');
+          rmBtn.className='mini-btn'; rmBtn.textContent='✕'; rmBtn.title='Retirer ce déclencheur';
+          rmBtn.onclick = ()=>removeTriggerEntry(ab.id, te.id);
+          trow.appendChild(rmBtn);
         }
-      }
+        tBox.appendChild(trow);
+
+        if(WATCH_TRIGGERS.includes(te.trigger)){
+          const orow = document.createElement('div');
+          orow.className='ability-row';
+          orow.innerHTML = `<div class="field"><label class="mini-field">Concerne les cartes</label></div>`;
+          const osel = document.createElement('select');
+          [['ally','Alliées'],['enemy','Ennemies'],['both','Les deux']].forEach(([k,l])=>{
+            const opt = document.createElement('option'); opt.value=k; opt.textContent=l;
+            if((te.triggerOwner||'ally')===k) opt.selected=true;
+            osel.appendChild(opt);
+          });
+          osel.onchange = ()=>{ te.triggerOwner=osel.value; onFormChange(); };
+          orow.querySelector('.field').appendChild(osel);
+          tBox.appendChild(orow);
+        }
+
+        if(te.trigger==='startOfTurnX' || te.trigger==='endOfTurnX'){
+          const xrow = document.createElement('div');
+          xrow.className='ability-row';
+          xrow.innerHTML = `<div class="field"><label class="mini-field">Numéro du tour</label>
+            <input type="number" id="trigturn-${te.id}" min="1" max="30" value="${te.triggerTurn||1}"></div>`;
+          xrow.querySelector(`#trigturn-${te.id}`).oninput = (e)=>{ te.triggerTurn=parseInt(e.target.value)||1; onFormChange(); };
+          tBox.appendChild(xrow);
+        }
+
+        if(te.trigger==='onSummonSubtype'){
+          const srow = document.createElement('div');
+          srow.className='ability-row';
+          srow.innerHTML = `<div class="field"><label class="mini-field">Sous-type concerné</label>
+            <input type="text" id="trigsub-${te.id}" value="${escapeHtml(te.triggerSubtype||'')}" placeholder="Ex : Vampire"></div>`;
+          srow.querySelector(`#trigsub-${te.id}`).oninput = (e)=>{ te.triggerSubtype=e.target.value; onFormChange(); };
+          tBox.appendChild(srow);
+        }
+
+        if(te.trigger==='activated'){
+          const arow = document.createElement('div');
+          arow.className='ability-row';
+          arow.innerHTML = `
+            <div class="field"><label class="mini-field">Coût en mana</label>
+              <input type="number" id="actcost-${te.id}" min="0" max="10" value="${te.activationCost}">
+            </div>
+            <div class="field"><label class="mini-field">Cooldown (tours, 0 = aucun)</label>
+              <input type="number" id="actcd-${te.id}" min="0" max="10" value="${te.activationCooldown}">
+            </div>`;
+          arow.querySelector(`#actcost-${te.id}`).oninput = (e)=>{ te.activationCost=parseInt(e.target.value)||0; onFormChange(); };
+          arow.querySelector(`#actcd-${te.id}`).oninput = (e)=>{ te.activationCooldown=parseInt(e.target.value)||0; onFormChange(); };
+          tBox.appendChild(arow);
+
+          const ecToggle = document.createElement('label');
+          ecToggle.className='evolve-toggle';
+          ecToggle.innerHTML = `<input type="checkbox" ${te.extraCostEnabled?'checked':''}> Coût additionnel (au-delà du mana)`;
+          ecToggle.querySelector('input').onchange=(e)=>{ te.extraCostEnabled=e.target.checked; rebuildAbilitiesUI(); onFormChange(); };
+          tBox.appendChild(ecToggle);
+
+          if(te.extraCostEnabled){
+            const ecRow = document.createElement('div');
+            ecRow.className='ability-row';
+            const ecTypeField = document.createElement('div');
+            ecTypeField.className='field';
+            ecTypeField.innerHTML = `<label class="mini-field">Type de coût</label>`;
+            const ecSel = document.createElement('select');
+            [['sacrificeCreature','Sacrifier une créature alliée'],['discardCard','Défausser une carte'],['loseLife','Perdre des PV'],['custom','⚠ Personnalisé (texte libre)']].forEach(([k,l])=>{
+              const opt=document.createElement('option'); opt.value=k; opt.textContent=l;
+              if(k===te.extraCostType) opt.selected=true;
+              ecSel.appendChild(opt);
+            });
+            ecSel.onchange=()=>{ te.extraCostType=ecSel.value; rebuildAbilitiesUI(); onFormChange(); };
+            ecTypeField.appendChild(ecSel);
+            ecRow.appendChild(ecTypeField);
+
+            if(te.extraCostType==='loseLife'){
+              const f = document.createElement('div');
+              f.className='field'; f.innerHTML=`<label class="mini-field">PV perdus</label>`;
+              const inp = document.createElement('input');
+              inp.type='number'; inp.min=1; inp.max=20; inp.value=te.extraCostAmount||1;
+              inp.oninput=()=>{ te.extraCostAmount=parseInt(inp.value)||1; onFormChange(); };
+              f.appendChild(inp); ecRow.appendChild(f);
+            }
+            if(te.extraCostType==='custom'){
+              const f = document.createElement('div');
+              f.className='field'; f.innerHTML=`<label class="mini-field">Décris le coût</label>`;
+              const inp = document.createElement('input');
+              inp.type='text'; inp.value=te.extraCostCustom||''; inp.placeholder="Ex : renvoyez une carte dans votre main";
+              inp.oninput=()=>{ te.extraCostCustom=inp.value; onFormChange(); };
+              f.appendChild(inp); ecRow.appendChild(f);
+            }
+            tBox.appendChild(ecRow);
+          }
+        }
+
+        trigList.appendChild(tBox);
+      });
+
+      const addTrigBtn = document.createElement('button');
+      addTrigBtn.className='add-row-btn'; addTrigBtn.textContent='+ Ajouter un déclencheur';
+      addTrigBtn.onclick = ()=>addTriggerEntry(ab.id);
+      trigList.appendChild(addTrigBtn);
+
+      box.appendChild(trigList);
+    }
+
+    if(!isSpellLike && ab.kind==='continuous'){
+      const contNote = document.createElement('div');
+      contNote.className = 'ability-row';
+      contNote.innerHTML = `<div class="field" style="color:var(--parchment-dim);font-size:12px;font-style:italic;">Capacité continue : son effet s'applique tant que la carte est en jeu (aucun déclencheur — les conditions ci-dessous déterminent quand elle s'active).</div>`;
+      box.appendChild(contNote);
     }
 
     // conditions
@@ -2562,43 +2631,44 @@ function buildAbilitySentence(cardType, ab){
   let sentence;
   if(cardType==='Sortilège'){
     sentence = condText ? `Si ${condText}, ${clause.charAt(0).toLowerCase()+clause.slice(1)}.` : `${clause}.`;
+  } else if(ab.kind==='continuous'){
+    const lowerClause = clause.charAt(0).toLowerCase()+clause.slice(1);
+    sentence = condText ? `Tant que ${condText}, ${lowerClause}.` : `${lowerClause} (en continu).`;
   } else {
-    let prefix = TRIGGER_TEXT[ab.trigger] || '';
-    if(ab.trigger==='onSummonSubtype'){
-      prefix = `Quand vous invoquez une créature du sous-type ${ab.triggerSubtype || '?'}`;
-    }
-    if(WATCH_TRIGGERS.includes(ab.trigger)){
-      const ownerSuffix = {ally:' alliée', enemy:' ennemie', both:''}[ab.triggerOwner||'ally'];
-      if(ownerSuffix) prefix += ` (carte${ownerSuffix})`;
-    }
-    if(ab.trigger==='startOfTurnX'){
-      prefix = `Au début de votre tour ${ab.triggerTurn||1}`;
-    }
-    if(ab.trigger==='endOfTurnX'){
-      prefix = `À la fin de votre tour ${ab.triggerTurn||1}`;
-    }
-    if(ab.trigger==='activated'){
-      prefix = `Payez ${ab.activationCost ?? 0} mana`;
-      if(ab.extraCostEnabled){
-        const ecLabel = {
-          sacrificeCreature: 'sacrifiez une créature alliée',
-          discardCard: 'défaussez une carte',
-          loseLife: `perdez ${ab.extraCostAmount||1} PV`,
-          custom: ab.extraCostCustom || 'coût additionnel'
-        }[ab.extraCostType];
-        prefix += ` et ${ecLabel}`;
+    const buildPrefixFor = (te)=>{
+      let prefix = TRIGGER_TEXT[te.trigger] || '';
+      if(te.trigger==='onSummonSubtype') prefix = `Quand vous invoquez une créature du sous-type ${te.triggerSubtype || '?'}`;
+      if(WATCH_TRIGGERS.includes(te.trigger)){
+        const ownerSuffix = {ally:' alliée', enemy:' ennemie', both:''}[te.triggerOwner||'ally'];
+        if(ownerSuffix) prefix += ` (carte${ownerSuffix})`;
       }
-      if(ab.activationCooldown>0) prefix += ` (rechargement : ${ab.activationCooldown} tour${ab.activationCooldown>1?'s':''})`;
-      prefix += ' :';
-      const lowerClause = clause.charAt(0).toLowerCase()+clause.slice(1);
-      sentence = condText
-        ? `${prefix} si ${condText}, ${lowerClause}.`
-        : `${prefix} ${lowerClause}.`;
+      if(te.trigger==='startOfTurnX') prefix = `Au début de votre tour ${te.triggerTurn||1}`;
+      if(te.trigger==='endOfTurnX') prefix = `À la fin de votre tour ${te.triggerTurn||1}`;
+      if(te.trigger==='activated'){
+        prefix = `Payez ${te.activationCost ?? 0} mana`;
+        if(te.extraCostEnabled){
+          const ecLabel = {
+            sacrificeCreature: 'sacrifiez une créature alliée',
+            discardCard: 'défaussez une carte',
+            loseLife: `perdez ${te.extraCostAmount||1} PV`,
+            custom: te.extraCostCustom || 'coût additionnel'
+          }[te.extraCostType];
+          prefix += ` et ${ecLabel}`;
+        }
+        if(te.activationCooldown>0) prefix += ` (rechargement : ${te.activationCooldown} tour${te.activationCooldown>1?'s':''})`;
+      }
+      return prefix;
+    };
+    const triggerEntries = ab.triggers && ab.triggers.length ? ab.triggers : [{trigger:null}];
+    const hasActivated = triggerEntries.some(te=>te.trigger==='activated');
+    let prefix = triggerEntries.map(buildPrefixFor).join(' ou ');
+    if(hasActivated) prefix += ' :';
+
+    const lowerClause = clause.charAt(0).toLowerCase()+clause.slice(1);
+    if(hasActivated){
+      sentence = condText ? `${prefix} si ${condText}, ${lowerClause}.` : `${prefix} ${lowerClause}.`;
     } else {
-      const lowerClause = clause.charAt(0).toLowerCase()+clause.slice(1);
-      sentence = condText
-        ? `${prefix}, si ${condText}, ${lowerClause}.`
-        : `${prefix}, ${lowerClause}.`;
+      sentence = condText ? `${prefix}, si ${condText}, ${lowerClause}.` : `${prefix}, ${lowerClause}.`;
     }
   }
   if(ab.evolves && (ab.evolveCondition || ab.evolveText)){
