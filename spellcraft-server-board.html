@@ -384,17 +384,17 @@ body.targeting *{cursor:crosshair !important;}
 .ncard.n-big .nstat-wrap.n-art{right:6%;bottom:5%;width:15%;}
 .ncard.n-big .nstat-wrap.n-art .nstat-txt{font-size:15px;}
 
-.ncard.n-small{width:240px;height:240px;}
+.ncard.n-small{width:120px;height:120px;}
 .ncard.n-small .nart-layer{left:20.47%;top:16.28%;width:58.05%;height:44.63%;}
 .ncard.n-small .nstat-wrap.n-mana{left:-1%;top:-3.5%;width:22%;}
-.ncard.n-small .nstat-wrap.n-mana .nstat-txt{font-size:16px;}
-.ncard.n-small .nname-text{left:50%;top:62%;width:76%;transform:translateX(-50%);font-size:14px;height:20px;}
+.ncard.n-small .nstat-wrap.n-mana .nstat-txt{font-size:8px;}
+.ncard.n-small .nname-text{left:50%;top:62%;width:76%;transform:translateX(-50%);font-size:7px;height:10px;}
 .ncard.n-small .ncard-text{display:none;}
 .ncard.n-small .nrarity-gem{left:50%;bottom:-0.5%;width:11%;transform:translateX(-50%);}
-.ncard.n-small .ntypeline{bottom:15%;width:64%;font-size:8.5px;}
+.ncard.n-small .ntypeline{bottom:15%;width:64%;font-size:4.25px;}
 .ncard.n-small .nlegendary-gem{left:50%;top:-1%;width:11%;transform:translateX(-50%);}
 .ncard.n-small .nstat-wrap.n-atk{left:6%;bottom:5%;width:22%;}
-.ncard.n-small .nstat-wrap.n-atk .nstat-txt{font-size:19.5px;}
+.ncard.n-small .nstat-wrap.n-atk .nstat-txt{font-size:9.75px;}
 .ncard.n-small .nstat-wrap.n-end{right:6%;bottom:5%;width:22%;}
 
 /* Superpositions d'état de jeu (repères visuels de combat, appliqués
@@ -1462,6 +1462,7 @@ function startCardDrag(ev, handIndex, sourceEl){
   ghost.style.left = rect.left + 'px';
   ghost.style.top = rect.top + 'px';
   ghost.style.width = rect.width + 'px';
+  ghost.style.height = rect.height + 'px';
   ghost.style.margin = '0';
   ghost.style.zIndex = '9999';
   ghost.style.pointerEvents = 'none';
