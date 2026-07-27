@@ -722,7 +722,41 @@ function render(){
   renderHand();
   renderPhaseBar();
   renderGameOverOverlay();
+  renderDiscoverChoiceModal();
   fitBoardToViewport();
+}
+
+// Affiche les options à choisir quand une capacité "révéler" (discover) est
+// en attente — bloque le reste de la partie pour le joueur concerné tant
+// qu'un choix n'a pas été fait, comme convenu côté serveur.
+function renderDiscoverChoiceModal(){
+  const existing = document.getElementById('discover-choice-modal');
+  if(!S.pendingDiscover || S.pendingDiscover.playerKey!==MY_KEY){
+    if(existing) existing.remove();
+    return;
+  }
+  if(existing) return; // déjà affichée, ne pas la reconstruire à chaque rendu
+  const modal = document.createElement('div');
+  modal.id = 'discover-choice-modal';
+  modal.className = 'modal-overlay show';
+  modal.innerHTML = `
+    <div class="modal-box">
+      <h2>Choisis une carte</h2>
+      <div id="discover-choice-list" style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;"></div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  const list = document.getElementById('discover-choice-list');
+  S.pendingDiscover.options.forEach((card, i)=>{
+    const wrap = document.createElement('div');
+    wrap.style.cursor = 'pointer';
+    wrap.appendChild(cardEl(card, {}));
+    wrap.onclick = async ()=>{
+      modal.remove();
+      await runAction('Choix (révéler)', ()=>gsResolveDiscoverChoice(i));
+    };
+    list.appendChild(wrap);
+  });
 }
 
 // Le plateau a une hauteur "naturelle" fixe (calculée pour être lisible),
@@ -899,7 +933,8 @@ function renderLane(key, slot){
     const attackSelecting = isMine && UI.selectingAttackers && UI.selectedAttackers.includes(c.instId);
     const attackConfirmed = (p.attackers||[]).includes(c.instId) && S.phase!=='main';
     const attacking = attackSelecting || attackConfirmed;
-    const targetable = isBlockTargetable(key, c) || isValidPendingTarget(key, c) || isValidNewFormatTarget(key, c);
+    const isPendingSacrificeTarget = !!(S.pendingSacrifice && S.pendingSacrifice.playerKey===MY_KEY && key===MY_KEY);
+    const targetable = isBlockTargetable(key, c) || isValidPendingTarget(key, c) || isValidNewFormatTarget(key, c) || isPendingSacrificeTarget;
 
     const cardWrap = document.createElement('div');
     cardWrap.className = 'card-slot';
@@ -1060,8 +1095,30 @@ function cancelPendingCard(){
   render();
 }
 
+// Relance l'action d'origine (poser un piège, pouvoir de héros, capacité
+// activée) en fournissant cette fois la créature à sacrifier choisie par
+// le joueur, pour compléter le coût additionnel resté en attente.
+async function resolvePendingSacrifice(instId){
+  const pending = S.pendingSacrifice;
+  if(!pending) return;
+  if(pending.action==='setTrap'){
+    await runAction('Poser le piège', ()=>gsSetTrap(pending.handIndex, instId));
+  } else if(pending.action==='useHeroPower'){
+    const targetInfo = pending.targetIsHero ? { isHeroTarget:true, playerKey:pending.targetPlayerKey } : (pending.targetInstId ? { instId:pending.targetInstId } : null);
+    await runAction('Pouvoir de héros', ()=>gsUseHeroPower(targetInfo, pending.chosenTargets, instId));
+  } else if(pending.action==='activatePermanent'){
+    const targetInfo = pending.targetIsHero ? { isHeroTarget:true, playerKey:pending.targetPlayerKey } : (pending.targetInstId ? { instId:pending.targetInstId } : null);
+    await runAction('Capacité activée', ()=>gsActivatePermanent(pending.permanentType, pending.permanentInstId, targetInfo, pending.chosenTargets, instId));
+  }
+}
+
 function onBoardCreatureClick(key, c){
   const isMine = key===MY_KEY;
+  // confirmation d'un sacrifice en attente (priorité absolue — bloque tout le reste côté serveur)
+  if(S.pendingSacrifice && S.pendingSacrifice.playerKey===MY_KEY && isMine){
+    resolvePendingSacrifice(c.instId);
+    return;
+  }
   // confirmation de ciblage nouveau format (priorité absolue)
   if(UI.pendingNewTarget && isValidNewFormatTarget(key, c)){
     pickNewFormatTarget(c.instId);
@@ -1242,6 +1299,15 @@ function renderPhaseBar(){
   const bar = document.getElementById('phase-bar');
   bar.innerHTML = '';
   if(S.gameOver) return;
+
+  if(S.pendingSacrifice && S.pendingSacrifice.playerKey===MY_KEY){
+    const btn = document.createElement('button');
+    btn.className = 'phase-btn';
+    btn.textContent = 'Choisis une créature à sacrifier...';
+    btn.disabled = true;
+    bar.appendChild(btn);
+    return;
+  }
 
   if(UI.pendingCard || UI.pendingPower || UI.pendingNewTarget){
     const btn = document.createElement('button');
