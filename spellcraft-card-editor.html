@@ -88,8 +88,11 @@ header .spacer{flex:1;}
 .ability-row{display:flex;gap:10px;align-items:flex-end;margin-bottom:10px;flex-wrap:wrap;}
 .ability-row .field{margin-bottom:0;flex:1;min-width:140px;}
 
-.conditions-box, .effects-box, .trigger-list-box{background:var(--bg-panel-3);border-radius:8px;padding:10px 12px;margin-top:10px;}
-.conditions-box h4, .effects-box h4, .trigger-list-box h4{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--parchment-dim);margin:0 0 8px;display:flex;align-items:center;gap:8px;}
+.conditions-box, .effects-box, .trigger-list-box, .targets-box{background:var(--bg-panel-3);border-radius:8px;padding:10px 12px;margin-top:10px;}
+.conditions-box h4, .effects-box h4, .trigger-list-box h4, .targets-box h4{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--parchment-dim);margin:0 0 8px;display:flex;align-items:center;gap:8px;}
+.target-entry-row{display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;flex-wrap:wrap;padding-bottom:8px;border-bottom:1px dashed #3a3260;}
+.target-entry-row:last-of-type{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+.target-entry-row .field{margin-bottom:0;flex:1;min-width:130px;}
 .trigger-entry-box{padding-bottom:10px;margin-bottom:10px;border-bottom:1px dashed #3a3260;}
 .trigger-entry-box:last-of-type{border-bottom:none;margin-bottom:6px;padding-bottom:0;}
 .condition-row, .effect-row{display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;flex-wrap:wrap;padding-bottom:8px;border-bottom:1px dashed #3a3260;}
@@ -934,12 +937,23 @@ function blankTriggerEntry(){
     extraCostEnabled: false, extraCostType: 'sacrificeCreature', extraCostAmount: 1, extraCostCustom: ''
   };
 }
+function blankTargetEntry(){
+  return {
+    id: rowId(),
+    countMode: 'fixed', countFixed: 1, countDynamic: 'thisAtk',
+    targetCategory: 'creature', targetOwner: 'enemy', selectionMode: 'chosen',
+    subtypeFilter: '',
+    costFilterEnabled: false, costFilterMode: 'atLeast', costFilterValue: 1,
+    statFilterEnabled: false, statFilterStat: 'atk', statFilterMode: 'atLeast', statFilterValue: 1
+  };
+}
 function blankAbility(){
   return {
     id: rowId(),
     kind: 'triggered', // 'triggered' | 'continuous'
     triggers: [ blankTriggerEntry() ], // ignoré si kind==='continuous'
     conditions: [],
+    targets: [], // rempli via "+ Ajouter une cible" — vide = pas de ciblage (effet sans cible, ex: soin de soi)
     effects: [ blankEffect() ],
     chainMode: 'sequential',
     evolves: false, evolveCondition:'', evolveText:''
@@ -1291,6 +1305,21 @@ function removeTriggerEntry(abilityId, entryId){
   const ab = abilities.find(a=>a.id===abilityId);
   if(!ab || ab.triggers.length<=1) return; // toujours au moins un déclencheur
   ab.triggers = ab.triggers.filter(t=>t.id!==entryId);
+  rebuildAbilitiesUI();
+  onFormChange();
+}
+function addTargetEntry(abilityId){
+  const ab = abilities.find(a=>a.id===abilityId);
+  if(!ab) return;
+  if(!ab.targets) ab.targets = [];
+  ab.targets.push(blankTargetEntry());
+  rebuildAbilitiesUI();
+  onFormChange();
+}
+function removeTargetEntry(abilityId, targetId){
+  const ab = abilities.find(a=>a.id===abilityId);
+  if(!ab) return;
+  ab.targets = ab.targets.filter(t=>t.id!==targetId);
   rebuildAbilitiesUI();
   onFormChange();
 }
@@ -1663,6 +1692,110 @@ function rebuildAbilitiesUI(){
     condBox.appendChild(addCondBtn);
     box.appendChild(condBox);
 
+    // cibles — déterminées AVANT les effets (qui, puis quoi)
+    const targetsBox = document.createElement('div');
+    targetsBox.className = 'targets-box';
+    targetsBox.innerHTML = `<h4>Cibles (optionnel — laisser vide si l'effet ne cible personne, ex: soigner soi-même)</h4>`;
+    (ab.targets||[]).forEach((tgt, tIdx)=>{
+      const trow = document.createElement('div');
+      trow.className = 'target-entry-row';
+      trow.innerHTML = `<div class="field"><label class="mini-field">Cible ${(ab.targets.length>1) ? String.fromCharCode(65+tIdx) : ''}</label></div>`;
+
+      // quel type de ciblage (la "source")
+      trow.appendChild(makeSelectField('Quel type de ciblage ?', SELECTION_MODES, tgt.selectionMode, v=>{ tgt.selectionMode=v; rebuildAbilitiesUI(); onFormChange(); }));
+
+      // condition de ciblage : catégorie (type/zone)
+      trow.appendChild(makeSelectField('Catégorie', TARGET_CATEGORIES, tgt.targetCategory, v=>{ tgt.targetCategory=v; rebuildAbilitiesUI(); onFormChange(); }));
+
+      // parmi
+      trow.appendChild(makeSelectField('Parmi', TARGET_OWNERS, tgt.targetOwner, v=>{ tgt.targetOwner=v; onFormChange(); }));
+
+      // nombre de cibles (si pertinent)
+      if(tgt.selectionMode!=='all' && tgt.targetOwner!=='self' && tgt.targetOwner!=='trigger'){
+        const cField = document.createElement('div');
+        cField.className='field';
+        cField.innerHTML = `<label class="mini-field">Nombre de cibles</label>`;
+        const cModeSel = document.createElement('select');
+        [['fixed','Fixe'],['dynamic','Dynamique']].forEach(([k,l])=>{
+          const opt=document.createElement('option'); opt.value=k; opt.textContent=l;
+          if(tgt.countMode===k) opt.selected=true;
+          cModeSel.appendChild(opt);
+        });
+        cModeSel.onchange=()=>{ tgt.countMode=cModeSel.value; rebuildAbilitiesUI(); onFormChange(); };
+        cField.appendChild(cModeSel);
+        trow.appendChild(cField);
+
+        if(tgt.countMode==='fixed'){
+          const nField = document.createElement('div');
+          nField.className='field'; nField.innerHTML=`<label class="mini-field">Valeur</label>`;
+          const inp = document.createElement('input');
+          inp.type='number'; inp.min=1; inp.max=8; inp.value=tgt.countFixed||1;
+          inp.oninput=()=>{ tgt.countFixed=parseInt(inp.value)||1; onFormChange(); };
+          nField.appendChild(inp); trow.appendChild(nField);
+        } else {
+          trow.appendChild(makeSelectField('Valeur dynamique', DYNAMIC_VALUES, tgt.countDynamic, v=>{ tgt.countDynamic=v; onFormChange(); }));
+        }
+      }
+
+      // filtres additionnels selon la catégorie choisie
+      if(tgt.targetCategory==='creature' || tgt.targetCategory==='hero_creature' || tgt.targetCategory==='artifact'){
+        const subField = document.createElement('div');
+        subField.className='field'; subField.innerHTML=`<label class="mini-field">Sous-type (optionnel)</label>`;
+        const subInp = document.createElement('input');
+        subInp.type='text'; subInp.value=tgt.subtypeFilter||''; subInp.placeholder='Ex : Dragon';
+        subInp.oninput=()=>{ tgt.subtypeFilter=subInp.value; onFormChange(); };
+        subField.appendChild(subInp); trow.appendChild(subField);
+      }
+
+      if(tgt.targetCategory && tgt.targetCategory.startsWith('card_in_')){
+        const cfToggle = document.createElement('label');
+        cfToggle.className='evolve-toggle';
+        cfToggle.innerHTML = `<input type="checkbox" ${tgt.costFilterEnabled?'checked':''}> Filtrer par coût`;
+        cfToggle.querySelector('input').onchange=(e)=>{ tgt.costFilterEnabled=e.target.checked; rebuildAbilitiesUI(); onFormChange(); };
+        trow.appendChild(cfToggle);
+        if(tgt.costFilterEnabled){
+          trow.appendChild(makeSelectField('Comparaison', [{key:'atLeast',label:'Au moins'},{key:'atMost',label:'Au plus'},{key:'exactly',label:'Exactement'}], tgt.costFilterMode, v=>{ tgt.costFilterMode=v; onFormChange(); }));
+          const vField = document.createElement('div');
+          vField.className='field'; vField.innerHTML=`<label class="mini-field">Coût</label>`;
+          const vInp = document.createElement('input');
+          vInp.type='number'; vInp.min=0; vInp.max=20; vInp.value=tgt.costFilterValue||1;
+          vInp.oninput=()=>{ tgt.costFilterValue=parseInt(vInp.value)||0; onFormChange(); };
+          vField.appendChild(vInp); trow.appendChild(vField);
+        }
+      }
+
+      if(tgt.targetCategory==='creature' || tgt.targetCategory==='hero_creature'){
+        const sfToggle = document.createElement('label');
+        sfToggle.className='evolve-toggle';
+        sfToggle.innerHTML = `<input type="checkbox" ${tgt.statFilterEnabled?'checked':''}> Filtrer par force/endurance`;
+        sfToggle.querySelector('input').onchange=(e)=>{ tgt.statFilterEnabled=e.target.checked; rebuildAbilitiesUI(); onFormChange(); };
+        trow.appendChild(sfToggle);
+        if(tgt.statFilterEnabled){
+          trow.appendChild(makeSelectField('Stat', [{key:'atk',label:'Force'},{key:'hp',label:'Endurance'}], tgt.statFilterStat, v=>{ tgt.statFilterStat=v; onFormChange(); }));
+          trow.appendChild(makeSelectField('Comparaison', [{key:'atLeast',label:'Au moins'},{key:'atMost',label:'Au plus'},{key:'exactly',label:'Exactement'}], tgt.statFilterMode, v=>{ tgt.statFilterMode=v; onFormChange(); }));
+          const vField = document.createElement('div');
+          vField.className='field'; vField.innerHTML=`<label class="mini-field">Valeur</label>`;
+          const vInp = document.createElement('input');
+          vInp.type='number'; vInp.min=0; vInp.max=20; vInp.value=tgt.statFilterValue||1;
+          vInp.oninput=()=>{ tgt.statFilterValue=parseInt(vInp.value)||0; onFormChange(); };
+          vField.appendChild(vInp); trow.appendChild(vField);
+        }
+      }
+
+      const rmBtn = document.createElement('button');
+      rmBtn.className='mini-btn'; rmBtn.textContent='✕'; rmBtn.title='Retirer cette cible';
+      rmBtn.onclick = ()=>removeTargetEntry(ab.id, tgt.id);
+      trow.appendChild(rmBtn);
+
+      targetsBox.appendChild(trow);
+    });
+    const addTgtBtn = document.createElement('button');
+    addTgtBtn.className='add-row-btn'; addTgtBtn.textContent='+ Ajouter une cible';
+    addTgtBtn.style.marginTop='6px';
+    addTgtBtn.onclick=()=>addTargetEntry(ab.id);
+    targetsBox.appendChild(addTgtBtn);
+    box.appendChild(targetsBox);
+
     // effects
     const effBox = document.createElement('div');
     effBox.className='effects-box';
@@ -1750,26 +1883,15 @@ function buildEffectRow(ab, eff){
   const def = EFFECT_TYPES.find(e=>e.key===eff.effectType);
 
   if(def.needsTarget){
-    // catégorie
-    row.appendChild(makeSelectField('Cible : catégorie', TARGET_CATEGORIES, eff.targetCategory, v=>{ eff.targetCategory=v; onFormChange(); rebuildAbilitiesUI(); }));
-    if(eff.targetCategory!=='player'){
-      const ownerOptions = eff.targetCategory==='creature' ? TARGET_OWNERS : TARGET_OWNERS.filter(o=>o.key!=='self');
-      row.appendChild(makeSelectField('Propriétaire', ownerOptions, eff.targetOwner, v=>{ eff.targetOwner=v; rebuildAbilitiesUI(); onFormChange(); }));
-      if(eff.targetOwner!=='self'){
-        row.appendChild(makeSelectField('Sélection', SELECTION_MODES, eff.selectionMode, v=>{ eff.selectionMode=v; rebuildAbilitiesUI(); onFormChange(); }));
-        if(eff.selectionMode!=='all'){
-          const countField = document.createElement('div');
-          countField.className='field';
-          countField.innerHTML = `<label class="mini-field">Nombre</label>`;
-          const inp = document.createElement('input');
-          inp.type='number'; inp.min=1; inp.max=6; inp.value=eff.targetCount||1;
-          inp.oninput=()=>{ eff.targetCount=parseInt(inp.value)||1; onFormChange(); };
-          countField.appendChild(inp);
-          row.appendChild(countField);
-        }
-      }
+    if(ab.targets && ab.targets.length>0){
+      const tgtOptions = ab.targets.map((t,i)=>({key:t.id, label:`Cible ${ab.targets.length>1?String.fromCharCode(65+i):''}`.trim()}));
+      if(!eff.usesTarget || !ab.targets.some(t=>t.id===eff.usesTarget)) eff.usesTarget = ab.targets[0].id;
+      row.appendChild(makeSelectField('Cible utilisée', tgtOptions, eff.usesTarget, v=>{ eff.usesTarget=v; onFormChange(); }));
     } else {
-      row.appendChild(makeSelectField('Propriétaire', TARGET_OWNERS.filter(o=>o.key!=='any' && o.key!=='self'), eff.targetOwner==='any'||eff.targetOwner==='self'?'enemy':eff.targetOwner, v=>{ eff.targetOwner=v; onFormChange(); }));
+      const warn = document.createElement('div');
+      warn.className='field';
+      warn.innerHTML = `<label class="mini-field" style="color:#c9a86a;">⚠ Aucune cible définie plus haut — ajoute une cible dans la section "Cibles" ci-dessus.</label>`;
+      row.appendChild(warn);
     }
   }
 
@@ -2251,51 +2373,54 @@ function dynamicValueLabel(obj, dynFieldName, dv){
   return label;
 }
 
-function targetPhrase(eff){
-  if(eff.targetOwner==='self') return 'cette carte';
-  if(eff.targetOwner==='trigger') return 'la carte qui a déclenché cet effet';
-  if(eff.targetCategory==='hero'){
-    if(eff.targetOwner==='random') return 'un héros tiré au hasard (allié ou ennemi)';
-    return eff.targetOwner==='enemy' ? 'le héros ennemi' : 'votre héros';
+function targetPhrase(t){
+  if(!t) return 'une cible';
+  if(t.targetOwner==='self') return 'cette carte';
+  if(t.targetOwner==='trigger') return 'la carte qui a déclenché cet effet';
+  if(t.targetCategory==='hero'){
+    if(t.targetOwner==='random') return 'un héros tiré au hasard (allié ou ennemi)';
+    return t.targetOwner==='enemy' ? 'le héros ennemi' : 'votre héros';
   }
-  if(eff.targetCategory==='player'){
-    if(eff.targetOwner==='random') return 'un joueur tiré au hasard';
-    return eff.targetOwner==='enemy' ? 'votre adversaire' : 'vous';
+  if(t.targetCategory==='player'){
+    if(t.targetOwner==='random') return 'un joueur tiré au hasard';
+    return t.targetOwner==='enemy' ? 'votre adversaire' : 'vous';
   }
-  const nounSing = {creature:'créature', hero_creature:'héros ou créature', artifact:'artefact', card_in_hand:'carte en main', card_in_discard:'carte en défausse', card_in_deck:'carte du deck'}[eff.targetCategory] || 'cible';
-  const nounPlur = {creature:'créatures', hero_creature:'héros ou créatures', artifact:'artefacts', card_in_hand:'cartes en main', card_in_discard:'cartes en défausse', card_in_deck:'cartes du deck'}[eff.targetCategory] || 'cibles';
-  const adjSing = {ally:'alliée', enemy:'ennemie', any:'', random:''}[eff.targetOwner] || '';
-  const adjPlur = {ally:'alliées', enemy:'ennemies', any:'', random:''}[eff.targetOwner] || '';
-  const randomOwnerPrefix = eff.targetOwner==='random' ? "(camp tiré au hasard) " : '';
+  const nounSing = {creature:'créature', hero_creature:'héros ou créature', artifact:'artefact', card_in_hand:'carte en main', card_in_discard:'carte en défausse', card_in_deck:'carte du deck'}[t.targetCategory] || 'cible';
+  const nounPlur = {creature:'créatures', hero_creature:'héros ou créatures', artifact:'artefacts', card_in_hand:'cartes en main', card_in_discard:'cartes en défausse', card_in_deck:'cartes du deck'}[t.targetCategory] || 'cibles';
+  const adjSing = {ally:'alliée', enemy:'ennemie', any:'', random:''}[t.targetOwner] || '';
+  const adjPlur = {ally:'alliées', enemy:'ennemies', any:'', random:''}[t.targetOwner] || '';
+  const randomOwnerPrefix = t.targetOwner==='random' ? "(camp tiré au hasard) " : '';
 
-  if(eff.selectionMode==='all'){
-    if(eff.targetOwner==='ally') return `toutes vos ${nounPlur}`;
-    if(eff.targetOwner==='enemy') return `toutes les ${nounPlur} ${adjPlur}`.trim();
+  if(t.selectionMode==='all'){
+    if(t.targetOwner==='ally') return `toutes vos ${nounPlur}`;
+    if(t.targetOwner==='enemy') return `toutes les ${nounPlur} ${adjPlur}`.trim();
     return `${randomOwnerPrefix}toutes les ${nounPlur}`.trim();
   }
-  const count = eff.targetCount||1;
+  // le nouveau format "cible" utilise countFixed/countMode, l'ancien format (ex: fight) utilise targetCount
+  const count = t.countMode!==undefined ? (t.countMode==='fixed' ? (t.countFixed||1) : 1) : (t.targetCount||1);
   const noun = count>1 ? nounPlur : nounSing;
   const adj = count>1 ? adjPlur : adjSing;
   let selWord;
-  if(eff.selectionMode==='random') selWord = count>1?'aléatoires':'aléatoire';
-  else if(eff.selectionMode==='upTo') selWord = 'désignée(s) au choix';
-  else if(eff.selectionMode==='exact') selWord = 'désignée(s) obligatoirement';
+  if(t.selectionMode==='random') selWord = count>1?'aléatoires':'aléatoire';
+  else if(t.selectionMode==='upTo') selWord = 'désignée(s) au choix';
+  else if(t.selectionMode==='exact') selWord = 'désignée(s) obligatoirement';
   else selWord = count>1?'désignées':'désignée';
-  const article = eff.selectionMode==='upTo' ? `jusqu'à ${count} ` : (count>1 ? `${count} ` : 'une ');
+  const article = t.selectionMode==='upTo' ? `jusqu'à ${count} ` : (count>1 ? `${count} ` : 'une ');
   return `${randomOwnerPrefix}${article}${noun}${adj?' '+adj:''} ${selWord}`.replace(/\s+/g,' ').trim();
 }
 
-function buildEffectClause(eff){
+function buildEffectClause(eff, ab){
+  const resolvedTarget = ab && ab.targets ? ab.targets.find(t=>t.id===eff.usesTarget) : null;
   const v1 = eff.needsValueCache;
   switch(eff.effectType){
     case 'damage': {
       const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic');
       const isNum = eff.valueMode==='fixed';
-      return `infligez ${val} ${isNum ? plural(eff.valueFixed,'dégât','dégâts') : 'dégâts'} à ${targetPhrase(eff)}`;
+      return `infligez ${val} ${isNum ? plural(eff.valueFixed,'dégât','dégâts') : 'dégâts'} à ${targetPhrase(resolvedTarget)}`;
     }
     case 'heal': {
       const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic');
-      return `restaurez ${val} PV à ${targetPhrase(eff)}`;
+      return `restaurez ${val} PV à ${targetPhrase(resolvedTarget)}`;
     }
     case 'draw': {
       const cardsWord = (v)=> v===1 ? 'une carte' : `${v} cartes`;
@@ -2314,13 +2439,13 @@ function buildEffectClause(eff){
       const v2m = eff.valueMode2||eff.valueMode;
       const v2 = v2m==='dynamic' ? '+'+valuePhrase(eff, v2m, eff.valueFixed2, 'valueDynamic2') : (eff.valueFixed2>=0?'+':'')+eff.valueFixed2;
       const verb = (eff.valueMode==='fixed' && eff.valueFixed<0) || (v2m==='fixed' && eff.valueFixed2<0) ? 'subit' : 'gagne';
-      return `${targetPhrase(eff)} ${verb} ${v1}/${v2}`;
+      return `${targetPhrase(resolvedTarget)} ${verb} ${v1}/${v2}`;
     }
     case 'weaken': {
       const v1 = eff.valueMode==='dynamic' ? valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic') : Math.abs(eff.valueFixed);
       const v2m = eff.valueMode2||eff.valueMode;
       const v2 = v2m==='dynamic' ? valuePhrase(eff, v2m, eff.valueFixed2, 'valueDynamic2') : Math.abs(eff.valueFixed2);
-      return `${targetPhrase(eff)} subit -${v1}/-${v2}`;
+      return `${targetPhrase(resolvedTarget)} subit -${v1}/-${v2}`;
     }
     case 'setStat': {
       const statLabel = {force:'la Force',endurance:"l'Endurance",cost:'le coût de mana',charges:"le nombre d'utilisations"}[eff.setStatTarget||'force'];
@@ -2340,7 +2465,7 @@ function buildEffectClause(eff){
       return `réduisez le coût d'activation de cette carte de ${val} (minimum 0)`;
     }
     case 'bounce':
-      return `renvoyez ${targetPhrase(eff)} en main`;
+      return `renvoyez ${targetPhrase(resolvedTarget)} en main`;
     case 'refillMana': {
       if(eff.manaTargetOwner==='enemy') return `votre adversaire recharge tout son mana disponible ce tour-ci`;
       if(eff.manaTargetOwner==='both') return `chaque joueur recharge tout son mana disponible ce tour-ci`;
@@ -2354,10 +2479,10 @@ function buildEffectClause(eff){
     case 'grantKeyword': {
       const kw = KEYWORDS.find(k=>k.key===eff.grantKeywordKey);
       const durLabel = eff.grantKeywordDuration==='thisTurn' ? ' ce tour-ci' : '';
-      return `${targetPhrase(eff)} obtient ${kw?kw.label:'?'}${durLabel}`;
+      return `${targetPhrase(resolvedTarget)} obtient ${kw?kw.label:'?'}${durLabel}`;
     }
     case 'keywordChoice':
-      return `révélez 3 mots-clés au hasard : ${targetPhrase(eff)} obtient celui que vous choisissez`;
+      return `révélez 3 mots-clés au hasard : ${targetPhrase(resolvedTarget)} obtient celui que vous choisissez`;
     case 'summonCopy': {
       const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic');
       const isNum = eff.valueMode==='fixed';
@@ -2381,21 +2506,21 @@ function buildEffectClause(eff){
       return `défaussez un nombre de cartes ${valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic')}`;
     }
     case 'destroy':
-      return `détruisez ${targetPhrase(eff)}`;
+      return `détruisez ${targetPhrase(resolvedTarget)}`;
     case 'removeArtifactCharges': {
       const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic');
-      return `retirez ${val} utilisation(s) à ${targetPhrase(eff)}`;
+      return `retirez ${val} utilisation(s) à ${targetPhrase(resolvedTarget)}`;
     }
     case 'silence': {
       const modeLabel = {abilities:'les capacités', buffs:'les bonus de stats', both:'les capacités et les bonus de stats'}[eff.silenceMode||'both'];
-      return `retirez ${modeLabel} de ${targetPhrase(eff)}`;
+      return `retirez ${modeLabel} de ${targetPhrase(resolvedTarget)}`;
     }
     case 'sacrificeEffect':
-      return `sacrifiez ${targetPhrase(eff)}`;
+      return `sacrifiez ${targetPhrase(resolvedTarget)}`;
     case 'counterCard':
       return `mettez la carte jouée dans la défausse de son propriétaire et annulez son effet`;
     case 'stun':
-      return `étourdissez ${targetPhrase(eff)} (elle ne peut ni attaquer ni bloquer lors de son prochain tour)`;
+      return `étourdissez ${targetPhrase(resolvedTarget)} (elle ne peut ni attaquer ni bloquer lors de son prochain tour)`;
     case 'grantMana': {
       const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic');
       const isNum = eff.valueMode==='fixed';
@@ -2411,7 +2536,7 @@ function buildEffectClause(eff){
       return `explorez ${val} ${isNum ? plural(eff.valueFixed,'carte','cartes') : 'cartes'} ${ownerLabel} (envoyées dans la défausse)`;
     }
     case 'upgrade':
-      return `donnez un mot-clé aléatoire à ${targetPhrase(eff)}`;
+      return `donnez un mot-clé aléatoire à ${targetPhrase(resolvedTarget)}`;
     case 'retrieve':
       return retrieveClause(eff);
     case 'discover':
@@ -2620,7 +2745,7 @@ function conditionClause(cond){
 }
 
 function buildAbilitySentence(cardType, ab){
-  const effectClauses = (ab.effects||[]).map(buildEffectClause).filter(Boolean);
+  const effectClauses = (ab.effects||[]).map(eff=>buildEffectClause(eff, ab)).filter(Boolean);
   if(effectClauses.length===0) return '';
   const joiner = ab.chainMode==='simultaneous' ? ' et ' : ', puis ';
   let clause = capitalize(effectClauses.join(joiner));
