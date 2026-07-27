@@ -313,6 +313,20 @@ header .spacer{flex:1;}
           <input type="text" id="f-name" placeholder="Ex : Sentinelle de Pierre" oninput="onFormChange()">
         </div>
 
+        <div class="field">
+          <label>Taille du titre sur la carte <span class="hint" style="text-transform:none;letter-spacing:0;">— pour les noms très longs</span></label>
+          <div style="display:flex;align-items:center;gap:8px;background:var(--bg-panel-2);border:1px solid #3a3260;border-radius:8px;padding:8px 10px;">
+            <label style="display:flex;align-items:center;gap:5px;font-size:11px;white-space:nowrap;">
+              <input type="checkbox" id="f-name-autosize" checked onchange="document.getElementById('f-name-fontsize').disabled=this.checked; onFormChange();" style="width:auto;"> Auto
+            </label>
+            <input type="range" id="f-name-fontsize" min="6" max="24" step="0.5" value="14" oninput="document.getElementById('f-name-fontsize-val').textContent=this.value+'px'; onFormChange();" style="flex:1;" disabled>
+            <span id="f-name-fontsize-val" style="font-size:10.5px;color:var(--parchment-dim);width:32px;text-align:right;">14px</span>
+          </div>
+          <label style="display:flex;align-items:center;gap:6px;font-size:11px;margin-top:6px;cursor:pointer;">
+            <input type="checkbox" id="f-name-wrap" onchange="onFormChange()" style="width:auto;"> Autoriser le titre sur 2 lignes
+          </label>
+        </div>
+
         <div class="grid2">
           <div class="field">
             <label>Classe</label>
@@ -2671,6 +2685,9 @@ function readForm(){
     imagePosY: parseInt(document.getElementById('f-image-y').value) || 50,
     imageZoom: parseInt(document.getElementById('f-image-zoom').value) || 100,
     imagePosXSmall: parseInt(document.getElementById('f-image-x-small').value) || 50,
+    nameFontAuto: document.getElementById('f-name-autosize').checked,
+    nameFontSize: parseFloat(document.getElementById('f-name-fontsize').value) || 14,
+    nameWrap: document.getElementById('f-name-wrap').checked,
     imagePosYSmall: parseInt(document.getElementById('f-image-y-small').value) || 50,
     imageZoomSmall: parseInt(document.getElementById('f-image-zoom-small').value) || 100,
     setLogo: document.getElementById('f-set-logo').value.trim(),
@@ -2736,6 +2753,11 @@ function loadCardIntoForm(card){
   document.getElementById('f-image-y').value = card.imagePosY ?? 50;
   document.getElementById('f-image-zoom').value = card.imageZoom ?? 100;
   document.getElementById('f-image-x-small').value = card.imagePosXSmall ?? 50;
+  document.getElementById('f-name-autosize').checked = card.nameFontAuto !== false;
+  document.getElementById('f-name-fontsize').value = card.nameFontSize ?? 14;
+  document.getElementById('f-name-fontsize').disabled = card.nameFontAuto !== false;
+  document.getElementById('f-name-fontsize-val').textContent = (card.nameFontSize ?? 14) + 'px';
+  document.getElementById('f-name-wrap').checked = !!card.nameWrap;
   document.getElementById('f-image-y-small').value = card.imagePosYSmall ?? 50;
   document.getElementById('f-image-zoom-small').value = card.imageZoomSmall ?? 100;
   document.getElementById('f-image-frame-wrap').style.display = card.image ? 'block' : 'none';
@@ -2794,6 +2816,11 @@ function newCard(){
   document.getElementById('f-image-zoom-small').value = 100;
   document.getElementById('f-image-frame-wrap').style.display = 'none';
   document.getElementById('f-image-frame-small-wrap').style.display = 'none';
+  document.getElementById('f-name-autosize').checked = true;
+  document.getElementById('f-name-fontsize').value = 14;
+  document.getElementById('f-name-fontsize').disabled = true;
+  document.getElementById('f-name-fontsize-val').textContent = '14px';
+  document.getElementById('f-name-wrap').checked = false;
   document.getElementById('f-set-logo').value = '';
   document.getElementById('f-atk').value = 1;
   document.getElementById('f-hp').value = 4;
@@ -3039,10 +3066,12 @@ function buildNewCardEl(card, size){
     const nw = nEl('div','nname-wrap');
     nw.appendChild(nImg('images/card/icon/bubble/nom.png'));
     const nameEl = nEl('div','nname-text'); nameEl.textContent = card.name || '';
+    applyNameSizing(nameEl, card);
     nw.appendChild(nameEl);
     root.appendChild(nw);
   } else {
     const nameEl = nEl('div','nname-text'); nameEl.textContent = card.name || '';
+    applyNameSizing(nameEl, card);
     root.appendChild(nameEl);
   }
 
@@ -3069,6 +3098,19 @@ function buildNewCardEl(card, size){
   return root;
 }
 
+function applyNameSizing(nameEl, card){
+  if(card.nameWrap){
+    nameEl.style.whiteSpace = 'normal';
+    nameEl.style.height = 'auto';
+    nameEl.style.overflow = 'visible';
+  }
+  if(card.nameFontAuto === false){
+    nameEl.dataset.auto = '0';
+    nameEl.style.fontSize = (card.nameFontSize || 14) + 'px';
+  } else {
+    nameEl.dataset.auto = '1';
+  }
+}
 function fitBoxFont(el, minSize){
   if(!el) return;
   el.style.fontSize = '';
@@ -3086,7 +3128,10 @@ function fitBoxFont(el, minSize){
 }
 function fitNewCard(rootEl){
   if(!rootEl) return;
-  fitBoxFont(rootEl.querySelector('.nname-text'), 6);
+  const nameEl = rootEl.querySelector('.nname-text');
+  if(nameEl && nameEl.dataset.auto !== '0'){
+    fitBoxFont(nameEl, 6);
+  }
   fitBoxFont(rootEl.querySelector('.ncard-text'), 7);
 }
 
