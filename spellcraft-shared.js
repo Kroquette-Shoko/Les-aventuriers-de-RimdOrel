@@ -324,6 +324,34 @@ function playMusic(name, {loop=true, volume=0.4}={}){
     currentMusicAudio = new Audio(`music/${name}.ogg`);
     currentMusicAudio.loop = loop;
     currentMusicAudio.volume = volume * musicVolumeLevel;
+
+    // Reprise en douceur : si c'est déjà la même piste qui jouait sur la
+    // page précédente, on reprend à la position estimée (temps sauvegardé +
+    // temps écoulé depuis) plutôt que de repartir du début — pour que ça ne
+    // se coupe pas nettement à chaque changement de menu.
+    try{
+      const savedTrack = sessionStorage.getItem('sc_music_track');
+      if(savedTrack === name){
+        const savedTime = parseFloat(sessionStorage.getItem('sc_music_time') || '0');
+        const savedAt = parseFloat(sessionStorage.getItem('sc_music_savedAt') || '0');
+        const elapsed = savedAt ? (Date.now() - savedAt) / 1000 : 0;
+        currentMusicAudio.addEventListener('loadedmetadata', ()=>{
+          const dur = currentMusicAudio.duration;
+          if(!dur || !isFinite(dur)) return;
+          let resumeAt = savedTime + elapsed;
+          if(loop && dur>0) resumeAt = resumeAt % dur;
+          if(resumeAt>0 && resumeAt<dur) currentMusicAudio.currentTime = resumeAt;
+        }, {once:true});
+      }
+      sessionStorage.setItem('sc_music_track', name);
+      currentMusicAudio.addEventListener('timeupdate', ()=>{
+        try{
+          sessionStorage.setItem('sc_music_time', String(currentMusicAudio.currentTime));
+          sessionStorage.setItem('sc_music_savedAt', String(Date.now()));
+        }catch(e){}
+      });
+    }catch(e){}
+
     currentMusicAudio.play().catch(()=>{
       // bloquée par la politique anti-autoplay (aucune interaction avec la page pour l'instant) :
       // on retentera dès que l'utilisateur clique quelque part.
