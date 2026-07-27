@@ -176,6 +176,13 @@ async function gsEndTurn() { return gsCallAction('endTurn'); }
 async function gsDeclareAttackers(attackerIds) { return gsCallAction('declareAttackers', { attackerIds }); }
 async function gsAssignBlock(blockerId, attackerId) { return gsCallAction('assignBlock', { blockerId, attackerId }); }
 async function gsFinishBlocking() { return gsCallAction('finishBlocking'); }
-async function gsPlayCardSimple(handIndex) { return gsCallAction('playCardSimple', { handIndex }); }
+async function gsPlayCardSimple(handIndex, targetInfo) {
+  const body = { handIndex };
+  if (targetInfo) {
+    if (targetInfo.isHeroTarget) { body.targetIsHero = true; body.targetPlayerKey = targetInfo.playerKey; }
+    else { body.targetInstId = targetInfo.instId; }
+  }
+  return gsCallAction('playCardSimple', body);
+}
 async function gsSetShowHandToSpectators(show) { return gsCallAction('setShowHandToSpectators', { show }); }
 async function gsProcessAiTurn() { return gsCallAction('processAiTurn'); }
