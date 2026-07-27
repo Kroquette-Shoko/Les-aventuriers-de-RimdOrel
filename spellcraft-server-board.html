@@ -962,10 +962,17 @@ function renderHand(){
   const myTurn = S.active===MY_KEY;
   (p.hand||[]).forEach((card, i)=>{
     const affordable = (card.cost||0) <= (p.manaNormal + p.manaFragile);
-    const canPlay = myTurn && S.phase==='main' && affordable && !UI.selectingAttackers;
+    const isLockedTrap = card.pendingTrap || card.activeTrap;
+    const canPlay = myTurn && S.phase==='main' && affordable && !UI.selectingAttackers && !isLockedTrap;
     const el2 = cardEl(card, {});
     el2.classList.add('hand-card');
     if(!canPlay) el2.style.opacity = '.5';
+    if(isLockedTrap){
+      const badge = document.createElement('div');
+      badge.style.cssText = 'position:absolute;top:-10px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;padding:2px 8px;border-radius:8px;background:var(--gold);color:#231d33;white-space:nowrap;z-index:6;';
+      badge.textContent = card.activeTrap ? 'Armé' : 'En attente...';
+      el2.appendChild(badge);
+    }
     el2.addEventListener('mouseenter', (ev)=>{ revealHand(); showHeroPreview(card, ev); });
     el2.addEventListener('mousemove', moveHeroPreview);
     el2.addEventListener('mouseleave', ()=>{ scheduleHideHand(); hidePreview(); });
@@ -1071,7 +1078,9 @@ function onCardDragEnd(ev){
 
   if(over){
     const card = S[MY_KEY].hand[handIndex];
-    if(card && needsTargetClient(card)){
+    if(card && card.type==='Piège'){
+      uiSetTrap(handIndex);
+    } else if(card && needsTargetClient(card)){
       UI.pendingCard = { index: handIndex, card };
       render();
     } else {
@@ -1220,6 +1229,7 @@ async function runAction(label, fn){
 
 async function uiMulligan(){ await runAction('Mulligan', ()=>gsMulligan([])); }
 async function uiPlayCard(i, targetInfo){ await runAction('Jouer carte', ()=>gsPlayCardSimple(i, targetInfo)); }
+async function uiSetTrap(i){ await runAction('Poser le piège', ()=>gsSetTrap(i)); }
 async function uiEndTurn(){ await runAction('Fin de tour', ()=>gsEndTurn()); }
 async function uiConfirmAttackers(){
   await runAction('Attaquer', ()=>gsDeclareAttackers(UI.selectedAttackers));

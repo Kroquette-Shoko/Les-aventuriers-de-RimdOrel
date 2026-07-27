@@ -176,6 +176,7 @@ async function gsEndTurn() { return gsCallAction('endTurn'); }
 async function gsDeclareAttackers(attackerIds) { return gsCallAction('declareAttackers', { attackerIds }); }
 async function gsAssignBlock(blockerId, attackerId) { return gsCallAction('assignBlock', { blockerId, attackerId }); }
 async function gsFinishBlocking() { return gsCallAction('finishBlocking'); }
+async function gsSetTrap(handIndex) { return gsCallAction('setTrap', { handIndex }); }
 async function gsPlayCardSimple(handIndex, targetInfo) {
   const body = { handIndex };
   if (targetInfo) {
