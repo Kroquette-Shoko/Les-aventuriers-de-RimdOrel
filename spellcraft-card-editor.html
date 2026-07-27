@@ -995,7 +995,7 @@ function blankEffect(){
     coinFlipTargetCategory:'creature', coinFlipTargetOwner:'enemy', coinFlipSelectionMode:'all',
     coinFlipSuccessEffect:'destroy', coinFlipSuccessValue:2,
     followUpEnabled:false, followUpType:'buff', followUpAtk:1, followUpHp:1, followUpKeyword:'charge', followUpDuration:'permanent',
-    manaTargetOwner:'self', conjureTargetOwner:'self'
+    manaTargetOwner:'self', conjureTargetOwner:'self', discardTargetOwner:'self'
   };
 }
 function blankCondition(){
@@ -2003,6 +2003,10 @@ function buildEffectRow(ab, eff){
     row.appendChild(makeSelectField('Bénéficiaire', [{key:'self',label:'Vous'},{key:'enemy',label:"L'adversaire"},{key:'both',label:'Les deux'}], eff.manaTargetOwner, v=>{ eff.manaTargetOwner=v; onFormChange(); }));
   }
 
+  if(eff.effectType==='discard'){
+    row.appendChild(makeSelectField('Qui défausse', [{key:'self',label:'Vous'},{key:'enemy',label:"L'adversaire"},{key:'both',label:'Les deux'}], eff.discardTargetOwner, v=>{ eff.discardTargetOwner=v; onFormChange(); }));
+  }
+
   if(def.isRetrieve){
     row.appendChild(makeSelectField('Depuis', RETRIEVE_SOURCES, eff.retrieveSource, v=>{ eff.retrieveSource=v; onFormChange(); }));
     row.appendChild(makeSelectField('Critère', RETRIEVE_CRITERIA, eff.retrieveCriteria, v=>{ eff.retrieveCriteria=v; rebuildAbilitiesUI(); onFormChange(); }));
@@ -2618,10 +2622,11 @@ function buildEffectClause(eff, ab){
       return `lancez une pièce pour ${groupLabel} : sur un résultat défavorable, elle ${consequence}`;
     }
     case 'discard': {
+      const who = eff.discardTargetOwner==='enemy' ? 'votre adversaire défausse' : eff.discardTargetOwner==='both' ? 'chaque joueur défausse' : 'défaussez';
       if(eff.valueMode==='fixed'){
-        return eff.valueFixed===1 ? 'défaussez une carte' : `défaussez ${eff.valueFixed} cartes`;
+        return eff.valueFixed===1 ? `${who} une carte` : `${who} ${eff.valueFixed} cartes`;
       }
-      return `défaussez un nombre de cartes ${valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic')}`;
+      return `${who} un nombre de cartes ${valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic')}`;
     }
     case 'destroy':
       return `détruisez ${targetPhrase(resolvedTarget)}`;
