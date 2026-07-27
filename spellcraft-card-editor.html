@@ -3066,12 +3066,12 @@ function buildNewCardEl(card, size){
     const nw = nEl('div','nname-wrap');
     nw.appendChild(nImg('images/card/icon/bubble/nom.png'));
     const nameEl = nEl('div','nname-text'); nameEl.textContent = card.name || '';
-    applyNameSizing(nameEl, card);
+    applyNameSizing(nameEl, card, size);
     nw.appendChild(nameEl);
     root.appendChild(nw);
   } else {
     const nameEl = nEl('div','nname-text'); nameEl.textContent = card.name || '';
-    applyNameSizing(nameEl, card);
+    applyNameSizing(nameEl, card, size);
     root.appendChild(nameEl);
   }
 
@@ -3098,7 +3098,7 @@ function buildNewCardEl(card, size){
   return root;
 }
 
-function applyNameSizing(nameEl, card){
+function applyNameSizing(nameEl, card, size){
   if(card.nameWrap){
     nameEl.style.whiteSpace = 'normal';
     nameEl.style.height = 'auto';
@@ -3106,7 +3106,10 @@ function applyNameSizing(nameEl, card){
   }
   if(card.nameFontAuto === false){
     nameEl.dataset.auto = '0';
-    nameEl.style.fontSize = (card.nameFontSize || 14) + 'px';
+    // La taille choisie est calibrée sur le grand format (300px) ; on l'adapte
+    // proportionnellement au petit format (240px) pour un rendu cohérent.
+    const scale = size==='small' ? (240/300) : 1;
+    nameEl.style.fontSize = ((card.nameFontSize || 14) * scale) + 'px';
   } else {
     nameEl.dataset.auto = '1';
   }
