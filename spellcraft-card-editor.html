@@ -701,6 +701,7 @@ const TRIGGERS_BY_TYPE = {
 };
 
 const TRIGGER_TEXT = {
+  usedXTimes: 'Après avoir utilisé cette capacité X fois',
   gameStart: 'Au début de la partie',
   onPlay: 'Quand cette carte entre en jeu',
   onAttack: 'Quand cette créature attaque',
@@ -935,7 +936,8 @@ function blankTriggerEntry(){
   return {
     id: rowId(), trigger: null, triggerSubtype: '', triggerOwner: 'ally', triggerTurn: 1,
     activationCost: 2, activationCooldown: 0,
-    extraCostEnabled: false, extraCostType: 'sacrificeCreature', extraCostAmount: 1, extraCostCustom: ''
+    extraCostEnabled: false, extraCostType: 'sacrificeCreature', extraCostAmount: 1, extraCostCustom: '',
+    useCount: 3
   };
 }
 function blankTargetEntry(){
@@ -949,7 +951,12 @@ function blankTargetEntry(){
   };
 }
 function blankEvolution(){
-  return { id: rowId(), triggers: [ blankTriggerEntry() ], description: '' };
+  return {
+    id: rowId(), triggers: [ blankTriggerEntry() ],
+    targetEffectId: null,
+    newValueMode: 'fixed', newValueFixed: 0, newValueDynamic: 'thisAtk',
+    newValueMode2: 'fixed', newValueFixed2: 0, newValueDynamic2: 'thisAtk'
+  };
 }
 function blankAbility(){
   return {
@@ -1453,6 +1460,15 @@ function buildTriggerEntryBox(te, tIdx, totalCount, availableTriggers, onRemove)
     tBox.appendChild(srow);
   }
 
+  if(te.trigger==='usedXTimes'){
+    const urow = document.createElement('div');
+    urow.className='ability-row';
+    urow.innerHTML = `<div class="field"><label class="mini-field">Nombre d'utilisations</label>
+      <input type="number" id="trigcount-${te.id}" min="1" max="20" value="${te.useCount||3}"></div>`;
+    urow.querySelector(`#trigcount-${te.id}`).oninput = (e)=>{ te.useCount=parseInt(e.target.value)||1; onFormChange(); };
+    tBox.appendChild(urow);
+  }
+
   if(te.trigger==='activated'){
     const arow = document.createElement('div');
     arow.className='ability-row';
@@ -1877,9 +1893,10 @@ function rebuildAbilitiesUI(){
       evoStageBox.innerHTML = `<div class="ability-row"><div class="field"><label>Évolution ${eIdx+1}</label></div></div>`;
 
       if(!evo.triggers || evo.triggers.length===0) evo.triggers = [ blankTriggerEntry() ];
-      evo.triggers.forEach(te=>{ if(!te.trigger || !availableTriggers.includes(te.trigger)) te.trigger = availableTriggers[0]; });
+      const evoAvailableTriggers = [...availableTriggers, 'usedXTimes'];
+      evo.triggers.forEach(te=>{ if(!te.trigger || !evoAvailableTriggers.includes(te.trigger)) te.trigger = evoAvailableTriggers[0]; });
       evo.triggers.forEach((te, tIdx)=>{
-        const tBox = buildTriggerEntryBox(te, tIdx, evo.triggers.length, availableTriggers, evo.triggers.length>1 ? ()=>removeEvolutionTrigger(ab.id, evo.id, te.id) : null);
+        const tBox = buildTriggerEntryBox(te, tIdx, evo.triggers.length, evoAvailableTriggers, evo.triggers.length>1 ? ()=>removeEvolutionTrigger(ab.id, evo.id, te.id) : null);
         evoStageBox.appendChild(tBox);
       });
       const addEvoTrigBtn = document.createElement('button');
@@ -1887,13 +1904,33 @@ function rebuildAbilitiesUI(){
       addEvoTrigBtn.onclick = ()=>addEvolutionTrigger(ab.id, evo.id);
       evoStageBox.appendChild(addEvoTrigBtn);
 
-      const descField = document.createElement('div');
-      descField.className='field';
-      descField.style.marginTop='8px';
-      descField.innerHTML = `<label class="mini-field">Descriptif du nouvel effet</label>
-        <input type="text" id="evo-desc-${evo.id}" value="${escapeHtml(evo.description||'')}" placeholder="Ex : inflige 4 dégâts au lieu de 2">`;
-      descField.querySelector(`#evo-desc-${evo.id}`).oninput = (e)=>{ evo.description=e.target.value; onFormChange(); };
-      evoStageBox.appendChild(descField);
+      // choix de l'effet à modifier + sa nouvelle valeur (fixe ou dynamique)
+      const effOptions = (ab.effects||[]).map((eff, i)=>{
+        const def = EFFECT_TYPES.find(e=>e.key===eff.effectType);
+        return { key: eff.id, label: `Effet ${i+1}${def?` (${def.label})`:''}` };
+      });
+      if(effOptions.length===0){
+        const warn = document.createElement('div');
+        warn.className='field'; warn.style.marginTop='8px';
+        warn.innerHTML = `<label class="mini-field" style="color:#c9a86a;">⚠ Ajoute d'abord un effet à la capacité ci-dessus.</label>`;
+        evoStageBox.appendChild(warn);
+      } else {
+        if(!evo.targetEffectId || !effOptions.some(o=>o.key===evo.targetEffectId)) evo.targetEffectId = effOptions[0].key;
+        const effRow = document.createElement('div');
+        effRow.className='ability-row'; effRow.style.marginTop='8px';
+        effRow.appendChild(makeSelectField('Effet à modifier', effOptions, evo.targetEffectId, v=>{ evo.targetEffectId=v; onFormChange(); }));
+        evoStageBox.appendChild(effRow);
+
+        const targetEff = (ab.effects||[]).find(e=>e.id===evo.targetEffectId);
+        const targetDef = targetEff ? EFFECT_TYPES.find(e=>e.key===targetEff.effectType) : null;
+        const valRow = document.createElement('div');
+        valRow.className='ability-row';
+        valRow.appendChild(buildValueField(evo, 'newValueMode', 'newValueFixed', 'newValueDynamic', targetDef && targetDef.key==='buff' ? 'Nouvelle valeur (Force)' : 'Nouvelle valeur', false, false));
+        if(targetDef && targetDef.key==='buff'){
+          valRow.appendChild(buildValueField(evo, 'newValueMode2', 'newValueFixed2', 'newValueDynamic2', 'Nouvelle valeur (Endurance)', false, false));
+        }
+        evoStageBox.appendChild(valRow);
+      }
 
       const rmEvoBtn = document.createElement('button');
       rmEvoBtn.className='mini-btn'; rmEvoBtn.textContent='🗑 Retirer cette évolution'; rmEvoBtn.style.marginTop='8px';
@@ -2886,8 +2923,25 @@ function buildAbilitySentence(cardType, ab){
     }
   }
   (ab.evolutions||[]).forEach(evo=>{
-    const trigDesc = (evo.triggers||[]).map(te=>TRIGGER_TEXT[te.trigger]||'?').join(' ou ');
-    sentence += ` Évolution (${trigDesc}) : ${evo.description||'?'}`;
+    const trigDesc = (evo.triggers||[]).map(te=>{
+      if(te.trigger==='usedXTimes') return `après ${te.useCount||3} utilisations de cette capacité`;
+      return TRIGGER_TEXT[te.trigger]||'?';
+    }).join(' ou ');
+    const targetEff = (ab.effects||[]).find(e=>e.id===evo.targetEffectId);
+    const targetDef = targetEff ? EFFECT_TYPES.find(e=>e.key===targetEff.effectType) : null;
+    let changeDesc = '?';
+    if(targetEff && targetDef){
+      const oldVal = valuePhrase(targetEff, targetEff.valueMode, targetEff.valueFixed, 'valueDynamic');
+      const newVal = valuePhrase(evo, evo.newValueMode, evo.newValueFixed, 'newValueDynamic');
+      if(targetDef.key==='buff'){
+        const oldVal2 = valuePhrase(targetEff, targetEff.valueMode2, targetEff.valueFixed2, 'valueDynamic2');
+        const newVal2 = valuePhrase(evo, evo.newValueMode2, evo.newValueFixed2, 'newValueDynamic2');
+        changeDesc = `${targetDef.label} devient +${newVal}/+${newVal2} (au lieu de +${oldVal}/+${oldVal2})`;
+      } else {
+        changeDesc = `${targetDef.label} devient ${newVal} (au lieu de ${oldVal})`;
+      }
+    }
+    sentence += ` Évolution (${trigDesc}) : ${changeDesc}.`;
   });
   return sentence;
 }

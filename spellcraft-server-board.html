@@ -726,7 +726,7 @@ const NRARITY_TO_SLUG = {
 function nEl(tag, cls){ const e = document.createElement(tag); if(cls) e.className = cls; return e; }
 function nImg(src, cls){ const i = document.createElement('img'); i.src = src; if(cls) i.className = cls; return i; }
 
-function buildNewCardEl(card, size){
+function buildNewCardEl(card, size, effectiveCostOverride){
   const root = nEl('div', `ncard n-${size}`);
   const slug = NCLASS_TO_SLUG[card.class] || 'neutre';
   const isHero = card.type==='Héros';
@@ -750,7 +750,7 @@ function buildNewCardEl(card, size){
   if(hasMana){
     const w = nEl('div','nstat-wrap n-mana');
     w.appendChild(nImg('images/card/icon/bubble/mana.png'));
-    const t = nEl('div','nstat-txt'); t.textContent = card.cost ?? 0;
+    const t = nEl('div','nstat-txt'); t.textContent = effectiveCostOverride ?? (card.cost ?? 0);
     w.appendChild(t);
     root.appendChild(w);
   }
@@ -834,10 +834,25 @@ function fitNewCard(rootEl){
   fitBoxFont(rootEl.querySelector('.ncard-text'), 7);
 }
 
+// Miroir exact de getEffectiveCost côté serveur — pour que l'affichage et
+// le calcul "carte jouable ou non" tiennent compte des réductions actives.
+function getEffectiveCostClient(p, card){
+  let cost = card.cost || 0;
+  (p.activeCostReductions||[]).forEach(r=>{
+    if(r.cardType && r.cardType!==card.type) return;
+    if(r.subtype && !(card.subtypes||[]).includes(r.subtype)) return;
+    cost -= r.amount || 0;
+  });
+  return Math.max(0, cost);
+}
+
 function cardEl(card, opts={}){
   const inPlay = !!opts.inPlay;
   const size = inPlay ? 'small' : 'big';
-  const el = buildNewCardEl(card, size);
+  // le coût effectif (réductions actives) n'a de sens que pour une carte pas
+  // encore jouée, appartenant au joueur local (seule main visible)
+  const effectiveCost = (!inPlay && !opts.isPreview && S && S[MY_KEY]) ? getEffectiveCostClient(S[MY_KEY], card) : undefined;
+  const el = buildNewCardEl(card, size, effectiveCost);
   requestAnimationFrame(()=>fitNewCard(el));
 
   if(opts.attacking) el.classList.add('attacking');
@@ -1391,7 +1406,7 @@ function renderHand(){
   const p = S[MY_KEY];
   const myTurn = S.active===MY_KEY;
   (p.hand||[]).forEach((card, i)=>{
-    const affordable = (card.cost||0) <= (p.manaNormal + p.manaFragile);
+    const affordable = getEffectiveCostClient(p, card) <= (p.manaNormal + p.manaFragile);
     const isLockedTrap = card.pendingTrap || card.activeTrap;
     const canPlay = myTurn && S.phase==='main' && affordable && !UI.selectingAttackers && !isLockedTrap;
     const el2 = cardEl(card, {});
