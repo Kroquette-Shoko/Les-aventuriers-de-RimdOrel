@@ -268,9 +268,9 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .hand-row{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:9px;justify-content:center;padding:55px 14px 6px;pointer-events:none;scrollbar-width:none;background:transparent !important;box-shadow:none;border:none;transform:translateY(136px);transition:transform .22s ease;}
 .hand-row .card{pointer-events:auto;}
 .hand-row::-webkit-scrollbar{height:0;width:0;background:transparent;}
-.hand-card-slot{pointer-events:auto;}
-.hand-card-slot{flex-shrink:0;transform-origin:bottom center;transition:transform .15s ease;}
-.hand-card-slot:hover{transform:translateY(-8px) rotate(0deg) scale(1.05) !important;z-index:5;position:relative;}
+.hand-card-slot{pointer-events:auto;width:150px;height:211.6px;flex-shrink:0;transform-origin:bottom center;transition:transform .15s ease;}
+.hand-card-slot:hover{transform:translateY(-8px) scale(1.05);z-index:5;position:relative;}
+.hand-card-slot .ncard.hand-card{transform:scale(0.5);transform-origin:top left;}
 
 .side-zone{position:absolute;display:flex;flex-direction:column;gap:8px;z-index:6;}
 .side-zone.self{right:16px;top:calc(50% + 100px);}
@@ -1411,6 +1411,9 @@ function renderHand(){
     const canPlay = myTurn && S.phase==='main' && affordable && !UI.selectingAttackers && !isLockedTrap;
     const el2 = cardEl(card, {});
     el2.classList.add('hand-card');
+    const slot = document.createElement('div');
+    slot.className = 'hand-card-slot';
+    slot.appendChild(el2);
     if(!canPlay) el2.style.opacity = '.5';
     if(isLockedTrap){
       const badge = document.createElement('div');
@@ -1426,7 +1429,7 @@ function renderHand(){
       el2.style.touchAction = 'none';
       el2.addEventListener('pointerdown', (ev)=>startCardDrag(ev, i, el2));
     }
-    el.appendChild(el2);
+    el.appendChild(slot);
   });
 }
 
