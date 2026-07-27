@@ -91,7 +91,7 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 #discard-modal .close-btn{align-self:flex-end;background:var(--arcane);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-family:'Cinzel',serif;font-weight:700;cursor:pointer;}
 
 #card-preview{position:fixed;z-index:80;pointer-events:none;display:none;opacity:0;transition:opacity .15s ease;}
-#card-preview .card{transform:scale(2.0);transform-origin:top left;box-shadow:0 16px 34px rgba(0,0,0,.65);}
+#card-preview .ncard{box-shadow:0 16px 34px rgba(0,0,0,.65);}
 #card-preview.show{display:block;opacity:1;}
 
 #card-reveal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:85;opacity:0;background:rgba(5,4,10,0);transition:opacity .3s ease, background .3s ease;}
@@ -347,6 +347,66 @@ body.targeting *{cursor:crosshair !important;}
 .deck-pick-item .dp-meta{font-size:11.5px;color:var(--parchment-dim);margin-top:2px;}
 .dsel-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap;}
 .dsel-empty{text-align:center;padding:30px 10px;color:var(--parchment-dim);font-size:13px;line-height:1.6;}
+
+/* ============================================================
+   NOUVEAU TEMPLATE — frames illustrées (big / small), reprises
+   telles quelles du deckbuilder/éditeur.
+   ============================================================ */
+.ncard{position:relative;flex-shrink:0;user-select:none;}
+.ncard img.nframe-layer{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5;}
+.ncard .nart-layer{position:absolute;background-size:cover;background-repeat:no-repeat;background-color:#3a3450;z-index:1;overflow:hidden;}
+.ncard .nstat-wrap{position:absolute;aspect-ratio:1/1;z-index:6;}
+.ncard .nstat-wrap img{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+.ncard .nstat-wrap .nstat-txt{position:absolute;inset:0;z-index:7;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.85);pointer-events:none;}
+.ncard .nname-wrap{position:absolute;z-index:7;display:flex;align-items:center;justify-content:center;}
+.ncard .nname-wrap img{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;}
+.ncard .nname-wrap .nname-text{position:relative;z-index:1;left:auto;right:auto;top:auto;transform:none;width:84%;max-width:84%;}
+.ncard .nname-text{position:absolute;z-index:8;text-align:center;font-family:'Cinzel',serif;font-weight:700;color:#2a1f10;text-shadow:0 1px 0 rgba(255,255,255,.25);pointer-events:none;overflow:hidden;white-space:nowrap;}
+.ncard .ncard-text{position:absolute;z-index:8;color:#2a2338;text-align:center;overflow:hidden;pointer-events:none;white-space:pre-wrap;}
+.ncard .nrarity-gem{position:absolute;z-index:8;aspect-ratio:231/297;}
+.ncard .ntypeline{position:absolute;left:50%;transform:translateX(-50%);z-index:9;text-align:center;color:#3a2f1f;font-style:italic;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ncard .nlegendary-gem{position:absolute;z-index:8;aspect-ratio:231/297;}
+
+.ncard.n-big{width:300px;height:423.2px;}
+.ncard.n-big .nart-layer{left:14.43%;top:10.23%;width:69.97%;height:38.17%;}
+.ncard.n-big .nstat-wrap.n-mana{left:-6.5%;top:-6.5%;width:25.5%;}
+.ncard.n-big .nstat-wrap.n-mana .nstat-txt{font-size:26px;}
+.ncard.n-big .nname-wrap{left:50%;top:45.3%;width:78%;aspect-ratio:663/202;transform:translateX(-50%);}
+.ncard.n-big .nname-wrap .nname-text{font-size:17px;transform:translateY(-8px);}
+.ncard.n-big .ncard-text{left:16%;top:62%;width:68%;height:27.5%;font-size:13.5px;line-height:1.32;padding-top:4px;}
+.ncard.n-big .nrarity-gem{left:50%;bottom:-1%;width:12%;transform:translateX(-50%);}
+.ncard.n-big .ntypeline{bottom:9.5%;width:72%;font-size:10.5px;}
+.ncard.n-big .nlegendary-gem{left:50%;top:-3%;width:12%;transform:translateX(-50%);}
+.ncard.n-big .nstat-wrap.n-atk{left:3%;bottom:1%;width:26%;}
+.ncard.n-big .nstat-wrap.n-atk .nstat-txt{font-size:27px;}
+.ncard.n-big .nstat-wrap.n-end{right:3%;bottom:1%;width:26%;}
+.ncard.n-big .nstat-wrap.n-end .nstat-txt{font-size:27px;}
+.ncard.n-big .nstat-wrap.n-art{right:6%;bottom:5%;width:15%;}
+.ncard.n-big .nstat-wrap.n-art .nstat-txt{font-size:15px;}
+
+.ncard.n-small{width:240px;height:240px;}
+.ncard.n-small .nart-layer{left:20.47%;top:16.28%;width:58.05%;height:44.63%;}
+.ncard.n-small .nstat-wrap.n-mana{left:-1%;top:-3.5%;width:22%;}
+.ncard.n-small .nstat-wrap.n-mana .nstat-txt{font-size:16px;}
+.ncard.n-small .nname-text{left:50%;top:62%;width:76%;transform:translateX(-50%);font-size:14px;height:20px;}
+.ncard.n-small .ncard-text{display:none;}
+.ncard.n-small .nrarity-gem{left:50%;bottom:-0.5%;width:11%;transform:translateX(-50%);}
+.ncard.n-small .ntypeline{bottom:15%;width:64%;font-size:8.5px;}
+.ncard.n-small .nlegendary-gem{left:50%;top:-1%;width:11%;transform:translateX(-50%);}
+.ncard.n-small .nstat-wrap.n-atk{left:6%;bottom:5%;width:22%;}
+.ncard.n-small .nstat-wrap.n-atk .nstat-txt{font-size:19.5px;}
+.ncard.n-small .nstat-wrap.n-end{right:6%;bottom:5%;width:22%;}
+
+/* Superpositions d'état de jeu (repères visuels de combat, appliqués
+   par-dessus le nouveau template) */
+.ncard.attacking{outline:3px solid #e8b64a;outline-offset:2px;}
+.ncard.targetable{outline:3px solid var(--gold);outline-offset:2px;cursor:crosshair;}
+.ncard.attack-selecting{cursor:pointer;}
+.ncard.summon-sick{filter:grayscale(.4) brightness(.75);}
+.ncard .zzz{position:absolute;top:2px;right:2px;z-index:10;font-size:11px;color:#bcd6ff;text-shadow:0 0 4px #000;pointer-events:none;}
+.ncard .card-armor-shield{position:absolute;top:2px;left:2px;width:22px;height:22px;z-index:10;background:radial-gradient(circle, #cfd8e8 0%, #8fa3c0 70%);border-radius:50%;border:2px solid #fff;pointer-events:none;}
+.ncard .status-stack-tr{position:absolute;top:2px;right:2px;z-index:10;display:flex;flex-direction:column;gap:2px;pointer-events:none;}
+.ncard .status-stack-tr .kw-icon{width:18px;height:18px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.8));}
 </style>
 </head>
 <body>
@@ -647,65 +707,199 @@ function onStateUpdate(state){
 
 // ---------------- cardEl (adapté du prototype) ----------------
 
+// ============================================================
+// NOUVEAU TEMPLATE — frames illustrées (big / small), repris tel
+// quel du deckbuilder/éditeur.
+// ============================================================
+function ncardRealPath(size, slug){
+  const folder = size==='big' ? 'big%20frame' : 'small%20frame';
+  return `images/card/${folder}/${size}-${slug}.png`;
+}
+const NCLASS_TO_SLUG = {
+  'Aube':'aube', 'Crépuscule':'crepuscule', 'Volonté':'volonté',
+  'Prima':'prima', 'Arcane':'arcane', 'Neutre':'neutre'
+};
+const NRARITY_TO_SLUG = {
+  'Basique':'basique', 'Commune':'commun', 'Rare':'rare',
+  'Épique':'epique', 'Mythique':'mythique'
+};
+function nEl(tag, cls){ const e = document.createElement(tag); if(cls) e.className = cls; return e; }
+function nImg(src, cls){ const i = document.createElement('img'); i.src = src; if(cls) i.className = cls; return i; }
+
+function buildNewCardEl(card, size){
+  const root = nEl('div', `ncard n-${size}`);
+  const slug = NCLASS_TO_SLUG[card.class] || 'neutre';
+  const isHero = card.type==='Héros';
+  const isRegion = card.type==='Région';
+  const hasMana = !isHero && !isRegion;
+  const isCreature = card.type==='Créature';
+  const isArtifact = card.type==='Artefact';
+
+  const posX = size==='big' ? (card.imagePosX ?? 50) : (card.imagePosXSmall ?? 50);
+  const posY = size==='big' ? (card.imagePosY ?? 50) : (card.imagePosYSmall ?? 50);
+  const zoom = size==='big' ? (card.imageZoom ?? 100) : (card.imageZoomSmall ?? 100);
+  const art = nEl('div', 'nart-layer');
+  if(card.image){
+    art.style.backgroundImage = `url('${card.image.replace(/'/g,'')}')`;
+    art.style.backgroundPosition = `${posX}% ${posY}%`;
+    art.style.backgroundSize = zoom>100 ? zoom+'%' : 'cover';
+  }
+  root.appendChild(art);
+  root.appendChild(nImg(ncardRealPath(size, slug), 'nframe-layer'));
+
+  if(hasMana){
+    const w = nEl('div','nstat-wrap n-mana');
+    w.appendChild(nImg('images/card/icon/bubble/mana.png'));
+    const t = nEl('div','nstat-txt'); t.textContent = card.cost ?? 0;
+    w.appendChild(t);
+    root.appendChild(w);
+  }
+  if(isCreature){
+    const wa = nEl('div','nstat-wrap n-atk');
+    wa.appendChild(nImg('images/card/icon/bubble/attack.png'));
+    const ta = nEl('div','nstat-txt'); ta.textContent = card.curAtk ?? card.atk ?? 0;
+    wa.appendChild(ta);
+    root.appendChild(wa);
+
+    const we = nEl('div','nstat-wrap n-end');
+    we.appendChild(nImg('images/card/icon/bubble/endurance.png'));
+    const te = nEl('div','nstat-txt'); te.textContent = card.curHp ?? card.hp ?? 0;
+    we.appendChild(te);
+    root.appendChild(we);
+  }
+  if(isArtifact){
+    const wf = nEl('div','nstat-wrap n-art');
+    wf.appendChild(nImg('images/card/icon/bubble/artefact.png'));
+    const t = nEl('div','nstat-txt'); t.textContent = (card.charges ?? 0)+'x';
+    wf.appendChild(t);
+    root.appendChild(wf);
+  }
+  if(isHero){
+    const w = nEl('div','nstat-wrap n-mana');
+    w.style.cssText += 'left:-6.5%;top:auto;bottom:-6.5%;';
+    w.appendChild(nImg('images/card/icon/bubble/vie.png'));
+    const t = nEl('div','nstat-txt'); t.textContent = card.curHp ?? card.hp ?? 0;
+    w.appendChild(t);
+    root.appendChild(w);
+  }
+
+  if(size==='big'){
+    const nw = nEl('div','nname-wrap');
+    nw.appendChild(nImg('images/card/icon/bubble/nom.png'));
+    const nameEl = nEl('div','nname-text'); nameEl.textContent = card.name || '';
+    nw.appendChild(nameEl);
+    root.appendChild(nw);
+  } else {
+    const nameEl = nEl('div','nname-text'); nameEl.textContent = card.name || '';
+    root.appendChild(nameEl);
+  }
+
+  if(size==='big'){
+    const textEl = nEl('div','ncard-text'); textEl.textContent = card.text || '';
+    root.appendChild(textEl);
+  }
+
+  if(card.subtypes && card.subtypes.length){
+    const tl = nEl('div','ntypeline'); tl.textContent = card.subtypes.join(' - ');
+    root.appendChild(tl);
+  }
+
+  if(card.rarity && NRARITY_TO_SLUG[card.rarity]){
+    root.appendChild(nImg(`images/card/icon/rare/${NRARITY_TO_SLUG[card.rarity]}.png`, 'nrarity-gem'));
+  }
+  if(card.isLegendary){
+    root.appendChild(nImg('images/card/icon/rare/legendaire.png', 'nlegendary-gem'));
+  }
+
+  return root;
+}
+function fitBoxFont(el, minSize){
+  if(!el) return;
+  el.style.fontSize = '';
+  let size = parseFloat(getComputedStyle(el).fontSize);
+  const floor = minSize || 7;
+  let attempts = 0;
+  while(attempts < 26 && size > floor){
+    const overflowH = el.scrollHeight > el.clientHeight + 1;
+    const overflowW = el.scrollWidth > el.clientWidth + 1;
+    if(!overflowH && !overflowW) break;
+    size -= 0.5;
+    el.style.fontSize = size + 'px';
+    attempts++;
+  }
+}
+function fitNewCard(rootEl){
+  if(!rootEl) return;
+  fitBoxFont(rootEl.querySelector('.nname-text'), 6);
+  fitBoxFont(rootEl.querySelector('.ncard-text'), 7);
+}
+
 function cardEl(card, opts={}){
-  const el = document.createElement('div');
-  el.className = `card class-${card.class||'Neutre'}`;
+  const inPlay = !!opts.inPlay;
+  const size = inPlay ? 'small' : 'big';
+  const el = buildNewCardEl(card, size);
+  requestAnimationFrame(()=>fitNewCard(el));
+
   if(opts.attacking) el.classList.add('attacking');
   if(opts.targetable) el.classList.add('targetable');
-  const inPlay = !!opts.inPlay;
   const isSick = inPlay && card.summonSick && !card.keywords?.includes('charge');
   if(inPlay && opts.attackSelecting) el.classList.add('attack-selecting');
   if(isSick) el.classList.add('summon-sick');
+
   const kw = card.keywords || [];
-  if(inPlay){
-    if(kw.includes('fearful')) el.classList.add('kw-fearful');
-    if(kw.includes('flying')) el.classList.add('kw-flying');
-    if(kw.includes('initiative')) el.classList.add('kw-initiative');
-    if(kw.includes('lifesteal')) el.classList.add('kw-lifesteal');
-  }
   const hasArmorShield = inPlay && kw.includes('armor') && !card.armorUsed;
   const activeKeywordIcons = inPlay ? kw.filter(k=>{
     if(!KEYWORD_ICON_FILES[k]) return false;
     if(k==='armor' && card.armorUsed) return false;
     return true;
   }) : [];
-  const kwText = kw.map(k=>KEYWORD_LABELS[k]).filter(Boolean).join(', ');
-  const isHero = card.type==='Héros';
-  const isRegion = card.type==='Région';
-  const isCreature = card.type==='Créature';
-  const posX = card.imagePosX ?? 50, posY = card.imagePosY ?? 50, zoom = card.imageZoom ?? 100;
-  const sizeVal = zoom>100 ? zoom+'%' : 'cover';
-  const artStyle = card.image ? `background-image:url('${card.image.replace(/'/g,"")}');background-position:${posX}% ${posY}%;background-size:${sizeVal};` : '';
 
-  const setInitial = card.set ? card.set.trim().charAt(0).toUpperCase() : '✦';
-  el.innerHTML = `
-    <div class="card-art" style="${artStyle}">
-      ${(isHero || isRegion) ? '' : `<div class="card-cost">${card.cost ?? 0}</div>`}
-      ${isHero ? `<div class="card-hero-hp">${card.curHp ?? card.hp ?? 0}</div>` : ''}
-      <div class="card-typeline">${escapeHtmlGS(card.type||'')}</div>
-    </div>
-    <div class="card-divider"><div class="card-set-icon">${card.setLogo ? `<div class="card-set-logo-img" style="background-image:url('${card.setLogo.replace(/'/g,"")}')"></div>` : `<span>${escapeHtmlGS(setInitial)}</span>`}</div></div>
-    <div class="card-body">
-      <div class="card-name">${escapeHtmlGS(card.name||'')}</div>
-      <div class="card-kw">${escapeHtmlGS(kwText)}</div>
-      <div class="card-text">${escapeHtmlGS(card.text||'')}</div>
-    </div>
-    <div class="card-footer">
-      ${isCreature ? `<div class="card-atk">⚔${card.curAtk ?? card.atk ?? 0}</div>` : `<div></div>`}
-      <div class="card-rarity-gem rarity-${card.rarity||'Commune'}"></div>
-      ${isCreature ? `<div class="card-hp">♥${card.curHp ?? card.hp ?? 0}</div>` : `<div></div>`}
-    </div>
-    ${isSick ? `<div class="zzz"><span>Z</span><span>Z</span><span>Z</span></div>` : ''}
-    ${hasArmorShield ? `<div class="card-armor-shield" title="Armure"></div>` : ''}
-    ${activeKeywordIcons.length ? `<div class="status-stack-tr">
-        ${activeKeywordIcons.map(k=>`<img class="kw-icon" src="images/${KEYWORD_ICON_FILES[k]}" title="${KEYWORD_LABELS[k]||k}">`).join('')}
-      </div>` : ''}
-  `;
+  if(isSick){
+    const zzz = nEl('div','zzz');
+    zzz.innerHTML = '<span>Z</span><span>Z</span><span>Z</span>';
+    el.appendChild(zzz);
+  }
+  if(hasArmorShield){
+    const shield = nEl('div','card-armor-shield');
+    shield.title = 'Armure';
+    el.appendChild(shield);
+  }
+  if(activeKeywordIcons.length){
+    const stack = nEl('div','status-stack-tr');
+    activeKeywordIcons.forEach(k=>{
+      const img = nImg(`images/${KEYWORD_ICON_FILES[k]}`, 'kw-icon');
+      img.title = KEYWORD_LABELS[k]||k;
+      stack.appendChild(img);
+    });
+    el.appendChild(stack);
+  }
+
+  // survol : aperçu toujours en grande taille, avec le texte complet
+  if(!opts.isPreview) attachHoverPreview(el, card);
+
   if(opts.onClick) el.onclick = opts.onClick;
   return el;
 }
 
+// Aperçu au survol (toujours n-big, même pour une créature affichée en
+// n-small sur le plateau — pour pouvoir lire le texte complet).
+function attachHoverPreview(el, card){
+  el.addEventListener('mouseenter', (ev)=>showCardPreviewHover(card, ev));
+  el.addEventListener('mousemove', moveHeroPreview);
+  el.addEventListener('mouseleave', hidePreview);
+}
+function showCardPreviewHover(card, ev){
+  const box = document.getElementById('card-preview');
+  box.innerHTML = '';
+  const big = buildNewCardEl(card, 'big');
+  box.appendChild(big);
+  requestAnimationFrame(()=>fitNewCard(big));
+  box.classList.add('show');
+  moveHeroPreview(ev);
+}
+
 // ---------------- Rendu principal ----------------
+
 
 function render(){
   if(!S) return;
@@ -723,12 +917,47 @@ function render(){
   renderPhaseBar();
   renderGameOverOverlay();
   renderDiscoverChoiceModal();
+  renderKeywordChoiceModal();
   fitBoardToViewport();
 }
 
 // Affiche les options à choisir quand une capacité "révéler" (discover) est
 // en attente — bloque le reste de la partie pour le joueur concerné tant
 // qu'un choix n'a pas été fait, comme convenu côté serveur.
+// Affiche les options à choisir quand une capacité "choix de mot-clé"
+// (keywordChoice) est en attente — même principe que discover.
+function renderKeywordChoiceModal(){
+  const existing = document.getElementById('keyword-choice-modal');
+  if(!S.pendingKeywordChoice || S.pendingKeywordChoice.playerKey!==MY_KEY){
+    if(existing) existing.remove();
+    return;
+  }
+  if(existing) return;
+  const modal = document.createElement('div');
+  modal.id = 'keyword-choice-modal';
+  modal.className = 'modal-overlay show';
+  modal.innerHTML = `
+    <div class="modal-box">
+      <h2>Choisis un mot-clé</h2>
+      <div id="keyword-choice-list" style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;"></div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  const list = document.getElementById('keyword-choice-list');
+  S.pendingKeywordChoice.options.forEach((kw, i)=>{
+    const btn = document.createElement('button');
+    btn.className = 'phase-btn';
+    btn.style.cssText = 'min-width:140px;padding:16px;font-size:15px;';
+    const iconFile = KEYWORD_ICON_FILES[kw];
+    btn.innerHTML = `${iconFile ? `<img src="images/${iconFile}" style="width:32px;height:32px;display:block;margin:0 auto 8px;">` : ''}${escapeHtmlGS(KEYWORD_LABELS[kw]||kw)}`;
+    btn.onclick = async ()=>{
+      modal.remove();
+      await runAction('Choix (mot-clé)', ()=>gsResolveKeywordChoice(i));
+    };
+    list.appendChild(btn);
+  });
+}
+
 function renderDiscoverChoiceModal(){
   const existing = document.getElementById('discover-choice-modal');
   if(!S.pendingDiscover || S.pendingDiscover.playerKey!==MY_KEY){
@@ -1380,17 +1609,11 @@ function renderPhaseBar(){
 
 // ---------------- Aperçu du héros au survol ----------------
 
-function showHeroPreview(hero, ev){
-  const box = document.getElementById('card-preview');
-  box.innerHTML = '';
-  box.appendChild(cardEl(hero, {}));
-  box.classList.add('show');
-  moveHeroPreview(ev);
-}
+function showHeroPreview(hero, ev){ showCardPreviewHover(hero, ev); }
 function moveHeroPreview(ev){
   const box = document.getElementById('card-preview');
-  const x = Math.min(ev.clientX + 20, window.innerWidth - 260);
-  const y = Math.min(ev.clientY + 20, window.innerHeight - 360);
+  const x = Math.min(ev.clientX + 20, window.innerWidth - 320);
+  const y = Math.min(ev.clientY + 20, window.innerHeight - 440);
   box.style.left = x + 'px';
   box.style.top = y + 'px';
 }

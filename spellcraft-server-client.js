@@ -182,6 +182,7 @@ async function gsSetTrap(handIndex, sacrificeInstId) {
   return gsCallAction('setTrap', body);
 }
 async function gsResolveDiscoverChoice(chosenIndex) { return gsCallAction('resolveDiscoverChoice', { chosenIndex }); }
+async function gsResolveKeywordChoice(chosenIndex) { return gsCallAction('resolveKeywordChoice', { chosenIndex }); }
 async function gsUseHeroPower(targetInfo, chosenTargets, sacrificeInstId) {
   const body = {};
   if (targetInfo) {
