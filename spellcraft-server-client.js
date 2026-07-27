@@ -177,12 +177,31 @@ async function gsDeclareAttackers(attackerIds) { return gsCallAction('declareAtt
 async function gsAssignBlock(blockerId, attackerId) { return gsCallAction('assignBlock', { blockerId, attackerId }); }
 async function gsFinishBlocking() { return gsCallAction('finishBlocking'); }
 async function gsSetTrap(handIndex) { return gsCallAction('setTrap', { handIndex }); }
-async function gsPlayCardSimple(handIndex, targetInfo) {
+async function gsUseHeroPower(targetInfo, chosenTargets) {
+  const body = {};
+  if (targetInfo) {
+    if (targetInfo.isHeroTarget) { body.targetIsHero = true; body.targetPlayerKey = targetInfo.playerKey; }
+    else { body.targetInstId = targetInfo.instId; }
+  }
+  if (chosenTargets) body.chosenTargets = chosenTargets;
+  return gsCallAction('useHeroPower', body);
+}
+async function gsActivatePermanent(permanentType, permanentInstId, targetInfo, chosenTargets) {
+  const body = { permanentType, permanentInstId };
+  if (targetInfo) {
+    if (targetInfo.isHeroTarget) { body.targetIsHero = true; body.targetPlayerKey = targetInfo.playerKey; }
+    else { body.targetInstId = targetInfo.instId; }
+  }
+  if (chosenTargets) body.chosenTargets = chosenTargets;
+  return gsCallAction('activatePermanent', body);
+}
+async function gsPlayCardSimple(handIndex, targetInfo, chosenTargets) {
   const body = { handIndex };
   if (targetInfo) {
     if (targetInfo.isHeroTarget) { body.targetIsHero = true; body.targetPlayerKey = targetInfo.playerKey; }
     else { body.targetInstId = targetInfo.instId; }
   }
+  if (chosenTargets) body.chosenTargets = chosenTargets;
   return gsCallAction('playCardSimple', body);
 }
 async function gsSetShowHandToSpectators(show) { return gsCallAction('setShowHandToSpectators', { show }); }

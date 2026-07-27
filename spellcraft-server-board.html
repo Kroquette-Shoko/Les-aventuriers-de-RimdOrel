@@ -780,8 +780,9 @@ function renderHeroFrame(key, slot){
   const hero = p.hero || {};
   const heroName = hero.name || (slot==='p1' ? 'Moi' : 'Adversaire');
   const heroPortraitStyle = hero.image ? `background-image:url('${hero.image.replace(/'/g,"")}');background-position:${hero.imagePosX??50}% ${hero.imagePosY??50}%;background-size:${(hero.imageZoom??100)>100?hero.imageZoom+'%':'cover'};` : '';
-  const canActivate = slot==='p1' && S.active===MY_KEY && S.phase==='main' && !!hero.activeEffect;
-  const isPendingTarget = isValidPendingHeroTarget(key);
+  const hasNewFormatPower = !!(hero.abilities && hero.abilities.some(ab=>ab.kind==='triggered' && (ab.triggers||[]).some(te=>te.trigger==='activated')));
+  const canActivate = slot==='p1' && S.active===MY_KEY && S.phase==='main' && (!!hero.activeEffect || hasNewFormatPower);
+  const isPendingTarget = isValidPendingHeroTarget(key) || isValidNewFormatHeroTarget(key);
   const clickable = canActivate || isPendingTarget;
 
   el.innerHTML = `
@@ -794,19 +795,56 @@ function renderHeroFrame(key, slot){
   btn.onmouseenter = (ev)=>showHeroPreview(hero, ev);
   btn.onmousemove = moveHeroPreview;
   btn.onmouseleave = hidePreview;
-  if(isPendingTarget){
+  if(UI.pendingNewTarget && isValidNewFormatHeroTarget(key)){
+    btn.onclick = ()=>pickNewFormatTarget(`hero:${key}`);
+  } else if(isPendingTarget){
     btn.onclick = ()=>{
-      const idx = UI.pendingCard.index;
-      UI.pendingCard = null;
-      uiPlayCard(idx, { isHeroTarget:true, playerKey:key });
+      confirmPendingTarget({ isHeroTarget:true, playerKey:key });
     };
   } else if(canActivate){
     btn.onclick = uiActivateHeroPower;
   }
 }
 
-async function uiActivateHeroPower(){
-  debugLog('Pouvoir de héros : pas encore câblé (lot capacités/déclencheurs).', 'log-ok');
+async function uiActivateHeroPower(targetInfo, chosenTargets){
+  if(!targetInfo && !chosenTargets){
+    const hero = S[MY_KEY].hero;
+    const chosen = findNewFormatChosenTarget(hero, 'activated');
+    if(chosen){
+      UI.pendingNewTarget = { kind:'hero', target: chosen.target, ability: chosen.ability, selectedInstIds: [], extra: {} };
+      render();
+      return;
+    }
+    const eff = hero && hero.activeEffect;
+    if(eff && TARGETED_EFFECTS.includes(eff.type) && eff.targetOwner!=='self' && eff.targetOwner!=='trigger'){
+      UI.pendingPower = { kind:'hero', effect: eff };
+      render();
+      return;
+    }
+  }
+  await runAction('Pouvoir de héros', ()=>gsUseHeroPower(targetInfo, chosenTargets));
+}
+async function uiActivatePermanent(permanentType, permanentInstId, targetInfo, chosenTargets){
+  if(!targetInfo && !chosenTargets){
+    let permanent = null;
+    const p = S[MY_KEY];
+    if(permanentType==='creature') permanent = p.board.find(c=>c.instId===permanentInstId);
+    else if(permanentType==='artifact') permanent = p.relics.find(r=>r.instId===permanentInstId);
+    else if(permanentType==='region') permanent = p.region;
+    const chosen = permanent ? findNewFormatChosenTarget(permanent, 'activated') : null;
+    if(chosen){
+      UI.pendingNewTarget = { kind:'permanent', target: chosen.target, ability: chosen.ability, selectedInstIds: [], extra: { permanentType, permanentInstId } };
+      render();
+      return;
+    }
+    const eff = permanent && permanent.triggeredEffects && permanent.triggeredEffects.activated;
+    if(eff && TARGETED_EFFECTS.includes(eff.type) && eff.targetOwner!=='self' && eff.targetOwner!=='trigger'){
+      UI.pendingPower = { kind:'permanent', effect: eff, permanentType, permanentInstId };
+      render();
+      return;
+    }
+  }
+  await runAction('Capacité activée', ()=>gsActivatePermanent(permanentType, permanentInstId, targetInfo, chosenTargets));
 }
 
 // La zone deck : visuel du dos de carte + nombre de cartes restantes +
@@ -833,7 +871,16 @@ function renderArtifactStack(key, slot){
     const wrap = document.createElement('div');
     wrap.className = 'relic-slot';
     if(relics[i]){
-      wrap.appendChild(cardEl(relics[i]));
+      const r = relics[i];
+      const cardElNode = cardEl(r);
+      wrap.appendChild(cardElNode);
+      if(slot==='p1' && S.active===MY_KEY && S.phase==='main' && !UI.selectingAttackers){
+        const eff = r.triggeredEffects && r.triggeredEffects.activated;
+        if(eff && (r._activationCooldownRemaining||0)<=0){
+          cardElNode.style.cursor = 'pointer';
+          cardElNode.onclick = ()=>uiActivatePermanent('artifact', r.instId);
+        }
+      }
     } else {
       wrap.classList.add('relic-slot-empty');
       if(slot==='p1') wrap.dataset.artifactSlot = 'true';
@@ -852,7 +899,7 @@ function renderLane(key, slot){
     const attackSelecting = isMine && UI.selectingAttackers && UI.selectedAttackers.includes(c.instId);
     const attackConfirmed = (p.attackers||[]).includes(c.instId) && S.phase!=='main';
     const attacking = attackSelecting || attackConfirmed;
-    const targetable = isBlockTargetable(key, c) || isValidPendingTarget(key, c);
+    const targetable = isBlockTargetable(key, c) || isValidPendingTarget(key, c) || isValidNewFormatTarget(key, c);
 
     const cardWrap = document.createElement('div');
     cardWrap.className = 'card-slot';
@@ -901,11 +948,84 @@ function needsTargetClient(card){
   const eff = cardPlayEffectClient(card);
   return !!eff && TARGETED_EFFECTS.includes(eff.type) && eff.targetOwner!=='self' && eff.targetOwner!=='trigger';
 }
-// Une créature est-elle un choix de cible valide pour l'effet actuellement
-// en attente de ciblage (carte en main qu'on est en train de jouer) ?
+// ---------------- Ciblage manuel : nouveau format (card.abilities) ----------------
+// Cherche, pour une carte/permanent donné et un nom de déclencheur donné,
+// la première capacité + cible nécessitant un choix manuel du joueur
+// (selectionMode==='chosen'). Une seule cible "chosen" gérée à la fois pour
+// ce lot — si une carte en a plusieurs, seule la première est proposée.
+function findNewFormatChosenTarget(source, triggerName){
+  if(!source || !source.abilities) return null;
+  for(const ab of source.abilities){
+    if(ab.kind!=='triggered') continue;
+    if(triggerName && !(ab.triggers||[]).some(te=>te.trigger===triggerName)) continue;
+    for(const tgt of (ab.targets||[])){
+      if(tgt.selectionMode==='chosen' && tgt.targetOwner!=='self' && tgt.targetOwner!=='trigger'){
+        return { ability: ab, target: tgt };
+      }
+    }
+  }
+  return null;
+}
+function newFormatTargetCount(tgt){
+  if(tgt.countMode==='dynamic') return 1; // valeur dynamique : on ne peut pas la calculer côté client, on demande au moins 1
+  return tgt.countFixed || 1;
+}
+// Une créature/carte est-elle un choix valide pour la cible du nouveau
+// format actuellement en attente ? Miroir des filtres côté serveur.
+function isValidNewFormatTarget(key, c){
+  if(!UI.pendingNewTarget) return false;
+  const tgt = UI.pendingNewTarget.target;
+  const oppKey = MY_KEY==='p1' ? 'p2' : 'p1';
+  const allowed = tgt.targetOwner==='ally' ? [MY_KEY] : tgt.targetOwner==='enemy' ? [oppKey] : [MY_KEY, oppKey];
+  if(!allowed.includes(key)) return false;
+  if(tgt.targetCategory!=='creature' && tgt.targetCategory!=='hero_creature' && tgt.targetCategory!=='artifact') return false;
+  if(tgt.subtypeFilter && !(c.subtypes||[]).some(s=>s.toLowerCase()===tgt.subtypeFilter.toLowerCase())) return false;
+  if(tgt.statFilterEnabled){
+    const stat = tgt.statFilterStat==='atk' ? c.curAtk : c.curHp;
+    if(tgt.statFilterMode==='atLeast' && !(stat>=tgt.statFilterValue)) return false;
+    if(tgt.statFilterMode==='atMost' && !(stat<=tgt.statFilterValue)) return false;
+    if(tgt.statFilterMode==='exactly' && stat!==tgt.statFilterValue) return false;
+  }
+  if(UI.pendingNewTarget.selectedInstIds.includes(c.instId)) return false; // déjà choisie
+  return true;
+}
+function isValidNewFormatHeroTarget(key){
+  if(!UI.pendingNewTarget) return false;
+  const tgt = UI.pendingNewTarget.target;
+  if(tgt.targetCategory!=='player' && tgt.targetCategory!=='hero' && tgt.targetCategory!=='hero_creature') return false;
+  const oppKey = MY_KEY==='p1' ? 'p2' : 'p1';
+  const allowed = tgt.targetOwner==='ally' ? [MY_KEY] : tgt.targetOwner==='enemy' ? [oppKey] : [MY_KEY, oppKey];
+  if(!allowed.includes(key)) return false;
+  const marker = `hero:${key}`;
+  return !UI.pendingNewTarget.selectedInstIds.includes(marker);
+}
+// Ajoute une cible choisie ; si le nombre requis est atteint, lance l'action
+// correspondante (carte jouée, pouvoir, capacité activée).
+function pickNewFormatTarget(marker){
+  const pn = UI.pendingNewTarget;
+  pn.selectedInstIds.push(marker);
+  const needed = newFormatTargetCount(pn.target);
+  if(pn.selectedInstIds.length < needed){ render(); return; }
+  const chosenTargets = { [pn.target.id]: pn.selectedInstIds };
+  const kind = pn.kind;
+  const extra = pn.extra;
+  UI.pendingNewTarget = null;
+  if(kind==='card') uiPlayCard(extra.index, null, chosenTargets);
+  else if(kind==='hero') uiActivateHeroPower(null, chosenTargets);
+  else if(kind==='permanent') uiActivatePermanent(extra.permanentType, extra.permanentInstId, null, chosenTargets);
+}
+function cancelPendingNewTarget(){
+  UI.pendingNewTarget = null;
+  render();
+}
+
+function pendingEffectClient(){
+  if(UI.pendingCard) return cardPlayEffectClient(UI.pendingCard.card);
+  if(UI.pendingPower) return UI.pendingPower.effect;
+  return null;
+}
 function isValidPendingTarget(key, c){
-  if(!UI.pendingCard) return false;
-  const eff = cardPlayEffectClient(UI.pendingCard.card);
+  const eff = pendingEffectClient();
   if(!eff) return false;
   const oppKey = MY_KEY==='p1' ? 'p2' : 'p1';
   const allowed = eff.targetOwner==='ally' ? [MY_KEY] : eff.targetOwner==='any' ? [MY_KEY, oppKey] : [oppKey];
@@ -914,25 +1034,42 @@ function isValidPendingTarget(key, c){
   return true;
 }
 function isValidPendingHeroTarget(key){
-  if(!UI.pendingCard) return false;
-  const eff = cardPlayEffectClient(UI.pendingCard.card);
+  const eff = pendingEffectClient();
   if(!eff || (eff.type!=='damage' && eff.type!=='heal')) return false;
   const oppKey = MY_KEY==='p1' ? 'p2' : 'p1';
   const allowed = eff.targetOwner==='ally' ? [MY_KEY] : eff.targetOwner==='any' ? [MY_KEY, oppKey] : [oppKey];
   return allowed.includes(key);
 }
+// Confirme la cible choisie pour l'action actuellement en attente (carte,
+// pouvoir de héros ou capacité activée) et envoie l'action correspondante.
+function confirmPendingTarget(targetInfo){
+  if(UI.pendingCard){
+    const idx = UI.pendingCard.index;
+    UI.pendingCard = null;
+    uiPlayCard(idx, targetInfo);
+  } else if(UI.pendingPower){
+    const pw = UI.pendingPower;
+    UI.pendingPower = null;
+    if(pw.kind==='hero') uiActivateHeroPower(targetInfo);
+    else uiActivatePermanent(pw.permanentType, pw.permanentInstId, targetInfo);
+  }
+}
 function cancelPendingCard(){
   UI.pendingCard = null;
+  UI.pendingPower = null;
   render();
 }
 
 function onBoardCreatureClick(key, c){
   const isMine = key===MY_KEY;
-  // confirmation de ciblage pour une carte en attente de jouer (priorité sur tout le reste)
-  if(UI.pendingCard && isValidPendingTarget(key, c)){
-    const idx = UI.pendingCard.index;
-    UI.pendingCard = null;
-    uiPlayCard(idx, { instId: c.instId });
+  // confirmation de ciblage nouveau format (priorité absolue)
+  if(UI.pendingNewTarget && isValidNewFormatTarget(key, c)){
+    pickNewFormatTarget(c.instId);
+    return;
+  }
+  // confirmation de ciblage pour une carte/pouvoir/capacité en attente (priorité sur tout le reste)
+  if((UI.pendingCard || UI.pendingPower) && isValidPendingTarget(key, c)){
+    confirmPendingTarget({ instId: c.instId });
     return;
   }
   // sélection des attaquants (mon tour, phase principale)
@@ -952,6 +1089,13 @@ function onBoardCreatureClick(key, c){
   if(!isMine && isBlockTargetable(key, c)){
     uiAssignBlock(c.instId);
     return;
+  }
+  // activation d'une créature ayant une capacité activée (mon tour, phase principale)
+  if(isMine && S.active===MY_KEY && S.phase==='main' && !UI.selectingAttackers){
+    const eff = c.triggeredEffects && c.triggeredEffects.activated;
+    if(eff && (c._activationCooldownRemaining||0)<=0){
+      uiActivatePermanent('creature', c.instId);
+    }
   }
 }
 
@@ -1078,8 +1222,13 @@ function onCardDragEnd(ev){
 
   if(over){
     const card = S[MY_KEY].hand[handIndex];
+    const newTrigger = card && card.type==='Sortilège' ? null : 'onPlay'; // sortilège : n'importe quelle capacité s'applique direct
+    const chosen = card ? findNewFormatChosenTarget(card, newTrigger) : null;
     if(card && card.type==='Piège'){
       uiSetTrap(handIndex);
+    } else if(chosen){
+      UI.pendingNewTarget = { kind:'card', target: chosen.target, ability: chosen.ability, selectedInstIds: [], extra: { index: handIndex } };
+      render();
     } else if(card && needsTargetClient(card)){
       UI.pendingCard = { index: handIndex, card };
       render();
@@ -1094,16 +1243,22 @@ function renderPhaseBar(){
   bar.innerHTML = '';
   if(S.gameOver) return;
 
-  if(UI.pendingCard){
+  if(UI.pendingCard || UI.pendingPower || UI.pendingNewTarget){
     const btn = document.createElement('button');
     btn.className = 'phase-btn';
-    btn.textContent = 'Choisis une cible...';
+    if(UI.pendingNewTarget){
+      const needed = newFormatTargetCount(UI.pendingNewTarget.target);
+      const got = UI.pendingNewTarget.selectedInstIds.length;
+      btn.textContent = needed>1 ? `Choisis une cible (${got}/${needed})...` : 'Choisis une cible...';
+    } else {
+      btn.textContent = 'Choisis une cible...';
+    }
     btn.disabled = true;
     bar.appendChild(btn);
     const cancel = document.createElement('button');
     cancel.className = 'phase-btn secondary small';
     cancel.textContent = 'Annuler';
-    cancel.onclick = cancelPendingCard;
+    cancel.onclick = UI.pendingNewTarget ? cancelPendingNewTarget : cancelPendingCard;
     bar.appendChild(cancel);
     return;
   }
@@ -1228,7 +1383,7 @@ async function runAction(label, fn){
 }
 
 async function uiMulligan(){ await runAction('Mulligan', ()=>gsMulligan([])); }
-async function uiPlayCard(i, targetInfo){ await runAction('Jouer carte', ()=>gsPlayCardSimple(i, targetInfo)); }
+async function uiPlayCard(i, targetInfo, chosenTargets){ await runAction('Jouer carte', ()=>gsPlayCardSimple(i, targetInfo, chosenTargets)); }
 async function uiSetTrap(i){ await runAction('Poser le piège', ()=>gsSetTrap(i)); }
 async function uiEndTurn(){ await runAction('Fin de tour', ()=>gsEndTurn()); }
 async function uiConfirmAttackers(){
