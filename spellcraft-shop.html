@@ -103,6 +103,9 @@ header .spacer{flex:1;}
 .card.class-Prima{--class-color:#228b22;}
 .card.class-Volonté{--class-color:#8b0000;}
 .card.class-Arcane{--class-color:#4682b4;}
+#card-preview{position:fixed;z-index:9999;display:none;pointer-events:none;}
+#card-preview.show{display:block;}
+#card-preview .ncard{transform:scale(1.1);transform-origin:top left;box-shadow:0 16px 34px rgba(0,0,0,.65);}
 
 /* ---------- NOUVEAU TEMPLATE (frames illustrées) ---------- */
 .ncard{position:relative;flex-shrink:0;user-select:none;}
@@ -394,7 +397,9 @@ async function renderSingleShelf(){
     const cardHolder = document.createElement('div');
     cardHolder.style.cssText = 'display:flex;justify-content:center;width:100%;';
     try {
-      cardHolder.appendChild(buildCardEl(full));
+      const cardEl = buildCardEl(full);
+      attachShopHoverPreview(cardEl, full);
+      cardHolder.appendChild(cardEl);
     } catch(e) {
       console.error('Erreur buildCardEl (cartes à l’unité) :', e, full);
       cardHolder.innerHTML = `<div style="color:#e88;font-size:11px;padding:8px;border:1px dashed #e88;">Erreur carte : ${e.message}</div>`;
@@ -625,6 +630,29 @@ function buildCardEl(card){
   return el;
 }
 
+// ---------------- Aperçu au survol ----------------
+function showCardPreview(card, x, y){
+  const box = document.getElementById('card-preview');
+  box.innerHTML = '';
+  const el = buildNewCardEl(card, 'big');
+  box.appendChild(el);
+  requestAnimationFrame(()=>fitNewCard(el));
+
+  const w = 300*1.1, h = 423.2*1.1;
+  let left = x + 24, top = y - h/2;
+  if(left + w > window.innerWidth - 12) left = x - 24 - w;
+  top = Math.max(12, Math.min(top, window.innerHeight - h - 12));
+  box.style.left = left+'px'; box.style.top = top+'px';
+  box.classList.add('show');
+}
+function hideCardPreview(){
+  document.getElementById('card-preview').classList.remove('show');
+}
+function attachShopHoverPreview(el, card){
+  el.addEventListener('mouseenter', (ev)=>showCardPreview(card, ev.clientX, ev.clientY));
+  el.addEventListener('mouseleave', hideCardPreview);
+}
+
 // Récupère les données complètes (image, texte, coût...) pour une liste d'ids de cartes
 async function fetchFullCards(ids){
   if(!ids || ids.length===0) return {};
@@ -712,7 +740,9 @@ function dealBoosterCards(cardsStage, cardsResult, fullCards, backUrl, actions){
     const front = document.createElement('div');
     front.className = 'flip-face flip-front';
     const full = fullCards[res.card_id] || { name: res.name, rarity: res.rarity };
-    front.appendChild(buildCardEl(full));
+    const frontCardEl = buildCardEl(full);
+    attachShopHoverPreview(frontCardEl, full);
+    front.appendChild(frontCardEl);
     let banner = null;
     if(res.result==='fragments'){
       banner = document.createElement('div');
@@ -865,5 +895,6 @@ initShop();
 sb.auth.onAuthStateChange(()=>{ refreshCurrency(); renderCardBackShelf(); renderSingleShelf(); });
 </script>
 
+<div id="card-preview"></div>
 </body>
 </html>
