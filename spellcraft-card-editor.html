@@ -937,7 +937,7 @@ function blankTriggerEntry(){
     id: rowId(), trigger: null, triggerSubtype: '', triggerOwner: 'ally', triggerTurn: 1,
     activationCost: 2, activationCooldown: 0,
     extraCostEnabled: false, extraCostType: 'sacrificeCreature', extraCostAmount: 1, extraCostCustom: '',
-    useCount: 3
+    useCount: 3, replacesManaGain: false
   };
 }
 function blankTargetEntry(){
@@ -1467,6 +1467,14 @@ function buildTriggerEntryBox(te, tIdx, totalCount, availableTriggers, onRemove)
       <input type="number" id="trigcount-${te.id}" min="1" max="20" value="${te.useCount||3}"></div>`;
     urow.querySelector(`#trigcount-${te.id}`).oninput = (e)=>{ te.useCount=parseInt(e.target.value)||1; onFormChange(); };
     tBox.appendChild(urow);
+  }
+
+  if(currentType==='Région' && (te.trigger==='startOfTurn' || te.trigger==='startOfTurnX')){
+    const mrToggle = document.createElement('label');
+    mrToggle.className='evolve-toggle';
+    mrToggle.innerHTML = `<input type="checkbox" ${te.replacesManaGain?'checked':''}> Remplace le gain de mana normal (si la capacité se déclenche, pas de mana ce tour-ci)`;
+    mrToggle.querySelector('input').onchange=(e)=>{ te.replacesManaGain=e.target.checked; onFormChange(); };
+    tBox.appendChild(mrToggle);
   }
 
   if(te.trigger==='activated'){
