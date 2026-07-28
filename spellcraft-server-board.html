@@ -1766,7 +1766,12 @@ async function initFromUrl(){
   }
   GS_SESSION_ID = sid;
   GS_ROLE = role;
-  GS_VS_AI = false; // sans incidence ici : ne sert qu'à gsConnect pour la présence, déjà gérée par le rôle
+  // Corrige un vrai bug : mettre GS_VS_AI à false sans condition faisait
+  // tourner la détection de déconnexion même contre l'IA — qui n'envoie
+  // jamais de présence, donc "expirait" après le délai de grâce et faisait
+  // gagner le joueur humain par forfait automatique, comme si l'IA s'était
+  // déconnectée.
+  GS_VS_AI = params.get('vsai') === '1';
   afterConnected(null);
 }
 initSpellcraftAuth().then(initFromUrl);

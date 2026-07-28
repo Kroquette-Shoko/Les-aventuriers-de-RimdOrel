@@ -248,7 +248,7 @@ function wireActionButtons(){
     const res = await gsCreateSession(CHOSEN_DECK_ID, true);
     if(res.error) return showLobbyError('Erreur : ' + res.error);
     // contre l'IA, aucune attente nécessaire — elle est "prête" immédiatement
-    goToBoard(res.sessionId, 'p1');
+    goToBoard(res.sessionId, 'p1', true);
   };
 
   document.getElementById('btn-vs-friend').onclick = async ()=>{
@@ -303,8 +303,8 @@ function showWaitingScreen(sessionId, code, role){
   }, 1800);
 }
 
-function goToBoard(sessionId, role){
-  window.location.href = `spellcraft-server-board.html?sid=${encodeURIComponent(sessionId)}&role=${encodeURIComponent(role)}`;
+function goToBoard(sessionId, role, vsAI){
+  window.location.href = `spellcraft-server-board.html?sid=${encodeURIComponent(sessionId)}&role=${encodeURIComponent(role)}${vsAI?'&vsai=1':''}`;
 }
 
 initSpellcraftAuth().then(initLobby);
