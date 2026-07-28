@@ -1080,8 +1080,9 @@ async function uiActivatePermanent(permanentType, permanentInstId, targetInfo, c
 function renderDeckZone(key, slot){
   const p = S[key];
   const el = document.getElementById(`deck-zone-${slot}`);
+  const backStyle = p.cardBackUrl ? `style="background-image:url('${p.cardBackUrl.replace(/'/g,"")}');background-size:cover;background-position:center;"` : '';
   el.innerHTML = `
-    <div class="deck-back-visual" title="${p.deck.length} carte(s) restante(s)"></div>
+    <div class="deck-back-visual" ${backStyle} title="${p.deck.length} carte(s) restante(s)"></div>
     <div class="deck-counts">
       <div class="badge deck" title="Cartes restantes"><span class="badge-icon">🂠</span><span class="badge-count">${p.deck.length}</span><span class="badge-label">Deck</span></div>
       <div class="badge discard ${p.discard.length>0?'has-cards':''}" title="Défausse" id="discard-badge-${slot}"><span class="badge-icon">🪦</span><span class="badge-count">${p.discard.length}</span><span class="badge-label">Défausse</span></div>
