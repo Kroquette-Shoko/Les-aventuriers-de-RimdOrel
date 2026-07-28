@@ -1642,7 +1642,19 @@ async function runAction(label, fn){
   document.body.classList.add('action-busy');
   try{
     const res = await fn();
-    if(res && res.error) debugLog(`${label} → ${res.error}`, 'log-error');
+    if(res && res.error){
+      debugLog(`${label} → ${res.error}`, 'log-error');
+    } else if(res && res.state){
+      // Applique directement l'état renvoyé par l'action elle-même — ne
+      // dépend plus uniquement de la diffusion temps réel (qui met à jour
+      // les AUTRES clients connectés : adversaire, spectateurs). Sans ça,
+      // si la diffusion ne passait pas pour une raison quelconque, l'action
+      // réussissait silencieusement côté serveur sans jamais se refléter
+      // à l'écran pour l'auteur de l'action lui-même.
+      onStateUpdate(res.state);
+    }
+  } catch(e){
+    debugLog(`${label} → exception : ${e && e.message || e}`, 'log-error');
   } finally {
     ACTION_IN_FLIGHT = false;
     document.body.classList.remove('action-busy');
