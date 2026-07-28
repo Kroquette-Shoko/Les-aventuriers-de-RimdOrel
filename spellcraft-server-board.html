@@ -609,6 +609,20 @@ function afterConnected(code){
     if(res.error){ debugLog('État initial → ' + res.error, 'log-error'); return; }
     onStateUpdate(res.state);
   });
+
+  // Filet de sécurité : la diffusion temps réel devrait suffire à elle
+  // seule, mais si un message venait à être manqué (déconnexion brève,
+  // souci de livraison...), l'écran resterait figé sur un état périmé —
+  // menant à des refus "wrong-phase" alors que tout semble normal à
+  // l'écran. Une resynchronisation silencieuse toutes les 6 secondes
+  // garantit qu'on ne dérive jamais durablement de la vérité serveur.
+  setInterval(()=>{
+    if(ACTION_IN_FLIGHT || !S || S.gameOver) return;
+    gsFetchState().then(res=>{
+      if(!res || res.error || !res.state) return;
+      onStateUpdate(res.state);
+    });
+  }, 6000);
 }
 
 function onStateUpdate(state){
