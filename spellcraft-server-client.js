@@ -28,7 +28,20 @@ async function gsCallAction(action, params = {}) {
   const { data, error } = await sb.functions.invoke('game-action', {
     body: { action, sessionId: GS_SESSION_ID, ...params }
   });
-  if (error) return { error: error.message || String(error) };
+  if (error) {
+    // Le message par défaut de la bibliothèque ("Edge Function returned a
+    // non-2xx status code") ne dit rien d'utile — le vrai message qu'on
+    // renvoie côté serveur est dans le corps de la réponse, qu'il faut
+    // aller lire explicitement pour un diagnostic exploitable.
+    let detail = error.message || String(error);
+    try {
+      if (error.context && typeof error.context.json === 'function') {
+        const body = await error.context.json();
+        if (body && body.error) detail = body.error;
+      }
+    } catch (e) { /* corps illisible : on garde le message générique */ }
+    return { error: detail };
+  }
   return data;
 }
 
@@ -132,10 +145,26 @@ function gsSetupPresence() {
 
 function gsStartDisconnectWatch() {
   const opponentKey = GS_ROLE === 'p1' ? 'p2' : 'p1';
-  GS_OPPONENT_LAST_SEEN = Date.now(); // au démarrage, on laisse une chance à l'adversaire de se connecter
+  // Ne présume pas que l'adversaire est déjà là : on attend un vrai signal
+  // de présence avant de faire courir le délai de déconnexion. Sans ça, le
+  // joueur qui arrive en premier sur le plateau (ex: celui qui rejoint par
+  // code, arrivé plus vite que celui qui attendait sur le lobby) pouvait
+  // déclarer forfait pour son adversaire avant même qu'il n'ait eu le temps
+  // d'arriver — d'où une "victoire" immédiate au lieu du mulligan.
+  GS_OPPONENT_LAST_SEEN = null;
+  const connectStartedAt = Date.now();
+  const initialGraceMs = 25000; // le temps d'arriver depuis le lobby (sondage + navigation)
   if (GS_DISCONNECT_TIMER) clearInterval(GS_DISCONNECT_TIMER);
   GS_DISCONNECT_TIMER = setInterval(() => {
-    if (!GS_OPPONENT_LAST_SEEN) return;
+    if (!GS_OPPONENT_LAST_SEEN) {
+      // jamais vu du tout depuis la connexion : on patiente jusqu'à la fin
+      // de la période de grâce initiale avant de considérer ça comme un abandon
+      if (Date.now() - connectStartedAt > initialGraceMs) {
+        clearInterval(GS_DISCONNECT_TIMER);
+        gsCallAction('claimForfeit', { disconnectedPlayer: opponentKey });
+      }
+      return;
+    }
     const elapsed = Date.now() - GS_OPPONENT_LAST_SEEN;
     if (elapsed > GS_DISCONNECT_TIMEOUT_MS) {
       clearInterval(GS_DISCONNECT_TIMER);
