@@ -475,8 +475,9 @@ body.targeting *{cursor:crosshair !important;}
   /* ---------- Menus repliables (journal / chat) ---------- */
   .phase-bar-wrap{position:relative;}
   .menu-toggles-row{position:absolute;bottom:100%;right:0;margin-bottom:6px;display:flex;gap:6px;}
-  #chat-toggle-btn, #journal-toggle-btn{width:44px;height:36px;border-radius:10px;background:rgba(23,19,37,.85);border:2px solid rgba(212,175,55,.45);color:#f2ead2;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
-  #chat-toggle-btn:hover, #journal-toggle-btn:hover{border-color:#d4af37;}
+  #chat-toggle-btn, #journal-toggle-btn, #leave-game-btn{width:44px;height:36px;border-radius:10px;background:rgba(23,19,37,.85);border:2px solid rgba(212,175,55,.45);color:#f2ead2;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
+  #chat-toggle-btn:hover, #journal-toggle-btn:hover, #leave-game-btn:hover{border-color:#d4af37;}
+  #leave-game-btn:hover{border-color:var(--blood);}
   #journal-panel{position:absolute;bottom:100%;right:52px;margin-bottom:50px;width:280px;max-height:50vh;background:var(--bg-panel);border:1px solid #3a3260;border-radius:12px;padding:12px;z-index:99997;display:none;flex-direction:column;}
   #journal-panel.show{display:flex;}
   #journal-panel h3{margin:0 0 8px;font-family:'Cinzel',serif;color:var(--gold);font-size:14px;}
@@ -504,6 +505,7 @@ body.targeting *{cursor:crosshair !important;}
             <div class="menu-toggles-row">
               <button id="chat-toggle-btn" title="Chat" onclick="toggleChat()">💬</button>
               <button id="journal-toggle-btn" title="Journal" onclick="toggleJournal()">📜</button>
+              <button id="leave-game-btn" title="Quitter la partie" onclick="uiLeaveGame()">🚪</button>
             </div>
             <div id="journal-panel">
               <h3>Journal</h3>
@@ -532,9 +534,16 @@ body.targeting *{cursor:crosshair !important;}
 <div class="tip" id="tip"></div>
 <div id="card-preview"></div>
 
+<div id="mulligan-overlay">
+  <h2>Ta main de départ</h2>
+  <p class="mulligan-sub">Clique une carte pour la renvoyer et en repiocher une nouvelle. Tu ne peux le faire qu'une fois.</p>
+  <div id="mulligan-cards"></div>
+  <button class="mulligan-confirm-btn" onclick="confirmMulligan()">Confirmer ma main</button>
+</div>
+
 <div id="overlay">
   <h1 id="overlay-text"></h1>
-  <button onclick="location.reload()">Rejouer</button>
+  <button onclick="gsDisconnect(); window.location.href='spellcraft-lobby.html'">Retour au lobby</button>
 </div>
 
 <div class="modal-overlay" id="discard-modal" onclick="if(event.target===this) closeDiscardModal()">
@@ -1519,16 +1528,15 @@ function renderPhaseBar(){
   }
 
   if(S.phase==='mulligan'){
-    const btn = document.createElement('button');
-    btn.className = 'phase-btn';
-    if(S.mulliganDone[MY_KEY]){
+    if(!S.mulliganDone[MY_KEY]){
+      showMulliganOverlay();
+    } else {
+      const btn = document.createElement('button');
+      btn.className = 'phase-btn';
       btn.textContent = "En attente de l'adversaire...";
       btn.disabled = true;
-    } else {
-      btn.textContent = 'Garder ma main (mulligan)';
-      btn.onclick = uiMulligan;
+      bar.appendChild(btn);
     }
-    bar.appendChild(btn);
     return;
   }
 
@@ -1586,6 +1594,15 @@ function hidePreview(){
 function toggleJournal(){
   document.getElementById('journal-panel').classList.toggle('show');
 }
+// Quitter proprement : si la partie est déjà terminée, aucun risque, on
+// part directement. Sinon, on prévient que partir compte comme un abandon
+// (l'adversaire gagnera par forfait après le délai de déconnexion habituel).
+function uiLeaveGame(){
+  const ongoing = S && !S.gameOver;
+  if(ongoing && !confirm("Quitter maintenant compte comme un abandon — ton adversaire gagnera la partie. Confirmer ?")) return;
+  gsDisconnect();
+  window.location.href = 'spellcraft-lobby.html';
+}
 function toggleChat(){
   document.getElementById('chat-panel').classList.toggle('show');
 }
@@ -1631,7 +1648,43 @@ async function runAction(label, fn){
   }
 }
 
-async function uiMulligan(){ await runAction('Mulligan', ()=>gsMulligan([])); }
+let mulliganMarked = new Set(); // indices dans S[MY_KEY].hand marqués "à renvoyer"
+let mulliganOverlayShown = false; // pour ne pas reconstruire (et perdre la sélection en cours) à chaque rendu
+function showMulliganOverlay(){
+  if(mulliganOverlayShown) return;
+  mulliganOverlayShown = true;
+  mulliganMarked = new Set();
+  const overlay = document.getElementById('mulligan-overlay');
+  const cardsEl = document.getElementById('mulligan-cards');
+  cardsEl.innerHTML = '';
+  S[MY_KEY].hand.forEach((card, idx)=>{
+    const wrap = document.createElement('div');
+    wrap.className = 'mulligan-card-wrap';
+    wrap.appendChild(cardEl(card, { inPlay:false, isPreview:true }));
+    const tag = document.createElement('div');
+    tag.className = 'mulligan-tag';
+    tag.textContent = 'Garder';
+    wrap.appendChild(tag);
+    wrap.onclick = ()=>{
+      if(mulliganMarked.has(idx)){
+        mulliganMarked.delete(idx);
+        wrap.classList.remove('marked');
+        tag.textContent = 'Garder';
+      } else {
+        mulliganMarked.add(idx);
+        wrap.classList.add('marked');
+        tag.textContent = 'Renvoyer';
+      }
+    };
+    cardsEl.appendChild(wrap);
+  });
+  overlay.classList.add('show');
+}
+async function confirmMulligan(){
+  document.getElementById('mulligan-overlay').classList.remove('show');
+  await runAction('Mulligan', ()=>gsMulligan([...mulliganMarked]));
+  mulliganOverlayShown = false;
+}
 async function uiPlayCard(i, targetInfo, chosenTargets){ await runAction('Jouer carte', ()=>gsPlayCardSimple(i, targetInfo, chosenTargets)); }
 async function uiSetTrap(i){ await runAction('Poser le piège', ()=>gsSetTrap(i)); }
 async function uiEndTurn(){ await runAction('Fin de tour', ()=>gsEndTurn()); }
