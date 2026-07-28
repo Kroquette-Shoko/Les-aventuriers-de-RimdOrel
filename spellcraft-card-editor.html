@@ -2521,14 +2521,16 @@ function targetPhrase(t){
   const adjPlur = {ally:'alliées', enemy:'ennemies', any:'', random:''}[t.targetOwner] || '';
   const randomOwnerPrefix = t.targetOwner==='random' ? "(camp tiré au hasard) " : '';
 
+  const subtypeSuffix = t.subtypeFilter ? ` ${t.subtypeFilter}` : '';
+
   if(t.selectionMode==='all'){
-    if(t.targetOwner==='ally') return `toutes vos ${nounPlur}`;
-    if(t.targetOwner==='enemy') return `toutes les ${nounPlur} ${adjPlur}`.trim();
-    return `${randomOwnerPrefix}toutes les ${nounPlur}`.trim();
+    if(t.targetOwner==='ally') return `toutes vos ${nounPlur}${subtypeSuffix}`;
+    if(t.targetOwner==='enemy') return `toutes les ${nounPlur}${subtypeSuffix} ${adjPlur}`.trim();
+    return `${randomOwnerPrefix}toutes les ${nounPlur}${subtypeSuffix}`.trim();
   }
   // le nouveau format "cible" utilise countFixed/countMode, l'ancien format (ex: fight) utilise targetCount
   const count = t.countMode!==undefined ? (t.countMode==='fixed' ? (t.countFixed||1) : 1) : (t.targetCount||1);
-  const noun = count>1 ? nounPlur : nounSing;
+  const noun = (count>1 ? nounPlur : nounSing) + subtypeSuffix;
   const adj = count>1 ? adjPlur : adjSing;
   let selWord;
   if(t.selectionMode==='random') selWord = count>1?'aléatoires':'aléatoire';
