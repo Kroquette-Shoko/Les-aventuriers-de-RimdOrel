@@ -487,6 +487,8 @@ body.targeting *{cursor:crosshair !important;}
   .journal-entry{padding:6px 0;border-bottom:1px dashed #3a3260;}
   .journal-entry:last-child{border-bottom:none;}
   .journal-entry .who{color:var(--gold);font-weight:600;}
+  .journal-entry .hl-ref{text-decoration:underline dotted;cursor:default;}
+  .ncard.journal-highlight{outline:3px solid var(--gold);outline-offset:2px;box-shadow:0 0 14px rgba(212,175,55,.8);}
 </style>
 
 <div id="sc-auth-slot" style="text-align:center;margin-bottom:8px;"></div>
@@ -601,12 +603,33 @@ function renderGameLog(){
   if(!el || !S) return;
   el.innerHTML = '';
   (S.__gameLog||[]).forEach(entry=>{
-    const who = entry.ownerKey===MY_KEY ? 'Vous jouez' : "L'adversaire joue";
+    const who = entry.ownerKey===MY_KEY ? 'Vous' : "L'adversaire";
     const line = document.createElement('div');
     line.className = 'journal-entry';
-    line.innerHTML = entry.outcome
-      ? `<span class="who">${who}</span> "${escapeHtmlGS(entry.cardName)}" et ${escapeHtmlGS(entry.outcome)}.`
-      : `<span class="who">${who}</span> "${escapeHtmlGS(entry.cardName)}".`;
+    if(entry.raw){
+      // message de combat : {who} est remplacé, et si des créatures sont
+      // listées, tout le texte devient survolable pour les mettre en
+      // surbrillance sur le plateau.
+      line.textContent = entry.raw.replace('{who}', who);
+      if(entry.highlightIds && entry.highlightIds.length){
+        line.classList.add('hl-ref');
+        line.onmouseenter = ()=>{
+          entry.highlightIds.forEach(id=>{
+            document.querySelectorAll(`[data-instid="${id}"]`).forEach(elc=>elc.classList.add('journal-highlight'));
+          });
+        };
+        line.onmouseleave = ()=>{
+          entry.highlightIds.forEach(id=>{
+            document.querySelectorAll(`[data-instid="${id}"]`).forEach(elc=>elc.classList.remove('journal-highlight'));
+          });
+        };
+      }
+    } else {
+      const whoVerb = entry.ownerKey===MY_KEY ? 'Vous jouez' : "L'adversaire joue";
+      line.innerHTML = entry.outcome
+        ? `<span class="who">${whoVerb}</span> "${escapeHtmlGS(entry.cardName)}" et ${escapeHtmlGS(entry.outcome)}.`
+        : `<span class="who">${whoVerb}</span> "${escapeHtmlGS(entry.cardName)}".`;
+    }
     el.appendChild(line);
   });
 }
@@ -842,6 +865,7 @@ function cardEl(card, opts={}){
   // encore jouée, appartenant au joueur local (seule main visible)
   const effectiveCost = (!inPlay && !opts.isPreview && S && S[MY_KEY]) ? getEffectiveCostClient(S[MY_KEY], card) : undefined;
   const el = buildNewCardEl(card, size, effectiveCost);
+  if(card.instId) el.dataset.instid = card.instId;
   requestAnimationFrame(()=>fitNewCard(el));
 
   if(opts.attacking) el.classList.add('attacking');
@@ -1477,10 +1501,12 @@ function startCardDrag(ev, handIndex, sourceEl){
 function isOverDropZone(ev){
   const lane = document.getElementById('lane-p1');
   const laneRect = lane.getBoundingClientRect();
-  // la zone valide s'étend du haut de la voie de combat jusqu'en bas de
-  // l'écran (donc jusqu'à la main) — pas besoin de viser précisément la
-  // voie elle-même, un petit geste vers le haut depuis la main suffit.
-  if(ev.clientX>=laneRect.left && ev.clientX<=laneRect.right && ev.clientY>=laneRect.top) return true;
+  // La zone valide s'étend du haut de la voie de combat jusqu'à une petite
+  // marge en dessous (un geste vers le haut depuis la main suffit) — mais
+  // PAS jusqu'à la main elle-même, sinon relâcher la carte sans vraiment la
+  // déplacer (ou la reposer dans sa main) jouerait la carte par erreur.
+  const forgivingMargin = 70;
+  if(ev.clientX>=laneRect.left && ev.clientX<=laneRect.right && ev.clientY>=laneRect.top && ev.clientY<=laneRect.bottom+forgivingMargin) return true;
 
   // les emplacements d'artefacts comptent aussi comme zone de dépôt valide
   const slots = document.querySelectorAll('#artifacts-p1 .relic-slot');
