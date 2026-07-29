@@ -633,27 +633,52 @@ function debugLog(msg, cls){
 // stockée côté serveur est neutre, sans ça les deux joueurs verraient
 // "Vous" pour les mêmes actions).
 let SEEN_GAMELOG_COUNT = 0;
+function hitSfxForDamage(n){ return n<=4 ? 'hitLight' : n<=10 ? 'hitMedium' : 'hitLarge'; }
+
 function renderGameLog(){
   const el = document.getElementById('log');
   if(!el || !S) return;
 
-  // Anime les NOUVELLES entrées de combat depuis le dernier rendu (marche
+  // Anime et sonorise les NOUVELLES entrées depuis le dernier rendu (marche
   // pour les deux joueurs, pas seulement celui qui vient d'agir, puisque
   // c'est basé sur l'état reçu et pas sur une action locale).
   const entries = S.__gameLog||[];
   entries.slice(SEEN_GAMELOG_COUNT).forEach(entry=>{
-    if(!entry.raw) return;
-    if(entry.highlightIds && entry.highlightIds.length===2){
-      // "bloque la créature X avec Y" : les deux se ruent l'une sur l'autre
-      const [attackerInstId, blockerInstId] = entry.highlightIds;
-      playCombatStrike(attackerInstId, blockerInstId);
-    } else if(entry.raw.includes('perdu') && entry.raw.includes('point')){
-      // dégâts non bloqués au héros : popup sur le héros du camp concerné
-      const m = entry.raw.match(/(\d+) point/);
-      if(m){
-        const slot = entry.ownerKey===MY_KEY ? 'p1' : 'p2';
-        const heroEl = document.getElementById(`hero-frame-${slot}`);
-        if(heroEl) spawnDamageNumber(heroEl, parseInt(m[1]));
+    if(entry.raw){
+      if(entry.raw.includes('attaque avec')){
+        playSfx('attack');
+      } else if(entry.highlightIds && entry.highlightIds.length===2){
+        // "bloque la créature X avec Y" : les deux se ruent l'une sur l'autre
+        const [attackerInstId, blockerInstId] = entry.highlightIds;
+        playCombatStrike(attackerInstId, blockerInstId);
+        playSfx('hitMedium');
+      } else if(entry.raw.includes('meurt au combat')){
+        playSfx('card-death');
+      } else if(entry.raw.includes('perdu') && entry.raw.includes('point')){
+        // dégâts non bloqués au héros : popup + son selon l'ampleur, et
+        // chaque attaquant se rue vers le héros (même animation que pour
+        // un combat bloqué, la cible étant simplement le héros ici)
+        const m = entry.raw.match(/(\d+) point/);
+        if(m){
+          const dmg = parseInt(m[1]);
+          const slot = entry.ownerKey===MY_KEY ? 'p1' : 'p2';
+          const heroEl = document.getElementById(`hero-frame-${slot}`);
+          if(heroEl) spawnDamageNumber(heroEl, dmg);
+          playSfx(hitSfxForDamage(dmg));
+        }
+        (entry.highlightIds||[]).forEach(attackerInstId=>{
+          const heroSlot = entry.ownerKey===MY_KEY ? 'p1' : 'p2';
+          const attEl = document.querySelector(`[data-instid="${attackerInstId}"]`);
+          const heroEl = document.getElementById(`hero-frame-${heroSlot}`);
+          if(attEl && heroEl) lungeToward(attEl, heroEl, 420);
+        });
+      }
+    } else if(entry.cardName){
+      if(entry.isTrap){
+        playSfx('trap');
+      } else {
+        const c = entry.cardId ? JOURNAL_CARD_LOOKUP[entry.cardId] : null;
+        playSfx(c && c.type==='Sortilège' ? 'cast' : 'cardPlay');
       }
     }
   });
@@ -1534,6 +1559,7 @@ function renderHand(){
   // cartes sont toujours ajoutées à la fin côté serveur.
   const newCount = (PREV_HAND_LENGTH!==null && hand.length>PREV_HAND_LENGTH) ? (hand.length-PREV_HAND_LENGTH) : 0;
   PREV_HAND_LENGTH = hand.length;
+  if(newCount>0) playSfx('draw');
   hand.forEach((card, i)=>{
     const affordable = getEffectiveCostClient(p, card) <= (p.manaNormal + p.manaFragile);
     const isLockedTrap = card.pendingTrap || card.activeTrap;
@@ -2028,7 +2054,7 @@ async function confirmMulligan(){
 }
 async function uiPlayCard(i, targetInfo, chosenTargets){ await runAction('Jouer carte', ()=>gsPlayCardSimple(i, targetInfo, chosenTargets)); }
 async function uiSetTrap(i){ await runAction('Poser le piège', ()=>gsSetTrap(i)); }
-async function uiEndTurn(){ await runAction('Fin de tour', ()=>gsEndTurn()); }
+async function uiEndTurn(){ playSfx('pass'); await runAction('Fin de tour', ()=>gsEndTurn()); }
 async function uiConfirmAttackers(){
   await runAction('Attaquer', ()=>gsDeclareAttackers(UI.selectedAttackers));
   UI.selectingAttackers = false; UI.selectedAttackers = [];
@@ -2086,6 +2112,10 @@ async function initFromUrl(){
   // gagner le joueur humain par forfait automatique, comme si l'IA s'était
   // déconnectée.
   GS_VS_AI = params.get('vsai') === '1';
+  // Musique dédiée au combat, remplace celle du menu pour toute la durée
+  // de la partie (perdue par erreur lors de la séparation du lobby, jamais
+  // remarquée depuis — remise ici avec la nouvelle piste).
+  playMusic('combat', {loop:true, volume:0.35});
   // Chargé en arrière-plan (pas besoin d'attendre) — sert uniquement aux
   // aperçus de carte au survol dans le journal.
   loadAllCardsAcrossSets().then(cards=>{
