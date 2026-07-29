@@ -478,10 +478,15 @@ body.targeting *{cursor:crosshair !important;}
   #chat-toggle-btn, #journal-toggle-btn, #leave-game-btn{width:44px;height:36px;border-radius:10px;background:rgba(23,19,37,.85);border:2px solid rgba(212,175,55,.45);color:#f2ead2;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
   #chat-toggle-btn:hover, #journal-toggle-btn:hover, #leave-game-btn:hover{border-color:#d4af37;}
   #leave-game-btn:hover{border-color:var(--blood);}
-  #journal-panel{position:absolute;bottom:100%;right:52px;margin-bottom:50px;width:280px;max-height:50vh;background:var(--bg-panel);border:1px solid #3a3260;border-radius:12px;padding:12px;z-index:99997;display:none;flex-direction:column;}
+  #journal-panel{position:fixed;bottom:20px;right:20px;width:320px;max-height:45vh;background:var(--bg-panel);border:1px solid #3a3260;border-radius:12px;padding:12px;z-index:99997;display:none;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,.6);}
   #journal-panel.show{display:flex;}
-  #journal-panel h3{margin:0 0 8px;font-family:'Cinzel',serif;color:var(--gold);font-size:14px;}
+  #journal-panel h3{margin:0 0 8px;font-family:'Cinzel',serif;color:var(--gold);font-size:14px;display:flex;justify-content:space-between;align-items:center;}
+  #journal-panel h3 .close-journal-btn{cursor:pointer;font-size:16px;color:var(--parchment-dim);}
+  #journal-panel h3 .close-journal-btn:hover{color:var(--gold);}
   #journal-panel #log{flex:1;overflow-y:auto;font-size:11.5px;max-height:40vh;}
+  .journal-entry{padding:6px 0;border-bottom:1px dashed #3a3260;}
+  .journal-entry:last-child{border-bottom:none;}
+  .journal-entry .who{color:var(--gold);font-weight:600;}
 </style>
 
 <div id="sc-auth-slot" style="text-align:center;margin-bottom:8px;"></div>
@@ -508,7 +513,7 @@ body.targeting *{cursor:crosshair !important;}
               <button id="leave-game-btn" title="Quitter la partie" onclick="uiLeaveGame()">🚪</button>
             </div>
             <div id="journal-panel">
-              <h3>Journal</h3>
+              <h3>Journal <span class="close-journal-btn" onclick="toggleJournal()">✕</span></h3>
               <div id="log"></div>
             </div>
             <div id="chat-panel">
@@ -587,13 +592,21 @@ function debugLog(msg, cls){
   line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
   el.prepend(line);
 }
-function logGame(msg){
+// Reconstruit l'affichage du journal à partir de S.__gameLog — traduit
+// "Vous"/"L'adversaire" selon le rôle du joueur qui regarde (la donnée
+// stockée côté serveur est neutre, sans ça les deux joueurs verraient
+// "Vous" pour les mêmes actions).
+function renderGameLog(){
   const el = document.getElementById('log');
-  if(!el) return;
-  const line = document.createElement('div');
-  line.textContent = msg;
-  el.appendChild(line);
-  el.scrollTop = el.scrollHeight;
+  if(!el || !S) return;
+  el.innerHTML = '';
+  (S.__gameLog||[]).forEach(entry=>{
+    const who = entry.ownerKey===MY_KEY ? 'Vous jouez' : "L'adversaire joue";
+    const line = document.createElement('div');
+    line.className = 'journal-entry';
+    line.innerHTML = `<span class="who">${who}</span> "${escapeHtmlGS(entry.cardName)}" et ${escapeHtmlGS(entry.outcome)}.`;
+    el.appendChild(line);
+  });
 }
 
 // ---------------- Connexion / session ----------------
@@ -635,6 +648,16 @@ function onStateUpdate(state){
   // en lisant simplement S[MY_KEY]/S[OPP_KEY] partout dans le rendu.
   S = state;
   render();
+  renderGameLog();
+
+  // Diagnostic temporaire : affiche les traces envoyées par le serveur
+  // (voir recalculateContinuousEffects côté serveur) pour repérer où une
+  // capacité continue s'arrête de fonctionner.
+  if(state.__serverLog){
+    const already = window.__seenServerLogCount || 0;
+    state.__serverLog.slice(already).forEach(msg => debugLog(msg, 'log-ok'));
+    window.__seenServerLogCount = state.__serverLog.length;
+  }
 
   // Si c'est le tour de l'IA (et qu'elle a fini son mulligan), on déclenche
   // son tour automatiquement — le bouton de debug reste utilisable en secours,
