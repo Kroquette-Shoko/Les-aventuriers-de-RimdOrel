@@ -90,7 +90,7 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 #discard-list{overflow-y:auto;display:flex;flex-wrap:wrap;gap:8px;padding-right:4px;}
 #discard-modal .close-btn{align-self:flex-end;background:var(--arcane);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-family:'Cinzel',serif;font-weight:700;cursor:pointer;}
 
-#card-preview{position:fixed;z-index:80;pointer-events:none;display:none;opacity:0;transition:opacity .15s ease;}
+#card-preview{position:fixed;z-index:99999;pointer-events:none;display:none;opacity:0;transition:opacity .15s ease;}
 #card-preview .ncard{box-shadow:0 16px 34px rgba(0,0,0,.65);}
 #card-preview.show{display:block;opacity:1;}
 
@@ -273,7 +273,7 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .hand-card-slot .ncard.hand-card{transform:scale(0.5);transform-origin:top left;}
 
 .enemy-hand-row{position:fixed;top:0;left:0;right:0;z-index:39;display:flex;flex-wrap:nowrap;overflow:visible;gap:6px;justify-content:center;padding:6px 14px 30px;pointer-events:none;}
-.enemy-hand-card{width:46px;height:65px;border-radius:6px;background-size:cover;background-position:center;background-color:#2a2440;border:2px solid #3a3260;box-shadow:0 4px 10px rgba(0,0,0,.5);transform:rotate(180deg);flex-shrink:0;}
+.enemy-hand-card{width:92px;height:130px;border-radius:8px;background-size:cover;background-position:center;background-color:#2a2440;border:2px solid #3a3260;box-shadow:0 4px 10px rgba(0,0,0,.5);transform:rotate(180deg);flex-shrink:0;}
 
 .side-zone{position:absolute;display:flex;flex-direction:column;gap:8px;z-index:6;}
 .side-zone.self{right:16px;top:calc(50% + 100px);}
@@ -491,7 +491,7 @@ body.targeting *{cursor:crosshair !important;}
   .artifact-stack{position:absolute;display:flex;gap:6px;align-items:center;}
   .board-row.self .artifact-stack{right:16px;bottom:195px;flex-direction:row;}
   .board-row.enemy .artifact-stack{left:16px;top:195px;bottom:auto;flex-direction:row;}
-  .artifact-stack .relic-slot{width:48px;height:66px;}
+  .artifact-stack .relic-slot{width:120px;height:120px;}
   .relic-slot-empty{border:2px dashed #4a4270;border-radius:8px;background:rgba(11,10,18,.4);}
   .relic-slot-empty.drop-target{border-color:var(--gold);background:rgba(212,175,55,.12);}
   .artifact-stack .relic-slot .card{transform:scale(.4);transform-origin:top left;}
@@ -650,6 +650,7 @@ function renderGameLog(){
       } else if(entry.highlightIds && entry.highlightIds.length===2){
         // "bloque la créature X avec Y" : les deux se ruent l'une sur l'autre
         const [attackerInstId, blockerInstId] = entry.highlightIds;
+        debugLog(`[anim] combat bloqué détecté : attaquant=${attackerInstId} bloqueur=${blockerInstId}`, 'log-ok');
         playCombatStrike(attackerInstId, blockerInstId);
         playSfx('hitMedium');
       } else if(entry.raw.includes('meurt au combat')){
@@ -1283,7 +1284,7 @@ function renderArtifactStack(key, slot){
     wrap.className = 'relic-slot';
     if(relics[i]){
       const r = relics[i];
-      const cardElNode = cardEl(r);
+      const cardElNode = cardEl(r, {inPlay:true});
       wrap.appendChild(cardElNode);
       if(slot==='p1' && S.active===MY_KEY && S.phase==='main' && !UI.selectingAttackers){
         const eff = r.triggeredEffects && r.triggeredEffects.activated;
@@ -1717,7 +1718,7 @@ function drawBlockArrows(){
    sur le héros) au moment du combat
    ============================================================ */
 function lungeToward(el, targetEl, duration){
-  if(!el || !el.animate || !targetEl) return;
+  if(!el || !el.animate || !targetEl){ debugLog(`[anim] lungeToward annulé (el=${!!el}, animate=${!!(el&&el.animate)}, targetEl=${!!targetEl})`, 'log-error'); return; }
   const a = el.getBoundingClientRect(), b = targetEl.getBoundingClientRect();
   const dx = (b.left+b.width/2) - (a.left+a.width/2);
   const dy = (b.top+b.height/2) - (a.top+a.height/2);
@@ -1748,6 +1749,7 @@ function playCombatStrike(attackerInstId, blockerInstId){
   const attEl = document.querySelector(`[data-instid="${attackerInstId}"]`);
   const heroSlot = S.active===MY_KEY ? 'p2' : 'p1';
   const blkEl = blockerInstId ? document.querySelector(`[data-instid="${blockerInstId}"]`) : document.getElementById(`hero-frame-${heroSlot}`);
+  debugLog(`[anim] playCombatStrike : attEl=${!!attEl} blkEl=${!!blkEl}`, attEl&&blkEl ? 'log-ok' : 'log-error');
   if(!attEl) return;
   if(blkEl){
     lungeToward(attEl, blkEl, 420);
@@ -2112,10 +2114,11 @@ async function initFromUrl(){
   // gagner le joueur humain par forfait automatique, comme si l'IA s'était
   // déconnectée.
   GS_VS_AI = params.get('vsai') === '1';
-  // Musique dédiée au combat, remplace celle du menu pour toute la durée
-  // de la partie (perdue par erreur lors de la séparation du lobby, jamais
-  // remarquée depuis — remise ici avec la nouvelle piste).
-  playMusic('combat', {loop:true, volume:0.35});
+  // Musique dédiée au combat : rotation entre combat-1 à combat-4 (déjà
+  // construite dans spellcraft-shared.js) pour toute la durée de la
+  // partie — j'utilisais par erreur playMusic('combat',...) qui cherchait
+  // un seul fichier combat.ogg inexistant.
+  playCombatMusicRotation(0.35);
   // Chargé en arrière-plan (pas besoin d'attendre) — sert uniquement aux
   // aperçus de carte au survol dans le journal.
   loadAllCardsAcrossSets().then(cards=>{
