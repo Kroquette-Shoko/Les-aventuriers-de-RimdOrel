@@ -604,7 +604,9 @@ function renderGameLog(){
     const who = entry.ownerKey===MY_KEY ? 'Vous jouez' : "L'adversaire joue";
     const line = document.createElement('div');
     line.className = 'journal-entry';
-    line.innerHTML = `<span class="who">${who}</span> "${escapeHtmlGS(entry.cardName)}" et ${escapeHtmlGS(entry.outcome)}.`;
+    line.innerHTML = entry.outcome
+      ? `<span class="who">${who}</span> "${escapeHtmlGS(entry.cardName)}" et ${escapeHtmlGS(entry.outcome)}.`
+      : `<span class="who">${who}</span> "${escapeHtmlGS(entry.cardName)}".`;
     el.appendChild(line);
   });
 }
