@@ -272,6 +272,9 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .hand-card-slot:hover{transform:translateY(-8px) scale(1.05);z-index:5;position:relative;}
 .hand-card-slot .ncard.hand-card{transform:scale(0.5);transform-origin:top left;}
 
+.enemy-hand-row{position:fixed;top:0;left:0;right:0;z-index:39;display:flex;flex-wrap:nowrap;overflow:visible;gap:6px;justify-content:center;padding:6px 14px 30px;pointer-events:none;}
+.enemy-hand-card{width:46px;height:65px;border-radius:6px;background-size:cover;background-position:center;background-color:#2a2440;border:2px solid #3a3260;box-shadow:0 4px 10px rgba(0,0,0,.5);transform:rotate(180deg);flex-shrink:0;}
+
 .side-zone{position:absolute;display:flex;flex-direction:column;gap:8px;z-index:6;}
 .side-zone.self{right:16px;top:calc(50% + 100px);}
 .side-zone.enemy{right:16px;top:50%;transform:translateY(-50%);}
@@ -407,6 +410,27 @@ body.targeting *{cursor:crosshair !important;}
 .ncard .card-armor-shield{position:absolute;top:2px;left:2px;width:22px;height:22px;z-index:10;background:radial-gradient(circle, #cfd8e8 0%, #8fa3c0 70%);border-radius:50%;border:2px solid #fff;pointer-events:none;}
 .ncard .status-stack-tr{position:absolute;top:2px;right:2px;z-index:10;display:flex;flex-direction:column;gap:2px;pointer-events:none;}
 .ncard .status-stack-tr .kw-icon{width:18px;height:18px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.8));}
+
+#targeting-layer{position:fixed;inset:0;pointer-events:none;z-index:9998;width:100%;height:100%;}
+#target-line{stroke:var(--arcane);stroke-width:3;stroke-linecap:round;filter:drop-shadow(0 0 6px var(--arcane));stroke-dasharray:11 7;animation:target-dash .5s linear infinite;}
+#target-origin{fill:var(--arcane);opacity:.9;}
+#target-arrow{fill:var(--arcane);filter:drop-shadow(0 0 6px var(--arcane));}
+@keyframes target-dash{to{stroke-dashoffset:-18;}}
+body.targeting *{cursor:crosshair !important;}
+#block-arrows-layer{position:fixed;inset:0;pointer-events:none;z-index:9997;width:100%;height:100%;}
+.block-arrow-line{stroke:var(--blood);stroke-width:3;stroke-linecap:round;filter:drop-shadow(0 0 6px var(--blood));stroke-dasharray:9 6;animation:target-dash .4s linear infinite;}
+.block-arrow-head{fill:var(--blood);filter:drop-shadow(0 0 6px var(--blood));}
+.dmg-popup{position:fixed;transform:translate(-50%,-50%);font-family:'Cinzel',serif;font-weight:700;font-size:24px;color:#ff5252;text-shadow:0 2px 5px rgba(0,0,0,.85);z-index:9996;pointer-events:none;animation:dmg-float 1.4s ease-out forwards;}
+@keyframes dmg-float{
+  0%{opacity:0;transform:translate(-50%,-50%) scale(.5);}
+  15%{opacity:1;transform:translate(-50%,-62%) scale(1.2);}
+  100%{opacity:0;transform:translate(-50%,-150%) scale(1);}
+}
+@keyframes hand-card-enter{
+  0%{opacity:0;transform:translateY(40px) scale(.8);}
+  100%{opacity:1;transform:translateY(0) scale(1);}
+}
+.hand-card-slot.card-just-drawn{animation:hand-card-enter .4s ease-out;}
 </style>
 </head>
 <body>
@@ -487,6 +511,8 @@ body.targeting *{cursor:crosshair !important;}
   .journal-entry{padding:6px 0;border-bottom:1px dashed #3a3260;}
   .journal-entry:last-child{border-bottom:none;}
   .journal-entry .who{color:var(--gold);font-weight:600;}
+  .journal-entry .card-name-ref{color:var(--frost);text-decoration:underline dotted;cursor:default;font-weight:600;}
+  .journal-entry .card-name-ref:hover{color:#7dd3f0;}
   .journal-entry .hl-ref{text-decoration:underline dotted;cursor:default;}
   .ncard.journal-highlight{outline:3px solid var(--gold);outline-offset:2px;box-shadow:0 0 14px rgba(212,175,55,.8);}
 </style>
@@ -496,6 +522,7 @@ body.targeting *{cursor:crosshair !important;}
 <button class="ai-debug-btn phase-btn secondary" id="ai-debug-btn" style="display:none;" onclick="uiProcessAi()">Faire jouer l'IA (debug)</button>
 
 <div id="app-outer">
+  <div class="enemy-hand-row" id="enemy-hand-row"></div>
   <div id="app">
     <div id="board">
       <div id="board-scroll-area">
@@ -540,6 +567,13 @@ body.targeting *{cursor:crosshair !important;}
 
 <div class="tip" id="tip"></div>
 <div id="card-preview"></div>
+
+<svg id="targeting-layer">
+  <line id="target-line" x1="0" y1="0" x2="0" y2="0" style="display:none"/>
+  <circle id="target-origin" cx="0" cy="0" r="7" style="display:none"/>
+  <polygon id="target-arrow" points="0,0 0,0 0,0" style="display:none"/>
+</svg>
+<svg id="block-arrows-layer"></svg>
 
 <div id="mulligan-overlay">
   <h2>Ta main de départ</h2>
@@ -598,9 +632,33 @@ function debugLog(msg, cls){
 // "Vous"/"L'adversaire" selon le rôle du joueur qui regarde (la donnée
 // stockée côté serveur est neutre, sans ça les deux joueurs verraient
 // "Vous" pour les mêmes actions).
+let SEEN_GAMELOG_COUNT = 0;
 function renderGameLog(){
   const el = document.getElementById('log');
   if(!el || !S) return;
+
+  // Anime les NOUVELLES entrées de combat depuis le dernier rendu (marche
+  // pour les deux joueurs, pas seulement celui qui vient d'agir, puisque
+  // c'est basé sur l'état reçu et pas sur une action locale).
+  const entries = S.__gameLog||[];
+  entries.slice(SEEN_GAMELOG_COUNT).forEach(entry=>{
+    if(!entry.raw) return;
+    if(entry.highlightIds && entry.highlightIds.length===2){
+      // "bloque la créature X avec Y" : les deux se ruent l'une sur l'autre
+      const [attackerInstId, blockerInstId] = entry.highlightIds;
+      playCombatStrike(attackerInstId, blockerInstId);
+    } else if(entry.raw.includes('perdu') && entry.raw.includes('point')){
+      // dégâts non bloqués au héros : popup sur le héros du camp concerné
+      const m = entry.raw.match(/(\d+) point/);
+      if(m){
+        const slot = entry.ownerKey===MY_KEY ? 'p1' : 'p2';
+        const heroEl = document.getElementById(`hero-frame-${slot}`);
+        if(heroEl) spawnDamageNumber(heroEl, parseInt(m[1]));
+      }
+    }
+  });
+  SEEN_GAMELOG_COUNT = entries.length;
+
   el.innerHTML = '';
   (S.__gameLog||[]).forEach(entry=>{
     const who = entry.ownerKey===MY_KEY ? 'Vous' : "L'adversaire";
@@ -625,10 +683,21 @@ function renderGameLog(){
         };
       }
     } else {
-      const whoVerb = entry.ownerKey===MY_KEY ? 'Vous jouez' : "L'adversaire joue";
+      // "déclenche" pour un piège (qui était déjà posé et vient de se
+      // déclencher) plutôt que "joue" (qui donne l'impression trompeuse
+      // qu'il vient tout juste d'être posé à cet instant).
+      const verb = entry.isTrap ? 'déclenche' : 'joue';
+      const whoVerb = `${who} ${verb}`;
+      const nameSpan = `<span class="card-name-ref" data-cardid="${entry.cardId||''}">"${escapeHtmlGS(entry.cardName)}"</span>`;
       line.innerHTML = entry.outcome
-        ? `<span class="who">${whoVerb}</span> "${escapeHtmlGS(entry.cardName)}" et ${escapeHtmlGS(entry.outcome)}.`
-        : `<span class="who">${whoVerb}</span> "${escapeHtmlGS(entry.cardName)}".`;
+        ? `<span class="who">${whoVerb}</span> ${nameSpan} et ${escapeHtmlGS(entry.outcome)}.`
+        : `<span class="who">${whoVerb}</span> ${nameSpan}.`;
+      if(entry.cardId){
+        const ref = line.querySelector('.card-name-ref');
+        ref.onmouseenter = (ev)=>{ const c = JOURNAL_CARD_LOOKUP[entry.cardId]; if(c) showCardPreviewHover(c, ev); };
+        ref.onmousemove = moveHeroPreview;
+        ref.onmouseleave = hidePreview;
+      }
     }
     el.appendChild(line);
   });
@@ -942,11 +1011,36 @@ function render(){
   renderArtifactStack(MY_KEY, 'p1');
   renderArtifactStack(OPP_KEY, 'p2');
   renderHand();
+  renderEnemyHand();
   renderPhaseBar();
   renderGameOverOverlay();
   renderDiscoverChoiceModal();
   renderKeywordChoiceModal();
   fitBoardToViewport();
+  syncTargetingArrow();
+}
+
+// Démarre/arrête la flèche de ciblage visuelle selon l'état actuel — appelé
+// à chaque rendu, une fois le DOM reconstruit (pour pouvoir localiser
+// l'élément source).
+function syncTargetingArrow(){
+  let sourceEl = null;
+  if(UI.pendingNewTarget){
+    const extra = UI.pendingNewTarget.extra || {};
+    if(UI.pendingNewTarget.kind==='card' && extra.index!==undefined){
+      const slots = document.querySelectorAll('.hand-card-slot');
+      sourceEl = slots[extra.index] || null;
+    } else if(UI.pendingNewTarget.kind==='hero'){
+      sourceEl = document.getElementById('hero-frame-p1');
+    } else if(UI.pendingNewTarget.kind==='permanent' && extra.permanentInstId){
+      sourceEl = document.querySelector(`[data-instid="${extra.permanentInstId}"]`);
+    }
+  } else if(UI.pendingCard && UI.pendingCard.index!==undefined){
+    const slots = document.querySelectorAll('.hand-card-slot');
+    sourceEl = slots[UI.pendingCard.index] || null;
+  }
+  if(sourceEl) beginTargeting(sourceEl);
+  else endTargeting();
 }
 
 // Affiche les options à choisir quand une capacité "révéler" (discover) est
@@ -1414,12 +1508,33 @@ function onBoardCreatureClick(key, c){
   }
 }
 
+let PREV_HAND_LENGTH = null;
+function renderEnemyHand(){
+  const el = document.getElementById('enemy-hand-row');
+  if(!el || !S) return;
+  el.innerHTML = '';
+  const opp = S[OPP_KEY];
+  const backUrl = opp && opp.cardBackUrl;
+  const count = opp ? (opp.hand||[]).length : 0;
+  for(let i=0;i<count;i++){
+    const c = document.createElement('div');
+    c.className = 'enemy-hand-card';
+    if(backUrl) c.style.backgroundImage = `url('${backUrl.replace(/'/g,"")}')`;
+    el.appendChild(c);
+  }
+}
 function renderHand(){
   const el = document.getElementById('hand-p1');
   el.innerHTML = '';
   const p = S[MY_KEY];
   const myTurn = S.active===MY_KEY;
-  (p.hand||[]).forEach((card, i)=>{
+  const hand = p.hand||[];
+  // anime les cartes nouvellement arrivées en main depuis le dernier rendu
+  // (mulligan, pioche normale, etc.) — repose sur le fait que les nouvelles
+  // cartes sont toujours ajoutées à la fin côté serveur.
+  const newCount = (PREV_HAND_LENGTH!==null && hand.length>PREV_HAND_LENGTH) ? (hand.length-PREV_HAND_LENGTH) : 0;
+  PREV_HAND_LENGTH = hand.length;
+  hand.forEach((card, i)=>{
     const affordable = getEffectiveCostClient(p, card) <= (p.manaNormal + p.manaFragile);
     const isLockedTrap = card.pendingTrap || card.activeTrap;
     const canPlay = myTurn && S.phase==='main' && affordable && !UI.selectingAttackers && !isLockedTrap;
@@ -1427,6 +1542,7 @@ function renderHand(){
     el2.classList.add('hand-card');
     const slot = document.createElement('div');
     slot.className = 'hand-card-slot';
+    if(newCount>0 && i>=hand.length-newCount) slot.classList.add('card-just-drawn');
     slot.appendChild(el2);
     if(!canPlay) el2.style.opacity = '.5';
     if(isLockedTrap){
@@ -1467,6 +1583,153 @@ function scheduleHideHand(){
 // Remplace le drag-and-drop HTML5 natif, trop capricieux selon les
 // navigateurs — ici on suit nous-mêmes le curseur/doigt avec un clone visuel.
 let DRAG_STATE = null;
+
+/* ============================================================
+   CIBLAGE VISUEL — ligne fléchée qui suit la souris (portée depuis
+   l'ancien prototype)
+   ============================================================ */
+let targetSource = null;
+let targetMouse = null;
+
+function elCenter(el){
+  const r = el.getBoundingClientRect();
+  return {x:r.left+r.width/2, y:r.top+r.height/2};
+}
+function beginTargeting(el){
+  if(!el) return;
+  hidePreview();
+  targetSource = elCenter(el);
+  targetMouse = {...targetSource};
+  document.body.classList.add('targeting');
+  drawTargetLine();
+}
+function endTargeting(){
+  targetSource = null; targetMouse = null;
+  document.body.classList.remove('targeting');
+  document.getElementById('target-line').style.display='none';
+  document.getElementById('target-origin').style.display='none';
+  document.getElementById('target-arrow').style.display='none';
+}
+function drawTargetLine(){
+  if(!targetSource || !targetMouse) return;
+  const {x:x1,y:y1} = targetSource;
+  const {x:x2,y:y2} = targetMouse;
+  const line = document.getElementById('target-line');
+  const origin = document.getElementById('target-origin');
+  const arrow = document.getElementById('target-arrow');
+  const angle = Math.atan2(y2-y1, x2-x1);
+  const shorten = 14;
+  const ex = x2 - Math.cos(angle)*shorten, ey = y2 - Math.sin(angle)*shorten;
+  line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+  line.setAttribute('x2', ex); line.setAttribute('y2', ey);
+  line.style.display='block';
+  origin.setAttribute('cx', x1); origin.setAttribute('cy', y1);
+  origin.style.display='block';
+  const backX = x2 - Math.cos(angle)*16, backY = y2 - Math.sin(angle)*16;
+  const perpX = Math.cos(angle+Math.PI/2)*7, perpY = Math.sin(angle+Math.PI/2)*7;
+  arrow.setAttribute('points', `${x2},${y2} ${backX+perpX},${backY+perpY} ${backX-perpX},${backY-perpY}`);
+  arrow.style.display='block';
+}
+document.addEventListener('mousemove', (e)=>{
+  if(!targetSource) return;
+  targetMouse = {x:e.clientX, y:e.clientY};
+  drawTargetLine();
+});
+document.addEventListener('keydown', (e)=>{
+  if(e.key==='Escape'){
+    if(UI.pendingNewTarget){ cancelPendingNewTarget(); }
+    else if(UI.pendingCard){ cancelPendingCard(); }
+  }
+});
+
+/* ============================================================
+   FLÈCHES DE BLOCAGE — affichent les assignations bloqueur → attaquant
+   ============================================================ */
+function drawBlockArrows(){
+  const svg = document.getElementById('block-arrows-layer');
+  if(!svg || !S) return;
+  svg.innerHTML = '';
+  ['p1','p2'].forEach(defKey=>{
+    const defP = S[defKey];
+    if(!defP) return;
+    (defP.board||[]).forEach(blocker=>{
+      if(!blocker.hasBlockedThisTurn) return;
+      // le serveur ne garde pas de table blocage->attaquant après coup
+      // (résolu immédiatement) — on ne dessine donc que pendant la phase
+      // de blocage en cours, via UI.pendingBlockAssignments (rempli côté client)
+    });
+  });
+  (UI.pendingBlockAssignments||[]).forEach(({attackerInstId, blockerInstId})=>{
+    const attWrap = document.querySelector(`[data-instid="${attackerInstId}"]`);
+    const blkWrap = document.querySelector(`[data-instid="${blockerInstId}"]`);
+    if(!attWrap || !blkWrap) return;
+    const a = attWrap.getBoundingClientRect();
+    const b = blkWrap.getBoundingClientRect();
+    const x1 = b.left + b.width/2, y1 = b.top + b.height/2;
+    const x2 = a.left + a.width/2, y2 = a.top + a.height/2;
+    const angle = Math.atan2(y2-y1, x2-x1);
+    const shorten = 44;
+    const ex = x2 - Math.cos(angle)*shorten, ey = y2 - Math.sin(angle)*shorten;
+
+    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+    line.setAttribute('x2', ex); line.setAttribute('y2', ey);
+    line.setAttribute('class', 'block-arrow-line');
+    svg.appendChild(line);
+
+    const backX = x2 - Math.cos(angle)*20, backY = y2 - Math.sin(angle)*20;
+    const perpX = Math.cos(angle+Math.PI/2)*8, perpY = Math.sin(angle+Math.PI/2)*8;
+    const arrow = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+    arrow.setAttribute('points', `${ex+Math.cos(angle)*20},${ey+Math.sin(angle)*20} ${backX+perpX},${backY+perpY} ${backX-perpX},${backY-perpY}`);
+    arrow.setAttribute('class', 'block-arrow-head');
+    svg.appendChild(arrow);
+  });
+}
+
+/* ============================================================
+   ANIMATION DE FRAPPE — les cartes qui se ruent l'une sur l'autre (ou
+   sur le héros) au moment du combat
+   ============================================================ */
+function lungeToward(el, targetEl, duration){
+  if(!el || !el.animate || !targetEl) return;
+  const a = el.getBoundingClientRect(), b = targetEl.getBoundingClientRect();
+  const dx = (b.left+b.width/2) - (a.left+a.width/2);
+  const dy = (b.top+b.height/2) - (a.top+a.height/2);
+  const len = Math.hypot(dx,dy) || 1;
+  const ux = dx/len, uy = dy/len;
+  const dist = 16;
+  el.animate([
+    { transform:'translate(0,0)' },
+    { transform:`translate(${-ux*6}px, ${-uy*6}px)`, offset:0.22 },
+    { transform:`translate(${ux*dist}px, ${uy*dist}px)`, offset:0.5 },
+    { transform:'translate(0,0)' }
+  ], { duration: duration||650, easing:'ease-in-out' });
+}
+function spawnDamageNumber(anchorEl, amount){
+  if(!anchorEl || !amount) return;
+  const r = anchorEl.getBoundingClientRect();
+  const el = document.createElement('div');
+  el.className = 'dmg-popup';
+  el.textContent = '-'+amount;
+  el.style.left = (r.left+r.width/2)+'px';
+  el.style.top = (r.top+r.height/2)+'px';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 1450);
+}
+// Joue l'animation de frappe pour un combat entre deux instId (créature vs
+// créature) — appelé juste après avoir reçu la confirmation du serveur.
+function playCombatStrike(attackerInstId, blockerInstId){
+  const attEl = document.querySelector(`[data-instid="${attackerInstId}"]`);
+  const heroSlot = S.active===MY_KEY ? 'p2' : 'p1';
+  const blkEl = blockerInstId ? document.querySelector(`[data-instid="${blockerInstId}"]`) : document.getElementById(`hero-frame-${heroSlot}`);
+  if(!attEl) return;
+  if(blkEl){
+    lungeToward(attEl, blkEl, 420);
+    if(blockerInstId) lungeToward(blkEl, attEl, 420);
+  }
+}
+
+let JOURNAL_CARD_LOOKUP = {}; // id -> carte complète, pour les aperçus au survol dans le journal
 
 function startCardDrag(ev, handIndex, sourceEl){
   ev.preventDefault();
@@ -1823,6 +2086,12 @@ async function initFromUrl(){
   // gagner le joueur humain par forfait automatique, comme si l'IA s'était
   // déconnectée.
   GS_VS_AI = params.get('vsai') === '1';
+  // Chargé en arrière-plan (pas besoin d'attendre) — sert uniquement aux
+  // aperçus de carte au survol dans le journal.
+  loadAllCardsAcrossSets().then(cards=>{
+    JOURNAL_CARD_LOOKUP = {};
+    cards.forEach(c=>{ JOURNAL_CARD_LOOKUP[c.id] = c; });
+  });
   afterConnected(null);
 }
 initSpellcraftAuth().then(initFromUrl);
