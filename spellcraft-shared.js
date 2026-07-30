@@ -38,7 +38,10 @@ const KEYWORDS = [
   {key:'relentless', label:'Tenace', desc:'Quand elle meurt, revient en jeu une fois (sans Tenace).'},
   {key:'fearful', label:'Peureux', desc:'Ne peut pas bloquer.'},
   {key:'protecteur', label:'Protecteur', desc:'Ne peut pas attaquer.'},
-  {key:'toxic', label:'Toxique', desc:'Tue toute créature à qui elle inflige des dégâts.'}
+  {key:'toxic', label:'Toxique', desc:'Tue toute créature à qui elle inflige des dégâts.'},
+  {key:'discret', label:'Discret', desc:'Ne peut pas être bloquée.'},
+  {key:'imparable', label:'Imparable', desc:"Ne peut pas être la cible d'un piège."},
+  {key:'fugace', label:'Fugace', desc:'Meurt à la fin de ce tour.'}
 ];
 
 /* ============================================================
