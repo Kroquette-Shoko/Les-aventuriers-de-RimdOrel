@@ -244,3 +244,4 @@ async function gsPlayCardSimple(handIndex, targetInfo, chosenTargets, choiceKey)
 }
 async function gsSetShowHandToSpectators(show) { return gsCallAction('setShowHandToSpectators', { show }); }
 async function gsProcessAiTurn() { return gsCallAction('processAiTurn'); }
+async function gsCheckTimer() { return gsCallAction('checkTimer'); }

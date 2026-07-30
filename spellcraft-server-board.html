@@ -303,6 +303,18 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 #log div{padding:3px 0;border-bottom:1px solid #241f38;}
 
 #overlay{position:fixed;inset:0;background:rgba(5,4,10,.88);display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;z-index:50;}
+#turn-timer{position:absolute;left:50%;top:-38px;transform:translateX(-50%);display:flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;background:rgba(23,19,37,.9);border:1.5px solid #3a3260;font-family:'Cinzel',serif;font-weight:700;font-size:13px;color:var(--parchment);z-index:30;white-space:nowrap;}
+#turn-timer.timer-mine{border-color:var(--gold);}
+#turn-timer.timer-low{border-color:var(--blood);color:#ff8080;animation:timer-pulse 1s infinite;}
+#turn-timer.timer-block{border-color:var(--frost);}
+@keyframes timer-pulse{0%,100%{opacity:1;}50%{opacity:.55;}}
+#overlay-summary{background:rgba(23,19,37,.9);border:1.5px solid var(--gold);border-radius:14px;padding:20px 26px;min-width:340px;max-width:92vw;}
+#overlay-summary table{border-collapse:collapse;width:100%;font-family:'Inter',sans-serif;color:var(--parchment);}
+#overlay-summary th, #overlay-summary td{padding:6px 14px;text-align:center;font-size:13px;}
+#overlay-summary th{font-family:'Cinzel',serif;color:var(--gold);font-weight:700;border-bottom:1.5px solid var(--gold);}
+#overlay-summary td:first-child, #overlay-summary th:first-child{text-align:left;color:var(--parchment-dim);}
+#overlay-summary tr.summary-sep td{padding-top:10px;}
+#overlay-summary .summary-coins{margin-top:14px;text-align:center;font-family:'Cinzel',serif;color:var(--gold);font-size:15px;}
 #overlay.show{display:flex;}
 #overlay h1{font-family:'Cinzel',serif;font-size:36px;color:var(--gold);}
 #overlay button{background:var(--arcane);color:#fff;border:none;border-radius:10px;padding:12px 26px;font-family:'Cinzel',serif;font-weight:700;cursor:pointer;font-size:14px;}
@@ -536,6 +548,7 @@ body.targeting *{cursor:crosshair !important;}
         <div class="lane enemy" id="lane-p2"></div>
         <div class="board-divider">
           <div class="divider-line"></div>
+          <div id="turn-timer"></div>
           <div class="phase-bar-wrap">
             <div class="menu-toggles-row">
               <button id="chat-toggle-btn" title="Chat" onclick="toggleChat()">💬</button>
@@ -585,6 +598,7 @@ body.targeting *{cursor:crosshair !important;}
 
 <div id="overlay">
   <h1 id="overlay-text"></h1>
+  <div id="overlay-summary"></div>
   <button onclick="gsDisconnect(); window.location.href='spellcraft-lobby.html'">Retour au lobby</button>
 </div>
 
@@ -759,6 +773,18 @@ function afterConnected(code){
       onStateUpdate(res.state);
     });
   }, 6000);
+
+  // Sollicite le serveur pour vérifier le minuteur — lui seul sait vraiment
+  // si le temps est écoulé (le client ne fait qu'afficher un compte à
+  // rebours visuel entre-temps). Fréquence plus rapide que la
+  // resynchronisation générale ci-dessus, pour une bascule de tour réactive.
+  setInterval(()=>{
+    if(ACTION_IN_FLIGHT || !S || S.gameOver) return;
+    gsCheckTimer().then(res=>{
+      if(res && res.state) onStateUpdate(res.state);
+    });
+  }, 3000);
+  setInterval(renderTurnTimer, 500);
 }
 
 function onStateUpdate(state){
@@ -1063,6 +1089,7 @@ function render(){
   renderKeywordChoiceModal();
   fitBoardToViewport();
   syncTargetingArrow();
+  renderTurnTimer();
 }
 
 // Démarre/arrête la flèche de ciblage visuelle selon l'état actuel — appelé
@@ -1179,6 +1206,36 @@ function renderGameOverOverlay(){
   const overlay = document.getElementById('overlay');
   if(!S.gameOver){ overlay.classList.remove('show'); return; }
   document.getElementById('overlay-text').textContent = S.winnerKey===MY_KEY ? 'Victoire !' : 'Défaite...';
+
+  const summaryEl = document.getElementById('overlay-summary');
+  const sm = S.matchSummary;
+  if(!sm){ summaryEl.innerHTML = ''; overlay.classList.add('show'); return; }
+
+  const mine = sm[MY_KEY] || {};
+  const theirs = sm[OPP_KEY] || {};
+  const durationLabel = (ms)=>{
+    const totalSec = Math.floor((ms||0)/1000);
+    const m = Math.floor(totalSec/60), s = totalSec%60;
+    return `${m}:${String(s).padStart(2,'0')}`;
+  };
+  const row = (label, mineVal, theirsVal)=>`<tr><td>${label}</td><td>${mineVal}</td><td>${theirsVal}</td></tr>`;
+
+  summaryEl.innerHTML = `
+    <table>
+      <thead><tr><th></th><th>Vous</th><th>Adversaire</th></tr></thead>
+      <tbody>
+        <tr><td colspan="3" style="text-align:center;color:var(--parchment-dim);font-size:12px;padding-bottom:8px;">Durée de la partie : ${durationLabel(sm.durationMs)}</td></tr>
+        ${row('Tours joués', mine.turnsPlayed||0, theirs.turnsPlayed||0)}
+        ${row('Dégâts infligés', mine.damageDealt||0, theirs.damageDealt||0)}
+        <tr class="summary-sep">${row('Cartes jouées (total)', mine.cardsPlayed?.total||0, theirs.cardsPlayed?.total||0)}</tr>
+        ${row('— Créatures', mine.cardsPlayed?.['Créature']||0, theirs.cardsPlayed?.['Créature']||0)}
+        ${row('— Sortilèges', mine.cardsPlayed?.['Sortilège']||0, theirs.cardsPlayed?.['Sortilège']||0)}
+        ${row('— Artefacts', mine.cardsPlayed?.['Artefact']||0, theirs.cardsPlayed?.['Artefact']||0)}
+        ${row('— Pièges', mine.cardsPlayed?.['Piège']||0, theirs.cardsPlayed?.['Piège']||0)}
+      </tbody>
+    </table>
+    ${sm.coinsEarned && sm.coinsEarned[MY_KEY] ? `<div class="summary-coins">🪙 ${sm.coinsEarned[MY_KEY]} pièces gagnées</div>` : ''}
+  `;
   overlay.classList.add('show');
 }
 
@@ -1867,6 +1924,39 @@ function onCardDragEnd(ev){
       uiPlayCard(handIndex);
     }
   }
+}
+
+// Affiche un compte à rebours — interpolé localement entre deux passages du
+// serveur (qui, lui, fait foi ; ceci n'est qu'un affichage). Rafraîchi
+// toutes les 500ms, indépendamment des mises à jour d'état.
+function renderTurnTimer(){
+  const el = document.getElementById('turn-timer');
+  if(!el || !S) return;
+  if(S.gameOver || S.phase==='mulligan' || !S.active){ el.style.display='none'; return; }
+
+  // minuteur de blocage (45s), prioritaire sur celui de tour
+  if(S.phase==='declareBlockersMe' && S.blockClockStartedAt){
+    const elapsed = (Date.now()-S.blockClockStartedAt)/1000;
+    const remaining = Math.max(0, 45-elapsed);
+    el.style.display='flex';
+    el.className = 'timer-block' + (remaining<=10?' timer-low':'');
+    const who = S.active===MY_KEY ? "L'adversaire bloque" : 'Vous bloquez';
+    el.textContent = `${who} — ${Math.ceil(remaining)}s`;
+    return;
+  }
+
+  const p = S[S.active];
+  if(!p || p.isAI){ el.style.display='none'; return; }
+  let budget = p.turnTimeBudget ?? 120;
+  if(!S.turnClockPaused && S.turnClockStartedAt){
+    const elapsed = (Date.now()-S.turnClockStartedAt)/1000;
+    budget = Math.max(0, budget-elapsed);
+  }
+  el.style.display='flex';
+  const mins = Math.floor(budget/60), secs = Math.floor(budget%60);
+  const label = S.active===MY_KEY ? 'Votre tour' : "Tour adverse";
+  el.className = (S.active===MY_KEY?'timer-mine':'') + (budget<=20?' timer-low':'') + (S.turnClockPaused?' timer-paused':'');
+  el.textContent = `${label} — ${mins}:${String(secs).padStart(2,'0')}${S.turnClockPaused?' (pause)':''}`;
 }
 
 function renderPhaseBar(){
