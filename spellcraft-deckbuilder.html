@@ -146,6 +146,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 /* ---------- NOUVEAU TEMPLATE (frames illustrées) ---------- */
 .ncard{position:relative;flex-shrink:0;user-select:none;}
 .ncard img.nframe-layer{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5;}
+.ncard img.nframe-half-layer{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:6;}
 .ncard .nart-layer{position:absolute;background-size:cover;background-repeat:no-repeat;background-color:#3a3450;z-index:1;overflow:hidden;}
 .ncard .nstat-wrap{position:absolute;aspect-ratio:1/1;z-index:6;}
 .ncard .nstat-wrap img{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
@@ -835,6 +836,18 @@ const NRARITY_TO_SLUG = {
   'Basique':'basique', 'Commune':'commun', 'Rare':'rare',
   'Épique':'epique', 'Mythique':'mythique'
 };
+// Reprend les noms de fichiers exacts fournis — volontairement distincte de
+// NCLASS_TO_SLUG ci-dessus, qui elle utilise l'orthographe correcte pour
+// les cadres de base.
+const HALF_FRAME_SLUG = {
+  'Aube':'aube', 'Crépuscule':'crepuscule', 'Volonté':'volonté', 'Prima':'prima', 'Arcane':'arcane'
+};
+function ncardHalfFramePath(size, classSecondary){
+  const slug = HALF_FRAME_SLUG[classSecondary];
+  if(!slug) return null;
+  const folder = size==='big' ? 'big%20frame' : 'small%20frame';
+  return `images/card/${folder}/${size}-half-${slug}.png`;
+}
 
 function nEl(tag, cls){ const e = document.createElement(tag); if(cls) e.className = cls; return e; }
 function nImg(src, cls){ const i = document.createElement('img'); i.src = src; if(cls) i.className = cls; return i; }
@@ -862,6 +875,10 @@ function buildNewCardEl(card, size){
 
   // Frame (par-dessus l'illustration, fenêtre transparente)
   root.appendChild(nImg(ncardRealPath(size, slug), 'nframe-layer'));
+  if(card.classSecondary){
+    const halfPath = ncardHalfFramePath(size, card.classSecondary);
+    if(halfPath) root.appendChild(nImg(halfPath, 'nframe-half-layer'));
+  }
 
   // Mana
   if(hasMana){
