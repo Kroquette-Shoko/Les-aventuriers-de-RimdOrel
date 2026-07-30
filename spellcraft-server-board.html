@@ -303,7 +303,7 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 #log div{padding:3px 0;border-bottom:1px solid #241f38;}
 
 #overlay{position:fixed;inset:0;background:rgba(5,4,10,.88);display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;z-index:50;}
-#turn-timer{position:absolute;left:50%;top:-38px;transform:translateX(-50%);display:flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;background:rgba(23,19,37,.9);border:1.5px solid #3a3260;font-family:'Cinzel',serif;font-weight:700;font-size:13px;color:var(--parchment);z-index:30;white-space:nowrap;}
+#turn-timer{display:none;position:absolute;left:50%;top:-38px;transform:translateX(-50%);align-items:center;gap:6px;padding:5px 14px;border-radius:20px;background:rgba(23,19,37,.9);border:1.5px solid #3a3260;font-family:'Cinzel',serif;font-weight:700;font-size:13px;color:var(--parchment);z-index:30;white-space:nowrap;}
 #turn-timer.timer-mine{border-color:var(--gold);}
 #turn-timer.timer-low{border-color:var(--blood);color:#ff8080;animation:timer-pulse 1s infinite;}
 #turn-timer.timer-block{border-color:var(--frost);}
@@ -774,17 +774,9 @@ function afterConnected(code){
     });
   }, 6000);
 
-  // Sollicite le serveur pour vérifier le minuteur — lui seul sait vraiment
-  // si le temps est écoulé (le client ne fait qu'afficher un compte à
-  // rebours visuel entre-temps). Fréquence plus rapide que la
-  // resynchronisation générale ci-dessus, pour une bascule de tour réactive.
-  setInterval(()=>{
-    if(ACTION_IN_FLIGHT || !S || S.gameOver) return;
-    gsCheckTimer().then(res=>{
-      if(res && res.state) onStateUpdate(res.state);
-    });
-  }, 3000);
-  setInterval(renderTurnTimer, 500);
+  // Minuteur de tour retiré pour l'instant (sondage toutes les 3s trop
+  // lourd pour le serveur) — la logique reste construite côté serveur,
+  // simplement jamais sollicitée, pour pouvoir la réactiver facilement.
 }
 
 function onStateUpdate(state){
@@ -811,8 +803,14 @@ function onStateUpdate(state){
   // Si c'est le tour de l'IA (et qu'elle a fini son mulligan), on déclenche
   // son tour automatiquement — le bouton de debug reste utilisable en secours,
   // mais on ne doit plus jamais avoir besoin d'y penser pour que la partie avance.
+  // IMPORTANT : uniquement en phase 'main' — pendant declareBlockersMe,
+  // S.active reste l'attaquant (donc l'IA si c'est elle qui attaque) alors
+  // que c'est le joueur HUMAIN qui doit agir (bloquer). Sans cette
+  // restriction, le client du joueur humain tentait de faire "jouer l'IA"
+  // toutes les 700ms pendant qu'il essayait lui-même de bloquer, entrant en
+  // conflit avec son propre clic ("une action est déjà en cours").
   const activeIsAI = S[S.active] && S[S.active].isAI;
-  if(activeIsAI && !S.gameOver && S.phase!=='mulligan' && !ACTION_IN_FLIGHT){
+  if(activeIsAI && !S.gameOver && S.phase==='main' && !ACTION_IN_FLIGHT){
     setTimeout(()=>{ uiProcessAi(); }, 700);
   }
 }
@@ -1089,7 +1087,7 @@ function render(){
   renderKeywordChoiceModal();
   fitBoardToViewport();
   syncTargetingArrow();
-  renderTurnTimer();
+  // renderTurnTimer(); — minuteur désactivé pour l'instant (voir afterConnected)
 }
 
 // Démarre/arrête la flèche de ciblage visuelle selon l'état actuel — appelé
