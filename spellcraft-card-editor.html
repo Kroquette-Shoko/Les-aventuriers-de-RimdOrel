@@ -968,7 +968,13 @@ function blankAbility(){
     targets: [], // rempli via "+ Ajouter une cible" — vide = pas de ciblage (effet sans cible, ex: soin de soi)
     effects: [ blankEffect() ],
     chainMode: 'sequential',
-    evolutions: [] // liste d'étapes d'évolution — chacune avec son propre schéma de déclencheur(s)
+    evolutions: [], // liste d'étapes d'évolution — chacune avec son propre schéma de déclencheur(s)
+    // "Choisissez un effet" (façon Hearthstone) : si activé, effects ci-dessus
+    // est ignoré au profit de choiceA/choiceB — deux jeux d'effets séparés
+    // entre lesquels le joueur choisit au moment de jouer la carte.
+    useChoice: false,
+    choiceA: { label: '', effects: [ blankEffect() ] },
+    choiceB: { label: '', effects: [ blankEffect() ] }
   };
 }
 function blankEffect(){
@@ -1390,16 +1396,25 @@ function removeCondition(abilityId, condId){
   rebuildAbilitiesUI();
   onFormChange();
 }
-function addEffect(abilityId){
+function getEffectsArray(ab, choiceKey){
+  if(choiceKey==='A') return ab.choiceA.effects;
+  if(choiceKey==='B') return ab.choiceB.effects;
+  return ab.effects;
+}
+function addEffect(abilityId, choiceKey){
   const ab = abilities.find(a=>a.id===abilityId);
-  ab.effects.push(blankEffect());
+  getEffectsArray(ab, choiceKey).push(blankEffect());
   rebuildAbilitiesUI();
   onFormChange();
 }
-function removeEffect(abilityId, effId){
+function removeEffect(abilityId, effId, choiceKey){
   const ab = abilities.find(a=>a.id===abilityId);
-  if(ab.effects.length<=1) return;
-  ab.effects = ab.effects.filter(e=>e.id!==effId);
+  const arr = getEffectsArray(ab, choiceKey);
+  if(arr.length<=1) return;
+  const filtered = arr.filter(e=>e.id!==effId);
+  if(choiceKey==='A') ab.choiceA.effects = filtered;
+  else if(choiceKey==='B') ab.choiceB.effects = filtered;
+  else ab.effects = filtered;
   rebuildAbilitiesUI();
   onFormChange();
 }
@@ -1867,28 +1882,62 @@ function rebuildAbilitiesUI(){
     const effBox = document.createElement('div');
     effBox.className='effects-box';
     effBox.innerHTML = `<h4>Effets</h4>`;
-    ab.effects.forEach(eff=>{
-      effBox.appendChild(buildEffectRow(ab, eff));
-    });
-    const addEffBtn = document.createElement('button');
-    addEffBtn.className='add-row-btn'; addEffBtn.textContent='+ Ajouter un effet (chaîné)';
-    addEffBtn.style.marginTop='6px';
-    addEffBtn.onclick=()=>addEffect(ab.id);
-    effBox.appendChild(addEffBtn);
 
-    if(ab.effects.length>1){
-      const chainField = document.createElement('div');
-      chainField.style.marginTop='10px';
-      chainField.innerHTML = `<label class="mini-field" style="display:block;font-size:10.5px;color:var(--parchment-dim);margin-bottom:4px;">Enchaînement</label>`;
-      const chainSel = document.createElement('select');
-      [['sequential','Séquentiel (puis)'],['simultaneous','Simultané (et)']].forEach(([k,l])=>{
-        const opt=document.createElement('option'); opt.value=k; opt.textContent=l;
-        if(k===ab.chainMode) opt.selected=true;
-        chainSel.appendChild(opt);
+    const choiceToggle = document.createElement('label');
+    choiceToggle.className='evolve-toggle';
+    choiceToggle.style.marginBottom='10px';
+    choiceToggle.innerHTML = `<input type="checkbox" ${ab.useChoice?'checked':''}> Choisissez un effet (façon Hearthstone — deux versions de la carte apparaissent, le joueur clique celle qu'il veut jouer)`;
+    choiceToggle.querySelector('input').onchange=(e)=>{ ab.useChoice=e.target.checked; rebuildAbilitiesUI(); onFormChange(); };
+    effBox.appendChild(choiceToggle);
+
+    if(!ab.useChoice){
+      ab.effects.forEach(eff=>{
+        effBox.appendChild(buildEffectRow(ab, eff, null));
       });
-      chainSel.onchange=()=>{ ab.chainMode=chainSel.value; onFormChange(); };
-      chainField.appendChild(chainSel);
-      effBox.appendChild(chainField);
+      const addEffBtn = document.createElement('button');
+      addEffBtn.className='add-row-btn'; addEffBtn.textContent='+ Ajouter un effet (chaîné)';
+      addEffBtn.style.marginTop='6px';
+      addEffBtn.onclick=()=>addEffect(ab.id, null);
+      effBox.appendChild(addEffBtn);
+
+      if(ab.effects.length>1){
+        const chainField = document.createElement('div');
+        chainField.style.marginTop='10px';
+        chainField.innerHTML = `<label class="mini-field" style="display:block;font-size:10.5px;color:var(--parchment-dim);margin-bottom:4px;">Enchaînement</label>`;
+        const chainSel = document.createElement('select');
+        [['sequential','Séquentiel (puis)'],['simultaneous','Simultané (et)']].forEach(([k,l])=>{
+          const opt=document.createElement('option'); opt.value=k; opt.textContent=l;
+          if(k===ab.chainMode) opt.selected=true;
+          chainSel.appendChild(opt);
+        });
+        chainSel.onchange=()=>{ ab.chainMode=chainSel.value; onFormChange(); };
+        chainField.appendChild(chainSel);
+        effBox.appendChild(chainField);
+      }
+    } else {
+      if(!ab.choiceA) ab.choiceA = { label:'', effects:[ blankEffect() ] };
+      if(!ab.choiceB) ab.choiceB = { label:'', effects:[ blankEffect() ] };
+      [['A', ab.choiceA], ['B', ab.choiceB]].forEach(([ck, choice])=>{
+        const grp = document.createElement('div');
+        grp.className = 'choice-group-box';
+        grp.style.cssText = 'border:1.5px solid var(--gold);border-radius:10px;padding:10px;margin-bottom:12px;';
+        grp.innerHTML = `<h5 style="margin:0 0 8px;color:var(--gold);font-family:'Cinzel',serif;">Choix ${ck}</h5>`;
+        const labelField = document.createElement('div');
+        labelField.className='field'; labelField.style.marginBottom='8px';
+        labelField.innerHTML = `<label class="mini-field">Libellé court (affiché sur la carte pendant le choix)</label>
+          <input type="text" id="choice-label-${ck}-${ab.id}" value="${escapeHtml(choice.label||'')}" placeholder="Ex : Détruire">`;
+        labelField.querySelector('input').oninput=(e)=>{ choice.label=e.target.value; onFormChange(); };
+        grp.appendChild(labelField);
+        choice.effects.forEach(eff=>{
+          grp.appendChild(buildEffectRow(ab, eff, ck));
+        });
+        const addBtn = document.createElement('button');
+        addBtn.className='add-row-btn'; addBtn.textContent=`+ Ajouter un effet au choix ${ck}`;
+        addBtn.style.marginTop='6px';
+        addBtn.onclick=()=>addEffect(ab.id, ck);
+        grp.appendChild(addBtn);
+        effBox.appendChild(grp);
+      });
     }
     box.appendChild(effBox);
 
@@ -1968,7 +2017,7 @@ function rebuildAbilitiesUI(){
   }
 }
 
-function buildEffectRow(ab, eff){
+function buildEffectRow(ab, eff, choiceKey){
   const row = document.createElement('div');
   row.className='effect-row';
 
@@ -2319,7 +2368,7 @@ function buildEffectRow(ab, eff){
   if(ab.effects.length>1){
     const rm = document.createElement('button');
     rm.className='mini-btn'; rm.textContent='×';
-    rm.onclick=()=>removeEffect(ab.id, eff.id);
+    rm.onclick=()=>removeEffect(ab.id, eff.id, choiceKey);
     row.appendChild(rm);
   }
 
@@ -2887,10 +2936,18 @@ function conditionClause(cond){
 }
 
 function buildAbilitySentence(cardType, ab){
-  const effectClauses = (ab.effects||[]).map(eff=>buildEffectClause(eff, ab)).filter(Boolean);
-  if(effectClauses.length===0) return '';
-  const joiner = ab.chainMode==='simultaneous' ? ' et ' : ', puis ';
-  let clause = capitalize(effectClauses.join(joiner));
+  let clause;
+  if(ab.useChoice && ab.choiceA && ab.choiceB){
+    const clauseA = (ab.choiceA.effects||[]).map(eff=>buildEffectClause(eff, ab)).filter(Boolean).join(', puis ');
+    const clauseB = (ab.choiceB.effects||[]).map(eff=>buildEffectClause(eff, ab)).filter(Boolean).join(', puis ');
+    if(!clauseA && !clauseB) return '';
+    clause = capitalize(`choisissez : ${clauseA||'?'} ou ${clauseB||'?'}`);
+  } else {
+    const effectClauses = (ab.effects||[]).map(eff=>buildEffectClause(eff, ab)).filter(Boolean);
+    if(effectClauses.length===0) return '';
+    const joiner = ab.chainMode==='simultaneous' ? ' et ' : ', puis ';
+    clause = capitalize(effectClauses.join(joiner));
+  }
 
   const condClauses = (ab.conditions||[]).map(conditionClause).filter(Boolean);
   const condText = condClauses.length ? condClauses.join(' et ') : '';

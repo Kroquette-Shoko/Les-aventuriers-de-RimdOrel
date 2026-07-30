@@ -2071,7 +2071,40 @@ async function confirmMulligan(){
   await runAction('Mulligan', ()=>gsMulligan([...mulliganMarked]));
   mulliganOverlayShown = false;
 }
-async function uiPlayCard(i, targetInfo, chosenTargets){ await runAction('Jouer carte', ()=>gsPlayCardSimple(i, targetInfo, chosenTargets)); }
+function getUseChoiceAbility(card){
+  if(!card || !card.abilities) return null;
+  return card.abilities.find(ab=>ab.kind==='triggered' && ab.useChoice && ab.choiceA && ab.choiceB) || null;
+}
+async function uiPlayCard(i, targetInfo, chosenTargets, choiceKey){
+  const card = S[MY_KEY].hand[i];
+  const choiceAbility = !choiceKey ? getUseChoiceAbility(card) : null;
+  if(choiceAbility){
+    showCardChoiceModal(card, choiceAbility, (pickedKey)=>{ uiPlayCard(i, targetInfo, chosenTargets, pickedKey); });
+    return;
+  }
+  await runAction('Jouer carte', ()=>gsPlayCardSimple(i, targetInfo, chosenTargets, choiceKey));
+}
+function showCardChoiceModal(card, ability, onPick){
+  const overlay = document.createElement('div');
+  overlay.id = 'card-choice-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(5,4,10,.75);z-index:99998;display:flex;align-items:center;justify-content:center;gap:34px;';
+  ['A','B'].forEach(ck=>{
+    const choice = ck==='A' ? ability.choiceA : ability.choiceB;
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;transition:transform .15s ease;';
+    wrap.onmouseenter = ()=>{ wrap.style.transform='translateY(-10px) scale(1.04)'; };
+    wrap.onmouseleave = ()=>{ wrap.style.transform=''; };
+    const cardVisual = cardEl(card, {isPreview:true});
+    wrap.appendChild(cardVisual);
+    const label = document.createElement('div');
+    label.style.cssText = 'font-family:\'Cinzel\',serif;font-weight:700;color:var(--gold);font-size:15px;background:rgba(23,19,37,.9);border:1.5px solid var(--gold);border-radius:8px;padding:8px 16px;max-width:280px;text-align:center;';
+    label.textContent = choice.label || `Choix ${ck}`;
+    wrap.appendChild(label);
+    wrap.onclick = ()=>{ overlay.remove(); onPick(ck); };
+    overlay.appendChild(wrap);
+  });
+  document.body.appendChild(overlay);
+}
 async function uiSetTrap(i){ await runAction('Poser le piège', ()=>gsSetTrap(i)); }
 async function uiEndTurn(){ playSfx('pass'); await runAction('Fin de tour', ()=>gsEndTurn()); }
 async function uiConfirmAttackers(){
