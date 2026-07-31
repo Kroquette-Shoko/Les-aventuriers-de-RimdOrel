@@ -2675,6 +2675,24 @@ function buildValueField(eff, modeKey, fixedKey, dynKey, label, shareMode, allow
       const ni = document.createElement('input'); ni.type='text'; ni.value=eff[nameKey]||''; ni.placeholder='Ex : Golem de Jaäne';
       ni.oninput=()=>{ eff[nameKey]=ni.value; onFormChange(); }; nf.appendChild(ni); wrap.appendChild(nf);
     }
+
+    // Seuils optionnels — bornent le résultat final de la valeur dynamique
+    // (ex : "dégâts égaux aux cartes en main, minimum 2, maximum 6").
+    const minKey = dynKey+'Min', maxKey = dynKey+'Max';
+    const clampRow = document.createElement('div');
+    clampRow.style.cssText = 'display:flex;gap:6px;margin-top:4px;';
+    const minF = document.createElement('div'); minF.className='field'; minF.style.flex='1';
+    minF.innerHTML = `<label class="mini-field">Minimum (optionnel)</label>`;
+    const minI = document.createElement('input'); minI.type='number'; minI.placeholder='—'; minI.value = eff[minKey]??'';
+    minI.oninput=()=>{ eff[minKey] = minI.value===''? undefined : (parseInt(minI.value)||0); onFormChange(); };
+    minF.appendChild(minI);
+    const maxF = document.createElement('div'); maxF.className='field'; maxF.style.flex='1';
+    maxF.innerHTML = `<label class="mini-field">Maximum (optionnel)</label>`;
+    const maxI = document.createElement('input'); maxI.type='number'; maxI.placeholder='—'; maxI.value = eff[maxKey]??'';
+    maxI.oninput=()=>{ eff[maxKey] = maxI.value===''? undefined : (parseInt(maxI.value)||0); onFormChange(); };
+    maxF.appendChild(maxI);
+    clampRow.appendChild(minF); clampRow.appendChild(maxF);
+    wrap.appendChild(clampRow);
   }
 
   modeSel.onchange=()=>{
@@ -2697,7 +2715,12 @@ function valuePhrase(eff, mode, fixedVal, dynFieldName){
     const dynKeyValue = eff[dynFieldName];
     const dv = DYNAMIC_VALUES.find(d=>d.key===dynKeyValue);
     if(!dv) return '?';
-    return dynamicValueLabel(eff, dynFieldName, dv);
+    let phrase = dynamicValueLabel(eff, dynFieldName, dv);
+    const minV = eff[dynFieldName+'Min'], maxV = eff[dynFieldName+'Max'];
+    if(minV!==undefined && maxV!==undefined) phrase += ` (entre ${minV} et ${maxV})`;
+    else if(minV!==undefined) phrase += ` (minimum ${minV})`;
+    else if(maxV!==undefined) phrase += ` (maximum ${maxV})`;
+    return phrase;
   }
   return String(fixedVal);
 }
