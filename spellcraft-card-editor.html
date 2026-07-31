@@ -693,10 +693,10 @@ booster-aube.png" oninput="saveImgPickerFileList()"></textarea>
 const WATCH_TRIGGERS = ['watchPlay','watchDeath','watchAttack','watchDamaged','watchHealed','watchHeroHealed','watchSpell','watchTrap','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchAfterReveal','watchReveal','watchExplore','watchRetrieveDiscard','watchRetrieveDeck','watchTargeted'];
 
 const TRIGGERS_BY_TYPE = {
-  'Créature': ['onPlay','onAttack','onBlocked','onDamaged','onHealed','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn', ...WATCH_TRIGGERS,'activated'],
-  'Héros':    ['gameStart','onPlay','onDamaged','onHealed','onKill','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn', ...WATCH_TRIGGERS,'activated'],
-  'Région':   ['gameStart','onPlay','onDestroyed','onReturnFromGraveyard','manaAlternative','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','playedCardTypeCountThisTurn', ...WATCH_TRIGGERS,'activated'],
-  'Artefact': ['onPlay','onUse','onDestroyed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn', ...WATCH_TRIGGERS,'activated'],
+  'Créature': ['onPlay','onAttack','onBlocked','onDamaged','onHealed','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','hpLostLastTurnThreshold', ...WATCH_TRIGGERS,'activated'],
+  'Héros':    ['gameStart','onPlay','onDamaged','onHealed','onKill','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','hpLostLastTurnThreshold', ...WATCH_TRIGGERS,'activated'],
+  'Région':   ['gameStart','onPlay','onDestroyed','onReturnFromGraveyard','manaAlternative','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','playedCardTypeCountThisTurn','hpLostLastTurnThreshold', ...WATCH_TRIGGERS,'activated'],
+  'Artefact': ['onPlay','onUse','onDestroyed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','hpLostLastTurnThreshold', ...WATCH_TRIGGERS,'activated'],
   'Sortilège':['onPlay'],
   'Piège':    ['onOpponentAttack','onOpponentSpell','onOpponentPlayCreature','onOpponentPlayArtifact','onOpponentPlayCard','onOpponentEndTurn','onOpponentTargetsAlly','onAllySurvivesCombat','onEnemySurvivesCombat','beforeAllyFights','onAllyBlocked']
 };
@@ -706,6 +706,7 @@ const TRIGGER_TEXT = {
   gameStart: 'Au début de la partie',
   onPlay: 'Quand cette carte entre en jeu',
   onBlocked: 'Quand cette créature a bloqué',
+  hpLostLastTurnThreshold: 'Après avoir perdu X PV au tour précédent',
   playedCardTypeCountThisTurn: 'Après avoir joué X [type de carte] ce tour-ci',
   onAttack: 'Quand cette créature attaque',
   onDamaged: 'Quand cette carte subit des dégâts',
@@ -824,6 +825,8 @@ const EFFECT_TYPES = [
   {key:'transformCard', label:'Transforme la cible', needsTarget:true, needsValue:false, isTransform:true},
   {key:'manaTheft', label:"Vole du mana à l'adversaire pour X tours", needsTarget:false, needsValue:true, isManaTheft:true},
   {key:'drawTyped', label:'Pioche des cartes [type] de votre deck', needsTarget:false, needsValue:true, isDrawTyped:true},
+  {key:'amplifyEffect', label:'Augmente les dégâts/soin de votre camp', needsTarget:false, needsValue:true, isAmplify:true},
+  {key:'redirectTarget', label:'Change la cible pour une autre', needsTarget:true, needsValue:false},
   {key:'custom', label:'⚠ Effet personnalisé (texte libre)', needsTarget:false, needsValue:false}
 ];
 
@@ -889,7 +892,9 @@ const SELECTION_MODES = [
   {key:'upTo', label:'Jusqu\'à X désignées'},
   {key:'exact', label:'Exactement X (sinon la carte ne peut pas être jouée)'},
   {key:'random', label:'Aléatoire'},
-  {key:'all', label:'Toutes / tous'}
+  {key:'all', label:'Toutes / tous'},
+  {key:'strongest', label:'La plus forte (Force la plus élevée)'},
+  {key:'mostEnduring', label:'La plus endurante (Endurance la plus élevée)'}
 ];
 
 const DYNAMIC_VALUES = [
@@ -958,7 +963,8 @@ function blankTriggerEntry(){
     activationCost: 2, activationCooldown: 0,
     extraCostEnabled: false, extraCostType: 'sacrificeCreature', extraCostAmount: 1, extraCostCustom: '',
     useCount: 3, replacesManaGain: false,
-    playedCardTypeFilter: 'any', playedCardTypeCount: 1
+    playedCardTypeFilter: 'any', playedCardTypeCount: 1,
+    hpLostLastTurnOwner: 'self', hpLostLastTurnCompare: 'atLeast', hpLostLastTurnValue: 5
   };
 }
 function blankTargetEntry(){
@@ -993,8 +999,8 @@ function blankAbility(){
     // est ignoré au profit de choiceA/choiceB — deux jeux d'effets séparés
     // entre lesquels le joueur choisit au moment de jouer la carte.
     useChoice: false,
-    choiceA: { label: '', effects: [ blankEffect() ] },
-    choiceB: { label: '', effects: [ blankEffect() ] }
+    choiceA: { label: '', effects: [ blankEffect() ], targets: [] },
+    choiceB: { label: '', effects: [ blankEffect() ], targets: [] }
   };
 }
 function blankEffect(){
@@ -1348,18 +1354,135 @@ function removeTriggerEntry(abilityId, entryId){
   rebuildAbilitiesUI();
   onFormChange();
 }
-function addTargetEntry(abilityId){
+// Construit une section "Cibles" complète — réutilisée pour les cibles
+// partagées de l'ability, et pour les cibles supplémentaires propres à
+// chaque choix en mode "choisissez un effet".
+function buildTargetsSectionUI(ab, targetsArray, choiceKey, heading){
+  const targetsBox = document.createElement('div');
+  targetsBox.className = 'targets-box';
+  targetsBox.innerHTML = `<h4>${heading}</h4>`;
+  targetsArray.forEach((tgt, tIdx)=>{
+    const trow = document.createElement('div');
+    trow.className = 'target-entry-row';
+    trow.innerHTML = `<div class="field"><label class="mini-field">Cible ${(targetsArray.length>1) ? String.fromCharCode(65+tIdx) : ''}</label></div>`;
+
+    trow.appendChild(makeSelectField('Quel type de ciblage ?', SELECTION_MODES, tgt.selectionMode, v=>{ tgt.selectionMode=v; rebuildAbilitiesUI(); onFormChange(); }));
+    trow.appendChild(makeSelectField('Catégorie', TARGET_CATEGORIES, tgt.targetCategory, v=>{ tgt.targetCategory=v; rebuildAbilitiesUI(); onFormChange(); }));
+    trow.appendChild(makeSelectField('Parmi', TARGET_OWNERS, tgt.targetOwner, v=>{ tgt.targetOwner=v; onFormChange(); }));
+
+    if(tgt.selectionMode!=='all' && tgt.targetOwner!=='self' && tgt.targetOwner!=='trigger'){
+      const cField = document.createElement('div');
+      cField.className='field';
+      cField.innerHTML = `<label class="mini-field">Nombre de cibles</label>`;
+      const cModeSel = document.createElement('select');
+      [['fixed','Fixe'],['dynamic','Dynamique']].forEach(([k,l])=>{
+        const opt=document.createElement('option'); opt.value=k; opt.textContent=l;
+        if(tgt.countMode===k) opt.selected=true;
+        cModeSel.appendChild(opt);
+      });
+      cModeSel.onchange=()=>{ tgt.countMode=cModeSel.value; rebuildAbilitiesUI(); onFormChange(); };
+      cField.appendChild(cModeSel);
+      trow.appendChild(cField);
+
+      if(tgt.countMode==='fixed'){
+        const nField = document.createElement('div');
+        nField.className='field'; nField.innerHTML=`<label class="mini-field">Valeur</label>`;
+        const inp = document.createElement('input');
+        inp.type='number'; inp.min=1; inp.max=8; inp.value=tgt.countFixed||1;
+        inp.oninput=()=>{ tgt.countFixed=parseInt(inp.value)||1; onFormChange(); };
+        nField.appendChild(inp); trow.appendChild(nField);
+      } else {
+        trow.appendChild(makeSelectField('Valeur dynamique', DYNAMIC_VALUES, tgt.countDynamic, v=>{ tgt.countDynamic=v; onFormChange(); }));
+      }
+    }
+
+    if(tgt.targetCategory==='creature' || tgt.targetCategory==='hero_creature' || tgt.targetCategory==='artifact'){
+      const subField = document.createElement('div');
+      subField.className='field'; subField.innerHTML=`<label class="mini-field">Sous-type (optionnel)</label>`;
+      const subInp = document.createElement('input');
+      subInp.type='text'; subInp.value=tgt.subtypeFilter||''; subInp.placeholder='Ex : Dragon';
+      subInp.oninput=()=>{ tgt.subtypeFilter=subInp.value; onFormChange(); };
+      subField.appendChild(subInp); trow.appendChild(subField);
+    }
+
+    if(tgt.targetCategory && tgt.targetCategory.startsWith('card_in_')){
+      const cfToggle = document.createElement('label');
+      cfToggle.className='evolve-toggle';
+      cfToggle.innerHTML = `<input type="checkbox" ${tgt.costFilterEnabled?'checked':''}> Filtrer par coût`;
+      cfToggle.querySelector('input').onchange=(e)=>{ tgt.costFilterEnabled=e.target.checked; rebuildAbilitiesUI(); onFormChange(); };
+      trow.appendChild(cfToggle);
+      if(tgt.costFilterEnabled){
+        trow.appendChild(makeSelectField('Comparaison', [{key:'atLeast',label:'Au moins'},{key:'atMost',label:'Au plus'},{key:'exactly',label:'Exactement'}], tgt.costFilterMode, v=>{ tgt.costFilterMode=v; onFormChange(); }));
+        const vField = document.createElement('div');
+        vField.className='field'; vField.innerHTML=`<label class="mini-field">Coût</label>`;
+        const vInp = document.createElement('input');
+        vInp.type='number'; vInp.min=0; vInp.max=20; vInp.value=tgt.costFilterValue||1;
+        vInp.oninput=()=>{ tgt.costFilterValue=parseInt(vInp.value)||0; onFormChange(); };
+        vField.appendChild(vInp); trow.appendChild(vField);
+      }
+
+      const ztToggle = document.createElement('label');
+      ztToggle.className='evolve-toggle';
+      ztToggle.innerHTML = `<input type="checkbox" ${tgt.zoneTypeFilterEnabled?'checked':''}> Filtrer par type de carte`;
+      ztToggle.querySelector('input').onchange=(e)=>{ tgt.zoneTypeFilterEnabled=e.target.checked; rebuildAbilitiesUI(); onFormChange(); };
+      trow.appendChild(ztToggle);
+      if(tgt.zoneTypeFilterEnabled){
+        trow.appendChild(makeSelectField('Type', [{key:'Créature',label:'Créature'},{key:'Sortilège',label:'Sortilège'},{key:'Artefact',label:'Artefact'},{key:'Piège',label:'Piège'}], tgt.zoneTypeFilter||'Créature', v=>{ tgt.zoneTypeFilter=v; onFormChange(); }));
+      }
+    }
+
+    if(tgt.targetCategory==='creature' || tgt.targetCategory==='hero_creature' || tgt.targetCategory==='artifact'){
+      const sfToggle = document.createElement('label');
+      sfToggle.className='evolve-toggle';
+      sfToggle.innerHTML = `<input type="checkbox" ${tgt.statFilterEnabled?'checked':''}> Filtrer par statistique`;
+      sfToggle.querySelector('input').onchange=(e)=>{ tgt.statFilterEnabled=e.target.checked; rebuildAbilitiesUI(); onFormChange(); };
+      trow.appendChild(sfToggle);
+      if(tgt.statFilterEnabled){
+        trow.appendChild(makeSelectField('Stat', [{key:'atk',label:'Force'},{key:'hp',label:'Endurance'},{key:'cost',label:'Coût'},{key:'charges',label:'Utilisation'}], tgt.statFilterStat, v=>{ tgt.statFilterStat=v; onFormChange(); }));
+        trow.appendChild(makeSelectField('Comparaison', [{key:'atLeast',label:'Au moins'},{key:'atMost',label:'Au plus'},{key:'exactly',label:'Exactement'}], tgt.statFilterMode, v=>{ tgt.statFilterMode=v; onFormChange(); }));
+        const vField = document.createElement('div');
+        vField.className='field'; vField.innerHTML=`<label class="mini-field">Valeur</label>`;
+        const vInp = document.createElement('input');
+        vInp.type='number'; vInp.min=0; vInp.max=20; vInp.value=tgt.statFilterValue||1;
+        vInp.oninput=()=>{ tgt.statFilterValue=parseInt(vInp.value)||0; onFormChange(); };
+        vField.appendChild(vInp); trow.appendChild(vField);
+      }
+    }
+
+    const rmBtn = document.createElement('button');
+    rmBtn.className='mini-btn'; rmBtn.textContent='✕'; rmBtn.title='Retirer cette cible';
+    rmBtn.onclick = ()=>removeTargetEntry(ab.id, tgt.id, choiceKey);
+    trow.appendChild(rmBtn);
+
+    targetsBox.appendChild(trow);
+  });
+  const addTgtBtn = document.createElement('button');
+  addTgtBtn.className='add-row-btn'; addTgtBtn.textContent='+ Ajouter une cible';
+  addTgtBtn.style.marginTop='6px';
+  addTgtBtn.onclick=()=>addTargetEntry(ab.id, choiceKey);
+  targetsBox.appendChild(addTgtBtn);
+  return targetsBox;
+}
+function getTargetsArray(ab, choiceKey){
+  if(choiceKey==='A') return ab.choiceA.targets || (ab.choiceA.targets=[]);
+  if(choiceKey==='B') return ab.choiceB.targets || (ab.choiceB.targets=[]);
+  return ab.targets || (ab.targets=[]);
+}
+function addTargetEntry(abilityId, choiceKey){
   const ab = abilities.find(a=>a.id===abilityId);
   if(!ab) return;
-  if(!ab.targets) ab.targets = [];
-  ab.targets.push(blankTargetEntry());
+  getTargetsArray(ab, choiceKey).push(blankTargetEntry());
   rebuildAbilitiesUI();
   onFormChange();
 }
-function removeTargetEntry(abilityId, targetId){
+function removeTargetEntry(abilityId, targetId, choiceKey){
   const ab = abilities.find(a=>a.id===abilityId);
   if(!ab) return;
-  ab.targets = ab.targets.filter(t=>t.id!==targetId);
+  const arr = getTargetsArray(ab, choiceKey);
+  const filtered = arr.filter(t=>t.id!==targetId);
+  if(choiceKey==='A') ab.choiceA.targets = filtered;
+  else if(choiceKey==='B') ab.choiceB.targets = filtered;
+  else ab.targets = filtered;
   rebuildAbilitiesUI();
   onFormChange();
 }
@@ -1519,6 +1642,20 @@ function buildTriggerEntryBox(te, tIdx, totalCount, availableTriggers, onRemove)
     cField.querySelector('input').oninput=(e)=>{ te.playedCardTypeCount=parseInt(e.target.value)||1; onFormChange(); };
     prow.appendChild(cField);
     tBox.appendChild(prow);
+  }
+
+  if(te.trigger==='hpLostLastTurnThreshold'){
+    const hrow = document.createElement('div');
+    hrow.className='ability-row';
+    hrow.appendChild(makeSelectField('Qui', [{key:'self',label:'Vous'},{key:'enemy',label:'Adversaire'}], te.hpLostLastTurnOwner||'self', v=>{ te.hpLostLastTurnOwner=v; onFormChange(); }));
+    hrow.appendChild(makeSelectField('Comparaison', [{key:'atLeast',label:'Au moins'},{key:'atMost',label:'Au plus'},{key:'exactly',label:'Exactement'}], te.hpLostLastTurnCompare||'atLeast', v=>{ te.hpLostLastTurnCompare=v; onFormChange(); }));
+    const hField = document.createElement('div');
+    hField.className='field';
+    hField.innerHTML = `<label class="mini-field">PV perdus</label>
+      <input type="number" id="trighplt-${te.id}" min="0" max="99" value="${te.hpLostLastTurnValue??5}">`;
+    hField.querySelector('input').oninput=(e)=>{ te.hpLostLastTurnValue=parseInt(e.target.value)||0; onFormChange(); };
+    hrow.appendChild(hField);
+    tBox.appendChild(hrow);
   }
 
   if(currentType==='Région' && (te.trigger==='startOfTurn' || te.trigger==='startOfTurnX')){
@@ -1819,108 +1956,7 @@ function rebuildAbilitiesUI(){
     box.appendChild(condBox);
 
     // cibles — déterminées AVANT les effets (qui, puis quoi)
-    const targetsBox = document.createElement('div');
-    targetsBox.className = 'targets-box';
-    targetsBox.innerHTML = `<h4>Cibles (optionnel — laisser vide si l'effet ne cible personne, ex: soigner soi-même)</h4>`;
-    (ab.targets||[]).forEach((tgt, tIdx)=>{
-      const trow = document.createElement('div');
-      trow.className = 'target-entry-row';
-      trow.innerHTML = `<div class="field"><label class="mini-field">Cible ${(ab.targets.length>1) ? String.fromCharCode(65+tIdx) : ''}</label></div>`;
-
-      // quel type de ciblage (la "source")
-      trow.appendChild(makeSelectField('Quel type de ciblage ?', SELECTION_MODES, tgt.selectionMode, v=>{ tgt.selectionMode=v; rebuildAbilitiesUI(); onFormChange(); }));
-
-      // condition de ciblage : catégorie (type/zone)
-      trow.appendChild(makeSelectField('Catégorie', TARGET_CATEGORIES, tgt.targetCategory, v=>{ tgt.targetCategory=v; rebuildAbilitiesUI(); onFormChange(); }));
-
-      // parmi
-      trow.appendChild(makeSelectField('Parmi', TARGET_OWNERS, tgt.targetOwner, v=>{ tgt.targetOwner=v; onFormChange(); }));
-
-      // nombre de cibles (si pertinent)
-      if(tgt.selectionMode!=='all' && tgt.targetOwner!=='self' && tgt.targetOwner!=='trigger'){
-        const cField = document.createElement('div');
-        cField.className='field';
-        cField.innerHTML = `<label class="mini-field">Nombre de cibles</label>`;
-        const cModeSel = document.createElement('select');
-        [['fixed','Fixe'],['dynamic','Dynamique']].forEach(([k,l])=>{
-          const opt=document.createElement('option'); opt.value=k; opt.textContent=l;
-          if(tgt.countMode===k) opt.selected=true;
-          cModeSel.appendChild(opt);
-        });
-        cModeSel.onchange=()=>{ tgt.countMode=cModeSel.value; rebuildAbilitiesUI(); onFormChange(); };
-        cField.appendChild(cModeSel);
-        trow.appendChild(cField);
-
-        if(tgt.countMode==='fixed'){
-          const nField = document.createElement('div');
-          nField.className='field'; nField.innerHTML=`<label class="mini-field">Valeur</label>`;
-          const inp = document.createElement('input');
-          inp.type='number'; inp.min=1; inp.max=8; inp.value=tgt.countFixed||1;
-          inp.oninput=()=>{ tgt.countFixed=parseInt(inp.value)||1; onFormChange(); };
-          nField.appendChild(inp); trow.appendChild(nField);
-        } else {
-          trow.appendChild(makeSelectField('Valeur dynamique', DYNAMIC_VALUES, tgt.countDynamic, v=>{ tgt.countDynamic=v; onFormChange(); }));
-        }
-      }
-
-      // filtres additionnels selon la catégorie choisie
-      if(tgt.targetCategory==='creature' || tgt.targetCategory==='hero_creature' || tgt.targetCategory==='artifact'){
-        const subField = document.createElement('div');
-        subField.className='field'; subField.innerHTML=`<label class="mini-field">Sous-type (optionnel)</label>`;
-        const subInp = document.createElement('input');
-        subInp.type='text'; subInp.value=tgt.subtypeFilter||''; subInp.placeholder='Ex : Dragon';
-        subInp.oninput=()=>{ tgt.subtypeFilter=subInp.value; onFormChange(); };
-        subField.appendChild(subInp); trow.appendChild(subField);
-      }
-
-      if(tgt.targetCategory && tgt.targetCategory.startsWith('card_in_')){
-        const cfToggle = document.createElement('label');
-        cfToggle.className='evolve-toggle';
-        cfToggle.innerHTML = `<input type="checkbox" ${tgt.costFilterEnabled?'checked':''}> Filtrer par coût`;
-        cfToggle.querySelector('input').onchange=(e)=>{ tgt.costFilterEnabled=e.target.checked; rebuildAbilitiesUI(); onFormChange(); };
-        trow.appendChild(cfToggle);
-        if(tgt.costFilterEnabled){
-          trow.appendChild(makeSelectField('Comparaison', [{key:'atLeast',label:'Au moins'},{key:'atMost',label:'Au plus'},{key:'exactly',label:'Exactement'}], tgt.costFilterMode, v=>{ tgt.costFilterMode=v; onFormChange(); }));
-          const vField = document.createElement('div');
-          vField.className='field'; vField.innerHTML=`<label class="mini-field">Coût</label>`;
-          const vInp = document.createElement('input');
-          vInp.type='number'; vInp.min=0; vInp.max=20; vInp.value=tgt.costFilterValue||1;
-          vInp.oninput=()=>{ tgt.costFilterValue=parseInt(vInp.value)||0; onFormChange(); };
-          vField.appendChild(vInp); trow.appendChild(vField);
-        }
-      }
-
-      if(tgt.targetCategory==='creature' || tgt.targetCategory==='hero_creature'){
-        const sfToggle = document.createElement('label');
-        sfToggle.className='evolve-toggle';
-        sfToggle.innerHTML = `<input type="checkbox" ${tgt.statFilterEnabled?'checked':''}> Filtrer par force/endurance`;
-        sfToggle.querySelector('input').onchange=(e)=>{ tgt.statFilterEnabled=e.target.checked; rebuildAbilitiesUI(); onFormChange(); };
-        trow.appendChild(sfToggle);
-        if(tgt.statFilterEnabled){
-          trow.appendChild(makeSelectField('Stat', [{key:'atk',label:'Force'},{key:'hp',label:'Endurance'}], tgt.statFilterStat, v=>{ tgt.statFilterStat=v; onFormChange(); }));
-          trow.appendChild(makeSelectField('Comparaison', [{key:'atLeast',label:'Au moins'},{key:'atMost',label:'Au plus'},{key:'exactly',label:'Exactement'}], tgt.statFilterMode, v=>{ tgt.statFilterMode=v; onFormChange(); }));
-          const vField = document.createElement('div');
-          vField.className='field'; vField.innerHTML=`<label class="mini-field">Valeur</label>`;
-          const vInp = document.createElement('input');
-          vInp.type='number'; vInp.min=0; vInp.max=20; vInp.value=tgt.statFilterValue||1;
-          vInp.oninput=()=>{ tgt.statFilterValue=parseInt(vInp.value)||0; onFormChange(); };
-          vField.appendChild(vInp); trow.appendChild(vField);
-        }
-      }
-
-      const rmBtn = document.createElement('button');
-      rmBtn.className='mini-btn'; rmBtn.textContent='✕'; rmBtn.title='Retirer cette cible';
-      rmBtn.onclick = ()=>removeTargetEntry(ab.id, tgt.id);
-      trow.appendChild(rmBtn);
-
-      targetsBox.appendChild(trow);
-    });
-    const addTgtBtn = document.createElement('button');
-    addTgtBtn.className='add-row-btn'; addTgtBtn.textContent='+ Ajouter une cible';
-    addTgtBtn.style.marginTop='6px';
-    addTgtBtn.onclick=()=>addTargetEntry(ab.id);
-    targetsBox.appendChild(addTgtBtn);
-    box.appendChild(targetsBox);
+    box.appendChild(buildTargetsSectionUI(ab, ab.targets||(ab.targets=[]), null, "Cibles (optionnel — laisser vide si l'effet ne cible personne, ex: soigner soi-même)"));
 
     // effects
     const effBox = document.createElement('div');
@@ -1972,6 +2008,8 @@ function rebuildAbilitiesUI(){
           <input type="text" id="choice-label-${ck}-${ab.id}" value="${escapeHtml(choice.label||'')}" placeholder="Ex : Détruire">`;
         labelField.querySelector('input').oninput=(e)=>{ choice.label=e.target.value; onFormChange(); };
         grp.appendChild(labelField);
+        if(!choice.targets) choice.targets = [];
+        grp.appendChild(buildTargetsSectionUI(ab, choice.targets, ck, `Cibles supplémentaires du choix ${ck} (en plus des cibles partagées ci-dessus, optionnel)`));
         choice.effects.forEach(eff=>{
           grp.appendChild(buildEffectRow(ab, eff, ck));
         });
@@ -2081,9 +2119,12 @@ function buildEffectRow(ab, eff, choiceKey){
   const def = EFFECT_TYPES.find(e=>e.key===eff.effectType);
 
   if(def.needsTarget){
-    if(ab.targets && ab.targets.length>0){
-      const tgtOptions = ab.targets.map((t,i)=>({key:t.id, label:`Cible ${ab.targets.length>1?String.fromCharCode(65+i):''}`.trim()}));
-      if(!eff.usesTarget || !ab.targets.some(t=>t.id===eff.usesTarget)) eff.usesTarget = ab.targets[0].id;
+    const choiceTargets = choiceKey==='A' ? (ab.choiceA && ab.choiceA.targets || []) : choiceKey==='B' ? (ab.choiceB && ab.choiceB.targets || []) : [];
+    const allTargets = [...(ab.targets||[]), ...choiceTargets];
+    if(allTargets.length>0){
+      const sharedCount = (ab.targets||[]).length;
+      const tgtOptions = allTargets.map((t,i)=>({key:t.id, label: i<sharedCount ? `Cible ${allTargets.length>1?String.fromCharCode(65+i):''}`.trim() : `Cible ${choiceKey} supp. ${String.fromCharCode(65+(i-sharedCount))}`}));
+      if(!eff.usesTarget || !allTargets.some(t=>t.id===eff.usesTarget)) eff.usesTarget = allTargets[0].id;
       row.appendChild(makeSelectField('Cible utilisée', tgtOptions, eff.usesTarget, v=>{ eff.usesTarget=v; onFormChange(); }));
     } else {
       const warn = document.createElement('div');
@@ -2099,6 +2140,14 @@ function buildEffectRow(ab, eff, choiceKey){
     if(def.doubleValue){
       row.appendChild(buildValueField(eff, 'valueMode2','valueFixed2','valueDynamic2','Valeur (Endurance)', false, allowNegative));
     }
+  }
+
+  if(eff.effectType==='buff' || eff.effectType==='weaken'){
+    row.appendChild(makeSelectField('Durée', [
+      {key:'permanent', label:'Permanent'},
+      {key:'endOfTurn', label:'Jusqu\'à la fin de ce tour'},
+      {key:'endOfNextTurn', label:'Jusqu\'à la fin du prochain tour'}
+    ], eff.durationMode||'permanent', v=>{ eff.durationMode=v; onFormChange(); }));
   }
 
   if(['draw','grantMana','refillMana','burnMana'].includes(eff.effectType)){
@@ -2434,6 +2483,13 @@ function buildEffectRow(ab, eff, choiceKey){
   if(def.isDrawTyped){
     row.appendChild(makeSelectField('Type de carte piochée', [{key:'Créature',label:'Créature'},{key:'Sortilège',label:'Sortilège'},{key:'Artefact',label:'Artefact'},{key:'Piège',label:'Piège'}], eff.drawTypedType||'Créature', v=>{ eff.drawTypedType=v; onFormChange(); }));
   }
+  if(def.isAmplify){
+    row.appendChild(makeSelectField('Catégorie', [
+      {key:'directDamage', label:'Dégâts directs (hors combat)'},
+      {key:'combatDamage', label:'Dégâts de combat'},
+      {key:'heal', label:'Soin'}
+    ], eff.amplifyCategory||'directDamage', v=>{ eff.amplifyCategory=v; onFormChange(); }));
+  }
 
   if(eff.effectType==='custom'){
     const cf = document.createElement('div');
@@ -2653,15 +2709,23 @@ function targetPhrase(t){
   const randomOwnerPrefix = t.targetOwner==='random' ? "(camp tiré au hasard) " : '';
 
   const subtypeSuffix = t.subtypeFilter ? ` ${t.subtypeFilter}` : '';
+  const zoneTypeSuffix = (t.zoneTypeFilterEnabled && t.zoneTypeFilter) ? ` ${t.zoneTypeFilter.toLowerCase()}` : '';
+
+  if(t.selectionMode==='strongest' || t.selectionMode==='mostEnduring'){
+    const statLabel = t.selectionMode==='strongest' ? 'la plus forte' : 'la plus endurante';
+    if(t.targetOwner==='ally') return `votre ${nounSing} ${statLabel}`;
+    if(t.targetOwner==='enemy') return `la ${nounSing} ${adjSing} ${statLabel}`.replace(/\s+/g,' ').trim();
+    return `${randomOwnerPrefix}la ${nounSing} ${statLabel}`.trim();
+  }
 
   if(t.selectionMode==='all'){
-    if(t.targetOwner==='ally') return `toutes vos ${nounPlur}${subtypeSuffix}`;
-    if(t.targetOwner==='enemy') return `toutes les ${nounPlur}${subtypeSuffix} ${adjPlur}`.trim();
-    return `${randomOwnerPrefix}toutes les ${nounPlur}${subtypeSuffix}`.trim();
+    if(t.targetOwner==='ally') return `toutes vos ${nounPlur}${subtypeSuffix}${zoneTypeSuffix}`;
+    if(t.targetOwner==='enemy') return `toutes les ${nounPlur}${subtypeSuffix}${zoneTypeSuffix} ${adjPlur}`.trim();
+    return `${randomOwnerPrefix}toutes les ${nounPlur}${subtypeSuffix}${zoneTypeSuffix}`.trim();
   }
   // le nouveau format "cible" utilise countFixed/countMode, l'ancien format (ex: fight) utilise targetCount
   const count = t.countMode!==undefined ? (t.countMode==='fixed' ? (t.countFixed||1) : 1) : (t.targetCount||1);
-  const noun = (count>1 ? nounPlur : nounSing) + subtypeSuffix;
+  const noun = (count>1 ? nounPlur : nounSing) + subtypeSuffix + zoneTypeSuffix;
   const adj = count>1 ? adjPlur : adjSing;
   let selWord;
   if(t.selectionMode==='random') selWord = count>1?'aléatoires':'aléatoire';
@@ -2702,13 +2766,15 @@ function buildEffectClause(eff, ab){
       const v2m = eff.valueMode2||eff.valueMode;
       const v2 = v2m==='dynamic' ? '+'+valuePhrase(eff, v2m, eff.valueFixed2, 'valueDynamic2') : (eff.valueFixed2>=0?'+':'')+eff.valueFixed2;
       const verb = (eff.valueMode==='fixed' && eff.valueFixed<0) || (v2m==='fixed' && eff.valueFixed2<0) ? 'subit' : 'gagne';
-      return `${targetPhrase(resolvedTarget)} ${verb} ${v1}/${v2}`;
+      const durSuffix = eff.durationMode==='endOfTurn' ? " jusqu'à la fin de ce tour" : eff.durationMode==='endOfNextTurn' ? " jusqu'à la fin du prochain tour" : '';
+      return `${targetPhrase(resolvedTarget)} ${verb} ${v1}/${v2}${durSuffix}`;
     }
     case 'weaken': {
       const v1 = eff.valueMode==='dynamic' ? valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic') : Math.abs(eff.valueFixed);
       const v2m = eff.valueMode2||eff.valueMode;
       const v2 = v2m==='dynamic' ? valuePhrase(eff, v2m, eff.valueFixed2, 'valueDynamic2') : Math.abs(eff.valueFixed2);
-      return `${targetPhrase(resolvedTarget)} subit -${v1}/-${v2}`;
+      const durSuffix = eff.durationMode==='endOfTurn' ? " jusqu'à la fin de ce tour" : eff.durationMode==='endOfNextTurn' ? " jusqu'à la fin du prochain tour" : '';
+      return `${targetPhrase(resolvedTarget)} subit -${v1}/-${v2}${durSuffix}`;
     }
     case 'setStat': {
       const statLabel = {force:'la Force',endurance:"l'Endurance",cost:'le coût de mana',charges:"le nombre d'utilisations"}[eff.setStatTarget||'force'];
@@ -2811,6 +2877,12 @@ function buildEffectClause(eff, ab){
       return `volez ${valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic')} mana à l'adversaire pendant ${eff.manaTheftDuration||1} tour${(eff.manaTheftDuration||1)>1?'s':''}`;
     case 'drawTyped':
       return `piochez ${valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic')} carte(s) ${eff.drawTypedType||'Créature'} de votre deck`;
+    case 'amplifyEffect': {
+      const catLabel = {directDamage:'les dégâts directs (hors combat)', combatDamage:'les dégâts de combat', heal:'le soin'}[eff.amplifyCategory||'directDamage'];
+      return `augmentez ${catLabel} que vous infligez/prodiguez de ${valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic')}`;
+    }
+    case 'redirectTarget':
+      return `changez la cible pour ${targetPhrase(resolvedTarget)}`;
     case 'stun':
       return `étourdissez ${targetPhrase(resolvedTarget)} (elle ne peut ni attaquer ni bloquer lors de son prochain tour)`;
     case 'grantMana': {
@@ -3092,6 +3164,11 @@ function buildAbilitySentence(cardType, ab){
         const typeLabel = te.playedCardTypeFilter && te.playedCardTypeFilter!=='any' ? te.playedCardTypeFilter.toLowerCase() : 'carte';
         const n = te.playedCardTypeCount||1;
         prefix = `Après avoir joué ${n} ${typeLabel}${n>1?'s':''} ce tour-ci`;
+      }
+      if(te.trigger==='hpLostLastTurnThreshold'){
+        const who = te.hpLostLastTurnOwner==='enemy' ? "l'adversaire a" : 'vous avez';
+        const cmp = {atLeast:'au moins', atMost:'au plus', exactly:'exactement'}[te.hpLostLastTurnCompare||'atLeast'];
+        prefix = `Après que ${who} perdu ${cmp} ${te.hpLostLastTurnValue??5} PV au tour précédent`;
       }
       if(te.trigger==='activated'){
         prefix = `Payez ${te.activationCost ?? 0} mana`;
