@@ -690,15 +690,15 @@ booster-aube.png" oninput="saveImgPickerFileList()"></textarea>
 /* CLASSES, CLASS_COLORS, RARITIES, CARD_TYPES, KEYWORDS, escapeHtml et migrateCard
    viennent maintenant de spellcraft-shared.js (chargé juste avant ce script). */
 
-const WATCH_TRIGGERS = ['watchPlay','watchDeath','watchAttack','watchDamaged','watchHealed','watchHeroHealed','watchSpell','watchTrap','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchAfterReveal','watchReveal','watchExplore','watchRetrieveDiscard','watchRetrieveDeck','watchTargeted'];
+const WATCH_TRIGGERS = ['watchPlay','watchArrival','watchDeath','watchAttack','watchDamaged','watchHealed','watchHeroHealed','watchSpell','watchTrap','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchAfterReveal','watchReveal','watchExplore','watchRetrieveDiscard','watchRetrieveDeck','watchTargeted'];
 
 const TRIGGERS_BY_TYPE = {
-  'Créature': ['onPlay','onAttack','onBlocked','onDamaged','onHealed','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','hpLostLastTurnThreshold', ...WATCH_TRIGGERS,'activated'],
-  'Héros':    ['gameStart','onPlay','onDamaged','onHealed','onKill','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','hpLostLastTurnThreshold', ...WATCH_TRIGGERS,'activated'],
-  'Région':   ['gameStart','onPlay','onDestroyed','onReturnFromGraveyard','manaAlternative','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','playedCardTypeCountThisTurn','hpLostLastTurnThreshold', ...WATCH_TRIGGERS,'activated'],
-  'Artefact': ['onPlay','onUse','onDestroyed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','hpLostLastTurnThreshold', ...WATCH_TRIGGERS,'activated'],
+  'Créature': ['onPlay','onAttack','onBlocked','onDamaged','onHealed','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold', ...WATCH_TRIGGERS,'activated'],
+  'Héros':    ['gameStart','onPlay','onDamaged','onHealed','onKill','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold', ...WATCH_TRIGGERS,'activated'],
+  'Région':   ['gameStart','onPlay','onDestroyed','onReturnFromGraveyard','manaAlternative','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold', ...WATCH_TRIGGERS,'activated'],
+  'Artefact': ['onPlay','onUse','onDestroyed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold', ...WATCH_TRIGGERS,'activated'],
   'Sortilège':['onPlay'],
-  'Piège':    ['onOpponentAttack','onOpponentSpell','onOpponentPlayCreature','onOpponentPlayArtifact','onOpponentPlayCard','onOpponentEndTurn','onOpponentTargetsAlly','onAllySurvivesCombat','onEnemySurvivesCombat','beforeAllyFights','onAllyBlocked','onPlay','onDestroyed','gameStart','onAttack','onBlocked','onDamaged','onHealed','onDeath','onKill','onRevive','activated','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','hpLostLastTurnThreshold', ...WATCH_TRIGGERS]
+  'Piège':    ['onOpponentAttack','onOpponentSpell','onOpponentPlayCreature','onOpponentPlayArtifact','onOpponentPlayCard','onOpponentEndTurn','onOpponentTargetsAlly','onAllySurvivesCombat','onEnemySurvivesCombat','beforeAllyFights','onAllyBlocked','onPlay','onDestroyed','gameStart','onAttack','onBlocked','onDamaged','onHealed','onDeath','onKill','onRevive','activated','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold', ...WATCH_TRIGGERS]
 };
 
 const TRIGGER_TEXT = {
@@ -708,6 +708,7 @@ const TRIGGER_TEXT = {
   onBlocked: 'Quand cette créature a bloqué',
   hpLostLastTurnThreshold: 'Après avoir perdu X PV au tour précédent',
   playedCardTypeCountThisTurn: 'Après avoir joué X [type de carte] ce tour-ci',
+  playedCardTypeCountMatch: 'Après avoir joué X [type de carte] pendant la partie',
   onAttack: 'Quand cette créature attaque',
   onDamaged: 'Quand cette carte subit des dégâts',
   onHealed: 'Quand cette carte est soignée',
@@ -738,7 +739,8 @@ const TRIGGER_TEXT = {
   onEnemySurvivesCombat: "Après qu'une créature ennemie survit à un combat",
   beforeAllyFights: "Avant qu'une créature alliée ne combatte",
   onAllyBlocked: "Si une créature alliée est bloquée",
-  watchPlay: 'Quand une carte entre en jeu',
+  watchPlay: 'Quand une créature est jouée (depuis la main)',
+  watchArrival: 'Quand une créature arrive en jeu (quelle que soit la source)',
   watchDeath: 'Quand une carte meurt',
   watchAttack: 'Quand une créature attaque',
   watchDamaged: 'Quand une carte subit des dégâts',
@@ -827,6 +829,7 @@ const EFFECT_TYPES = [
   {key:'drawTyped', label:'Pioche des cartes [type] de votre deck', needsTarget:false, needsValue:true, isDrawTyped:true},
   {key:'amplifyEffect', label:'Augmente les dégâts/soin de votre camp', needsTarget:false, needsValue:true, isAmplify:true},
   {key:'redirectTarget', label:'Change la cible pour une autre', needsTarget:true, needsValue:false},
+  {key:'reviveDestroyedLastTurn', label:'Renvoie en jeu une créature détruite au tour précédent', needsTarget:true, needsValue:false},
   {key:'custom', label:'⚠ Effet personnalisé (texte libre)', needsTarget:false, needsValue:false}
 ];
 
@@ -877,6 +880,7 @@ const TARGET_CATEGORIES = [
   {key:'player', label:'Joueur'},
   {key:'card_in_hand', label:'Carte en main'},
   {key:'card_in_discard', label:'Carte en défausse'},
+  {key:'destroyed_last_turn', label:'Créature détruite au tour précédent'},
   {key:'card_in_deck', label:'Carte dans le deck'}
 ];
 const TARGET_OWNERS = [
@@ -906,6 +910,11 @@ const DYNAMIC_VALUES = [
   {key:'targetCharges', label:"= l'utilisation (charges) de la cible"},
   {key:'enemyManaCurrent', label:"= mana actuellement disponible de l'adversaire"},
   {key:'attackersCount', label:'= nombre de créatures actuellement attaquantes'},
+  {key:'hpLostLastTurn', label:'= PV perdus au tour précédent'},
+  {key:'lastPlayedCardAtk', label:'= Force de la dernière carte jouée'},
+  {key:'lastPlayedCardHp', label:'= Endurance de la dernière carte jouée'},
+  {key:'lastPlayedCardCharges', label:'= Utilisation de la dernière carte jouée'},
+  {key:'lastPlayedCardCost', label:'= coût de mana de la dernière carte jouée'},
   {key:'handSize', label:'= cartes en main'},
   {key:'discardSize', label:'= cartes dans votre défausse'},
   {key:'deckSize', label:'= cartes dans votre deck'},
@@ -964,6 +973,7 @@ function blankTriggerEntry(){
     extraCostEnabled: false, extraCostType: 'sacrificeCreature', extraCostAmount: 1, extraCostCustom: '',
     useCount: 3, replacesManaGain: false,
     playedCardTypeFilter: 'any', playedCardTypeCount: 1,
+    playedCardTypeMatchFilter: 'any', playedCardTypeMatchCount: 3, playedCardTypeMatchReset: false,
     hpLostLastTurnOwner: 'self', hpLostLastTurnCompare: 'atLeast', hpLostLastTurnValue: 5
   };
 }
@@ -1375,7 +1385,7 @@ function buildTargetsSectionUI(ab, targetsArray, choiceKey, heading){
       cField.className='field';
       cField.innerHTML = `<label class="mini-field">Nombre de cibles</label>`;
       const cModeSel = document.createElement('select');
-      [['fixed','Fixe'],['dynamic','Dynamique']].forEach(([k,l])=>{
+      sortTuples([['fixed','Fixe'],['dynamic','Dynamique']]).forEach(([k,l])=>{
         const opt=document.createElement('option'); opt.value=k; opt.textContent=l;
         if(tgt.countMode===k) opt.selected=true;
         cModeSel.appendChild(opt);
@@ -1447,6 +1457,14 @@ function buildTargetsSectionUI(ab, targetsArray, choiceKey, heading){
         vInp.oninput=()=>{ tgt.statFilterValue=parseInt(vInp.value)||0; onFormChange(); };
         vField.appendChild(vInp); trow.appendChild(vField);
       }
+    }
+
+    if(tgt.targetCategory==='creature'){
+      const alToggle = document.createElement('label');
+      alToggle.className='evolve-toggle';
+      alToggle.innerHTML = `<input type="checkbox" ${tgt.attackedLastTurnFilter?'checked':''}> Uniquement les créatures qui ont attaqué au tour précédent`;
+      alToggle.querySelector('input').onchange=(e)=>{ tgt.attackedLastTurnFilter=e.target.checked; onFormChange(); };
+      trow.appendChild(alToggle);
     }
 
     const rmBtn = document.createElement('button');
@@ -1570,7 +1588,12 @@ function buildTriggerEntryBox(te, tIdx, totalCount, availableTriggers, onRemove)
   trow.className='ability-row';
   trow.innerHTML = `<div class="field"><label class="mini-field">Déclencheur ${totalCount>1 ? String.fromCharCode(65+tIdx) : ''}</label></div>`;
   const sel = document.createElement('select');
-  availableTriggers.forEach(t=>{
+  const sortedTriggers = [...availableTriggers].sort((a,b)=>{
+    const la = TRIGGER_SHORT_NAME[a] ? `${TRIGGER_SHORT_NAME[a]} — ${TRIGGER_TEXT[a]}` : TRIGGER_TEXT[a];
+    const lb = TRIGGER_SHORT_NAME[b] ? `${TRIGGER_SHORT_NAME[b]} — ${TRIGGER_TEXT[b]}` : TRIGGER_TEXT[b];
+    return (la||'').localeCompare(lb||'','fr',{sensitivity:'base'});
+  });
+  sortedTriggers.forEach(t=>{
     const opt = document.createElement('option');
     opt.value=t; opt.textContent = TRIGGER_SHORT_NAME[t] ? `${TRIGGER_SHORT_NAME[t]} — ${TRIGGER_TEXT[t]}` : TRIGGER_TEXT[t];
     if(t===te.trigger) opt.selected=true;
@@ -1591,7 +1614,7 @@ function buildTriggerEntryBox(te, tIdx, totalCount, availableTriggers, onRemove)
     orow.className='ability-row';
     orow.innerHTML = `<div class="field"><label class="mini-field">Concerne les cartes</label></div>`;
     const osel = document.createElement('select');
-    [['ally','Alliées'],['enemy','Ennemies'],['both','Les deux']].forEach(([k,l])=>{
+    sortTuples([['ally','Alliées'],['enemy','Ennemies'],['both','Les deux']]).forEach(([k,l])=>{
       const opt = document.createElement('option'); opt.value=k; opt.textContent=l;
       if((te.triggerOwner||'ally')===k) opt.selected=true;
       osel.appendChild(opt);
@@ -1644,6 +1667,27 @@ function buildTriggerEntryBox(te, tIdx, totalCount, availableTriggers, onRemove)
     tBox.appendChild(prow);
   }
 
+  if(te.trigger==='playedCardTypeCountMatch'){
+    const mrow = document.createElement('div');
+    mrow.className='ability-row';
+    mrow.appendChild(makeSelectField('Type de carte', [
+      {key:'any', label:'Peu importe'}, {key:'Créature', label:'Créature'}, {key:'Sortilège', label:'Sortilège'},
+      {key:'Artefact', label:'Artefact'}, {key:'Piège', label:'Piège'}
+    ], te.playedCardTypeMatchFilter||'any', v=>{ te.playedCardTypeMatchFilter=v; onFormChange(); }));
+    const mField = document.createElement('div');
+    mField.className='field';
+    mField.innerHTML = `<label class="mini-field">Nombre de cartes pendant la partie</label>
+      <input type="number" id="trigptm-${te.id}" min="1" max="60" value="${te.playedCardTypeMatchCount||3}">`;
+    mField.querySelector('input').oninput=(e)=>{ te.playedCardTypeMatchCount=parseInt(e.target.value)||1; onFormChange(); };
+    mrow.appendChild(mField);
+    tBox.appendChild(mrow);
+    const resetToggle = document.createElement('label');
+    resetToggle.className='evolve-toggle';
+    resetToggle.innerHTML = `<input type="checkbox" ${te.playedCardTypeMatchReset?'checked':''}> Réinitialiser le compteur après déclenchement (se redéclenche tous les X — sinon une seule fois pour toute la partie)`;
+    resetToggle.querySelector('input').onchange=(e)=>{ te.playedCardTypeMatchReset=e.target.checked; onFormChange(); };
+    tBox.appendChild(resetToggle);
+  }
+
   if(te.trigger==='hpLostLastTurnThreshold'){
     const hrow = document.createElement('div');
     hrow.className='ability-row';
@@ -1693,7 +1737,7 @@ function buildTriggerEntryBox(te, tIdx, totalCount, availableTriggers, onRemove)
       ecTypeField.className='field';
       ecTypeField.innerHTML = `<label class="mini-field">Type de coût</label>`;
       const ecSel = document.createElement('select');
-      [['sacrificeCreature','Sacrifier une créature alliée'],['discardCard','Défausser une carte'],['loseLife','Perdre des PV'],['custom','⚠ Personnalisé (texte libre)']].forEach(([k,l])=>{
+      sortTuples([['sacrificeCreature','Sacrifier une créature alliée'],['discardCard','Défausser une carte'],['loseLife','Perdre des PV'],['custom','⚠ Personnalisé (texte libre)']]).forEach(([k,l])=>{
         const opt=document.createElement('option'); opt.value=k; opt.textContent=l;
         if(k===te.extraCostType) opt.selected=true;
         ecSel.appendChild(opt);
@@ -1756,7 +1800,7 @@ function rebuildAbilitiesUI(){
       kindRow.className='ability-row';
       kindRow.innerHTML = `<div class="field"><label>Quel type de capacité ?</label></div>`;
       const kindSel = document.createElement('select');
-      [['triggered','Déclencheur'],['continuous','Continue']].forEach(([k,l])=>{
+      sortTuples([['triggered','Déclencheur'],['continuous','Continue']]).forEach(([k,l])=>{
         const opt=document.createElement('option'); opt.value=k; opt.textContent=l;
         if(ab.kind===k) opt.selected=true;
         kindSel.appendChild(opt);
@@ -1803,7 +1847,7 @@ function rebuildAbilitiesUI(){
       typeField.className='field';
       typeField.innerHTML = `<label class="mini-field">Condition</label>`;
       const typeSel = document.createElement('select');
-      CONDITION_TYPES.forEach(ct=>{
+      sortOptionsAlpha(CONDITION_TYPES.map(ct=>({key:ct.key,label:ct.label}))).forEach(ct=>{
         const opt=document.createElement('option'); opt.value=ct.key; opt.textContent=ct.label;
         if(ct.key===cond.conditionType) opt.selected=true;
         typeSel.appendChild(opt);
@@ -1871,7 +1915,7 @@ function rebuildAbilitiesUI(){
         dirField.className='field';
         dirField.innerHTML = `<label class="mini-field">Direction</label>`;
         const dirSel = document.createElement('select');
-        [['lost','A perdu'],['gained','A gagné']].forEach(([k,l])=>{
+        sortTuples([['lost','A perdu'],['gained','A gagné']]).forEach(([k,l])=>{
           const opt=document.createElement('option'); opt.value=k; opt.textContent=l;
           if(k===(cond.healthChangeDirection||'lost')) opt.selected=true;
           dirSel.appendChild(opt);
@@ -1884,7 +1928,7 @@ function rebuildAbilitiesUI(){
         ownField.className='field';
         ownField.innerHTML = `<label class="mini-field">Qui</label>`;
         const ownSel = document.createElement('select');
-        [['self','Vous'],['enemy','Adversaire']].forEach(([k,l])=>{
+        sortTuples([['self','Vous'],['enemy','Adversaire']]).forEach(([k,l])=>{
           const opt=document.createElement('option'); opt.value=k; opt.textContent=l;
           if(k===(cond.healthChangeOwner||'self')) opt.selected=true;
           ownSel.appendChild(opt);
@@ -1897,7 +1941,7 @@ function rebuildAbilitiesUI(){
         modeField.className='field';
         modeField.innerHTML = `<label class="mini-field">Comparaison</label>`;
         const modeSel = document.createElement('select');
-        [['exact','Exactement'],['atLeast','Au moins']].forEach(([k,l])=>{
+        sortTuples([['exact','Exactement'],['atLeast','Au moins']]).forEach(([k,l])=>{
           const opt=document.createElement('option'); opt.value=k; opt.textContent=l;
           if(k===(cond.healthChangeMode||'atLeast')) opt.selected=true;
           modeSel.appendChild(opt);
@@ -1985,7 +2029,7 @@ function rebuildAbilitiesUI(){
         chainField.style.marginTop='10px';
         chainField.innerHTML = `<label class="mini-field" style="display:block;font-size:10.5px;color:var(--parchment-dim);margin-bottom:4px;">Enchaînement</label>`;
         const chainSel = document.createElement('select');
-        [['sequential','Séquentiel (puis)'],['simultaneous','Simultané (et)']].forEach(([k,l])=>{
+        sortTuples([['sequential','Séquentiel (puis)'],['simultaneous','Simultané (et)']]).forEach(([k,l])=>{
           const opt=document.createElement('option'); opt.value=k; opt.textContent=l;
           if(k===ab.chainMode) opt.selected=true;
           chainSel.appendChild(opt);
@@ -2107,7 +2151,7 @@ function buildEffectRow(ab, eff, choiceKey){
   typeField.className='field';
   typeField.innerHTML = `<label class="mini-field">Type d'effet</label>`;
   const typeSel = document.createElement('select');
-  EFFECT_TYPES.forEach(et=>{
+  sortOptionsAlpha(EFFECT_TYPES.map(et=>({key:et.key,label:et.label}))).forEach(et=>{
     const opt=document.createElement('option'); opt.value=et.key; opt.textContent=et.label;
     if(et.key===eff.effectType) opt.selected=true;
     typeSel.appendChild(opt);
@@ -2517,7 +2561,8 @@ function makeCondSelectField(cond, fieldName, options, defaultVal, label, rebuil
   field.className='field';
   field.innerHTML = `<label class="mini-field">${label}</label>`;
   const sel = document.createElement('select');
-  options.forEach(([k,l])=>{
+  const sorted = [...options].sort((a,b)=>a[1].localeCompare(b[1],'fr',{sensitivity:'base'}));
+  sorted.forEach(([k,l])=>{
     const opt=document.createElement('option'); opt.value=k; opt.textContent=l;
     if((cond[fieldName]||defaultVal)===k) opt.selected=true;
     sel.appendChild(opt);
@@ -2532,7 +2577,8 @@ function makeSelectField(label, options, current, onChange){
   field.className='field';
   field.innerHTML = `<label class="mini-field">${label}</label>`;
   const sel = document.createElement('select');
-  options.forEach(o=>{
+  const sorted = sortOptionsAlpha(options);
+  sorted.forEach(o=>{
     const opt=document.createElement('option'); opt.value=o.key; opt.textContent=o.label;
     if(o.key===current) opt.selected=true;
     sel.appendChild(opt);
@@ -2540,6 +2586,23 @@ function makeSelectField(label, options, current, onChange){
   sel.onchange=()=>onChange(sel.value);
   field.appendChild(sel);
   return field;
+}
+// Tri alphabétique (français, insensible à la casse/accents) des options
+// d'un menu déroulant — les options "personnalisé/autre" (⚠) restent en
+// dernier, comme c'est l'usage pour un choix "autre".
+function sortOptionsAlpha(options){
+  const normal = options.filter(o=>!o.label.startsWith('⚠'));
+  const special = options.filter(o=>o.label.startsWith('⚠'));
+  normal.sort((a,b)=>a.label.localeCompare(b.label,'fr',{sensitivity:'base'}));
+  return [...normal, ...special];
+}
+// Même tri, pour les tableaux de tuples [clé, libellé] utilisés par les
+// petits menus construits en ligne (plutôt que des tableaux d'objets).
+function sortTuples(tuples){
+  const normal = tuples.filter(t=>!t[1].startsWith('⚠'));
+  const special = tuples.filter(t=>t[1].startsWith('⚠'));
+  normal.sort((a,b)=>a[1].localeCompare(b[1],'fr',{sensitivity:'base'}));
+  return [...normal, ...special];
 }
 
 const NUMERIC_FILTER_MODES = [
@@ -2562,7 +2625,7 @@ function buildNumericFilterField(eff, modeKey, valueKey, label){
 
   const modeSel = document.createElement('select');
   modeSel.style.width='108px';
-  NUMERIC_FILTER_MODES.forEach(m=>{
+  sortOptionsAlpha(NUMERIC_FILTER_MODES).forEach(m=>{
     const opt=document.createElement('option'); opt.value=m.key; opt.textContent=m.label;
     if(m.key===eff[modeKey]) opt.selected=true;
     modeSel.appendChild(opt);
@@ -2607,7 +2670,7 @@ function buildValueField(eff, modeKey, fixedKey, dynKey, label, shareMode, allow
   numInput.oninput=()=>{ eff[fixedKey]=parseInt(numInput.value)||0; onFormChange(); };
 
   const dynSel = document.createElement('select');
-  DYNAMIC_VALUES.forEach(dv=>{
+  sortOptionsAlpha(DYNAMIC_VALUES).forEach(dv=>{
     const opt=document.createElement('option'); opt.value=dv.key; opt.textContent=dv.label;
     if(dv.key===eff[dynKey]) opt.selected=true;
     dynSel.appendChild(opt);
@@ -2641,6 +2704,24 @@ function buildValueField(eff, modeKey, fixedKey, dynKey, label, shareMode, allow
       const ni = document.createElement('input'); ni.type='text'; ni.value=eff[nameKey]||''; ni.placeholder='Ex : Golem de Jaäne';
       ni.oninput=()=>{ eff[nameKey]=ni.value; onFormChange(); }; nf.appendChild(ni); wrap.appendChild(nf);
     }
+
+    // Seuils optionnels — bornent le résultat final de la valeur dynamique
+    // (ex : "dégâts égaux aux cartes en main, minimum 2, maximum 6").
+    const minKey = dynKey+'Min', maxKey = dynKey+'Max';
+    const clampRow = document.createElement('div');
+    clampRow.style.cssText = 'display:flex;gap:6px;margin-top:4px;';
+    const minF = document.createElement('div'); minF.className='field'; minF.style.flex='1';
+    minF.innerHTML = `<label class="mini-field">Minimum (optionnel)</label>`;
+    const minI = document.createElement('input'); minI.type='number'; minI.placeholder='—'; minI.value = eff[minKey]??'';
+    minI.oninput=()=>{ eff[minKey] = minI.value===''? undefined : (parseInt(minI.value)||0); onFormChange(); };
+    minF.appendChild(minI);
+    const maxF = document.createElement('div'); maxF.className='field'; maxF.style.flex='1';
+    maxF.innerHTML = `<label class="mini-field">Maximum (optionnel)</label>`;
+    const maxI = document.createElement('input'); maxI.type='number'; maxI.placeholder='—'; maxI.value = eff[maxKey]??'';
+    maxI.oninput=()=>{ eff[maxKey] = maxI.value===''? undefined : (parseInt(maxI.value)||0); onFormChange(); };
+    maxF.appendChild(maxI);
+    clampRow.appendChild(minF); clampRow.appendChild(maxF);
+    wrap.appendChild(clampRow);
   }
 
   modeSel.onchange=()=>{
@@ -2663,7 +2744,12 @@ function valuePhrase(eff, mode, fixedVal, dynFieldName){
     const dynKeyValue = eff[dynFieldName];
     const dv = DYNAMIC_VALUES.find(d=>d.key===dynKeyValue);
     if(!dv) return '?';
-    return dynamicValueLabel(eff, dynFieldName, dv);
+    let phrase = dynamicValueLabel(eff, dynFieldName, dv);
+    const minV = eff[dynFieldName+'Min'], maxV = eff[dynFieldName+'Max'];
+    if(minV!==undefined && maxV!==undefined) phrase += ` (entre ${minV} et ${maxV})`;
+    else if(minV!==undefined) phrase += ` (minimum ${minV})`;
+    else if(maxV!==undefined) phrase += ` (maximum ${maxV})`;
+    return phrase;
   }
   return String(fixedVal);
 }
@@ -2702,14 +2788,15 @@ function targetPhrase(t){
     if(t.targetOwner==='random') return 'un joueur tiré au hasard';
     return t.targetOwner==='enemy' ? 'votre adversaire' : 'vous';
   }
-  const nounSing = {creature:'créature', hero_creature:'héros ou créature', artifact:'artefact', card_in_hand:'carte en main', card_in_discard:'carte en défausse', card_in_deck:'carte du deck'}[t.targetCategory] || 'cible';
-  const nounPlur = {creature:'créatures', hero_creature:'héros ou créatures', artifact:'artefacts', card_in_hand:'cartes en main', card_in_discard:'cartes en défausse', card_in_deck:'cartes du deck'}[t.targetCategory] || 'cibles';
+  const nounSing = {creature:'créature', hero_creature:'héros ou créature', artifact:'artefact', card_in_hand:'carte en main', card_in_discard:'carte en défausse', card_in_deck:'carte du deck', destroyed_last_turn:'créature détruite au tour précédent'}[t.targetCategory] || 'cible';
+  const nounPlur = {creature:'créatures', hero_creature:'héros ou créatures', artifact:'artefacts', card_in_hand:'cartes en main', card_in_discard:'cartes en défausse', card_in_deck:'cartes du deck', destroyed_last_turn:'créatures détruites au tour précédent'}[t.targetCategory] || 'cibles';
   const adjSing = {ally:'alliée', enemy:'ennemie', any:'', random:''}[t.targetOwner] || '';
   const adjPlur = {ally:'alliées', enemy:'ennemies', any:'', random:''}[t.targetOwner] || '';
   const randomOwnerPrefix = t.targetOwner==='random' ? "(camp tiré au hasard) " : '';
 
   const subtypeSuffix = t.subtypeFilter ? ` ${t.subtypeFilter}` : '';
   const zoneTypeSuffix = (t.zoneTypeFilterEnabled && t.zoneTypeFilter) ? ` ${t.zoneTypeFilter.toLowerCase()}` : '';
+  const attackedLastTurnSuffix = t.attackedLastTurnFilter ? ' ayant attaqué au tour précédent' : '';
 
   if(t.selectionMode==='strongest' || t.selectionMode==='mostEnduring'){
     const statLabel = t.selectionMode==='strongest' ? 'la plus forte' : 'la plus endurante';
@@ -2719,13 +2806,13 @@ function targetPhrase(t){
   }
 
   if(t.selectionMode==='all'){
-    if(t.targetOwner==='ally') return `toutes vos ${nounPlur}${subtypeSuffix}${zoneTypeSuffix}`;
-    if(t.targetOwner==='enemy') return `toutes les ${nounPlur}${subtypeSuffix}${zoneTypeSuffix} ${adjPlur}`.trim();
-    return `${randomOwnerPrefix}toutes les ${nounPlur}${subtypeSuffix}${zoneTypeSuffix}`.trim();
+    if(t.targetOwner==='ally') return `toutes vos ${nounPlur}${subtypeSuffix}${zoneTypeSuffix}${attackedLastTurnSuffix}`;
+    if(t.targetOwner==='enemy') return `toutes les ${nounPlur}${subtypeSuffix}${zoneTypeSuffix}${attackedLastTurnSuffix} ${adjPlur}`.trim();
+    return `${randomOwnerPrefix}toutes les ${nounPlur}${subtypeSuffix}${zoneTypeSuffix}${attackedLastTurnSuffix}`.trim();
   }
   // le nouveau format "cible" utilise countFixed/countMode, l'ancien format (ex: fight) utilise targetCount
   const count = t.countMode!==undefined ? (t.countMode==='fixed' ? (t.countFixed||1) : 1) : (t.targetCount||1);
-  const noun = (count>1 ? nounPlur : nounSing) + subtypeSuffix + zoneTypeSuffix;
+  const noun = (count>1 ? nounPlur : nounSing) + subtypeSuffix + zoneTypeSuffix + attackedLastTurnSuffix;
   const adj = count>1 ? adjPlur : adjSing;
   let selWord;
   if(t.selectionMode==='random') selWord = count>1?'aléatoires':'aléatoire';
@@ -2883,6 +2970,8 @@ function buildEffectClause(eff, ab){
     }
     case 'redirectTarget':
       return `changez la cible pour ${targetPhrase(resolvedTarget)}`;
+    case 'reviveDestroyedLastTurn':
+      return `renvoyez en jeu ${targetPhrase(resolvedTarget)}`;
     case 'stun':
       return `étourdissez ${targetPhrase(resolvedTarget)} (elle ne peut ni attaquer ni bloquer lors de son prochain tour)`;
     case 'grantMana': {
@@ -3164,6 +3253,12 @@ function buildAbilitySentence(cardType, ab){
         const typeLabel = te.playedCardTypeFilter && te.playedCardTypeFilter!=='any' ? te.playedCardTypeFilter.toLowerCase() : 'carte';
         const n = te.playedCardTypeCount||1;
         prefix = `Après avoir joué ${n} ${typeLabel}${n>1?'s':''} ce tour-ci`;
+      }
+      if(te.trigger==='playedCardTypeCountMatch'){
+        const typeLabel = te.playedCardTypeMatchFilter && te.playedCardTypeMatchFilter!=='any' ? te.playedCardTypeMatchFilter.toLowerCase() : 'carte';
+        const n = te.playedCardTypeMatchCount||3;
+        const resetSuffix = te.playedCardTypeMatchReset ? ' (se répète)' : '';
+        prefix = `Après avoir joué ${n} ${typeLabel}${n>1?'s':''} pendant la partie${resetSuffix}`;
       }
       if(te.trigger==='hpLostLastTurnThreshold'){
         const who = te.hpLostLastTurnOwner==='enemy' ? "l'adversaire a" : 'vous avez';
