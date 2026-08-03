@@ -794,6 +794,7 @@ function closeBoosterOpening(){
   document.getElementById('booster-open-overlay').classList.remove('show');
   showFragmentSummaryToast(lastBoosterResult);
   lastBoosterResult = null;
+  sb.rpc('progress_collection_achievements').catch(()=>{});
 }
 
 // Résumé persistant (par classe) des fragments obtenus dans ce booster, affiché
@@ -809,6 +810,9 @@ function showFragmentSummaryToast(cardsResult){
   });
   const classes = Object.keys(totals);
   if(classes.length===0) return;
+  classes.forEach(cls=>{
+    sb.rpc('progress_achievement', { p_condition_type: `fragment_earned_${cls}`, p_amount: totals[cls] }).catch(()=>{});
+  });
   const rows = classes.map(cls=>{
     const iconFile = GEM_ICON_FILES[cls];
     const iconHtml = iconFile ? `<img src="images/${iconFile}" class="frag-toast-icon">` : '';
@@ -831,6 +835,8 @@ async function confirmSingleChoice(cardId){
   showRevealModal('Carte obtenue !', [{ name: data.name, foil: data.foil, rarity: '', card_id: data.card_id }]);
   refreshCurrency();
   renderSingleShelf();
+  sb.rpc('progress_achievement', { p_condition_type: 'cards_crafted_total', p_amount: 1 }).catch(()=>{});
+  sb.rpc('progress_collection_achievements').catch(()=>{});
 }
 
 async function buyCardBack(id){

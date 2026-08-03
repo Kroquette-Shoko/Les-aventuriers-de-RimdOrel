@@ -54,6 +54,41 @@ main{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:26px;}
 #reward-card-preview{position:fixed;z-index:200;pointer-events:none;display:none;opacity:0;transition:opacity .12s ease;}
 #reward-card-preview.show{display:block;opacity:1;}
 #reward-card-preview img{width:220px;height:auto;border-radius:12px;box-shadow:0 16px 34px rgba(0,0,0,.65);border:2px solid var(--gold);}
+
+/* ---------- Rendu de carte (identique à la boutique) ---------- */
+.card{
+  --class-color: var(--grey, #8a7f6a);
+  width:130px;height:182px;background:#f7f2e2;color:#231d33;border-radius:10px;
+  position:relative;flex-shrink:0;border:3.5px solid var(--class-color);
+  box-shadow:0 4px 10px rgba(0,0,0,.5);display:flex;flex-direction:column;user-select:none;
+}
+.card.class-Aube{--class-color:#d4af37;}
+.card.class-Crépuscule{--class-color:#4b0082;}
+.card.class-Prima{--class-color:#228b22;}
+.card.class-Volonté{--class-color:#8b0000;}
+.card.class-Arcane{--class-color:#4682b4;}
+.card.class-Neutre{--class-color:#c0c0c0;}
+.card-art{position:relative;height:42%;background:linear-gradient(135deg,#c9bd93,#a89968);background-size:cover;background-position:center;flex-shrink:0;overflow:hidden;border-radius:7px 7px 0 0;}
+.card-mana{position:absolute;top:-8px;left:-8px;width:27px;height:27px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#6fd0ff,#155a94);border:2px solid #0c2b45;color:#fff;font-family:'Cinzel',serif;font-weight:700;font-size:11px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 7px rgba(0,0,0,.55);z-index:3;}
+.card-hero-hp{position:absolute;top:3px;right:4px;width:24px;height:24px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#7de08f,#1f7a3d);border:2px solid #0c3d1a;color:#fff;font-family:'Cinzel',serif;font-weight:700;font-size:10px;display:flex;align-items:center;justify-content:center;z-index:2;}
+.card-divider{height:5px;flex-shrink:0;background:var(--class-color);}
+.card-body{flex:1;padding:3px 6px 2px;display:flex;flex-direction:column;min-height:0;}
+.card-name{font-family:'Cinzel',serif;font-weight:700;font-size:8.6px;text-align:center;text-decoration:underline;text-underline-offset:2px;color:#1c1830;line-height:1.15;margin-bottom:3px;min-height:20px;}
+.card-text{font-size:6.3px;line-height:1.2;flex:1;color:#2a2338;overflow:hidden;white-space:pre-wrap;text-align:center;}
+.card-footer{height:24px;flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:space-between;padding:0 6px 3px;}
+.card-atk,.card-hp{width:20px;height:20px;border-radius:50%;background:#efe6c8;border:2px solid #1c1830;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:9.5px;}
+.card-atk{color:var(--blood);}
+.card-hp{color:var(--green);}
+.card-rarity-gem{position:absolute;left:50%;bottom:4px;transform:translateX(-50%) rotate(45deg);width:8px;height:8px;border:1.5px solid rgba(0,0,0,.35);box-shadow:0 0 4px currentColor;}
+.card-rarity-gem.rarity-Basique{background:#6b6558;color:#6b6558;}
+.card-rarity-gem.rarity-Commune{background:#c7c2b3;color:#c7c2b3;}
+.card-rarity-gem.rarity-Rare{background:#4fb3d9;color:#4fb3d9;}
+.card-rarity-gem.rarity-Épique{background:#7c5cff;color:#7c5cff;}
+.card-rarity-gem.rarity-Mythique{background:var(--gold);color:var(--gold);}
+
+.reward-card-mini{width:44px;height:61.6px;overflow:hidden;position:relative;cursor:pointer;flex-shrink:0;border-radius:6px;}
+.reward-card-mini .card{position:absolute;top:0;left:0;transform:scale(0.338);transform-origin:top left;}
+#reward-card-preview .card{transform:scale(1.7);transform-origin:top left;box-shadow:0 16px 34px rgba(0,0,0,.65);}
 </style>
 </head>
 <body>
@@ -92,6 +127,37 @@ main{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:26px;}
 <script src="spellcraft-economy.js"></script>
 <script>
 
+function escapeHtmlQuests(s){
+  return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+}
+
+function buildCardEl(card){
+  const el = document.createElement('div');
+  el.className = `card class-${card.class||'Neutre'}`;
+  const artStyle = card.image ? `background-image:url('${card.image.replace(/'/g,"")}');` : '';
+  const isHero = card.type==='Héros';
+  const isRegion = card.type==='Région';
+  const hasMana = !isHero && !isRegion;
+  const isCreature = card.type==='Créature';
+  el.innerHTML = `
+    ${hasMana ? `<div class="card-mana">${card.cost ?? 0}</div>` : ''}
+    <div class="card-art" style="${artStyle}">
+      ${isHero ? `<div class="card-hero-hp">${card.hp ?? 0}</div>` : ''}
+    </div>
+    <div class="card-divider"></div>
+    <div class="card-body">
+      <div class="card-name">${escapeHtmlQuests(card.name || '')}</div>
+      <div class="card-text">${escapeHtmlQuests(card.text || '')}</div>
+    </div>
+    <div class="card-footer">
+      ${isCreature ? `<div class="card-atk">⚔${card.atk ?? 0}</div>` : `<div></div>`}
+      <div class="card-rarity-gem rarity-${card.rarity||'Commune'}"></div>
+      ${isCreature ? `<div class="card-hp">♥${card.hp ?? 0}</div>` : `<div></div>`}
+    </div>
+  `;
+  return el;
+}
+
 let allCardsCache = null;
 async function ensureCardsCache(){
   if(!allCardsCache) allCardsCache = await loadAllCardsAcrossSets();
@@ -100,7 +166,8 @@ async function ensureCardsCache(){
 
 function showRewardCardPreview(card, ev){
   const box = document.getElementById('reward-card-preview');
-  box.innerHTML = card.image ? `<img src="${card.image}" alt="${escapeHtml(card.name)}">` : `<div style="width:220px;height:308px;background:var(--bg-panel-2);border-radius:12px;display:flex;align-items:center;justify-content:center;color:var(--parchment-dim);font-size:12px;padding:12px;text-align:center;">${escapeHtml(card.name)}</div>`;
+  box.innerHTML = '';
+  box.appendChild(buildCardEl(card));
   box.classList.add('show');
   moveRewardCardPreview(ev);
 }
@@ -128,14 +195,14 @@ function buildRewardEl(q){
       (r.card_ids||[]).forEach(cardId=>{
         const cardData = allCardsCache && allCardsCache.find(c=>c.id===cardId);
         if(cardData){
-          const thumb = document.createElement('div');
-          thumb.className = 'reward-card-thumb';
-          if(cardData.image) thumb.style.backgroundImage = `url('${cardData.image}')`;
-          thumb.title = `${cardData.name} (${r.rarity}${r.foil?' Foil':''})`;
-          thumb.onmouseenter = (ev)=>showRewardCardPreview(cardData, ev);
-          thumb.onmousemove = moveRewardCardPreview;
-          thumb.onmouseleave = hideRewardCardPreview;
-          wrap.appendChild(thumb);
+          const mini = document.createElement('div');
+          mini.className = 'reward-card-mini';
+          mini.appendChild(buildCardEl(cardData));
+          mini.title = `${cardData.name} (${r.rarity}${r.foil?' Foil':''})`;
+          mini.onmouseenter = (ev)=>showRewardCardPreview(cardData, ev);
+          mini.onmousemove = moveRewardCardPreview;
+          mini.onmouseleave = hideRewardCardPreview;
+          wrap.appendChild(mini);
         } else {
           const el = document.createElement('span');
           el.textContent = `🃏 ${r.rarity}${r.foil?' ✨':''}`;
@@ -193,6 +260,8 @@ async function claimQuest(instanceId, cardEl){
   playSfx('quest-loot');
   refreshGold();
   loadQuests();
+  sb.rpc('progress_achievement', { p_condition_type: 'quests_completed_total', p_amount: 1 }).catch(()=>{});
+  sb.rpc('progress_collection_achievements').catch(()=>{});
 }
 
 async function refreshGold(){

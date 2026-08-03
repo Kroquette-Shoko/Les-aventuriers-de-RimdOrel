@@ -123,6 +123,7 @@ async function claimAchievement(id){
   if(error || data.error){ showToast('Impossible de réclamer cette récompense.'); return; }
   showToast('Récompense obtenue !');
   await loadAchievements();
+  sb.rpc('progress_collection_achievements').catch(()=>{});
 }
 
 function showToast(msg){
