@@ -1006,11 +1006,15 @@ function blankAbility(){
     chainMode: 'sequential',
     evolutions: [], // liste d'étapes d'évolution — chacune avec son propre schéma de déclencheur(s)
     // "Choisissez un effet" (façon Hearthstone) : si activé, effects ci-dessus
-    // est ignoré au profit de choiceA/choiceB — deux jeux d'effets séparés
-    // entre lesquels le joueur choisit au moment de jouer la carte.
+    // est ignoré au profit de choiceA/B/C/D — jusqu'à 4 jeux d'effets séparés
+    // (numChoices contrôle combien sont actifs) entre lesquels le joueur
+    // choisit au moment de jouer la carte.
     useChoice: false,
+    numChoices: 2,
     choiceA: { label: '', effects: [ blankEffect() ], targets: [] },
-    choiceB: { label: '', effects: [ blankEffect() ], targets: [] }
+    choiceB: { label: '', effects: [ blankEffect() ], targets: [] },
+    choiceC: { label: '', effects: [ blankEffect() ], targets: [] },
+    choiceD: { label: '', effects: [ blankEffect() ], targets: [] }
   };
 }
 function blankEffect(){
@@ -1482,8 +1486,10 @@ function buildTargetsSectionUI(ab, targetsArray, choiceKey, heading){
   return targetsBox;
 }
 function getTargetsArray(ab, choiceKey){
-  if(choiceKey==='A') return ab.choiceA.targets || (ab.choiceA.targets=[]);
-  if(choiceKey==='B') return ab.choiceB.targets || (ab.choiceB.targets=[]);
+  if(choiceKey){
+    const c = ab['choice'+choiceKey];
+    return c.targets || (c.targets=[]);
+  }
   return ab.targets || (ab.targets=[]);
 }
 function addTargetEntry(abilityId, choiceKey){
@@ -1498,8 +1504,7 @@ function removeTargetEntry(abilityId, targetId, choiceKey){
   if(!ab) return;
   const arr = getTargetsArray(ab, choiceKey);
   const filtered = arr.filter(t=>t.id!==targetId);
-  if(choiceKey==='A') ab.choiceA.targets = filtered;
-  else if(choiceKey==='B') ab.choiceB.targets = filtered;
+  if(choiceKey) ab['choice'+choiceKey].targets = filtered;
   else ab.targets = filtered;
   rebuildAbilitiesUI();
   onFormChange();
@@ -1558,8 +1563,7 @@ function removeCondition(abilityId, condId){
   onFormChange();
 }
 function getEffectsArray(ab, choiceKey){
-  if(choiceKey==='A') return ab.choiceA.effects;
-  if(choiceKey==='B') return ab.choiceB.effects;
+  if(choiceKey) return ab['choice'+choiceKey].effects;
   return ab.effects;
 }
 function addEffect(abilityId, choiceKey){
@@ -1573,8 +1577,7 @@ function removeEffect(abilityId, effId, choiceKey){
   const arr = getEffectsArray(ab, choiceKey);
   if(arr.length<=1) return;
   const filtered = arr.filter(e=>e.id!==effId);
-  if(choiceKey==='A') ab.choiceA.effects = filtered;
-  else if(choiceKey==='B') ab.choiceB.effects = filtered;
+  if(choiceKey) ab['choice'+choiceKey].effects = filtered;
   else ab.effects = filtered;
   rebuildAbilitiesUI();
   onFormChange();
@@ -2010,9 +2013,24 @@ function rebuildAbilitiesUI(){
     const choiceToggle = document.createElement('label');
     choiceToggle.className='evolve-toggle';
     choiceToggle.style.marginBottom='10px';
-    choiceToggle.innerHTML = `<input type="checkbox" ${ab.useChoice?'checked':''}> Choisissez un effet (façon Hearthstone — deux versions de la carte apparaissent, le joueur clique celle qu'il veut jouer)`;
+    choiceToggle.innerHTML = `<input type="checkbox" ${ab.useChoice?'checked':''}> Choisissez un effet (façon Hearthstone — plusieurs versions de la carte apparaissent, le joueur clique celle qu'il veut jouer)`;
     choiceToggle.querySelector('input').onchange=(e)=>{ ab.useChoice=e.target.checked; rebuildAbilitiesUI(); onFormChange(); };
     effBox.appendChild(choiceToggle);
+
+    if(ab.useChoice){
+      const numField = document.createElement('div');
+      numField.className='field'; numField.style.marginBottom='10px';
+      numField.innerHTML = `<label class="mini-field">Nombre de choix</label>`;
+      const numSel = document.createElement('select');
+      [2,3,4].forEach(n=>{
+        const opt=document.createElement('option'); opt.value=n; opt.textContent=n;
+        if((ab.numChoices||2)===n) opt.selected=true;
+        numSel.appendChild(opt);
+      });
+      numSel.onchange=()=>{ ab.numChoices=parseInt(numSel.value); rebuildAbilitiesUI(); onFormChange(); };
+      numField.appendChild(numSel);
+      effBox.appendChild(numField);
+    }
 
     if(!ab.useChoice){
       ab.effects.forEach(eff=>{
@@ -2039,9 +2057,11 @@ function rebuildAbilitiesUI(){
         effBox.appendChild(chainField);
       }
     } else {
-      if(!ab.choiceA) ab.choiceA = { label:'', effects:[ blankEffect() ] };
-      if(!ab.choiceB) ab.choiceB = { label:'', effects:[ blankEffect() ] };
-      [['A', ab.choiceA], ['B', ab.choiceB]].forEach(([ck, choice])=>{
+      const activeLetters = ['A','B','C','D'].slice(0, ab.numChoices||2);
+      activeLetters.forEach(ck=>{
+        const choiceField = 'choice'+ck;
+        if(!ab[choiceField]) ab[choiceField] = { label:'', effects:[ blankEffect() ], targets:[] };
+        const choice = ab[choiceField];
         const grp = document.createElement('div');
         grp.className = 'choice-group-box';
         grp.style.cssText = 'border:1.5px solid var(--gold);border-radius:10px;padding:10px;margin-bottom:12px;';
@@ -2163,7 +2183,7 @@ function buildEffectRow(ab, eff, choiceKey){
   const def = EFFECT_TYPES.find(e=>e.key===eff.effectType);
 
   if(def.needsTarget){
-    const choiceTargets = choiceKey==='A' ? (ab.choiceA && ab.choiceA.targets || []) : choiceKey==='B' ? (ab.choiceB && ab.choiceB.targets || []) : [];
+    const choiceTargets = choiceKey ? ((ab['choice'+choiceKey] && ab['choice'+choiceKey].targets) || []) : [];
     const allTargets = [...(ab.targets||[]), ...choiceTargets];
     if(allTargets.length>0){
       const sharedCount = (ab.targets||[]).length;
@@ -3219,10 +3239,14 @@ function conditionClause(cond){
 function buildAbilitySentence(cardType, ab){
   let clause;
   if(ab.useChoice && ab.choiceA && ab.choiceB){
-    const clauseA = (ab.choiceA.effects||[]).map(eff=>buildEffectClause(eff, ab)).filter(Boolean).join(', puis ');
-    const clauseB = (ab.choiceB.effects||[]).map(eff=>buildEffectClause(eff, ab)).filter(Boolean).join(', puis ');
-    if(!clauseA && !clauseB) return '';
-    clause = capitalize(`choisissez : ${clauseA||'?'} ou ${clauseB||'?'}`);
+    const activeLetters = ['A','B','C','D'].slice(0, ab.numChoices||2);
+    const clauses = activeLetters.map(ck=>{
+      const choice = ab['choice'+ck];
+      if(!choice) return '?';
+      return (choice.effects||[]).map(eff=>buildEffectClause(eff, ab)).filter(Boolean).join(', puis ') || '?';
+    });
+    if(clauses.every(c=>c==='?')) return '';
+    clause = capitalize(`choisissez : ${clauses.join(' ou ')}`);
   } else {
     const effectClauses = (ab.effects||[]).map(eff=>buildEffectClause(eff, ab)).filter(Boolean);
     if(effectClauses.length===0) return '';
@@ -4115,8 +4139,17 @@ function doImport(){
   try{
     const parsed = JSON.parse(raw);
     if(!Array.isArray(parsed)) throw new Error('format invalide');
-    if(!confirm(`Importer ${parsed.length} carte(s) ? Cela remplace le contenu du set "${setsIndex.find(s=>s.id===currentSetId)?.name||''}" actuellement affiché.`)) return;
-    cards = parsed;
+    const existingIds = new Set(cards.map(c=>c.id));
+    const toUpdate = parsed.filter(c=>existingIds.has(c.id));
+    const toAdd = parsed.filter(c=>!existingIds.has(c.id));
+    const msg = toUpdate.length
+      ? `Importer ${parsed.length} carte(s) dans le set "${setsIndex.find(s=>s.id===currentSetId)?.name||''}" ? ${toAdd.length} nouvelle(s), ${toUpdate.length} mise(s) à jour (id déjà présent dans ce set).`
+      : `Ajouter ${parsed.length} carte(s) au set "${setsIndex.find(s=>s.id===currentSetId)?.name||''}" ?`;
+    if(!confirm(msg)) return;
+    parsed.forEach(imported=>{
+      const idx = cards.findIndex(c=>c.id===imported.id);
+      if(idx>=0) cards[idx] = imported; else cards.push(imported);
+    });
     cards.forEach(migrateCard);
     persistCards();
     renderGallery();

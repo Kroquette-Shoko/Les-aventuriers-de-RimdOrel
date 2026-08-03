@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" href="data:,">
+<title>Spellcraft — Éditeur de succès</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@400;500;600;700&display=swap');
+:root{
+  --bg-void:#0b0a12; --bg-panel:#171325; --bg-panel-2:#1f1a30; --bg-panel-3:#241f38;
+  --parchment:#efe6c8; --parchment-dim:#d9cfae; --ink:#1c1830;
+  --arcane:#7c5cff; --gold:#d4af37; --blood:#c23b3b; --frost:#4fb3d9; --green:#4a9d6b; --grey:#8a7f6a;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg-void);color:var(--parchment);font-family:'Inter',sans-serif;min-height:100vh;}
+h1,h2,h3,h4{font-family:'Cinzel',serif;color:var(--gold);margin:0 0 12px;}
+a{color:var(--frost);}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:var(--bg-panel);border-bottom:1.5px solid var(--gold);}
+.topbar h1{font-size:18px;margin:0;}
+.wrap{max-width:1200px;margin:0 auto;padding:24px;display:flex;gap:24px;align-items:flex-start;}
+.panel{background:var(--bg-panel);border:1.5px solid #3a3260;border-radius:12px;padding:18px;}
+.list-panel{width:360px;flex-shrink:0;}
+.form-panel{flex:1;min-width:0;}
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:11.5px;color:var(--parchment-dim);margin-bottom:4px;}
+input[type=text],input[type=number],textarea,select{
+  width:100%;background:var(--bg-panel-2);border:1.5px solid #3a3260;border-radius:7px;
+  color:var(--parchment);padding:8px 10px;font-family:inherit;font-size:13.5px;
+}
+textarea{resize:vertical;min-height:60px;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.btn{background:var(--bg-panel-3);border:1.5px solid #3a3260;color:var(--parchment);border-radius:8px;
+  padding:8px 14px;font-family:'Cinzel',serif;font-size:12.5px;font-weight:700;cursor:pointer;}
+.btn:hover{border-color:var(--gold);}
+.btn.primary{background:var(--gold);color:var(--ink);border-color:var(--gold);}
+.btn.danger{border-color:var(--blood);color:#ff9d9d;}
+.btn.small{padding:5px 10px;font-size:11px;}
+.ach-row{display:flex;align-items:center;gap:10px;padding:8px;border-radius:8px;background:var(--bg-panel-2);
+  margin-bottom:6px;cursor:pointer;border:1.5px solid transparent;}
+.ach-row:hover{border-color:var(--gold);}
+.ach-row.active{border-color:var(--gold);background:var(--bg-panel-3);}
+.ach-row img{width:36px;height:36px;border-radius:50%;object-fit:cover;background:var(--bg-panel-3);border:1px solid #3a3260;}
+.ach-row .meta{flex:1;min-width:0;}
+.ach-row .meta .name{font-weight:600;font-size:13px;}
+.ach-row .meta .sub{font-size:10.5px;color:var(--parchment-dim);}
+.ach-row.inactive{opacity:.45;}
+.reward-row{display:flex;gap:8px;align-items:center;background:var(--bg-panel-2);border-radius:8px;padding:8px;margin-bottom:8px;}
+.reward-row select,.reward-row input{width:auto;flex:1;}
+.mini-btn{background:none;border:none;color:var(--blood);cursor:pointer;font-size:15px;padding:2px 6px;}
+.img-preview{width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--gold);background:var(--bg-panel-2);}
+.img-row{display:flex;gap:10px;align-items:center;}
+#imgpicker-modal{position:fixed;inset:0;background:rgba(5,4,10,.85);display:none;align-items:center;justify-content:center;z-index:99;}
+#imgpicker-modal.show{display:flex;}
+.imgpicker-box{background:var(--bg-panel);border:1.5px solid var(--gold);border-radius:12px;padding:20px;width:600px;max-height:80vh;overflow:auto;}
+.imgpicker-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:10px;}
+.imgpicker-grid img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;cursor:pointer;border:2px solid transparent;}
+.imgpicker-grid img:hover{border-color:var(--gold);}
+.status-msg{font-size:12px;color:var(--green);margin-top:8px;}
+.status-msg.error{color:#ff8080;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>🏆 Éditeur de succès</h1>
+  <a href="spellcraft-hub.html">← Retour au hub</a>
+</div>
+
+<div class="wrap">
+  <div class="panel list-panel">
+    <h3>Succès existants</h3>
+    <div id="ach-list"></div>
+    <button class="btn primary small" onclick="newAchievementForm()" style="margin-top:8px;width:100%;">+ Nouveau succès</button>
+  </div>
+
+  <div class="panel form-panel">
+    <h3 id="form-title">Nouveau succès</h3>
+
+    <div class="grid2">
+      <div class="field"><label>Nom du succès</label><input type="text" id="f-name" placeholder="Ex : Invocateur légendaire"></div>
+      <div class="field"><label>Identifiant (auto si vide)</label><input type="text" id="f-id" placeholder="généré automatiquement"></div>
+    </div>
+
+    <div class="field">
+      <label>Image du badge</label>
+      <div class="img-row">
+        <img id="f-image-preview" class="img-preview" style="display:none;">
+        <input type="text" id="f-image" placeholder="https://... ou nom-fichier.png" style="flex:1;" oninput="updateImgPreview('f-image','f-image-preview')">
+        <button type="button" class="btn small" onclick="openImagePicker('f-image','f-image-preview')">📁 Parcourir</button>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Description (affichée au joueur — libre, peut être mystérieuse)</label>
+      <textarea id="f-description" placeholder="Ex : Quelque chose se réveille quand le sang coule assez longtemps..."></textarea>
+    </div>
+
+    <div class="grid2">
+      <div class="field">
+        <label>Déclencheur</label>
+        <select id="f-trigger"></select>
+      </div>
+      <div class="field">
+        <label>Seuil (X)</label>
+        <input type="number" id="f-threshold" value="150" min="1">
+      </div>
+    </div>
+
+    <div class="field">
+      <label>Limiter à un type de carte (optionnel)</label>
+      <select id="f-cardtype">
+        <option value="">Peu importe</option>
+        <option value="Créature">Créature</option>
+        <option value="Sortilège">Sortilège</option>
+        <option value="Artefact">Artefact</option>
+        <option value="Piège">Piège</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label><input type="checkbox" id="f-active" checked style="width:auto;"> Actif (visible des joueurs)</label>
+    </div>
+
+    <h4 style="margin-top:18px;">Récompense</h4>
+    <div id="rewards-list"></div>
+    <button class="btn small" onclick="addRewardRow()">+ Ajouter une récompense</button>
+
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button class="btn primary" onclick="saveAchievement()">💾 Enregistrer</button>
+      <button class="btn danger" id="delete-btn" onclick="deleteAchievement()" style="display:none;">🗑 Supprimer</button>
+    </div>
+    <div id="status-msg" class="status-msg"></div>
+  </div>
+</div>
+
+<div id="imgpicker-modal">
+  <div class="imgpicker-box">
+    <h3>Choisir une image</h3>
+    <p style="font-size:11.5px;color:var(--parchment-dim);">Colle une liste de noms de fichiers (un par ligne), présents dans <code>images/achievements/</code>.</p>
+    <textarea id="imgpicker-filelist" rows="4" placeholder="ex-badge-1.png&#10;ex-badge-2.png"></textarea>
+    <button class="btn small" onclick="saveImgPickerFileList()">Actualiser la grille</button>
+    <div class="imgpicker-grid" id="imgpicker-grid"></div>
+    <button class="btn small" onclick="closeImagePicker()" style="margin-top:10px;">Fermer</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="spellcraft-shared.js"></script>
+<script src="spellcraft-auth.js"></script>
+<script>
+// Même vocabulaire de déclencheurs que la création de cartes — copié
+// depuis spellcraft-card-editor.html pour rester cohérent (union de
+// toutes les catégories, un succès n'étant pas lié à un type de carte).
+const TRIGGER_TEXT = {
+  gameStart: 'Au début de la partie',
+  onPlay: 'Quand une carte entre en jeu',
+  onBlocked: 'Quand une créature a bloqué',
+  hpLostLastTurnThreshold: 'Après avoir perdu X PV au tour précédent',
+  playedCardTypeCountThisTurn: 'Après avoir joué X [type de carte] ce tour-ci',
+  playedCardTypeCountMatch: 'Après avoir joué X [type de carte] pendant une partie',
+  onAttack: 'Quand une créature attaque',
+  onDamaged: 'Quand une carte subit des dégâts',
+  onHealed: 'Quand une carte est soignée',
+  onDeath: 'Quand une créature meurt',
+  onDestroyed: 'Quand une carte est détruite',
+  onKill: 'Quand une carte élimine une créature',
+  onRevive: 'Quand une carte revient du cimetière (Tenace)',
+  onReturnFromGraveyard: 'Quand vous ramenez une créature de la défausse',
+  onUse: "À chaque utilisation d'un artefact",
+  startOfTurn: 'Au début de votre tour',
+  startOfTurnX: 'Au début de votre tour X',
+  endOfTurn: 'À la fin de votre tour',
+  endOfTurnX: 'À la fin de votre tour X',
+  onManaGained: 'Quand vous gagnez du mana',
+  onManaGainedNonRegion: 'Quand vous gagnez du mana autrement que par la région',
+  onDraw: 'Quand vous piochez une carte',
+  onHandDiscard: 'Quand vous défaussez une carte depuis votre main',
+  onSummonSubtype: 'Quand vous invoquez une créature',
+  onOpponentAttack: 'Quand une créature ennemie attaque',
+  onOpponentSpell: "Quand l'adversaire lance un sortilège",
+  onOpponentPlayCreature: "Quand l'adversaire invoque une créature",
+  onOpponentPlayArtifact: "Quand l'adversaire joue un artefact",
+  onOpponentPlayCard: "Quand l'adversaire joue une carte",
+  onOpponentEndTurn: "À la fin du tour de l'adversaire",
+  onOpponentTargetsAlly: "Si l'adversaire cible une créature alliée",
+  onAllySurvivesCombat: "Après qu'une créature alliée survit à un combat",
+  onEnemySurvivesCombat: "Après qu'une créature ennemie survit à un combat",
+  beforeAllyFights: "Avant qu'une créature alliée ne combatte",
+  onAllyBlocked: "Si une créature alliée est bloquée",
+  watchPlay: 'Quand une créature est jouée (depuis la main)',
+  watchArrival: 'Quand une créature arrive en jeu (quelle que soit la source)',
+  watchDeath: 'Quand une carte meurt',
+  watchAttack: 'Quand une créature attaque',
+  watchDamaged: 'Quand une carte subit des dégâts',
+  watchHealed: 'Quand une carte est soignée',
+  watchHeroHealed: 'Quand un héros est soigné',
+  watchSpell: 'Quand un sortilège est joué',
+  watchTrap: "Quand un piège se déclenche",
+  watchBuffed: 'Quand une carte gagne un bonus',
+  watchFromDiscard: 'Quand une carte arrive depuis la défausse',
+  watchFromDeck: 'Quand une carte arrive depuis le deck',
+  watchConjured: 'Quand une carte est conjurée',
+  watchAfterReveal: 'Quand une carte arrive après avoir été révélée',
+  watchReveal: 'Quand un joueur révèle',
+  watchExplore: 'Quand un joueur explore',
+  watchRetrieveDiscard: 'Quand une carte est récupérée depuis la défausse',
+  watchRetrieveDeck: 'Quand une carte est récupérée depuis le deck',
+  watchTargeted: 'Quand une créature est désignée (ciblée par un effet)'
+};
+
+let achievements = [];
+let editingId = null;
+let rewards = [];
+let imgPickerTargetInput = null, imgPickerTargetPreview = null;
+const IMG_PICKER_STORAGE_KEY = 'spellcraft_achievements_filelist';
+const IMG_BASE_PATH = 'images/achievements/';
+
+function populateTriggerSelect(){
+  const sel = document.getElementById('f-trigger');
+  const entries = Object.entries(TRIGGER_TEXT).sort((a,b)=>a[1].localeCompare(b[1],'fr',{sensitivity:'base'}));
+  sel.innerHTML = entries.map(([k,l])=>`<option value="${k}">${l}</option>`).join('');
+}
+
+async function loadAchievements(){
+  const { data, error } = await sb.from('achievement_definitions').select('*').order('order_index');
+  if(error){ showStatus('Erreur de chargement : '+error.message, true); return; }
+  achievements = data || [];
+  renderList();
+}
+
+function renderList(){
+  const el = document.getElementById('ach-list');
+  if(achievements.length===0){ el.innerHTML = `<p style="font-size:12px;color:var(--parchment-dim);">Aucun succès pour l'instant.</p>`; return; }
+  el.innerHTML = achievements.map(a=>`
+    <div class="ach-row ${a.id===editingId?'active':''} ${a.active?'':'inactive'}" onclick="editAchievement('${a.id}')">
+      ${a.image_url ? `<img src="${a.image_url}">` : `<div class="img-preview" style="width:36px;height:36px;"></div>`}
+      <div class="meta">
+        <div class="name">${escapeHtml(a.name)}</div>
+        <div class="sub">${TRIGGER_TEXT[a.condition_type]||a.condition_type} — ${a.target_count}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function newAchievementForm(){
+  editingId = null;
+  document.getElementById('form-title').textContent = 'Nouveau succès';
+  document.getElementById('f-name').value = '';
+  document.getElementById('f-id').value = '';
+  document.getElementById('f-id').disabled = false;
+  document.getElementById('f-image').value = '';
+  updateImgPreview('f-image','f-image-preview');
+  document.getElementById('f-description').value = '';
+  document.getElementById('f-threshold').value = 150;
+  document.getElementById('f-cardtype').value = '';
+  document.getElementById('f-active').checked = true;
+  document.getElementById('delete-btn').style.display = 'none';
+  rewards = [];
+  renderRewards();
+  renderList();
+  clearStatus();
+}
+
+function editAchievement(id){
+  const a = achievements.find(x=>x.id===id);
+  if(!a) return;
+  editingId = id;
+  document.getElementById('form-title').textContent = 'Modifier : ' + a.name;
+  document.getElementById('f-name').value = a.name;
+  document.getElementById('f-id').value = a.id;
+  document.getElementById('f-id').disabled = true;
+  document.getElementById('f-image').value = a.image_url || '';
+  updateImgPreview('f-image','f-image-preview');
+  document.getElementById('f-description').value = a.description || '';
+  document.getElementById('f-trigger').value = a.condition_type;
+  document.getElementById('f-threshold').value = a.target_count;
+  document.getElementById('f-cardtype').value = a.card_type_filter || '';
+  document.getElementById('f-active').checked = a.active;
+  document.getElementById('delete-btn').style.display = 'inline-block';
+  rewards = JSON.parse(JSON.stringify(a.rewards || []));
+  renderRewards();
+  renderList();
+  clearStatus();
+}
+
+function addRewardRow(){
+  rewards.push({ type:'gold', amount:50 });
+  renderRewards();
+}
+function removeRewardRow(i){
+  rewards.splice(i,1);
+  renderRewards();
+}
+function renderRewards(){
+  const el = document.getElementById('rewards-list');
+  el.innerHTML = '';
+  rewards.forEach((r,i)=>{
+    const row = document.createElement('div');
+    row.className = 'reward-row';
+    const typeSel = document.createElement('select');
+    typeSel.innerHTML = `
+      <option value="gold" ${r.type==='gold'?'selected':''}>Pièces (or)</option>
+      <option value="fragment" ${r.type==='fragment'?'selected':''}>Fragments</option>
+      <option value="card" ${r.type==='card'?'selected':''}>Carte</option>
+      <option value="booster" ${r.type==='booster'?'selected':''}>Booster</option>
+    `;
+    typeSel.onchange = ()=>{ rewards[i] = defaultRewardFor(typeSel.value); renderRewards(); };
+    row.appendChild(typeSel);
+
+    if(r.type==='gold'){
+      const inp = document.createElement('input');
+      inp.type='number'; inp.value=r.amount||50; inp.placeholder='Montant';
+      inp.oninput=()=>{ r.amount=parseInt(inp.value)||0; };
+      row.appendChild(inp);
+    } else if(r.type==='fragment'){
+      const classSel = document.createElement('select');
+      classSel.innerHTML = ['aube','crepuscule','volonte','prima','arcane'].map(c=>`<option value="${c}" ${r.class===c?'selected':''}>${c}</option>`).join('');
+      classSel.onchange=()=>{ r.class=classSel.value; };
+      row.appendChild(classSel);
+      const inp = document.createElement('input');
+      inp.type='number'; inp.value=r.amount||5; inp.placeholder='Montant';
+      inp.oninput=()=>{ r.amount=parseInt(inp.value)||0; };
+      row.appendChild(inp);
+    } else if(r.type==='card'){
+      const raritySel = document.createElement('select');
+      raritySel.innerHTML = ['Basique','Commune','Rare','Épique','Mythique'].map(rar=>`<option value="${rar}" ${r.rarity===rar?'selected':''}>${rar}</option>`).join('');
+      raritySel.onchange=()=>{ r.rarity=raritySel.value; };
+      row.appendChild(raritySel);
+      const cntInp = document.createElement('input');
+      cntInp.type='number'; cntInp.value=r.count||1; cntInp.min=1; cntInp.placeholder='Nombre';
+      cntInp.oninput=()=>{ r.count=parseInt(cntInp.value)||1; };
+      row.appendChild(cntInp);
+      const foilLabel = document.createElement('label');
+      foilLabel.style.cssText='display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap;';
+      const foilChk = document.createElement('input');
+      foilChk.type='checkbox'; foilChk.style.width='auto'; foilChk.checked = !!r.foil;
+      foilChk.onchange=()=>{ r.foil=foilChk.checked; };
+      foilLabel.appendChild(foilChk); foilLabel.appendChild(document.createTextNode('Brillante'));
+      row.appendChild(foilLabel);
+    } else if(r.type==='booster'){
+      const setSel = document.createElement('select');
+      setSel.innerHTML = `<option value="base" ${r.set==='base'?'selected':''}>Set de base</option><option value="latest" ${r.set==='latest'?'selected':''}>Dernier set sorti</option>`;
+      setSel.onchange=()=>{ r.set=setSel.value; };
+      row.appendChild(setSel);
+      const cntInp = document.createElement('input');
+      cntInp.type='number'; cntInp.value=r.count||1; cntInp.min=1; cntInp.placeholder='Nombre';
+      cntInp.oninput=()=>{ r.count=parseInt(cntInp.value)||1; };
+      row.appendChild(cntInp);
+    }
+
+    const rm = document.createElement('button');
+    rm.className='mini-btn'; rm.textContent='✕'; rm.onclick=()=>removeRewardRow(i);
+    row.appendChild(rm);
+    el.appendChild(row);
+  });
+}
+function defaultRewardFor(type){
+  if(type==='gold') return {type:'gold', amount:50};
+  if(type==='fragment') return {type:'fragment', class:'aube', amount:5};
+  if(type==='card') return {type:'card', rarity:'Rare', count:1, foil:false};
+  if(type==='booster') return {type:'booster', set:'base', count:1};
+}
+
+async function saveAchievement(){
+  const name = document.getElementById('f-name').value.trim();
+  if(!name){ showStatus('Donne un nom au succès.', true); return; }
+  const id = editingId || document.getElementById('f-id').value.trim() || ('ach_' + Date.now());
+
+  const { error } = await sb.rpc('upsert_achievement_definition', {
+    p_id: id,
+    p_name: name,
+    p_description: document.getElementById('f-description').value.trim(),
+    p_image_url: document.getElementById('f-image').value.trim(),
+    p_condition_type: document.getElementById('f-trigger').value,
+    p_target_count: parseInt(document.getElementById('f-threshold').value) || 1,
+    p_card_type_filter: document.getElementById('f-cardtype').value || null,
+    p_rewards: JSON.stringify(rewards),
+    p_active: document.getElementById('f-active').checked,
+    p_order_index: achievements.length
+  });
+  if(error){ showStatus('Erreur : ' + error.message, true); return; }
+  showStatus('Succès enregistré.');
+  await loadAchievements();
+  editAchievement(id);
+}
+
+async function deleteAchievement(){
+  if(!editingId) return;
+  if(!confirm('Supprimer ce succès ? La progression des joueurs sur ce succès sera perdue.')) return;
+  const { error } = await sb.rpc('delete_achievement_definition', { p_id: editingId });
+  if(error){ showStatus('Erreur : ' + error.message, true); return; }
+  await loadAchievements();
+  newAchievementForm();
+}
+
+function showStatus(msg, isError){
+  const el = document.getElementById('status-msg');
+  el.textContent = msg;
+  el.className = 'status-msg' + (isError ? ' error' : '');
+}
+function clearStatus(){ showStatus(''); }
+
+function updateImgPreview(inputId, previewId){
+  const val = document.getElementById(inputId).value.trim();
+  const img = document.getElementById(previewId);
+  if(val){ img.src = val.includes('/') || val.startsWith('http') ? val : (IMG_BASE_PATH + val); img.style.display = 'inline-block'; }
+  else { img.style.display = 'none'; img.src = ''; }
+}
+function openImagePicker(inputId, previewId){
+  imgPickerTargetInput = inputId;
+  imgPickerTargetPreview = previewId;
+  const saved = localStorage.getItem(IMG_PICKER_STORAGE_KEY) || '';
+  document.getElementById('imgpicker-filelist').value = saved;
+  renderImgPickerGrid();
+  document.getElementById('imgpicker-modal').classList.add('show');
+}
+function closeImagePicker(){ document.getElementById('imgpicker-modal').classList.remove('show'); }
+function saveImgPickerFileList(){
+  localStorage.setItem(IMG_PICKER_STORAGE_KEY, document.getElementById('imgpicker-filelist').value);
+  renderImgPickerGrid();
+}
+function renderImgPickerGrid(){
+  const files = document.getElementById('imgpicker-filelist').value.split('\n').map(f=>f.trim()).filter(Boolean);
+  const grid = document.getElementById('imgpicker-grid');
+  grid.innerHTML = files.map(f=>`<img src="${IMG_BASE_PATH}${f}" onclick="pickImgFromPicker('${f}')" title="${f}">`).join('');
+}
+function pickImgFromPicker(filename){
+  document.getElementById(imgPickerTargetInput).value = filename;
+  updateImgPreview(imgPickerTargetInput, imgPickerTargetPreview);
+  closeImagePicker();
+}
+
+async function init(){
+  populateTriggerSelect();
+  await loadAchievements();
+  newAchievementForm();
+}
+initSpellcraftAuth().then(init);
+</script>
+</body>
+</html>

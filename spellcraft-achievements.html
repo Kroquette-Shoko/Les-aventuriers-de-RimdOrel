@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" href="data:,">
+<title>Spellcraft — Succès</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@400;500;600;700&display=swap');
+:root{
+  --bg-void:#0b0a12; --bg-panel:#171325; --bg-panel-2:#1f1a30; --bg-panel-3:#241f38;
+  --parchment:#efe6c8; --parchment-dim:#d9cfae; --ink:#1c1830;
+  --arcane:#7c5cff; --gold:#d4af37; --blood:#c23b3b; --frost:#4fb3d9; --green:#4a9d6b; --grey:#8a7f6a;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg-void);color:var(--parchment);font-family:'Inter',sans-serif;min-height:100vh;}
+h1,h2,h3{font-family:'Cinzel',serif;color:var(--gold);margin:0;}
+a{color:var(--frost);}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:var(--bg-panel);border-bottom:1.5px solid var(--gold);}
+.wrap{max-width:1000px;margin:0 auto;padding:28px 20px;}
+.summary{text-align:center;margin-bottom:28px;color:var(--parchment-dim);font-size:14px;}
+.summary b{color:var(--gold);}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}
+.card{background:var(--bg-panel);border:1.5px solid #3a3260;border-radius:14px;padding:16px;display:flex;gap:14px;
+  position:relative;overflow:hidden;transition:border-color .15s ease;}
+.card.completed{border-color:var(--gold);}
+.card.locked{opacity:.55;}
+.badge-img{width:64px;height:64px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--bg-panel-2);
+  border:2.5px solid #3a3260;}
+.card.completed .badge-img{border-color:var(--gold);box-shadow:0 0 14px rgba(212,175,55,.5);}
+.badge-placeholder{width:64px;height:64px;border-radius:50%;flex-shrink:0;background:var(--bg-panel-2);
+  border:2.5px solid #3a3260;display:flex;align-items:center;justify-content:center;font-size:24px;}
+.card-body{flex:1;min-width:0;display:flex;flex-direction:column;}
+.card-name{font-family:'Cinzel',serif;font-weight:700;font-size:14.5px;color:var(--parchment);}
+.card-desc{font-size:11.5px;color:var(--parchment-dim);margin:4px 0 8px;line-height:1.4;}
+.progress-bar-wrap{height:8px;background:var(--bg-panel-2);border-radius:5px;overflow:hidden;margin-bottom:4px;}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--frost),var(--arcane));border-radius:5px;transition:width .3s ease;}
+.card.completed .progress-bar-fill{background:var(--gold);}
+.progress-text{font-size:10.5px;color:var(--parchment-dim);}
+.claim-btn{margin-top:8px;background:var(--gold);color:var(--ink);border:none;border-radius:7px;padding:6px 12px;
+  font-family:'Cinzel',serif;font-weight:700;font-size:11.5px;cursor:pointer;align-self:flex-start;}
+.claim-btn:hover{filter:brightness(1.1);}
+.claimed-tag{margin-top:6px;font-size:11px;color:var(--green);font-family:'Cinzel',serif;font-weight:700;}
+.empty-state{text-align:center;padding:60px 20px;color:var(--parchment-dim);}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg-panel-3);
+  border:1.5px solid var(--gold);border-radius:10px;padding:14px 20px;opacity:0;pointer-events:none;
+  transition:all .3s ease;z-index:99;text-align:center;font-family:'Cinzel',serif;font-size:13px;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>🏆 Succès</h1>
+  <a href="spellcraft-hub.html">← Retour au hub</a>
+</div>
+
+<div class="wrap">
+  <div class="summary" id="summary"></div>
+  <div class="grid" id="ach-grid"></div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="spellcraft-shared.js"></script>
+<script src="spellcraft-auth.js"></script>
+<script>
+let achievements = [];
+
+async function loadAchievements(){
+  const { data, error } = await sb.rpc('get_achievements');
+  if(error || data.error){
+    document.getElementById('ach-grid').innerHTML = `<div class="empty-state">Connecte-toi pour voir tes succès.</div>`;
+    return;
+  }
+  achievements = data.achievements || [];
+  renderSummary();
+  renderGrid();
+}
+
+function renderSummary(){
+  const done = achievements.filter(a=>a.completed).length;
+  document.getElementById('summary').innerHTML = achievements.length
+    ? `<b>${done}</b> / ${achievements.length} succès débloqués`
+    : '';
+}
+
+function renderGrid(){
+  const grid = document.getElementById('ach-grid');
+  if(achievements.length===0){
+    grid.innerHTML = `<div class="empty-state">Aucun succès disponible pour l'instant.</div>`;
+    return;
+  }
+  grid.innerHTML = achievements.map(a=>{
+    const pct = Math.min(100, Math.round((a.progress_count / a.target_count) * 100));
+    const stateClass = a.completed ? 'completed' : (a.progress_count>0 ? '' : 'locked');
+    const badge = a.image_url
+      ? `<img class="badge-img" src="${a.image_url}">`
+      : `<div class="badge-placeholder">${a.completed ? '🏆' : '❔'}</div>`;
+    let actionHtml = '';
+    if(a.completed && !a.claimed){
+      actionHtml = `<button class="claim-btn" onclick="claimAchievement('${a.user_achievement_id}')">🎁 Réclamer</button>`;
+    } else if(a.claimed){
+      actionHtml = `<div class="claimed-tag">✓ Récompense obtenue</div>`;
+    }
+    return `
+      <div class="card ${stateClass}">
+        ${badge}
+        <div class="card-body">
+          <div class="card-name">${escapeHtml(a.name)}</div>
+          <div class="card-desc">${escapeHtml(a.description || '')}</div>
+          <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%;"></div></div>
+          <div class="progress-text">${a.progress_count} / ${a.target_count}</div>
+          ${actionHtml}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+async function claimAchievement(id){
+  const { data, error } = await sb.rpc('claim_achievement_reward', { p_user_achievement_id: id });
+  if(error || data.error){ showToast('Impossible de réclamer cette récompense.'); return; }
+  showToast('Récompense obtenue !');
+  await loadAchievements();
+}
+
+function showToast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'), 2600);
+}
+
+initSpellcraftAuth().then(loadAchievements);
+</script>
+</body>
+</html>
