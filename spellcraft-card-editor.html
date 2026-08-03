@@ -693,7 +693,7 @@ booster-aube.png" oninput="saveImgPickerFileList()"></textarea>
 const WATCH_TRIGGERS = ['watchPlay','watchArrival','watchDeath','watchAttack','watchDamaged','watchHealed','watchHeroHealed','watchSpell','watchTrap','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchAfterReveal','watchReveal','watchExplore','watchRetrieveDiscard','watchRetrieveDeck','watchTargeted'];
 
 const TRIGGERS_BY_TYPE = {
-  'Créature': ['onPlay','onAttack','onBlocked','onDamaged','onHealed','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold', ...WATCH_TRIGGERS,'activated'],
+  'Créature': ['onPlay','onAttack','onBlocked','onWasBlocked','onDealtHeroDamage','onDamaged','onHealed','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold', ...WATCH_TRIGGERS,'activated'],
   'Héros':    ['gameStart','onPlay','onDamaged','onHealed','onKill','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold', ...WATCH_TRIGGERS,'activated'],
   'Région':   ['gameStart','onPlay','onDestroyed','onReturnFromGraveyard','manaAlternative','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold', ...WATCH_TRIGGERS,'activated'],
   'Artefact': ['onPlay','onUse','onDestroyed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold', ...WATCH_TRIGGERS,'activated'],
@@ -706,6 +706,8 @@ const TRIGGER_TEXT = {
   gameStart: 'Au début de la partie',
   onPlay: 'Quand cette carte entre en jeu',
   onBlocked: 'Quand cette créature a bloqué',
+  onWasBlocked: 'Quand cette créature a été bloquée',
+  onDealtHeroDamage: "Quand cette créature a infligé des blessures au héros adverse",
   hpLostLastTurnThreshold: 'Après avoir perdu X PV au tour précédent',
   playedCardTypeCountThisTurn: 'Après avoir joué X [type de carte] ce tour-ci',
   playedCardTypeCountMatch: 'Après avoir joué X [type de carte] pendant la partie',
@@ -830,6 +832,7 @@ const EFFECT_TYPES = [
   {key:'amplifyEffect', label:'Augmente les dégâts/soin de votre camp', needsTarget:false, needsValue:true, isAmplify:true},
   {key:'redirectTarget', label:'Change la cible pour une autre', needsTarget:true, needsValue:false},
   {key:'reviveDestroyedLastTurn', label:'Renvoie en jeu une créature détruite au tour précédent', needsTarget:true, needsValue:false},
+  {key:'halveLife', label:'Divise la vie du joueur en deux', needsTarget:false, needsValue:false, isHalveLife:true},
   {key:'custom', label:'⚠ Effet personnalisé (texte libre)', needsTarget:false, needsValue:false}
 ];
 
@@ -2547,6 +2550,9 @@ function buildEffectRow(ab, eff, choiceKey){
   if(def.isDrawTyped){
     row.appendChild(makeSelectField('Type de carte piochée', [{key:'Créature',label:'Créature'},{key:'Sortilège',label:'Sortilège'},{key:'Artefact',label:'Artefact'},{key:'Piège',label:'Piège'}], eff.drawTypedType||'Créature', v=>{ eff.drawTypedType=v; onFormChange(); }));
   }
+  if(def.isHalveLife){
+    row.appendChild(makeSelectField('Qui', [{key:'self',label:'Vous'},{key:'enemy',label:"L'adversaire"}], eff.halveLifeOwner||'enemy', v=>{ eff.halveLifeOwner=v; onFormChange(); }));
+  }
   if(def.isAmplify){
     row.appendChild(makeSelectField('Catégorie', [
       {key:'directDamage', label:'Dégâts directs (hors combat)'},
@@ -2984,6 +2990,10 @@ function buildEffectClause(eff, ab){
       return `volez ${valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic')} mana à l'adversaire pendant ${eff.manaTheftDuration||1} tour${(eff.manaTheftDuration||1)>1?'s':''}`;
     case 'drawTyped':
       return `piochez ${valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic')} carte(s) ${eff.drawTypedType||'Créature'} de votre deck`;
+    case 'halveLife': {
+      const who = eff.halveLifeOwner==='enemy' ? "l'adversaire" : 'vous';
+      return `divisez les PV de ${who} en deux (arrondi au supérieur)`;
+    }
     case 'amplifyEffect': {
       const catLabel = {directDamage:'les dégâts directs (hors combat)', combatDamage:'les dégâts de combat', heal:'le soin'}[eff.amplifyCategory||'directDamage'];
       return `augmentez ${catLabel} que vous infligez/prodiguez de ${valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic')}`;
