@@ -867,6 +867,7 @@ const RETRIEVE_CRITERIA = [
   {key:'hasKeyword', label:'Possède un mot-clé précis', hasValue:true, valueType:'keyword'},
   {key:'specificName', label:'Carte précise (nom)', hasValue:true, valueType:'specificName'},
   {key:'set', label:'Set précis', hasValue:true, valueType:'setName'},
+  {key:'rarity', label:'Rareté précise', hasValue:true, valueType:'rarity'},
   {key:'legendary', label:'Super-type Légendaire', hasValue:false}
 ];
 
@@ -934,6 +935,7 @@ const DYNAMIC_VALUES = [
   {key:'cardsDrawnThisTurn', label:'= nombre de cartes piochées ce tour-ci'},
   {key:'manaGainedThisTurn', label:'= nombre de mana gagné ce tour-ci'},
   {key:'hpLostThisTurn', label:'= nombre de PV perdus ce tour-ci'},
+  {key:'hpLostThisTurnEnemy', label:"= nombre de PV perdus par l'adversaire ce tour-ci"},
   {key:'hpGainedThisTurn', label:'= nombre de PV gagnés ce tour-ci'}
 ];
 
@@ -2264,6 +2266,8 @@ function buildEffectRow(ab, eff, choiceKey){
         inp.setAttribute('list','set-suggestions');
         inp.oninput=()=>{ eff.retrieveSet=inp.value; onFormChange(); };
         f.appendChild(inp); row.appendChild(f);
+      } else if(critDef.valueType==='rarity'){
+        row.appendChild(makeSelectField('Rareté', [{key:'Basique',label:'Basique'},{key:'Commune',label:'Commune'},{key:'Rare',label:'Rare'},{key:'Épique',label:'Épique'},{key:'Mythique',label:'Mythique'}], eff.retrieveRarity||'Basique', v=>{ eff.retrieveRarity=v; onFormChange(); }));
       }
     }
     row.appendChild(makeSelectField('Destination', RETRIEVE_DESTINATIONS, eff.retrieveDestination, v=>{ eff.retrieveDestination=v; rebuildAbilitiesUI(); onFormChange(); }));
@@ -2340,6 +2344,8 @@ function buildEffectRow(ab, eff, choiceKey){
       setInp.oninput=()=>{ eff.conjureSet=setInp.value; onFormChange(); };
       setF.appendChild(setInp);
       row.appendChild(setF);
+
+      row.appendChild(makeSelectField('Rareté', [{key:'any',label:'Peu importe'},{key:'Basique',label:'Basique'},{key:'Commune',label:'Commune'},{key:'Rare',label:'Rare'},{key:'Épique',label:'Épique'},{key:'Mythique',label:'Mythique'}], eff.conjureRarity||'any', v=>{ eff.conjureRarity=v; onFormChange(); }));
 
       const legField = document.createElement('div');
       legField.className='field';
@@ -2479,6 +2485,8 @@ function buildEffectRow(ab, eff, choiceKey){
         inp.setAttribute('list','set-suggestions');
         inp.oninput=()=>{ eff.discoverSet=inp.value; onFormChange(); };
         f.appendChild(inp); row.appendChild(f);
+      } else if(dCritDef.valueType==='rarity'){
+        row.appendChild(makeSelectField('Rareté', [{key:'Basique',label:'Basique'},{key:'Commune',label:'Commune'},{key:'Rare',label:'Rare'},{key:'Épique',label:'Épique'},{key:'Mythique',label:'Mythique'}], eff.discoverRarity||'Basique', v=>{ eff.discoverRarity=v; onFormChange(); }));
       }
     }
   }
