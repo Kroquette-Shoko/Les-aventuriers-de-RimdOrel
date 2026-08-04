@@ -842,6 +842,8 @@ const EFFECT_TYPES = [
   {key:'amplifyEffect', label:'Augmente les dégâts/soin de votre camp', needsTarget:false, needsValue:true, isAmplify:true},
   {key:'redirectTarget', label:'Change la cible pour une autre', needsTarget:true, needsValue:false},
   {key:'reviveDestroyedLastTurn', label:'Renvoie en jeu une créature détruite au tour précédent', needsTarget:true, needsValue:false},
+  {key:'stealCard', label:"Vole une carte à un adversaire (main → votre main)", needsTarget:true, needsValue:false},
+  {key:'stealCreature', label:"Vole une créature en jeu et la passe de votre côté", needsTarget:true, needsValue:false},
   {key:'halveLife', label:'Divise la vie du joueur en deux', needsTarget:false, needsValue:false, isHalveLife:true},
   {key:'custom', label:'⚠ Effet personnalisé (texte libre)', needsTarget:false, needsValue:false}
 ];
@@ -3053,6 +3055,10 @@ function buildEffectClause(eff, ab){
       return `changez la cible pour ${targetPhrase(resolvedTarget)}`;
     case 'reviveDestroyedLastTurn':
       return `renvoyez en jeu ${targetPhrase(resolvedTarget)}`;
+    case 'stealCard':
+      return `volez ${targetPhrase(resolvedTarget)} et ajoutez-la à votre main`;
+    case 'stealCreature':
+      return `volez ${targetPhrase(resolvedTarget)} et faites-la passer de votre côté`;
     case 'stun':
       return `étourdissez ${targetPhrase(resolvedTarget)} (elle ne peut ni attaquer ni bloquer lors de son prochain tour)`;
     case 'grantMana': {
