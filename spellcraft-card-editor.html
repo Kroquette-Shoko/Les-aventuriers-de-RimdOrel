@@ -693,12 +693,12 @@ booster-aube.png" oninput="saveImgPickerFileList()"></textarea>
 const WATCH_TRIGGERS = ['watchPlay','watchArrival','watchDeath','watchAttack','watchDamaged','watchHealed','watchHeroHealed','watchSpell','watchTrap','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchAfterReveal','watchReveal','watchExplore','watchRetrieveDiscard','watchRetrieveDeck','watchTargeted'];
 
 const TRIGGERS_BY_TYPE = {
-  'Créature': ['onPlay','onAttack','onBlocked','onWasBlocked','onDealtHeroDamage','onDamaged','onHealed','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold', ...WATCH_TRIGGERS,'activated'],
-  'Héros':    ['gameStart','onPlay','onDamaged','onHealed','onKill','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold', ...WATCH_TRIGGERS,'activated'],
-  'Région':   ['gameStart','onPlay','onDestroyed','onReturnFromGraveyard','manaAlternative','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold', ...WATCH_TRIGGERS,'activated'],
-  'Artefact': ['onPlay','onUse','onDestroyed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold', ...WATCH_TRIGGERS,'activated'],
+  'Créature': ['onPlay','onAttack','onBlocked','onWasBlocked','onDealtHeroDamage','onDamaged','onHealed','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
+  'Héros':    ['gameStart','onPlay','onDamaged','onHealed','onKill','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
+  'Région':   ['gameStart','onPlay','onDestroyed','onReturnFromGraveyard','manaAlternative','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
+  'Artefact': ['onPlay','onUse','onDestroyed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
   'Sortilège':['onPlay'],
-  'Piège':    ['onOpponentAttack','onOpponentSpell','onOpponentPlayCreature','onOpponentPlayArtifact','onOpponentPlayCard','onOpponentEndTurn','onOpponentTargetsAlly','onAllySurvivesCombat','onEnemySurvivesCombat','beforeAllyFights','onAllyBlocked','onPlay','onDestroyed','gameStart','onAttack','onBlocked','onDamaged','onHealed','onDeath','onKill','onRevive','activated','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold', ...WATCH_TRIGGERS]
+  'Piège':    ['onOpponentAttack','onOpponentSpell','onOpponentPlayCreature','onOpponentPlayArtifact','onOpponentPlayCard','onOpponentEndTurn','onOpponentTargetsAlly','onAllySurvivesCombat','onEnemySurvivesCombat','beforeAllyFights','onAllyBlocked','onPlay','onDestroyed','gameStart','onAttack','onBlocked','onDamaged','onHealed','onDeath','onKill','onRevive','activated','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS]
 };
 
 const TRIGGER_TEXT = {
@@ -709,6 +709,7 @@ const TRIGGER_TEXT = {
   onWasBlocked: 'Quand cette créature a été bloquée',
   onDealtHeroDamage: "Quand cette créature a infligé des blessures au héros adverse",
   hpLostLastTurnThreshold: 'Après avoir perdu X PV au tour précédent',
+  attackedWithCountThisTurn: 'Après avoir attaqué avec au moins X créatures ce tour-ci',
   playedCardTypeCountThisTurn: 'Après avoir joué X [type de carte] ce tour-ci',
   playedCardTypeCountMatch: 'Après avoir joué X [type de carte] pendant la partie',
   onAttack: 'Quand cette créature attaque',
@@ -886,6 +887,7 @@ const TARGET_CATEGORIES = [
   {key:'card_in_hand', label:'Carte en main'},
   {key:'card_in_discard', label:'Carte en défausse'},
   {key:'destroyed_last_turn', label:'Créature détruite au tour précédent'},
+  {key:'next_played_card', label:'La prochaine carte que vous jouerez (effet différé)'},
   {key:'card_in_deck', label:'Carte dans le deck'}
 ];
 const TARGET_OWNERS = [
@@ -980,7 +982,8 @@ function blankTriggerEntry(){
     useCount: 3, replacesManaGain: false,
     playedCardTypeFilter: 'any', playedCardTypeCount: 1,
     playedCardTypeMatchFilter: 'any', playedCardTypeMatchCount: 3, playedCardTypeMatchReset: false,
-    hpLostLastTurnOwner: 'self', hpLostLastTurnCompare: 'atLeast', hpLostLastTurnValue: 5
+    hpLostLastTurnOwner: 'self', hpLostLastTurnCompare: 'atLeast', hpLostLastTurnValue: 5,
+    attackedWithCount: 1, attackedWithSubtype: '', attackedWithKeyword: ''
   };
 }
 function blankTargetEntry(){
@@ -1477,6 +1480,14 @@ function buildTargetsSectionUI(ab, targetsArray, choiceKey, heading){
       trow.appendChild(alToggle);
     }
 
+    if(tgt.targetCategory==='next_played_card'){
+      trow.appendChild(makeSelectField('Type de carte', [{key:'any',label:'Peu importe'},{key:'Créature',label:'Créature'},{key:'Sortilège',label:'Sortilège'},{key:'Artefact',label:'Artefact'},{key:'Piège',label:'Piège'}], tgt.nextPlayedCardType||'any', v=>{ tgt.nextPlayedCardType=v; onFormChange(); }));
+      const note = document.createElement('div');
+      note.style.cssText = 'font-size:10.5px;color:var(--parchment-dim);margin-top:2px;';
+      note.textContent = "L'effet reste en attente jusqu'à ce que vous jouiez une carte de ce type — même après la fin du tour, tant que la partie continue.";
+      trow.appendChild(note);
+    }
+
     const rmBtn = document.createElement('button');
     rmBtn.className='mini-btn'; rmBtn.textContent='✕'; rmBtn.title='Retirer cette cible';
     rmBtn.onclick = ()=>removeTargetEntry(ab.id, tgt.id, choiceKey);
@@ -1709,6 +1720,25 @@ function buildTriggerEntryBox(te, tIdx, totalCount, availableTriggers, onRemove)
     hField.querySelector('input').oninput=(e)=>{ te.hpLostLastTurnValue=parseInt(e.target.value)||0; onFormChange(); };
     hrow.appendChild(hField);
     tBox.appendChild(hrow);
+  }
+
+  if(te.trigger==='attackedWithCountThisTurn'){
+    const awrow = document.createElement('div');
+    awrow.className='ability-row';
+    const cField = document.createElement('div');
+    cField.className='field';
+    cField.innerHTML = `<label class="mini-field">Nombre de créatures attaquantes (au moins)</label>
+      <input type="number" id="trigawc-${te.id}" min="1" max="8" value="${te.attackedWithCount||1}">`;
+    cField.querySelector('input').oninput=(e)=>{ te.attackedWithCount=parseInt(e.target.value)||1; onFormChange(); };
+    awrow.appendChild(cField);
+    const stField = document.createElement('div');
+    stField.className='field';
+    stField.innerHTML = `<label class="mini-field">Sous-type (optionnel)</label>
+      <input type="text" id="trigawst-${te.id}" value="${escapeHtml(te.attackedWithSubtype||'')}" placeholder="Vide = peu importe">`;
+    stField.querySelector('input').oninput=(e)=>{ te.attackedWithSubtype=e.target.value; onFormChange(); };
+    awrow.appendChild(stField);
+    awrow.appendChild(makeSelectField('Mot-clé (optionnel)', [{key:'',label:'Peu importe'}, ...KEYWORDS.map(k=>({key:k.key,label:k.label}))], te.attackedWithKeyword||'', v=>{ te.attackedWithKeyword=v; onFormChange(); }));
+    tBox.appendChild(awrow);
   }
 
   if(currentType==='Région' && (te.trigger==='startOfTurn' || te.trigger==='startOfTurnX')){
@@ -2823,8 +2853,8 @@ function targetPhrase(t){
     if(t.targetOwner==='random') return 'un joueur tiré au hasard';
     return t.targetOwner==='enemy' ? 'votre adversaire' : 'vous';
   }
-  const nounSing = {creature:'créature', hero_creature:'héros ou créature', artifact:'artefact', card_in_hand:'carte en main', card_in_discard:'carte en défausse', card_in_deck:'carte du deck', destroyed_last_turn:'créature détruite au tour précédent'}[t.targetCategory] || 'cible';
-  const nounPlur = {creature:'créatures', hero_creature:'héros ou créatures', artifact:'artefacts', card_in_hand:'cartes en main', card_in_discard:'cartes en défausse', card_in_deck:'cartes du deck', destroyed_last_turn:'créatures détruites au tour précédent'}[t.targetCategory] || 'cibles';
+  const nounSing = {creature:'créature', hero_creature:'héros ou créature', artifact:'artefact', card_in_hand:'carte en main', card_in_discard:'carte en défausse', card_in_deck:'carte du deck', destroyed_last_turn:'créature détruite au tour précédent', next_played_card:'prochaine carte jouée'}[t.targetCategory] || 'cible';
+  const nounPlur = {creature:'créatures', hero_creature:'héros ou créatures', artifact:'artefacts', card_in_hand:'cartes en main', card_in_discard:'cartes en défausse', card_in_deck:'cartes du deck', destroyed_last_turn:'créatures détruites au tour précédent', next_played_card:'prochaines cartes jouées'}[t.targetCategory] || 'cibles';
   const adjSing = {ally:'alliée', enemy:'ennemie', any:'', random:''}[t.targetOwner] || '';
   const adjPlur = {ally:'alliées', enemy:'ennemies', any:'', random:''}[t.targetOwner] || '';
   const randomOwnerPrefix = t.targetOwner==='random' ? "(camp tiré au hasard) " : '';
@@ -3309,6 +3339,13 @@ function buildAbilitySentence(cardType, ab){
         const who = te.hpLostLastTurnOwner==='enemy' ? "l'adversaire a" : 'vous avez';
         const cmp = {atLeast:'au moins', atMost:'au plus', exactly:'exactement'}[te.hpLostLastTurnCompare||'atLeast'];
         prefix = `Après que ${who} perdu ${cmp} ${te.hpLostLastTurnValue??5} PV au tour précédent`;
+      }
+      if(te.trigger==='attackedWithCountThisTurn'){
+        const n = te.attackedWithCount||1;
+        const subPhrase = te.attackedWithSubtype ? ` ${te.attackedWithSubtype}` : '';
+        const kwLabel = te.attackedWithKeyword ? (KEYWORDS.find(k=>k.key===te.attackedWithKeyword)||{}).label : '';
+        const kwPhrase = kwLabel ? ` avec ${kwLabel}` : '';
+        prefix = `Après avoir attaqué avec au moins ${n} créature${n>1?'s':''}${subPhrase}${kwPhrase} ce tour-ci`;
       }
       if(te.trigger==='activated'){
         prefix = `Payez ${te.activationCost ?? 0} mana`;
