@@ -916,10 +916,12 @@ function buildNewCardEl(card, size){
     const nw = nEl('div','nname-wrap');
     nw.appendChild(nImg('images/card/icon/bubble/nom.png'));
     const nameEl = nEl('div','nname-text'); nameEl.textContent = card.name || '';
+    applyNameSizing(nameEl, card, size);
     nw.appendChild(nameEl);
     root.appendChild(nw);
   } else {
     const nameEl = nEl('div','nname-text'); nameEl.textContent = card.name || '';
+    applyNameSizing(nameEl, card, size);
     root.appendChild(nameEl);
   }
 
@@ -946,6 +948,22 @@ function buildNewCardEl(card, size){
   return root;
 }
 
+function applyNameSizing(nameEl, card, size){
+  if(card.nameWrap){
+    nameEl.style.whiteSpace = 'normal';
+    nameEl.style.height = 'auto';
+    nameEl.style.overflow = 'visible';
+  }
+  if(card.nameFontAuto === false){
+    nameEl.dataset.auto = '0';
+    // La taille choisie est calibrée sur le grand format (300px) ; on l'adapte
+    // proportionnellement au petit format (240px) pour un rendu cohérent.
+    const scale = size==='small' ? (240/300) : 1;
+    nameEl.style.fontSize = ((card.nameFontSize || 14) * scale) + 'px';
+  } else {
+    nameEl.dataset.auto = '1';
+  }
+}
 function fitBoxFont(el, minSize){
   if(!el) return;
   el.style.fontSize = '';
@@ -963,7 +981,10 @@ function fitBoxFont(el, minSize){
 }
 function fitNewCard(rootEl){
   if(!rootEl) return;
-  fitBoxFont(rootEl.querySelector('.nname-text'), 6);
+  const nameEl = rootEl.querySelector('.nname-text');
+  if(nameEl && nameEl.dataset.auto !== '0'){
+    fitBoxFont(nameEl, 6);
+  }
   fitBoxFont(rootEl.querySelector('.ncard-text'), 7);
 }
 
