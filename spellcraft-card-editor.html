@@ -873,7 +873,8 @@ const RETRIEVE_CRITERIA = [
 
 const CONJURE_DESTINATIONS = [
   {key:'hand', label:'dans votre main'},
-  {key:'battlefield', label:'directement en jeu'}
+  {key:'battlefield', label:'directement en jeu'},
+  {key:'deck', label:'mélangée dans votre deck'}
 ];
 
 const TARGET_CATEGORIES = [
@@ -2304,7 +2305,7 @@ function buildEffectRow(ab, eff, choiceKey){
       f.appendChild(inp);
       row.appendChild(f);
       row.appendChild(buildConjureQuantityField(eff));
-      row.appendChild(makeSelectField('Destination', CONJURE_DESTINATIONS.map(d=>({key:d.key,label:d.label==='dans votre main'?'Votre main':'Directement en jeu'})), eff.conjureDestination, v=>{ eff.conjureDestination=v; onFormChange(); }));
+      row.appendChild(makeSelectField('Destination', CONJURE_DESTINATIONS.map(d=>({key:d.key,label:{hand:'Votre main',battlefield:'Directement en jeu',deck:'Mélangée dans le deck'}[d.key]||d.label})), eff.conjureDestination, v=>{ eff.conjureDestination=v; onFormChange(); }));
     } else {
       const typesField = document.createElement('div');
       typesField.className='field'; typesField.style.flexBasis='100%';
@@ -2360,7 +2361,7 @@ function buildEffectRow(ab, eff, choiceKey){
       row.appendChild(buildNumericFilterField(eff, 'conjureAtkMode', 'conjureAtkValue', 'Force'));
       row.appendChild(buildNumericFilterField(eff, 'conjureHpMode', 'conjureHpValue', 'Endurance'));
       row.appendChild(buildConjureQuantityField(eff));
-      row.appendChild(makeSelectField('Destination', CONJURE_DESTINATIONS.map(d=>({key:d.key,label:d.label==='dans votre main'?'Votre main':'Directement en jeu'})), eff.conjureDestination, v=>{ eff.conjureDestination=v; onFormChange(); }));
+      row.appendChild(makeSelectField('Destination', CONJURE_DESTINATIONS.map(d=>({key:d.key,label:{hand:'Votre main',battlefield:'Directement en jeu',deck:'Mélangée dans le deck'}[d.key]||d.label})), eff.conjureDestination, v=>{ eff.conjureDestination=v; onFormChange(); }));
     }
   }
 
@@ -2524,7 +2525,7 @@ function buildEffectRow(ab, eff, choiceKey){
     row.appendChild(makeSelectField('Destination de la copie', [{key:'battlefield',label:'En jeu'},{key:'hand',label:'En main'}], eff.copyDestination||'battlefield', v=>{ eff.copyDestination=v; onFormChange(); }));
   }
   if(def.isReduceCostLike){
-    row.appendChild(makeSelectField('Bénéficiaire', [{key:'self',label:'Vous'},{key:'enemy',label:"L'adversaire"}], eff.reduceCostOwner||'self', v=>{ eff.reduceCostOwner=v; onFormChange(); }));
+    row.appendChild(makeSelectField('Cartes concernées', [{key:'self',label:'Les vôtres'},{key:'enemy',label:"Celles de l'adversaire"}], eff.reduceCostOwner||'self', v=>{ eff.reduceCostOwner=v; onFormChange(); }));
     row.appendChild(makeSelectField('Type de carte concerné', [{key:'',label:'Toutes'},{key:'Créature',label:'Créature'},{key:'Sortilège',label:'Sortilège'},{key:'Artefact',label:'Artefact'},{key:'Piège',label:'Piège'}], eff.reduceCostType||'', v=>{ eff.reduceCostType=v; onFormChange(); }));
     const subF = document.createElement('div'); subF.className='field';
     subF.innerHTML = `<label class="mini-field">Sous-type (optionnel)</label>`;
@@ -3138,7 +3139,8 @@ function numericFilterPhrase(eff, modeKey, valueKey, label){
 }
 
 function conjureClause(eff){
-  const destPhrase = eff.conjureDestination==='battlefield' ? ', directement en jeu' : '';
+  const destPhrase = eff.conjureDestination==='battlefield' ? ', directement en jeu'
+    : eff.conjureDestination==='deck' ? ', mélangée dans votre deck' : '';
   const isDynQty = eff.conjureQuantityMode==='dynamic';
   const qty = eff.conjureQuantity||1;
   const qtyPhrase = isDynQty
@@ -3155,6 +3157,7 @@ function conjureClause(eff){
   const classPhrase = (eff.conjureClass && eff.conjureClass!=='any') ? ` de ${eff.conjureClass}` : '';
   const subtypePhrase = eff.conjureSubtype ? ` du sous-type ${eff.conjureSubtype}` : '';
   const setPhrase = eff.conjureSet ? ` du set « ${eff.conjureSet} »` : '';
+  const rarityPhrase = (eff.conjureRarity && eff.conjureRarity!=='any') ? ` de rareté ${eff.conjureRarity}` : '';
   const legendaryPhrase = eff.conjureLegendaryOnly ? ' de super-type Légendaire' : '';
   const filters = [
     numericFilterPhrase(eff, 'conjureCostMode', 'conjureCostValue', 'coût'),
@@ -3163,7 +3166,7 @@ function conjureClause(eff){
   ].filter(Boolean);
   const filterPhrase = filters.length ? ` (${filters.join(', ')})` : '';
   const article = qty>1 ? `${qty} ` : 'un(e) ';
-  return `${ownerVerb} ${article}${typesPhrase}${classPhrase}${subtypePhrase}${setPhrase}${legendaryPhrase}${filterPhrase}${destPhrase}${followUpClause(eff)}`;
+  return `${ownerVerb} ${article}${typesPhrase}${classPhrase}${subtypePhrase}${setPhrase}${rarityPhrase}${legendaryPhrase}${filterPhrase}${destPhrase}${followUpClause(eff)}`;
 }
 
 function condValueText(cond){
