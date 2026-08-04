@@ -529,6 +529,12 @@ header .spacer{flex:1;}
           </div>
         </div>
 
+        <div class="field" id="f-emotes-wrap" style="display:none">
+          <label>Émotes de ce héros (utilisées en partie, à la place du chat)</label>
+          <div id="emotes-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px;"></div>
+          <button type="button" class="btn small" onclick="addEmoteRow()">+ Ajouter une émote</button>
+        </div>
+
         <div class="form-actions" style="display:flex;gap:8px;margin-top:16px;">
           <button class="btn primary" onclick="saveCurrentCard()">💾 Enregistrer</button>
           <button class="btn" onclick="newCard()">➕ Nouvelle carte</button>
@@ -690,7 +696,7 @@ booster-aube.png" oninput="saveImgPickerFileList()"></textarea>
 /* CLASSES, CLASS_COLORS, RARITIES, CARD_TYPES, KEYWORDS, escapeHtml et migrateCard
    viennent maintenant de spellcraft-shared.js (chargé juste avant ce script). */
 
-const WATCH_TRIGGERS = ['watchPlay','watchArrival','watchDeath','watchAttack','watchDamaged','watchHealed','watchHeroHealed','watchSpell','watchTrap','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchAfterReveal','watchReveal','watchExplore','watchRetrieveDiscard','watchRetrieveDeck','watchTargeted'];
+const WATCH_TRIGGERS = ['watchPlay','watchArrival','watchDeath','watchAttack','watchDamaged','watchHealed','watchHeroHealed','watchSpell','watchTrap','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchAfterReveal','watchReveal','watchExplore','watchRetrieveDiscard','watchRetrieveDeck','watchTargeted','watchDiscovered','watchDrawFromOpponentDeck'];
 
 const TRIGGERS_BY_TYPE = {
   'Créature': ['onPlay','onAttack','onBlocked','onWasBlocked','onDealtHeroDamage','onDamaged','onHealed','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
@@ -757,6 +763,8 @@ const TRIGGER_TEXT = {
   watchConjured: 'Quand une carte est conjurée',
   watchAfterReveal: 'Quand une carte arrive après avoir été révélée',
   watchReveal: 'Quand un joueur révèle',
+  watchDiscovered: 'Quand vous découvrez une carte',
+  watchDrawFromOpponentDeck: "Quand vous piochez une carte dans le deck adverse",
   watchExplore: 'Quand un joueur explore',
   watchRetrieveDiscard: 'Quand une carte est récupérée depuis la défausse',
   watchRetrieveDeck: 'Quand une carte est récupérée depuis le deck',
@@ -788,6 +796,7 @@ const CONDITION_TYPES = [
   {key:'hpLostLastTurn', label:'Vous avez perdu [comparaison] X PV au tour précédent', hasValue:true, isHpLostLastTurn:true},
   {key:'targetHasKeyword', label:'La cible/carte concernée a le mot-clé [X]', hasValue:false, isTargetHasKeyword:true},
   {key:'whileInHand', label:'Tant que cette carte est dans votre main', hasValue:false},
+  {key:'whileYourTurn', label:"Tant que c'est votre tour", hasValue:false},
   {key:'custom', label:'⚠ Condition personnalisée (texte libre)', hasValue:true, valueType:'text'}
 ];
 
@@ -844,7 +853,8 @@ const EXPLORE_OWNERS = [
 
 const RETRIEVE_SOURCES = [
   {key:'deck', label:'Votre deck'},
-  {key:'discard', label:'Votre défausse'}
+  {key:'discard', label:'Votre défausse'},
+  {key:'opponentDeck', label:"Le deck de l'adversaire"}
 ];
 const RETRIEVE_DESTINATIONS = [
   {key:'hand', label:'Ajoutez-la à votre main'},
@@ -969,6 +979,7 @@ let currentType = 'Créature';
 let currentFilter = 'all';
 let subtypes = [];
 let mcAllowedClasses = [];
+let currentEmotes = [];
 let manualMode = false;
 let uidCounter = 1;
 const newId = () => 'card_' + Date.now() + '_' + (uidCounter++);
@@ -1270,6 +1281,7 @@ function refreshFormVisibility(){
   document.getElementById('f-keywords-wrap').style.display = showKeywords ? 'block':'none';
   document.getElementById('f-manarule-wrap').style.display = currentType==='Région' ? 'block':'none';
   document.getElementById('f-multiclass-wrap').style.display = currentType==='Héros' ? 'block':'none';
+  document.getElementById('f-emotes-wrap').style.display = currentType==='Héros' ? 'block':'none';
   if(currentType==='Héros' && document.getElementById('f-mc-enabled').checked) buildMcClassChips();
   if(showKeywords) buildKeywordGrid();
 }
@@ -3119,7 +3131,7 @@ function followUpClause(eff){
 }
 
 function retrieveClause(eff){
-  const sourceLabel = eff.retrieveSource==='discard' ? 'votre défausse' : 'votre deck';
+  const sourceLabel = eff.retrieveSource==='discard' ? 'votre défausse' : eff.retrieveSource==='opponentDeck' ? "le deck de l'adversaire" : 'votre deck';
   const critDef = RETRIEVE_CRITERIA.find(c=>c.key===eff.retrieveCriteria);
   let critPhrase;
   switch(eff.retrieveCriteria){
@@ -3282,6 +3294,7 @@ function conditionClause(cond){
       return `${who} a le mot-clé ${kwLabel}`;
     }
     case 'whileInHand': return 'cette carte est dans votre main';
+    case 'whileYourTurn': return "c'est votre tour";
     case 'custom': return cond.value || 'condition personnalisée';
     default: return '';
   }
@@ -3495,6 +3508,7 @@ function readForm(){
       maxCount: parseInt(document.getElementById('f-mc-max').value) || 6,
       scope: document.getElementById('f-mc-scope').value
     },
+    emotes: currentType==='Héros' ? JSON.parse(JSON.stringify(currentEmotes)) : [],
     manualText: manualMode,
     text: finalText
   };
@@ -3564,6 +3578,8 @@ function loadCardIntoForm(card){
   document.getElementById('f-mc-scope').value = card.heroMultiClass?.scope || 'Toutes';
   document.getElementById('manual-text-box').value = card.text || '';
   if(currentType==='Héros') buildMcClassChips();
+  currentEmotes = (card.emotes || []).map(e=>({...e}));
+  renderEmotesList();
 
   renderSubtypeChips();
   rebuildAbilitiesUI();
@@ -4103,6 +4119,36 @@ const IMG_PICKER_STORAGE_KEY = 'spellcraft_cardback_filelist';
 let imgPickerTargetInput = null;
 let imgPickerTargetPreview = null;
 
+function addEmoteRow(){
+  currentEmotes.push({ id: 'em_'+Date.now()+'_'+Math.floor(Math.random()*1000), image:'', label:'' });
+  renderEmotesList();
+  onFormChange();
+}
+function removeEmoteRow(id){
+  currentEmotes = currentEmotes.filter(e=>e.id!==id);
+  renderEmotesList();
+  onFormChange();
+}
+function renderEmotesList(){
+  const el = document.getElementById('emotes-list');
+  el.innerHTML = '';
+  currentEmotes.forEach(em=>{
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:8px;align-items:center;background:var(--bg-panel-2);border-radius:8px;padding:8px;';
+    const previewId = 'emote-preview-'+em.id;
+    const inputId = 'emote-image-'+em.id;
+    row.innerHTML = `
+      <img id="${previewId}" src="${em.image||''}" style="width:40px;height:40px;border-radius:6px;object-fit:cover;background:var(--bg-panel-3);${em.image?'':'display:none;'}">
+      <input type="text" id="${inputId}" value="${escapeHtml(em.image||'')}" placeholder="images/emote/nom-fichier.png" style="flex:1;">
+      <input type="text" value="${escapeHtml(em.label||'')}" placeholder="Info-bulle (ex: Rire)" style="flex:1;" data-role="label">
+      <button type="button" class="mini-btn" data-role="remove">✕</button>
+    `;
+    row.querySelector(`#${inputId}`).oninput = (e)=>{ em.image=e.target.value; updateImgPreview(inputId, previewId); onFormChange(); };
+    row.querySelector('[data-role="label"]').oninput = (e)=>{ em.label=e.target.value; onFormChange(); };
+    row.querySelector('[data-role="remove"]').onclick = ()=>removeEmoteRow(em.id);
+    el.appendChild(row);
+  });
+}
 function updateImgPreview(inputId, previewId){
   const val = document.getElementById(inputId).value.trim();
   const img = document.getElementById(previewId);
