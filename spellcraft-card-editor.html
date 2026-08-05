@@ -696,7 +696,7 @@ booster-aube.png" oninput="saveImgPickerFileList()"></textarea>
 /* CLASSES, CLASS_COLORS, RARITIES, CARD_TYPES, KEYWORDS, escapeHtml et migrateCard
    viennent maintenant de spellcraft-shared.js (chargé juste avant ce script). */
 
-const WATCH_TRIGGERS = ['watchPlay','watchArrival','watchDeath','watchAttack','watchDamaged','watchHealed','watchHeroHealed','watchSpell','watchTrap','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchAfterReveal','watchReveal','watchExplore','watchRetrieveDiscard','watchRetrieveDeck','watchTargeted','watchDiscovered','watchDrawFromOpponentDeck'];
+const WATCH_TRIGGERS = ['watchPlay','watchArrival','watchDeath','watchAttack','watchDamaged','watchHealed','watchHeroHealed','watchSpell','watchTrap','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchAfterReveal','watchReveal','watchExplore','watchRetrieveDiscard','watchRetrieveDeck','watchTargeted','watchDiscovered','watchDrawFromOpponentDeck','onTargeted'];
 
 const TRIGGERS_BY_TYPE = {
   'Créature': ['onPlay','onAttack','onBlocked','onWasBlocked','onDealtHeroDamage','onDamaged','onHealed','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
@@ -769,6 +769,7 @@ const TRIGGER_TEXT = {
   watchRetrieveDiscard: 'Quand une carte est récupérée depuis la défausse',
   watchRetrieveDeck: 'Quand une carte est récupérée depuis le deck',
   watchTargeted: 'Quand une créature est désignée (ciblée par un effet)',
+  onTargeted: 'Quand cette créature est désignée (ciblée par un effet)',
   activated: 'Capacité activée (payez du mana)'
 };
 
@@ -2572,7 +2573,10 @@ function buildEffectRow(ab, eff, choiceKey){
     row.appendChild(makeSelectField('Statistique volée', [{key:'force',label:'Force'},{key:'endurance',label:'Endurance'},{key:'charges',label:'Utilisation (charges)'}], eff.stealStatType||'force', v=>{ eff.stealStatType=v; onFormChange(); }));
   }
   if(def.isCopyCard){
-    row.appendChild(makeSelectField('Destination de la copie', [{key:'battlefield',label:'En jeu'},{key:'hand',label:'En main'}], eff.copyDestination||'battlefield', v=>{ eff.copyDestination=v; onFormChange(); }));
+    row.appendChild(makeSelectField('Destination de la copie', [{key:'battlefield',label:'En jeu'},{key:'hand',label:'En main'},{key:'deck',label:'Dans le deck'}], eff.copyDestination||'battlefield', v=>{ eff.copyDestination=v; rebuildAbilitiesUI(); onFormChange(); }));
+    if(eff.copyDestination==='deck'){
+      row.appendChild(makeSelectField('Position dans le deck', [{key:'top',label:'Dessus (prochaine carte piochée)'},{key:'bottom',label:'Dessous'},{key:'random',label:'Aléatoire (deck mélangé)'}], eff.copyDeckPosition||'random', v=>{ eff.copyDeckPosition=v; onFormChange(); }));
+    }
   }
   if(def.isReduceCostLike){
     row.appendChild(makeSelectField('Cartes concernées', [{key:'self',label:'Les vôtres'},{key:'enemy',label:"Celles de l'adversaire"}], eff.reduceCostOwner||'self', v=>{ eff.reduceCostOwner=v; onFormChange(); }));
@@ -3030,7 +3034,9 @@ function buildEffectClause(eff, ab){
       return `volez ${statLabel} de ${targetPhrase(resolvedTarget)} (elle tombe à 0)`;
     }
     case 'copyCard': {
-      const destLabel = eff.copyDestination==='hand' ? 'dans votre main' : 'en jeu';
+      const destLabel = eff.copyDestination==='hand' ? 'dans votre main'
+        : eff.copyDestination==='deck' ? ({top:'sur le dessus de votre deck', bottom:'sous votre deck', random:'dans votre deck (position aléatoire)'}[eff.copyDeckPosition||'random'])
+        : 'en jeu';
       return `copiez ${targetPhrase(resolvedTarget)} ${destLabel}`;
     }
     case 'increaseCost': {
