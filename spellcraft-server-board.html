@@ -829,7 +829,16 @@ function onStateUpdate(state){
 // NOUVEAU TEMPLATE — frames illustrées (big / small), repris tel
 // quel du deckbuilder/éditeur.
 // ============================================================
-function ncardRealPath(size, slug){
+const NCLASS_TO_SLUG_NOACCENT = {
+  'Aube':'aube', 'Crépuscule':'crepuscule', 'Volonté':'volonte', 'Prima':'prima', 'Arcane':'arcane', 'Neutre':'neutre'
+};
+const CARD_TYPE_TO_TEMPLATE_SLUG = {
+  'Créature':'creature', 'Artefact':'artefact', 'Sortilège':'spell', 'Piège':'trap'
+};
+function ncardRealPath(size, slug, cardClass, cardType){
+  if(size==='big' && CARD_TYPE_TO_TEMPLATE_SLUG[cardType] && NCLASS_TO_SLUG_NOACCENT[cardClass]){
+    return `images/card/big%20frame/${NCLASS_TO_SLUG_NOACCENT[cardClass]}-${CARD_TYPE_TO_TEMPLATE_SLUG[cardType]}-bigframe.png`;
+  }
   const folder = size==='big' ? 'big%20frame' : 'small%20frame';
   return `images/card/${folder}/${size}-${slug}.png`;
 }
@@ -839,7 +848,10 @@ function ncardRealPath(size, slug){
 const HALF_FRAME_SLUG = {
   'Aube':'aube', 'Crépuscule':'crepuscule', 'Volonté':'volonté', 'Prima':'prima', 'Arcane':'arcane'
 };
-function ncardHalfFramePath(size, classSecondary){
+function ncardHalfFramePath(size, classSecondary, cardType){
+  if(size==='big' && CARD_TYPE_TO_TEMPLATE_SLUG[cardType] && NCLASS_TO_SLUG_NOACCENT[classSecondary]){
+    return `images/card/big%20frame/${NCLASS_TO_SLUG_NOACCENT[classSecondary]}-${CARD_TYPE_TO_TEMPLATE_SLUG[cardType]}-bighalfframe.png`;
+  }
   const slug = HALF_FRAME_SLUG[classSecondary];
   if(!slug) return null;
   const folder = size==='big' ? 'big%20frame' : 'small%20frame';
@@ -875,9 +887,9 @@ function buildNewCardEl(card, size, effectiveCostOverride){
     art.style.backgroundSize = zoom>100 ? zoom+'%' : 'cover';
   }
   root.appendChild(art);
-  root.appendChild(nImg(ncardRealPath(size, slug), 'nframe-layer'));
+  root.appendChild(nImg(ncardRealPath(size, slug, card.class, card.type), 'nframe-layer'));
   if(card.classSecondary){
-    const halfPath = ncardHalfFramePath(size, card.classSecondary);
+    const halfPath = ncardHalfFramePath(size, card.classSecondary, card.type);
     if(halfPath) root.appendChild(nImg(halfPath, 'nframe-half-layer'));
   }
 

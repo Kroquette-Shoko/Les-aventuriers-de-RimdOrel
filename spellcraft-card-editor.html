@@ -3824,14 +3824,30 @@ function fitTypeline(cardRootEl){
 // images/card/big frame/big-{classe}.png · images/card/small frame/small-{classe}.png
 // images/card/icon/bubble/{mana|vie|attack|endurance|artefact|nom}.png
 // images/card/icon/rare/{basique|commun|rare|epique|mythique|legendaire}.png
-function ncardRealPath(size, slug){
+// Nouveau schéma (grand format uniquement, Créature/Artefact/Sortilège/Piège) :
+// images/card/big frame/{classe sans accent}-{type}-bigframe.png
+// Le petit format et les cartes Héros/Région/Neutre gardent l'ancien schéma :
+// images/card/big frame/big-{classe}.png · images/card/small frame/small-{classe}.png
+const NCLASS_TO_SLUG_NOACCENT = {
+  'Aube':'aube', 'Crépuscule':'crepuscule', 'Volonté':'volonte', 'Prima':'prima', 'Arcane':'arcane', 'Neutre':'neutre'
+};
+const CARD_TYPE_TO_TEMPLATE_SLUG = {
+  'Créature':'creature', 'Artefact':'artefact', 'Sortilège':'spell', 'Piège':'trap'
+};
+function ncardRealPath(size, slug, cardClass, cardType){
+  if(size==='big' && CARD_TYPE_TO_TEMPLATE_SLUG[cardType] && NCLASS_TO_SLUG_NOACCENT[cardClass]){
+    return `images/card/big%20frame/${NCLASS_TO_SLUG_NOACCENT[cardClass]}-${CARD_TYPE_TO_TEMPLATE_SLUG[cardType]}-bigframe.png`;
+  }
   const folder = size==='big' ? 'big%20frame' : 'small%20frame';
   return `images/card/${folder}/${size}-${slug}.png`;
 }
 const HALF_FRAME_SLUG = {
   'Aube':'aube', 'Crépuscule':'crepuscule', 'Volonté':'volonté', 'Prima':'prima', 'Arcane':'arcane'
 };
-function ncardHalfFramePath(size, classSecondary){
+function ncardHalfFramePath(size, classSecondary, cardType){
+  if(size==='big' && CARD_TYPE_TO_TEMPLATE_SLUG[cardType] && NCLASS_TO_SLUG_NOACCENT[classSecondary]){
+    return `images/card/big%20frame/${NCLASS_TO_SLUG_NOACCENT[classSecondary]}-${CARD_TYPE_TO_TEMPLATE_SLUG[cardType]}-bighalfframe.png`;
+  }
   const slug = HALF_FRAME_SLUG[classSecondary];
   if(!slug) return null;
   const folder = size==='big' ? 'big%20frame' : 'small%20frame';
@@ -3871,9 +3887,9 @@ function buildNewCardEl(card, size){
   root.appendChild(art);
 
   // Frame (par-dessus l'illustration, fenêtre transparente)
-  root.appendChild(nImg(ncardRealPath(size, slug), 'nframe-layer'));
+  root.appendChild(nImg(ncardRealPath(size, slug, card.class, card.type), 'nframe-layer'));
   if(card.classSecondary){
-    const halfPath = ncardHalfFramePath(size, card.classSecondary);
+    const halfPath = ncardHalfFramePath(size, card.classSecondary, card.type);
     if(halfPath) root.appendChild(nImg(halfPath, 'nframe-half-layer'));
   }
 
