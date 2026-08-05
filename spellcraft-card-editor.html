@@ -2394,6 +2394,8 @@ function buildEffectRow(ab, eff, choiceKey){
 
       row.appendChild(makeSelectField('Rareté', [{key:'any',label:'Peu importe'},{key:'Basique',label:'Basique'},{key:'Commune',label:'Commune'},{key:'Rare',label:'Rare'},{key:'Épique',label:'Épique'},{key:'Mythique',label:'Mythique'}], eff.conjureRarity||'any', v=>{ eff.conjureRarity=v; onFormChange(); }));
 
+      row.appendChild(makeSelectField('Mot-clé (optionnel)', [{key:'',label:'Peu importe'}, ...KEYWORDS.map(k=>({key:k.key,label:k.label}))], eff.conjureKeyword||'', v=>{ eff.conjureKeyword=v; onFormChange(); }));
+
       const legField = document.createElement('div');
       legField.className='field';
       const legToggle = document.createElement('label');
@@ -3216,6 +3218,7 @@ function conjureClause(eff){
   const subtypePhrase = eff.conjureSubtype ? ` du sous-type ${eff.conjureSubtype}` : '';
   const setPhrase = eff.conjureSet ? ` du set « ${eff.conjureSet} »` : '';
   const rarityPhrase = (eff.conjureRarity && eff.conjureRarity!=='any') ? ` de rareté ${eff.conjureRarity}` : '';
+  const keywordPhrase = eff.conjureKeyword ? ` avec ${(KEYWORDS.find(k=>k.key===eff.conjureKeyword)||{}).label||eff.conjureKeyword}` : '';
   const legendaryPhrase = eff.conjureLegendaryOnly ? ' de super-type Légendaire' : '';
   const filters = [
     numericFilterPhrase(eff, 'conjureCostMode', 'conjureCostValue', 'coût'),
@@ -3224,7 +3227,7 @@ function conjureClause(eff){
   ].filter(Boolean);
   const filterPhrase = filters.length ? ` (${filters.join(', ')})` : '';
   const article = qty>1 ? `${qty} ` : 'un(e) ';
-  return `${ownerVerb} ${article}${typesPhrase}${classPhrase}${subtypePhrase}${setPhrase}${rarityPhrase}${legendaryPhrase}${filterPhrase}${destPhrase}${followUpClause(eff)}`;
+  return `${ownerVerb} ${article}${typesPhrase}${classPhrase}${subtypePhrase}${setPhrase}${rarityPhrase}${keywordPhrase}${legendaryPhrase}${filterPhrase}${destPhrase}${followUpClause(eff)}`;
 }
 
 function condValueText(cond){

@@ -41,7 +41,10 @@ const KEYWORDS = [
   {key:'toxic', label:'Toxique', desc:'Tue toute créature à qui elle inflige des dégâts.'},
   {key:'discret', label:'Discret', desc:'Ne peut pas être bloquée.'},
   {key:'imparable', label:'Imparable', desc:"Ne peut pas être la cible d'un piège."},
-  {key:'fugace', label:'Fugace', desc:'Meurt à la fin de ce tour.'}
+  {key:'fugace', label:'Fugace', desc:'Meurt à la fin de ce tour.'},
+  {key:'assault', label:'Assault', desc:"Étiquette de suivi sans effet de jeu — sert à filtrer/traquer la carte (ex: à la conjuration)."},
+  {key:'debut', label:'Début', desc:"Étiquette de suivi sans effet de jeu — sert à filtrer/traquer la carte (ex: à la conjuration)."},
+  {key:'final', label:'Final', desc:"Étiquette de suivi sans effet de jeu — sert à filtrer/traquer la carte (ex: à la conjuration)."}
 ];
 
 /* ============================================================

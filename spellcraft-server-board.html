@@ -456,10 +456,17 @@ body.targeting *{cursor:crosshair !important;}
   #session-code-display{font-family:'Cinzel',serif;font-weight:700;color:var(--gold);font-size:18px;letter-spacing:3px;}
   #app-outer{display:none;}
   #app-outer.show{display:block;}
-  #chat-panel{position:absolute;bottom:100%;right:0;margin-bottom:50px;width:260px;background:var(--panel,#171325);border:1px solid #3a3260;border-radius:10px;padding:10px;font-family:'Inter',sans-serif;z-index:50;display:none;}
-  #chat-panel.show{display:block;}
-  #chat-log{font-size:11px;color:#c8beb0;max-height:110px;overflow-y:auto;margin-bottom:6px;}
-  #chat-panel input{width:100%;box-sizing:border-box;background:#0b0a12;border:1px solid #3a3260;color:#efe6c8;border-radius:6px;padding:6px 8px;font-size:11.5px;}
+  #emote-panel{position:absolute;bottom:100%;right:0;margin-bottom:50px;width:220px;background:var(--panel,#171325);border:1px solid #3a3260;border-radius:10px;padding:10px;font-family:'Inter',sans-serif;z-index:50;display:none;}
+  #emote-panel.show{display:block;}
+  #emote-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+  #emote-grid img{width:44px;height:44px;border-radius:8px;object-fit:cover;cursor:pointer;border:2px solid transparent;background:#0b0a12;}
+  #emote-grid img:hover{border-color:#d4af37;}
+  #emote-grid .emote-empty{grid-column:1/-1;font-size:11px;color:#8a7f6a;text-align:center;padding:8px 0;}
+  .emote-bubble{position:absolute;z-index:60;background:rgba(23,19,37,.95);border:2px solid #d4af37;border-radius:12px;padding:6px;
+    animation:emote-pop .25s ease, emote-fade .4s ease 2.2s forwards;pointer-events:none;}
+  .emote-bubble img{width:56px;height:56px;border-radius:8px;display:block;}
+  @keyframes emote-pop{from{transform:scale(0.4);opacity:0;}to{transform:scale(1);opacity:1;}}
+  @keyframes emote-fade{to{opacity:0;}}
   #debug-log{position:fixed;bottom:10px;left:10px;width:300px;max-height:150px;overflow-y:auto;background:rgba(11,10,18,.9);border:1px solid #3a3260;border-radius:8px;padding:8px;font-size:10.5px;color:#9d92b0;z-index:50;font-family:monospace;}
   .log-error{color:#c23b3b;}
   .log-ok{color:#4a9d6b;}
@@ -512,8 +519,8 @@ body.targeting *{cursor:crosshair !important;}
   /* ---------- Menus repliables (journal / chat) ---------- */
   .phase-bar-wrap{position:relative;}
   .menu-toggles-row{position:absolute;bottom:100%;right:0;margin-bottom:6px;display:flex;gap:6px;}
-  #chat-toggle-btn, #journal-toggle-btn, #leave-game-btn{width:44px;height:36px;border-radius:10px;background:rgba(23,19,37,.85);border:2px solid rgba(212,175,55,.45);color:#f2ead2;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
-  #chat-toggle-btn:hover, #journal-toggle-btn:hover, #leave-game-btn:hover{border-color:#d4af37;}
+  #emote-toggle-btn, #journal-toggle-btn, #leave-game-btn{width:44px;height:36px;border-radius:10px;background:rgba(23,19,37,.85);border:2px solid rgba(212,175,55,.45);color:#f2ead2;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
+  #emote-toggle-btn:hover, #journal-toggle-btn:hover, #leave-game-btn:hover{border-color:#d4af37;}
   #leave-game-btn:hover{border-color:var(--blood);}
   #journal-panel{position:fixed;bottom:20px;right:20px;width:320px;max-height:45vh;background:var(--bg-panel);border:1px solid #3a3260;border-radius:12px;padding:12px;z-index:99997;display:none;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,.6);}
   #journal-panel.show{display:flex;}
@@ -551,7 +558,7 @@ body.targeting *{cursor:crosshair !important;}
           <div id="turn-timer"></div>
           <div class="phase-bar-wrap">
             <div class="menu-toggles-row">
-              <button id="chat-toggle-btn" title="Chat" onclick="toggleChat()">💬</button>
+              <button id="emote-toggle-btn" title="Émotes" onclick="toggleEmotePanel()">😄</button>
               <button id="journal-toggle-btn" title="Journal" onclick="toggleJournal()">📜</button>
               <button id="leave-game-btn" title="Quitter la partie" onclick="uiLeaveGame()">🚪</button>
             </div>
@@ -559,9 +566,8 @@ body.targeting *{cursor:crosshair !important;}
               <h3>Journal <span class="close-journal-btn" onclick="toggleJournal()">✕</span></h3>
               <div id="log"></div>
             </div>
-            <div id="chat-panel">
-              <div id="chat-log"></div>
-              <input id="chat-input" placeholder="Message..." onkeydown="if(event.key==='Enter') uiSendChat()">
+            <div id="emote-panel">
+              <div id="emote-grid"></div>
             </div>
             <div class="phase-bar" id="phase-bar"></div>
           </div>
@@ -624,13 +630,15 @@ const KEYWORD_ICON_FILES = {
   lifesteal:'kw-volDeVie.png', initiative:'kw-initiative.png', armor:'kw-armure.png',
   stealth:'kw-furtif.png', relentless:'kw-tenace.png', fearful:'kw-peureux.png',
   protecteur:'kw-protecteur.png', toxic:'kw-toxique.png',
-  discret:'kw-discret.png', imparable:'kw-imparable.png', fugace:'kw-fugace.png'
+  discret:'kw-discret.png', imparable:'kw-imparable.png', fugace:'kw-fugace.png',
+  assault:'kw-assault.png', debut:'kw-debut.png', final:'kw-final.png'
 };
 const KEYWORD_LABELS = {
   charge:'Charge', flying:'Vol', reach:'Portée', pierce:'Perçant', lifesteal:'Vol de vie',
   initiative:'Initiative', armor:'Armure', stealth:'Furtif', relentless:'Tenace',
   fearful:'Peureux', protecteur:'Protecteur', toxic:'Toxique',
-  discret:'Discret', imparable:'Imparable', fugace:'Fugace'
+  discret:'Discret', imparable:'Imparable', fugace:'Fugace',
+  assault:'Assault', debut:'Début', final:'Final'
 };
 function escapeHtmlGS(s){ return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
@@ -753,7 +761,7 @@ function afterConnected(code){
   document.getElementById('ai-debug-btn').style.display = 'block';
   MY_KEY = GS_ROLE === 'p2' ? 'p2' : 'p1';
   OPP_KEY = MY_KEY === 'p1' ? 'p2' : 'p1';
-  gsConnect(onStateUpdate, onChatMessage);
+  gsConnect(onStateUpdate, onEmoteMessage);
   debugLog('Connecté (rôle : ' + GS_ROLE + ')', 'log-ok');
   gsFetchState().then(res=>{
     if(res.error){ debugLog('État initial → ' + res.error, 'log-error'); return; }
@@ -2093,8 +2101,53 @@ function uiLeaveGame(){
   gsDisconnect();
   window.location.href = 'spellcraft-lobby.html';
 }
-function toggleChat(){
-  document.getElementById('chat-panel').classList.toggle('show');
+function toggleEmotePanel(){
+  const panel = document.getElementById('emote-panel');
+  const willShow = !panel.classList.contains('show');
+  panel.classList.toggle('show');
+  if(willShow) renderEmoteGrid();
+}
+function renderEmoteGrid(){
+  const grid = document.getElementById('emote-grid');
+  const hero = S && S[MY_KEY] && S[MY_KEY].hero;
+  const emotes = (hero && hero.emotes) || [];
+  if(emotes.length===0){
+    grid.innerHTML = `<div class="emote-empty">Ce héros n'a pas d'émotes configurées.</div>`;
+    return;
+  }
+  grid.innerHTML = '';
+  emotes.forEach(em=>{
+    const img = document.createElement('img');
+    img.src = em.image; img.title = em.label || '';
+    img.onclick = ()=>{ uiSendEmote(em); document.getElementById('emote-panel').classList.remove('show'); };
+    grid.appendChild(img);
+  });
+}
+async function uiSendEmote(emote){
+  const res = await gsSendEmote(emote.image, emote.label||'');
+  if(res && res.error) debugLog('Émote → ' + res.error, 'log-error');
+}
+// Reçue via le même canal temps réel que l'ancien chat (game_chat_messages)
+// — le "message" transporte directement l'image et l'info-bulle de
+// l'émote plutôt qu'un texte libre, pas de nouvelle table nécessaire.
+function onEmoteMessage(msg){
+  let payload;
+  try{ payload = JSON.parse(msg.message); }catch(e){ return; }
+  const senderKey = msg.sender_name === 'p1' || msg.sender_name === 'p2' ? msg.sender_name : null;
+  const anchorId = senderKey===MY_KEY ? `hero-frame-${MY_KEY}` : `hero-frame-${OPP_KEY}`;
+  const anchor = document.getElementById(anchorId);
+  if(!anchor) return;
+  const rect = anchor.getBoundingClientRect();
+  const bubble = document.createElement('div');
+  bubble.className = 'emote-bubble';
+  bubble.style.left = (rect.left + rect.width/2 - 34) + 'px';
+  bubble.style.top = (rect.top - 70) + 'px';
+  bubble.innerHTML = `<img src="${payload.image}" title="${escapeHtmlBoard(payload.label||'')}">`;
+  document.body.appendChild(bubble);
+  setTimeout(()=>bubble.remove(), 2700);
+}
+function escapeHtmlBoard(s){
+  return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
 // ---------------- Défausse ----------------
@@ -2244,23 +2297,7 @@ async function uiFinishBlocking(){
 }
 async function uiProcessAi(){ await runAction('Tour IA', ()=>gsProcessAiTurn()); }
 
-// ---------------- Chat ----------------
 
-function onChatMessage(msg){
-  const el = document.getElementById('chat-log');
-  const line = document.createElement('div');
-  line.textContent = `${msg.sender_name}${msg.is_spectator?' (spectateur)':''} : ${msg.message}`;
-  el.appendChild(line);
-  el.scrollTop = el.scrollHeight;
-}
-async function uiSendChat(){
-  const input = document.getElementById('chat-input');
-  if(!input.value.trim()) return;
-  const user = await scGetCurrentUser();
-  const res = await gsSendChatMessage(input.value, user ? user.email : 'Testeur');
-  if(res.error) debugLog('Chat → ' + res.error, 'log-error');
-  input.value = '';
-}
 
 // Arrivée depuis spellcraft-lobby.html — la sélection de deck et la
 // création/jointe de partie sont maintenant sur cette page séparée. Le
