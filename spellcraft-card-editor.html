@@ -2518,6 +2518,8 @@ function buildEffectRow(ab, eff, choiceKey){
         inp.type='text'; inp.value=eff.discoverSubtype||''; inp.placeholder='Ex : Elfe';
         inp.oninput=()=>{ eff.discoverSubtype=inp.value; onFormChange(); };
         f.appendChild(inp); row.appendChild(f);
+      } else if(dCritDef.valueType==='keyword'){
+        row.appendChild(makeSelectField('Mot-clé', KEYWORDS.map(k=>({key:k.key,label:k.label})), eff.discoverKeyword, v=>{ eff.discoverKeyword=v; onFormChange(); }));
       } else if(dCritDef.valueType==='specificName'){
         const f = document.createElement('div');
         f.className='field'; f.innerHTML=`<label class="mini-field">Nom exact de la carte</label>`;
