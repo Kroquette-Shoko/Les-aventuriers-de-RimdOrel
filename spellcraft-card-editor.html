@@ -844,6 +844,8 @@ const EFFECT_TYPES = [
   {key:'reviveDestroyedLastTurn', label:'Renvoie en jeu une créature détruite au tour précédent', needsTarget:true, needsValue:false},
   {key:'stealCard', label:"Vole une carte à un adversaire (main → votre main)", needsTarget:true, needsValue:false},
   {key:'stealCreature', label:"Vole une créature en jeu et la passe de votre côté", needsTarget:true, needsValue:false},
+  {key:'doubleEffectsTrigger', label:'Double les effets déclenchés par (capacité continue)', needsTarget:false, needsValue:false, isDoubleTrigger:true},
+  {key:'doubleTrigger', label:'Double les déclencheurs de [X] (pour le reste de la partie)', needsTarget:false, needsValue:false, isDoubleTrigger:true},
   {key:'halveLife', label:'Divise la vie du joueur en deux', needsTarget:false, needsValue:false, isHalveLife:true},
   {key:'custom', label:'⚠ Effet personnalisé (texte libre)', needsTarget:false, needsValue:false}
 ];
@@ -2606,6 +2608,10 @@ function buildEffectRow(ab, eff, choiceKey){
   if(def.isHalveLife){
     row.appendChild(makeSelectField('Qui', [{key:'self',label:'Vous'},{key:'enemy',label:"L'adversaire"}], eff.halveLifeOwner||'enemy', v=>{ eff.halveLifeOwner=v; onFormChange(); }));
   }
+  if(def.isDoubleTrigger){
+    const trigOptions = Object.keys(TRIGGER_TEXT).map(k=>({key:k, label: TRIGGER_SHORT_NAME[k] ? `${TRIGGER_SHORT_NAME[k]} — ${TRIGGER_TEXT[k]}` : TRIGGER_TEXT[k]}));
+    row.appendChild(makeSelectField('Déclencheur doublé', trigOptions, eff.doubleTriggerName||trigOptions[0]?.key, v=>{ eff.doubleTriggerName=v; onFormChange(); }));
+  }
   if(def.isAmplify){
     row.appendChild(makeSelectField('Catégorie', [
       {key:'directDamage', label:'Dégâts directs (hors combat)'},
@@ -3059,6 +3065,10 @@ function buildEffectClause(eff, ab){
       return `volez ${targetPhrase(resolvedTarget)} et ajoutez-la à votre main`;
     case 'stealCreature':
       return `volez ${targetPhrase(resolvedTarget)} et faites-la passer de votre côté`;
+    case 'doubleEffectsTrigger': {
+      const trigLabel = TRIGGER_SHORT_NAME[eff.doubleTriggerName] ? `${TRIGGER_SHORT_NAME[eff.doubleTriggerName]} — ${TRIGGER_TEXT[eff.doubleTriggerName]}` : (TRIGGER_TEXT[eff.doubleTriggerName] || '?');
+      return `double les effets déclenchés par « ${trigLabel} » sur cette carte`;
+    }
     case 'stun':
       return `étourdissez ${targetPhrase(resolvedTarget)} (elle ne peut ni attaquer ni bloquer lors de son prochain tour)`;
     case 'grantMana': {
