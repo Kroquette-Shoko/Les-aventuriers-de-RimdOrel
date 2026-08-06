@@ -1717,6 +1717,7 @@ function onCardClick(card){
    CRAFT / DÉSASSEMBLAGE
    ============================================================ */
 const CRAFT_COST_BY_RARITY = { 'Commune':60, 'Rare':120, 'Épique':240, 'Mythique':500 };
+const GEM_NAMES = {Volonté:'Rubis', Aube:'Diamant', 'Crépuscule':'Obsidienne', Arcane:'Saphir', Prima:'Émeraude'};
 let craftModalCard = null;
 
 function showCraftModal(card){
@@ -1807,7 +1808,7 @@ function renderCraftAction(card){
     } else {
       const btn = document.createElement('button');
       btn.className = 'craft-btn craft-make';
-      btn.textContent = owned===0 ? `🔨 Fabriquer — ${cost} fragments (${card.class})` : `🔨 Fabriquer un ${owned+1}e exemplaire — ${cost} fragments (${card.class})`;
+      btn.textContent = owned===0 ? `🔨 Fabriquer — ${cost} fragments (${GEM_NAMES[card.class]||card.class})` : `🔨 Fabriquer un ${owned+1}e exemplaire — ${cost} fragments (${GEM_NAMES[card.class]||card.class})`;
       btn.onclick = ()=>doCraft(card.id, btn);
       box.appendChild(btn);
     }
@@ -1821,7 +1822,7 @@ function renderCraftAction(card){
   if(owned>=1 && card.rarity!=='Basique' && cost){
     const dbtn = document.createElement('button');
     dbtn.className = 'craft-btn craft-disenchant';
-    dbtn.textContent = `♻️ Désassembler — récupère ${Math.floor(cost/4)} fragments (${card.class})`;
+    dbtn.textContent = `♻️ Désassembler — récupère ${Math.floor(cost/4)} fragments (${GEM_NAMES[card.class]||card.class})`;
     dbtn.onclick = ()=>doDisenchant(card.id, dbtn);
     box.appendChild(dbtn);
   }
