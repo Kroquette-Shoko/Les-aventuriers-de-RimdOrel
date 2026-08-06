@@ -506,6 +506,11 @@ header .spacer{flex:1;}
           <div class="hint" style="margin-top:8px;">Pour une chance conditionnelle (ex : "à partir du tour X, Y% de chance de faire Z"), utilise une vraie capacité ci-dessous : déclencheur "Début de tour", avec les conditions "À partir du tour X" et "Vous avez X% de chance".</div>
         </div>
 
+        <div class="field">
+          <label>Lore <span class="hint" style="text-transform:none;letter-spacing:0;">— texte narratif affiché dans la fiche de craft, sans effet sur le jeu</span></label>
+          <textarea id="f-lore" placeholder="Ex : On raconte que cette lame fut forgée dans les cendres du dernier dragon d'Aube..." oninput="onFormChange()"></textarea>
+        </div>
+
         <div class="field" id="f-multiclass-wrap" style="display:none">
           <label>Règle de deck</label>
           <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;text-transform:none;letter-spacing:0;cursor:pointer;margin-bottom:8px;">
@@ -3536,6 +3541,7 @@ function readForm(){
       scope: document.getElementById('f-mc-scope').value
     },
     emotes: currentType==='Héros' ? JSON.parse(JSON.stringify(currentEmotes)) : [],
+    lore: document.getElementById('f-lore').value.trim(),
     manualText: manualMode,
     text: finalText
   };
@@ -3604,6 +3610,7 @@ function loadCardIntoForm(card){
   document.getElementById('f-mc-max').value = card.heroMultiClass?.maxCount ?? 6;
   document.getElementById('f-mc-scope').value = card.heroMultiClass?.scope || 'Toutes';
   document.getElementById('manual-text-box').value = card.text || '';
+  document.getElementById('f-lore').value = card.lore || '';
   if(currentType==='Héros') buildMcClassChips();
   currentEmotes = (card.emotes || []).map(e=>({...e}));
   renderEmotesList();
@@ -3832,7 +3839,7 @@ const NCLASS_TO_SLUG_NOACCENT = {
   'Aube':'aube', 'Crépuscule':'crepuscule', 'Volonté':'volonte', 'Prima':'prima', 'Arcane':'arcane', 'Neutre':'neutre'
 };
 const CARD_TYPE_TO_TEMPLATE_SLUG = {
-  'Créature':'creature', 'Artefact':'artefact', 'Sortilège':'spell', 'Piège':'trap'
+  'Créature':'creature', 'Artefact':'artefact', 'Sortilège':'spell', 'Piège':'trap', 'Région':'region'
 };
 function ncardRealPath(size, slug, cardClass, cardType){
   if(size==='big' && CARD_TYPE_TO_TEMPLATE_SLUG[cardType] && NCLASS_TO_SLUG_NOACCENT[cardClass]){
