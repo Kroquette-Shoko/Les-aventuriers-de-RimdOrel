@@ -128,7 +128,7 @@ async function loadUserProfile(){
   const user = await scGetCurrentUser();
   if(!user) return null;
   const { data, error } = await sb.from('profiles')
-    .select('currency, fragments_aube, fragments_crepuscule, fragments_volonte, fragments_prima, fragments_arcane, equipped_card_back_id')
+    .select('currency, fragments_aube, fragments_crepuscule, fragments_volonte, fragments_prima, fragments_arcane, fragments_opale, equipped_card_back_id')
     .eq('id', user.id).single();
   if(error){ console.error('Erreur de chargement du profil', error); return null; }
   return data;

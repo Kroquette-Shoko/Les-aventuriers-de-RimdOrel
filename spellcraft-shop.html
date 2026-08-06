@@ -44,6 +44,7 @@ header .spacer{flex:1;}
 .currency-chip.volonte .gem-icon{background-color:#c23b3b;-webkit-mask-image:url('images/gem-vol.png');mask-image:url('images/gem-vol.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;}
 .currency-chip.prima .gem-icon{background-color:#3fae5c;-webkit-mask-image:url('images/gem-prim.png');mask-image:url('images/gem-prim.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;}
 .currency-chip.arcane .gem-icon{background-color:#5b9bd5;-webkit-mask-image:url('images/gem-arc.png');mask-image:url('images/gem-arc.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;}
+.currency-chip.opale .gem-icon{background-image:url('images/gem-multi.png');background-size:contain;background-repeat:no-repeat;background-position:center;}
 .money-icon{width:30px;height:30px;display:inline-block;vertical-align:-8px;background-color:#f2c94c;-webkit-mask-image:url('images/money.png');mask-image:url('images/money.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;}
 .frag-toast-icon{width:30px;height:30px;vertical-align:-8px;margin-right:5px;}
 .frag-summary-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);opacity:0;transition:opacity .3s,transform .3s;background:rgba(15,12,20,.94);border:1px solid var(--gold);border-radius:12px;padding:12px 20px;z-index:200;display:flex;flex-direction:column;gap:5px;box-shadow:0 10px 30px rgba(0,0,0,.6);}
@@ -251,6 +252,7 @@ header .spacer{flex:1;}
     <div class="currency-chip volonte" title="Rubis (fragments Volonté)"><span class="gem-icon"></span> <span id="cur-volonte">–</span></div>
     <div class="currency-chip prima" title="Émeraude (fragments Prima)"><span class="gem-icon"></span> <span id="cur-prima">–</span></div>
     <div class="currency-chip arcane" title="Saphir (fragments Arcane)"><span class="gem-icon"></span> <span id="cur-arcane">–</span></div>
+    <div class="currency-chip opale" title="Opale (fragments des cartes bicolores)"><span class="gem-icon"></span> <span id="cur-opale">–</span></div>
   </div>
 
   <div id="vendor-area">
@@ -302,8 +304,8 @@ header .spacer{flex:1;}
 const RARITY_COLORS = {Basique:'#8a7f6a', Commune:'#c7c2b3', Rare:'#4fb3d9', Épique:'#7c5cff', Mythique:'#d4af37'};
 const BOOSTER_PRICE = 120;
 const SINGLE_CARD_PRICES = {Basique:20, Commune:50, Rare:150, 'Épique':250, 'Mythique':500};
-const GEM_NAMES = {Volonté:'Rubis', Aube:'Diamant', 'Crépuscule':'Obsidienne', Arcane:'Saphir', Prima:'Émeraude'};
-const GEM_ICON_FILES = {Volonté:'gem-vol.png', Aube:'gem-aub.png', 'Crépuscule':'gem-crep.png', Arcane:'gem-arc.png', Prima:'gem-prim.png'};
+const GEM_NAMES = {Volonté:'Rubis', Aube:'Diamant', 'Crépuscule':'Obsidienne', Arcane:'Saphir', Prima:'Émeraude', Opale:'Opale'};
+const GEM_ICON_FILES = {Volonté:'gem-vol.png', Aube:'gem-aub.png', 'Crépuscule':'gem-crep.png', Arcane:'gem-arc.png', Prima:'gem-prim.png', Opale:'gem-multi.png'};
 
 // Répliques d'accueil de Bruno — on en ajoutera d'autres plus tard, une est tirée au hasard à chaque visite.
 const BRUNO_LINES = [
@@ -352,6 +354,8 @@ async function refreshCurrency(){
   document.getElementById('cur-volonte').textContent = profile.fragments_volonte ?? 0;
   document.getElementById('cur-prima').textContent = profile.fragments_prima ?? 0;
   document.getElementById('cur-arcane').textContent = profile.fragments_arcane ?? 0;
+  const curOpale = document.getElementById('cur-opale');
+  if(curOpale) curOpale.textContent = profile.fragments_opale ?? 0;
 }
 
 async function renderBoosterShelf(){
