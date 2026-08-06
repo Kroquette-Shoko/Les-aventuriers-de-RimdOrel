@@ -224,8 +224,6 @@ header .spacer{flex:1;}
 .modal-box h2{font-family:'Cinzel',serif;color:var(--gold);margin:0 0 16px;text-align:center;}
 .reveal-grid{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:18px;}
 .reveal-card{width:110px;background:#f7f2e2;color:#231d33;border-radius:8px;padding:8px;text-align:center;box-shadow:0 8px 18px rgba(0,0,0,.5);position:relative;}
-.reveal-card .ncard{width:100% !important;height:133px !important;}
-.shop-item .ncard{width:100% !important;height:211px !important;}
 .reveal-card.fragments{background:var(--bg-panel-3);color:var(--parchment);}
 .reveal-card .rcard-name{font-family:'Cinzel',serif;font-weight:700;font-size:10.5px;margin-top:4px;}
 .reveal-card .rcard-rarity{font-size:9px;opacity:.7;}
@@ -395,11 +393,13 @@ async function renderSingleShelf(){
     const alreadyBought = boughtToday.has(c.id);
     const wrap = document.createElement('div');
     wrap.className = 'shop-item';
-    wrap.style.width = '150px';
+    wrap.style.width = '240px';
     const cardHolder = document.createElement('div');
-    cardHolder.style.cssText = 'display:flex;justify-content:center;width:100%;';
+    cardHolder.style.cssText = 'position:relative;width:210px;height:296px;overflow:hidden;';
     try {
       const cardEl = buildCardEl(full);
+      cardEl.style.transform = 'scale(0.7)';
+      cardEl.style.transformOrigin = 'top left';
       attachShopHoverPreview(cardEl, full);
       cardHolder.appendChild(cardEl);
     } catch(e) {
@@ -921,7 +921,13 @@ async function showRevealModal(title, items){
       full.foil = !!it.foil;
       slot.className = 'reveal-card';
       slot.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:4px;';
-      slot.appendChild(buildCardEl(full));
+      const revealHolder = document.createElement('div');
+      revealHolder.style.cssText = 'position:relative;width:110px;height:155px;overflow:hidden;';
+      const revealCardEl = buildCardEl(full);
+      revealCardEl.style.transform = 'scale(0.3667)';
+      revealCardEl.style.transformOrigin = 'top left';
+      revealHolder.appendChild(revealCardEl);
+      slot.appendChild(revealHolder);
       if(it.foil){
         const badge = document.createElement('div');
         badge.textContent = '✨ Foil';

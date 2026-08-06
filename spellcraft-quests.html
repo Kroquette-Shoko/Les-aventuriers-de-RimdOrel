@@ -56,39 +56,55 @@ main{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:26px;}
 #reward-card-preview img{width:220px;height:auto;border-radius:12px;box-shadow:0 16px 34px rgba(0,0,0,.65);border:2px solid var(--gold);}
 
 /* ---------- Rendu de carte (identique à la boutique) ---------- */
-.card{
-  --class-color: var(--grey, #8a7f6a);
-  width:130px;height:182px;background:#f7f2e2;color:#231d33;border-radius:10px;
-  position:relative;flex-shrink:0;border:3.5px solid var(--class-color);
-  box-shadow:0 4px 10px rgba(0,0,0,.5);display:flex;flex-direction:column;user-select:none;
-}
-.card.class-Aube{--class-color:#d4af37;}
-.card.class-Crépuscule{--class-color:#4b0082;}
-.card.class-Prima{--class-color:#228b22;}
-.card.class-Volonté{--class-color:#8b0000;}
-.card.class-Arcane{--class-color:#4682b4;}
-.card.class-Neutre{--class-color:#c0c0c0;}
-.card-art{position:relative;height:42%;background:linear-gradient(135deg,#c9bd93,#a89968);background-size:cover;background-position:center;flex-shrink:0;overflow:hidden;border-radius:7px 7px 0 0;}
-.card-mana{position:absolute;top:-8px;left:-8px;width:27px;height:27px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#6fd0ff,#155a94);border:2px solid #0c2b45;color:#fff;font-family:'Cinzel',serif;font-weight:700;font-size:11px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 7px rgba(0,0,0,.55);z-index:3;}
-.card-hero-hp{position:absolute;top:3px;right:4px;width:24px;height:24px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#7de08f,#1f7a3d);border:2px solid #0c3d1a;color:#fff;font-family:'Cinzel',serif;font-weight:700;font-size:10px;display:flex;align-items:center;justify-content:center;z-index:2;}
-.card-divider{height:5px;flex-shrink:0;background:var(--class-color);}
-.card-body{flex:1;padding:3px 6px 2px;display:flex;flex-direction:column;min-height:0;}
-.card-name{font-family:'Cinzel',serif;font-weight:700;font-size:8.6px;text-align:center;text-decoration:underline;text-underline-offset:2px;color:#1c1830;line-height:1.15;margin-bottom:3px;min-height:20px;}
-.card-text{font-size:6.3px;line-height:1.2;flex:1;color:#2a2338;overflow:hidden;white-space:pre-wrap;text-align:center;}
-.card-footer{height:24px;flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:space-between;padding:0 6px 3px;}
-.card-atk,.card-hp{width:20px;height:20px;border-radius:50%;background:#efe6c8;border:2px solid #1c1830;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:9.5px;}
-.card-atk{color:var(--blood);}
-.card-hp{color:var(--green);}
-.card-rarity-gem{position:absolute;left:50%;bottom:4px;transform:translateX(-50%) rotate(45deg);width:8px;height:8px;border:1.5px solid rgba(0,0,0,.35);box-shadow:0 0 4px currentColor;}
-.card-rarity-gem.rarity-Basique{background:#6b6558;color:#6b6558;}
-.card-rarity-gem.rarity-Commune{background:#c7c2b3;color:#c7c2b3;}
-.card-rarity-gem.rarity-Rare{background:#4fb3d9;color:#4fb3d9;}
-.card-rarity-gem.rarity-Épique{background:#7c5cff;color:#7c5cff;}
-.card-rarity-gem.rarity-Mythique{background:var(--gold);color:var(--gold);}
+.ncard{position:relative;flex-shrink:0;user-select:none;}
+.ncard img.nframe-layer{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5;}
+.ncard img.nframe-half-layer{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:6;}
+.ncard .nart-layer{position:absolute;background-size:cover;background-repeat:no-repeat;background-color:#3a3450;z-index:1;overflow:hidden;}
+.ncard .nstat-wrap{position:absolute;aspect-ratio:1/1;z-index:6;}
+.ncard .nstat-wrap img{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+.ncard .nstat-wrap .nstat-txt{position:absolute;inset:0;z-index:7;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.85);pointer-events:none;}
+.ncard .nname-wrap{position:absolute;z-index:7;display:flex;align-items:center;justify-content:center;}
+.ncard .nname-wrap img{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;}
+.ncard .nname-wrap .nname-text{position:relative;z-index:1;left:auto;right:auto;top:auto;transform:none;width:84%;max-width:84%;}
+.ncard .nname-text{position:absolute;z-index:8;text-align:center;font-family:'Cinzel',serif;font-weight:700;color:#2a1f10;text-shadow:0 1px 0 rgba(255,255,255,.25);pointer-events:none;overflow:hidden;white-space:nowrap;}
+.ncard .ncard-text{position:absolute;z-index:8;color:#2a2338;text-align:center;overflow:hidden;pointer-events:none;white-space:pre-wrap;}
+.ncard .nrarity-gem{position:absolute;z-index:8;aspect-ratio:231/297;}
+.ncard .ntypeline{position:absolute;left:50%;transform:translateX(-50%);z-index:9;text-align:center;color:#3a2f1f;font-style:italic;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ncard .nlegendary-gem{position:absolute;z-index:8;aspect-ratio:231/297;}
+
+.ncard.n-big{width:300px;height:423.2px;}
+.ncard.n-big .nart-layer{left:14.43%;top:10.23%;width:72.64%;height:47.63%;}
+.ncard.n-big .nstat-wrap.n-mana{left:-6.5%;top:-6.5%;width:25.5%;}
+.ncard.n-big .nstat-wrap.n-mana .nstat-txt{font-size:26px;}
+.ncard.n-big .nname-wrap{left:50%;top:45.3%;width:92%;aspect-ratio:663/202;transform:translateX(-50%);}
+.ncard.n-big .nname-wrap .nname-text{font-size:17px;transform:translateY(-13px);}
+.ncard.n-big .ncard-text{left:16%;top:65.79%;width:68%;height:27.5%;font-size:13.5px;line-height:1.32;padding-top:4px;}
+.ncard.n-big .nrarity-gem{left:50%;bottom:0.89%;width:12%;transform:translateX(-50%);}
+.ncard.n-big .ntypeline{bottom:11.63%;width:72%;font-size:10.5px;}
+.ncard.n-big .nlegendary-gem{left:50%;top:-3%;width:12%;transform:translateX(-50%);}
+.ncard.n-big .nstat-wrap.n-atk{left:3%;bottom:1%;width:26%;}
+.ncard.n-big .nstat-wrap.n-atk .nstat-txt{font-size:27px;}
+.ncard.n-big .nstat-wrap.n-end{right:3%;bottom:1%;width:26%;}
+.ncard.n-big .nstat-wrap.n-end .nstat-txt{font-size:27px;}
+.ncard.n-big .nstat-wrap.n-art{right:6%;bottom:5%;width:15%;}
+.ncard.n-big .nstat-wrap.n-art .nstat-txt{font-size:15px;}
+
+.ncard.n-small{width:240px;height:240px;}
+.ncard.n-small .nart-layer{left:20.47%;top:16.28%;width:58.05%;height:44.63%;}
+.ncard.n-small .nstat-wrap.n-mana{left:-1%;top:-3.5%;width:22%;}
+.ncard.n-small .nstat-wrap.n-mana .nstat-txt{font-size:16px;}
+.ncard.n-small .nname-text{left:50%;top:62%;width:76%;transform:translateX(-50%);font-size:14px;height:20px;}
+.ncard.n-small .ncard-text{display:none;}
+.ncard.n-small .nrarity-gem{left:50%;bottom:-0.5%;width:11%;transform:translateX(-50%);}
+.ncard.n-small .ntypeline{bottom:15%;width:64%;font-size:8.5px;}
+.ncard.n-small .nlegendary-gem{left:50%;top:-1%;width:11%;transform:translateX(-50%);}
+.ncard.n-small .nstat-wrap.n-atk{left:6%;bottom:5%;width:22%;}
+.ncard.n-small .nstat-wrap.n-atk .nstat-txt{font-size:19.5px;}
+.ncard.n-small .nstat-wrap.n-end{right:6%;bottom:5%;width:22%;}
 
 .reward-card-mini{width:44px;height:61.6px;overflow:hidden;position:relative;cursor:pointer;flex-shrink:0;border-radius:6px;}
-.reward-card-mini .card{position:absolute;top:0;left:0;transform:scale(0.338);transform-origin:top left;}
-#reward-card-preview .card{transform:scale(1.7);transform-origin:top left;box-shadow:0 16px 34px rgba(0,0,0,.65);}
+.reward-card-mini .ncard{position:absolute;top:0;left:0;transform:scale(0.1467);transform-origin:top left;}
+#reward-card-preview .ncard{box-shadow:0 16px 34px rgba(0,0,0,.65);}
 </style>
 </head>
 <body>
@@ -131,30 +147,170 @@ function escapeHtmlQuests(s){
   return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 }
 
-function buildCardEl(card){
-  const el = document.createElement('div');
-  el.className = `card class-${card.class||'Neutre'}`;
-  const artStyle = card.image ? `background-image:url('${card.image.replace(/'/g,"")}');` : '';
+const NCLASS_TO_SLUG_NOACCENT = {
+  'Aube':'aube', 'Crépuscule':'crepuscule', 'Volonté':'volonte', 'Prima':'prima', 'Arcane':'arcane', 'Neutre':'neutre'
+};
+const CARD_TYPE_TO_TEMPLATE_SLUG = {
+  'Créature':'creature', 'Artefact':'artefact', 'Sortilège':'spell', 'Piège':'trap'
+};
+function ncardRealPath(size, slug, cardClass, cardType){
+  if(size==='big' && CARD_TYPE_TO_TEMPLATE_SLUG[cardType] && NCLASS_TO_SLUG_NOACCENT[cardClass]){
+    return `images/card/big%20frame/${NCLASS_TO_SLUG_NOACCENT[cardClass]}-${CARD_TYPE_TO_TEMPLATE_SLUG[cardType]}-bigframe.png`;
+  }
+  const folder = size==='big' ? 'big%20frame' : 'small%20frame';
+  return `images/card/${folder}/${size}-${slug}.png`;
+}
+const NCLASS_TO_SLUG = {
+  'Aube':'aube', 'Crépuscule':'crepuscule', 'Volonté':'volonté',
+  'Prima':'prima', 'Arcane':'arcane', 'Neutre':'neutre'
+};
+const NRARITY_TO_SLUG = {
+  'Basique':'basique', 'Commune':'commun', 'Rare':'rare',
+  'Épique':'epique', 'Mythique':'mythique'
+};
+const HALF_FRAME_SLUG = {
+  'Aube':'aube', 'Crépuscule':'crepuscule', 'Volonté':'volonté', 'Prima':'prima', 'Arcane':'arcane'
+};
+function ncardHalfFramePath(size, classSecondary, cardType){
+  if(size==='big' && CARD_TYPE_TO_TEMPLATE_SLUG[cardType] && NCLASS_TO_SLUG_NOACCENT[classSecondary]){
+    return `images/card/big%20frame/${NCLASS_TO_SLUG_NOACCENT[classSecondary]}-${CARD_TYPE_TO_TEMPLATE_SLUG[cardType]}-bighalfframe.png`;
+  }
+  const slug = HALF_FRAME_SLUG[classSecondary];
+  if(!slug) return null;
+  const folder = size==='big' ? 'big%20frame' : 'small%20frame';
+  return `images/card/${folder}/${size}-half-${slug}.png`;
+}
+
+function nEl(tag, cls){ const e = document.createElement(tag); if(cls) e.className = cls; return e; }
+function nImg(src, cls){ const i = document.createElement('img'); i.src = src; if(cls) i.className = cls; return i; }
+
+function buildNewCardEl(card, size){
+  const root = nEl('div', `ncard n-${size}`);
+  const slug = NCLASS_TO_SLUG[card.class] || 'neutre';
   const isHero = card.type==='Héros';
   const isRegion = card.type==='Région';
   const hasMana = !isHero && !isRegion;
   const isCreature = card.type==='Créature';
-  el.innerHTML = `
-    ${hasMana ? `<div class="card-mana">${card.cost ?? 0}</div>` : ''}
-    <div class="card-art" style="${artStyle}">
-      ${isHero ? `<div class="card-hero-hp">${card.hp ?? 0}</div>` : ''}
-    </div>
-    <div class="card-divider"></div>
-    <div class="card-body">
-      <div class="card-name">${escapeHtmlQuests(card.name || '')}</div>
-      <div class="card-text">${escapeHtmlQuests(card.text || '')}</div>
-    </div>
-    <div class="card-footer">
-      ${isCreature ? `<div class="card-atk">⚔${card.atk ?? 0}</div>` : `<div></div>`}
-      <div class="card-rarity-gem rarity-${card.rarity||'Commune'}"></div>
-      ${isCreature ? `<div class="card-hp">♥${card.hp ?? 0}</div>` : `<div></div>`}
-    </div>
-  `;
+  const isArtifact = card.type==='Artefact';
+
+  const posX = size==='big' ? (card.imagePosX ?? 50) : (card.imagePosXSmall ?? 50);
+  const posY = size==='big' ? (card.imagePosY ?? 50) : (card.imagePosYSmall ?? 50);
+  const zoom = size==='big' ? (card.imageZoom ?? 100) : (card.imageZoomSmall ?? 100);
+  const art = nEl('div', 'nart-layer');
+  if(card.image){
+    art.style.backgroundImage = `url('${card.image.replace(/'/g,'')}')`;
+    art.style.backgroundPosition = `${posX}% ${posY}%`;
+    art.style.backgroundSize = zoom>100 ? zoom+'%' : 'cover';
+  }
+  root.appendChild(art);
+
+  root.appendChild(nImg(ncardRealPath(size, slug, card.class, card.type), 'nframe-layer'));
+  if(card.classSecondary){
+    const halfPath = ncardHalfFramePath(size, card.classSecondary, card.type);
+    if(halfPath) root.appendChild(nImg(halfPath, 'nframe-half-layer'));
+  }
+
+  if(hasMana){
+    const w = nEl('div','nstat-wrap n-mana');
+    w.appendChild(nImg('images/card/icon/bubble/mana.png'));
+    const t = nEl('div','nstat-txt'); t.textContent = card.cost ?? 0;
+    w.appendChild(t);
+    root.appendChild(w);
+  }
+  if(isCreature){
+    const wa = nEl('div','nstat-wrap n-atk');
+    wa.appendChild(nImg('images/card/icon/bubble/attack.png'));
+    const ta = nEl('div','nstat-txt'); ta.textContent = card.atk ?? 0;
+    wa.appendChild(ta);
+    root.appendChild(wa);
+
+    const we = nEl('div','nstat-wrap n-end');
+    we.appendChild(nImg('images/card/icon/bubble/endurance.png'));
+    const te = nEl('div','nstat-txt'); te.textContent = card.hp ?? 0;
+    we.appendChild(te);
+    root.appendChild(we);
+  }
+  if(isArtifact){
+    const wf = nEl('div','nstat-wrap n-art');
+    wf.appendChild(nImg('images/card/icon/bubble/artefact.png'));
+    const t = nEl('div','nstat-txt'); t.textContent = (card.charges ?? 0)+'x';
+    wf.appendChild(t);
+    root.appendChild(wf);
+  }
+
+  if(size==='big'){
+    const nw = nEl('div','nname-wrap');
+    nw.appendChild(nImg('images/card/icon/bubble/nom.png'));
+    const nameEl = nEl('div','nname-text'); nameEl.textContent = card.name || '';
+    applyNameSizing(nameEl, card, size);
+    nw.appendChild(nameEl);
+    root.appendChild(nw);
+  } else {
+    const nameEl = nEl('div','nname-text'); nameEl.textContent = card.name || '';
+    applyNameSizing(nameEl, card, size);
+    root.appendChild(nameEl);
+  }
+
+  if(size==='big'){
+    const textEl = nEl('div','ncard-text'); textEl.textContent = card.text || '';
+    root.appendChild(textEl);
+  }
+
+  if(card.subtypes && card.subtypes.length){
+    const tl = nEl('div','ntypeline'); tl.textContent = card.subtypes.join(' - ');
+    root.appendChild(tl);
+  }
+
+  if(card.rarity && NRARITY_TO_SLUG[card.rarity]){
+    root.appendChild(nImg(`images/card/icon/rare/${NRARITY_TO_SLUG[card.rarity]}.png`, 'nrarity-gem'));
+  }
+  if(card.isLegendary){
+    root.appendChild(nImg('images/card/icon/rare/legendaire.png', 'nlegendary-gem'));
+  }
+
+  return root;
+}
+
+function applyNameSizing(nameEl, card, size){
+  if(card.nameWrap){
+    nameEl.style.whiteSpace = 'normal';
+    nameEl.style.height = 'auto';
+    nameEl.style.overflow = 'visible';
+  }
+  if(card.nameFontAuto === false){
+    nameEl.dataset.auto = '0';
+    const scale = size==='small' ? (240/300) : 1;
+    nameEl.style.fontSize = ((card.nameFontSize || 14) * scale) + 'px';
+  } else {
+    nameEl.dataset.auto = '1';
+  }
+}
+function fitBoxFont(el, minSize){
+  if(!el) return;
+  el.style.fontSize = '';
+  let size = parseFloat(getComputedStyle(el).fontSize);
+  const floor = minSize || 7;
+  let attempts = 0;
+  while(attempts < 26 && size > floor){
+    const overflowH = el.scrollHeight > el.clientHeight + 1;
+    const overflowW = el.scrollWidth > el.clientWidth + 1;
+    if(!overflowH && !overflowW) break;
+    size -= 0.5;
+    el.style.fontSize = size + 'px';
+    attempts++;
+  }
+}
+function fitNewCard(rootEl){
+  if(!rootEl) return;
+  const nameEl = rootEl.querySelector('.nname-text');
+  if(nameEl && nameEl.dataset.auto !== '0'){
+    fitBoxFont(nameEl, 6);
+  }
+  fitBoxFont(rootEl.querySelector('.ncard-text'), 7);
+}
+function buildCardEl(card){
+  const el = buildNewCardEl(card, 'big');
+  requestAnimationFrame(()=>fitNewCard(el));
   return el;
 }
 
