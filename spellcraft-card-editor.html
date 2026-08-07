@@ -850,6 +850,7 @@ const EFFECT_TYPES = [
   {key:'reviveDestroyedLastTurn', label:'Renvoie en jeu une créature détruite au tour précédent', needsTarget:true, needsValue:false},
   {key:'stealCard', label:"Vole une carte à un adversaire (main → votre main)", needsTarget:true, needsValue:false},
   {key:'stealCreature', label:"Vole une créature en jeu et la passe de votre côté", needsTarget:true, needsValue:false},
+  {key:'addCharges', label:"Ajoute des charges à un artefact ciblé", needsTarget:true, needsValue:true},
   {key:'doubleEffectsTrigger', label:'Double les effets déclenchés par (capacité continue)', needsTarget:false, needsValue:false, isDoubleTrigger:true},
   {key:'evolveTarget', label:'Fait évoluer la cible (bonus permanent et/ou nouveau mot-clé et/ou transformation)', needsTarget:true, needsValue:false, isEvolveTarget:true},
   {key:'doubleTrigger', label:'Double les déclencheurs de [X] (pour le reste de la partie)', needsTarget:false, needsValue:false, isDoubleTrigger:true},
@@ -3145,6 +3146,8 @@ function buildEffectClause(eff, ab){
       return `volez ${targetPhrase(resolvedTarget)} et ajoutez-la à votre main`;
     case 'stealCreature':
       return `volez ${targetPhrase(resolvedTarget)} et faites-la passer de votre côté`;
+    case 'addCharges':
+      return `ajoutez ${valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic')} charge(s) à ${targetPhrase(resolvedTarget)}`;
     case 'doubleEffectsTrigger': {
       const trigLabel = TRIGGER_SHORT_NAME[eff.doubleTriggerName] ? `${TRIGGER_SHORT_NAME[eff.doubleTriggerName]} — ${TRIGGER_TEXT[eff.doubleTriggerName]}` : (TRIGGER_TEXT[eff.doubleTriggerName] || '?');
       return `double les effets déclenchés par « ${trigLabel} » sur cette carte`;
