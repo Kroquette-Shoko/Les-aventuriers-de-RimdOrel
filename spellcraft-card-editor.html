@@ -909,6 +909,7 @@ const TARGET_CATEGORIES = [
   {key:'card_in_discard', label:'Carte en défausse'},
   {key:'destroyed_last_turn', label:'Créature détruite au tour précédent'},
   {key:'next_played_card', label:'La prochaine carte que vous jouerez (effet différé)'},
+  {key:'conjuration_by_name', label:'Une carte de conjuration précise, par son nom (améliore toutes ses copies : main, jeu, futures conjurations)'},
   {key:'card_in_deck', label:'Carte dans le deck'}
 ];
 const TARGET_OWNERS = [
@@ -1508,6 +1509,19 @@ function buildTargetsSectionUI(ab, targetsArray, choiceKey, heading){
       const note = document.createElement('div');
       note.style.cssText = 'font-size:10.5px;color:var(--parchment-dim);margin-top:2px;';
       note.textContent = "L'effet reste en attente jusqu'à ce que vous jouiez une carte de ce type — même après la fin du tour, tant que la partie continue.";
+      trow.appendChild(note);
+    }
+
+    if(tgt.targetCategory==='conjuration_by_name'){
+      const nameField = document.createElement('div');
+      nameField.className='field';
+      nameField.innerHTML = `<label class="mini-field">Nom exact de la carte de conjuration</label>
+        <input type="text" id="conjname-${tgt.id}" value="${escapeHtml(tgt.conjurationCardName||'')}" placeholder="Ex : Esprit invoqué">`;
+      nameField.querySelector('input').oninput=(e)=>{ tgt.conjurationCardName=e.target.value; onFormChange(); };
+      trow.appendChild(nameField);
+      const note = document.createElement('div');
+      note.style.cssText = 'font-size:10.5px;color:var(--parchment-dim);margin-top:2px;';
+      note.textContent = "L'amélioration s'applique immédiatement à toutes les copies déjà en main ou en jeu, et à toutes les copies conjurées à l'avenir — pas seulement à celle-ci.";
       trow.appendChild(note);
     }
 
@@ -2918,8 +2932,8 @@ function targetPhrase(t){
     if(t.targetOwner==='random') return 'un joueur tiré au hasard';
     return t.targetOwner==='enemy' ? 'votre adversaire' : 'vous';
   }
-  const nounSing = {creature:'créature', hero_creature:'héros ou créature', artifact:'artefact', card_in_hand:'carte en main', card_in_discard:'carte en défausse', card_in_deck:'carte du deck', destroyed_last_turn:'créature détruite au tour précédent', next_played_card:'prochaine carte jouée'}[t.targetCategory] || 'cible';
-  const nounPlur = {creature:'créatures', hero_creature:'héros ou créatures', artifact:'artefacts', card_in_hand:'cartes en main', card_in_discard:'cartes en défausse', card_in_deck:'cartes du deck', destroyed_last_turn:'créatures détruites au tour précédent', next_played_card:'prochaines cartes jouées'}[t.targetCategory] || 'cibles';
+  const nounSing = {creature:'créature', hero_creature:'héros ou créature', artifact:'artefact', card_in_hand:'carte en main', card_in_discard:'carte en défausse', card_in_deck:'carte du deck', destroyed_last_turn:'créature détruite au tour précédent', next_played_card:'prochaine carte jouée', conjuration_by_name:'carte de conjuration'}[t.targetCategory] || 'cible';
+  const nounPlur = {creature:'créatures', hero_creature:'héros ou créatures', artifact:'artefacts', card_in_hand:'cartes en main', card_in_discard:'cartes en défausse', card_in_deck:'cartes du deck', destroyed_last_turn:'créatures détruites au tour précédent', next_played_card:'prochaines cartes jouées', conjuration_by_name:'cartes de conjuration'}[t.targetCategory] || 'cibles';
   const adjSing = {ally:'alliée', enemy:'ennemie', any:'', random:''}[t.targetOwner] || '';
   const adjPlur = {ally:'alliées', enemy:'ennemies', any:'', random:''}[t.targetOwner] || '';
   const randomOwnerPrefix = t.targetOwner==='random' ? "(camp tiré au hasard) " : '';
