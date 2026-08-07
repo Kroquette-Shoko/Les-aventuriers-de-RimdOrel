@@ -294,7 +294,7 @@ header .spacer{flex:1;}
     <h2 id="reveal-title">Résultat</h2>
     <div class="reveal-grid" id="reveal-grid"></div>
     <div class="modal-actions">
-      <button onclick="closeModal('reveal-modal')">Fermer</button>
+      <button id="reveal-close-btn" onclick="closeModal('reveal-modal')">Fermer</button>
     </div>
   </div>
 </div>
@@ -778,6 +778,7 @@ async function showMyBoostersModal(){
   if(!user){ list.innerHTML = `<div class="empty-shelf">Connecte-toi pour voir tes boosters.</div>`; openModal('my-boosters-modal'); return; }
   list.innerHTML = `<div class="empty-shelf">Chargement...</div>`;
   openModal('my-boosters-modal');
+  flashBoosterInventoryBadge();
   const { data, error } = await sb.rpc('get_user_boosters');
   if(error || data.error || !data.boosters || data.boosters.length===0){
     list.innerHTML = `<div class="empty-shelf">Tu n'as aucun booster en réserve — achète-en un dans la boutique !</div>`;
@@ -792,9 +793,39 @@ async function showMyBoostersModal(){
       <div class="mb-name">${escapeHtmlShop(b.name)}</div>
       <div class="mb-qty">x${b.quantity}</div>
       <button class="buy-btn" onclick="openBoosterFromInventory('${b.booster_id}', ${b.image_url?`'${b.image_url}'`:'null'})">Ouvrir</button>
+      ${b.quantity>1 ? `
+        <div class="booster-qty-row">
+          <button class="qty-btn" onclick="adjustBulkQty('${b.booster_id}', -1, ${b.quantity})">−</button>
+          <span id="bulkqty-${b.booster_id}">${Math.min(5,b.quantity)}</span>
+          <button class="qty-btn" onclick="adjustBulkQty('${b.booster_id}', 1, ${b.quantity})">+</button>
+        </div>
+        <button class="buy-btn" onclick="openBoostersBulk('${b.booster_id}')">Ouvrir en groupe</button>
+      ` : ''}
     `;
     list.appendChild(row);
   });
+}
+function adjustBulkQty(boosterId, delta, max){
+  const el = document.getElementById('bulkqty-'+boosterId);
+  const next = Math.max(2, Math.min(max, (parseInt(el.textContent)||2) + delta));
+  el.textContent = next;
+}
+async function openBoostersBulk(boosterId){
+  const qtyEl = document.getElementById('bulkqty-'+boosterId);
+  const quantity = qtyEl ? (parseInt(qtyEl.textContent)||2) : 2;
+  const { data, error } = await sb.rpc('open_boosters_bulk', { p_booster_id: boosterId, p_quantity: quantity });
+  if(error){ alert('Erreur : ' + error.message); return; }
+  if(data.error){ alert(shopErrorMessage(data.error)); return; }
+  if(typeof progressQuest==='function'){
+    for(let i=0;i<quantity;i++){ progressQuest('open_boosters'); progressQuest('open_boosters_total'); }
+  }
+  closeModal('my-boosters-modal');
+  const items = data.cards.map(c => c.result==='fragments' ? { ...c, fragments: true } : c);
+  await showRevealModal(`${quantity} boosters ouverts !`, items);
+  sb.rpc('progress_collection_achievements').catch(()=>{});
+  flashBoosterInventoryBadge();
+  const closeBtn = document.getElementById('reveal-close-btn');
+  closeBtn.onclick = ()=>{ closeModal('reveal-modal'); showMyBoostersModal(); closeBtn.onclick = ()=>closeModal('reveal-modal'); };
 }
 
 async function openBoosterFromInventory(boosterId, boosterImageUrl){
@@ -912,6 +943,7 @@ function closeBoosterOpening(){
   showFragmentSummaryToast(lastBoosterResult);
   lastBoosterResult = null;
   sb.rpc('progress_collection_achievements').catch(()=>{});
+  showMyBoostersModal();
 }
 
 // Résumé persistant (par classe) des fragments obtenus dans ce booster, affiché
@@ -996,10 +1028,12 @@ async function showRevealModal(title, items){
     const slot = document.createElement('div');
     if(it.fragments){
       slot.className = 'reveal-card fragments';
+      const fragDetail = it.fragment_amount ? `+${it.fragment_amount} ${(it.fragment_classes||[]).map(c=>GEM_NAMES[c]||c).join(' + ')}` : '';
       slot.innerHTML = `
         <div style="font-size:26px;">✨</div>
         <div class="rcard-name">${escapeHtmlShop(it.name)}</div>
         <div class="rcard-rarity">Déjà au maximum — fragments obtenus</div>
+        ${fragDetail ? `<div class="rcard-rarity">${fragDetail}</div>` : ''}
       `;
     } else {
       const full = fullCards[it.card_id] || { name: it.name, rarity: it.rarity };
