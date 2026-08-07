@@ -203,7 +203,7 @@ header .spacer{flex:1;}
 #pack-hint{color:var(--parchment-dim);font-family:'Cinzel',serif;font-size:13px;letter-spacing:.5px;}
 #pack-burst{position:absolute;inset:0;pointer-events:none;}
 
-#cards-stage{display:none;gap:16px;flex-wrap:wrap;justify-content:center;max-width:900px;}
+#cards-stage{display:none;gap:16px;flex-wrap:wrap;justify-content:center;max-width:900px;max-height:78vh;overflow-y:auto;padding:8px;}
 #cards-stage.show{display:flex;}
 .flip-card{width:260px;height:366px;perspective:1200px;cursor:pointer;opacity:0;transform:translateY(30px) scale(.7);transition:opacity .4s ease, transform .4s ease;position:relative;}
 .flip-card.dealt{opacity:1;transform:translateY(0) scale(1);}
@@ -799,7 +799,7 @@ async function showMyBoostersModal(){
           <span id="bulkqty-${b.booster_id}">${Math.min(5,b.quantity)}</span>
           <button class="qty-btn" onclick="adjustBulkQty('${b.booster_id}', 1, ${b.quantity})">+</button>
         </div>
-        <button class="buy-btn" onclick="openBoostersBulk('${b.booster_id}')">Ouvrir en groupe</button>
+        <button class="buy-btn" onclick="openBoostersBulk('${b.booster_id}', ${b.image_url?`'${b.image_url}'`:'null'})">Ouvrir en groupe</button>
       ` : ''}
     `;
     list.appendChild(row);
@@ -810,7 +810,7 @@ function adjustBulkQty(boosterId, delta, max){
   const next = Math.max(2, Math.min(max, (parseInt(el.textContent)||2) + delta));
   el.textContent = next;
 }
-async function openBoostersBulk(boosterId){
+async function openBoostersBulk(boosterId, boosterImageUrl){
   const qtyEl = document.getElementById('bulkqty-'+boosterId);
   const quantity = qtyEl ? (parseInt(qtyEl.textContent)||2) : 2;
   const { data, error } = await sb.rpc('open_boosters_bulk', { p_booster_id: boosterId, p_quantity: quantity });
@@ -820,12 +820,8 @@ async function openBoostersBulk(boosterId){
     for(let i=0;i<quantity;i++){ progressQuest('open_boosters'); progressQuest('open_boosters_total'); }
   }
   closeModal('my-boosters-modal');
-  const items = data.cards.map(c => c.result==='fragments' ? { ...c, fragments: true } : c);
-  await showRevealModal(`${quantity} boosters ouverts !`, items);
-  sb.rpc('progress_collection_achievements').catch(()=>{});
+  await openBoosterAnimation(boosterImageUrl, data.cards);
   flashBoosterInventoryBadge();
-  const closeBtn = document.getElementById('reveal-close-btn');
-  closeBtn.onclick = ()=>{ closeModal('reveal-modal'); showMyBoostersModal(); closeBtn.onclick = ()=>closeModal('reveal-modal'); };
 }
 
 async function openBoosterFromInventory(boosterId, boosterImageUrl){
