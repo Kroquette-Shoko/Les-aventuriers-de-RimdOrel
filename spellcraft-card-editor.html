@@ -2610,12 +2610,29 @@ function buildEffectRow(ab, eff, choiceKey){
     row.appendChild(makeSelectField('Mot-clé retiré', KEYWORDS.map(k=>({key:k.key,label:k.label})), eff.removeKeywordKey||KEYWORDS[0].key, v=>{ eff.removeKeywordKey=v; onFormChange(); }));
   }
   if(def.isTransform){
-    row.appendChild(makeSelectField('En quoi', [{key:'specific',label:'Une carte précise'},{key:'criteria',label:'Une carte selon critères (aléatoire)'}], eff.transformMode||'specific', v=>{ eff.transformMode=v; rebuildAbilitiesUI(); onFormChange(); }));
+    row.appendChild(makeSelectField('En quoi', [{key:'specific',label:'Une carte précise'},{key:'criteria',label:'Une carte selon critères (aléatoire)'},{key:'another_target',label:'La carte visée par une autre cible de cette capacité'}], eff.transformMode||'specific', v=>{ eff.transformMode=v; rebuildAbilitiesUI(); onFormChange(); }));
     if((eff.transformMode||'specific')==='specific'){
       const nf = document.createElement('div'); nf.className='field';
       nf.innerHTML = `<label class="mini-field">Nom exact de la carte</label>`;
       const ni = document.createElement('input'); ni.type='text'; ni.setAttribute('list','card-name-suggestions'); ni.value=eff.transformSpecificName||''; ni.placeholder='Nom exact';
       ni.oninput=()=>{ eff.transformSpecificName=ni.value; onFormChange(); }; nf.appendChild(ni); row.appendChild(nf);
+    } else if(eff.transformMode==='another_target'){
+      const otherTargets = (ab.targets||[]).filter(t=>t.id!==eff.usesTarget);
+      if(otherTargets.length>0){
+        const opts = otherTargets.map((t,i)=>({key:t.id, label:`Cible ${String.fromCharCode(65+(ab.targets||[]).indexOf(t))}`}));
+        if(!eff.transformSourceTargetId || !otherTargets.some(t=>t.id===eff.transformSourceTargetId)) eff.transformSourceTargetId = otherTargets[0].id;
+        row.appendChild(makeSelectField('Se transforme en la carte visée par', opts, eff.transformSourceTargetId, v=>{ eff.transformSourceTargetId=v; onFormChange(); }));
+      } else {
+        const warn = document.createElement('div');
+        warn.style.cssText = 'font-size:11px;color:#e88;margin-top:4px;';
+        warn.textContent = "Il faut une seconde cible dans cette capacité pour désigner la carte à copier.";
+        row.appendChild(warn);
+        const addBtn = document.createElement('button');
+        addBtn.type='button'; addBtn.className='add-row-btn';
+        addBtn.textContent = '+ Ajouter une cible pour "se transforme en"';
+        addBtn.onclick = ()=>{ addTargetEntry(ab.id, choiceKey); };
+        row.appendChild(addBtn);
+      }
     } else {
       row.appendChild(makeSelectField('Type de carte', [{key:'Créature',label:'Créature'},{key:'Artefact',label:'Artefact'}], eff.transformCardType||'Créature', v=>{ eff.transformCardType=v; onFormChange(); }));
       const sf = document.createElement('div'); sf.className='field';
@@ -3103,7 +3120,9 @@ function buildEffectClause(eff, ab){
     case 'swapStats':
       return `échangez la Force et l'Endurance de ${targetPhrase(resolvedTarget)}`;
     case 'transformCard': {
-      const into = eff.transformMode==='specific' ? `"${eff.transformSpecificName||'?'}"` : `une carte ${eff.transformCardType||'Créature'}${eff.transformSubtype?` du sous-type ${eff.transformSubtype}`:''} aléatoire`;
+      const into = eff.transformMode==='specific' ? `"${eff.transformSpecificName||'?'}"`
+        : eff.transformMode==='another_target' ? `la carte visée par une autre cible de cette capacité`
+        : `une carte ${eff.transformCardType||'Créature'}${eff.transformSubtype?` du sous-type ${eff.transformSubtype}`:''} aléatoire`;
       return `transformez ${targetPhrase(resolvedTarget)} en ${into}`;
     }
     case 'manaTheft':
