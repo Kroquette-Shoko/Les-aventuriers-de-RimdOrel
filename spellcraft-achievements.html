@@ -43,7 +43,8 @@ a{color:var(--frost);}
 .empty-state{text-align:center;padding:60px 20px;color:var(--parchment-dim);}
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg-panel-3);
   border:1.5px solid var(--gold);border-radius:10px;padding:14px 20px;opacity:0;pointer-events:none;
-  transition:all .3s ease;z-index:99;text-align:center;font-family:'Cinzel',serif;font-size:13px;}
+  transition:all .3s ease;z-index:99;text-align:center;font-family:'Cinzel',serif;font-size:13px;
+  max-width:min(90vw,420px);}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 </style>
 </head>
@@ -118,10 +119,31 @@ function renderGrid(){
   }).join('');
 }
 
+const GEM_NAMES = {Volonté:'Rubis', Aube:'Diamant', 'Crépuscule':'Obsidienne', Arcane:'Saphir', Prima:'Émeraude', Opale:'Opale'};
+
+async function describeGrantedRewards(granted){
+  const parts = [];
+  for(const g of granted){
+    if(g.type==='gold') parts.push(`+${g.amount} pièces d'or`);
+    else if(g.type==='fragment') parts.push(`+${g.amount} fragments ${GEM_NAMES[g.class]||g.class}`);
+    else if(g.type==='booster') parts.push(`${g.count} booster${g.count>1?'s':''}`);
+    else if(g.type==='card'){
+      let name = 'une carte';
+      try{
+        const { data } = await sb.from('cards').select('data').eq('id', g.card_id).single();
+        if(data && data.data && data.data.name) name = `« ${data.data.name} »`;
+      }catch(e){}
+      parts.push(name);
+    }
+  }
+  return parts.length ? parts.join(', ') : 'aucune récompense';
+}
+
 async function claimAchievement(id){
   const { data, error } = await sb.rpc('claim_achievement_reward', { p_user_achievement_id: id });
   if(error || data.error){ showToast('Impossible de réclamer cette récompense.'); return; }
-  showToast('Récompense obtenue !');
+  const detail = await describeGrantedRewards(data.granted || []);
+  showToast(`Récompense obtenue : ${detail}`);
   await loadAchievements();
   sb.rpc('progress_collection_achievements').catch(()=>{});
 }
