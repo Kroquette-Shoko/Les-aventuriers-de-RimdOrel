@@ -676,7 +676,7 @@ function renderFilterPanel(){
     </div>
   `;
   fillCheckGroup('ff-types', CARD_TYPES.filter(t=>t!=='Héros'), filters.types);
-  fillCheckGroup('ff-classes', CLASSES, filters.classes);
+  fillCheckGroup('ff-classes', [...CLASSES.slice(0,5), 'Multiclasse', 'Neutre'], filters.classes);
   fillCheckGroup('ff-rarities', RARITIES, filters.rarities);
   fillCheckGroup('ff-keywords', KEYWORDS.map(k=>k.label), filters.keywords, KEYWORDS.map(k=>k.key));
 }
@@ -801,8 +801,16 @@ function getFilteredSortedCollection(){
     if(filters.oracleText && !(c.text||'').toLowerCase().includes(filters.oracleText)) return false;
     if(filters.setId && c.set!==filters.setId) return false;
     if(filters.classes.size){
-      if(filters.classMode==='all'){ if(!filters.classes.has(c.class)) return false; }
-      else { if(!filters.classes.has(c.class)) return false; }
+      const realClasses = [...filters.classes].filter(k=>k!=='Multiclasse');
+      const wantsMulti = filters.classes.has('Multiclasse');
+      const cardClasses = c.classSecondary ? [c.class, c.classSecondary] : [c.class];
+      let matches;
+      if(filters.classMode==='all'){
+        matches = realClasses.every(k=>cardClasses.includes(k)) && (!wantsMulti || !!c.classSecondary);
+      } else {
+        matches = realClasses.some(k=>cardClasses.includes(k)) || (wantsMulti && !!c.classSecondary);
+      }
+      if(!matches) return false;
     }
     if(filters.types.size && !filters.types.has(c.type)) return false;
     if(filters.rarities.size && !filters.rarities.has(c.rarity)) return false;
@@ -819,11 +827,18 @@ function getFilteredSortedCollection(){
   });
 
   const costOf = c => c.cost===null || c.cost===undefined ? -1 : c.cost;
+  // Ordre de tri par classe : les 5 couleurs, puis les cartes multiclasse
+  // (avec une classSecondary) groupées ensemble, puis Neutre en dernier.
+  const classSortBucket = c => {
+    if(c.classSecondary) return 5;
+    if(c.class==='Neutre') return 6;
+    const idx = CLASSES.indexOf(c.class);
+    return idx>=0 ? idx : 6;
+  };
   switch(sortMode){
     case 'class-cost-name': {
-      const classOrder = {}; CLASSES.forEach((c,i)=>{ classOrder[c]=i; });
       list.sort((a,b)=>
-        (classOrder[a.class]??99)-(classOrder[b.class]??99)
+        classSortBucket(a)-classSortBucket(b)
         || costOf(a)-costOf(b)
         || a.name.localeCompare(b.name)
       );
