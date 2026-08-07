@@ -76,15 +76,27 @@ header .spacer{flex:1;}
 .shelf-items{display:flex;gap:16px;flex-wrap:wrap;}
 
 .shop-item{
-  width:150px;background:var(--bg-panel-2);border:1px solid #3a3260;border-radius:10px;
+  width:240px;background:var(--bg-panel-2);border:1px solid #3a3260;border-radius:10px;
   padding:12px;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;
   transition:transform .15s ease, border-color .15s ease;
 }
 .shop-item:hover{transform:translateY(-4px);border-color:var(--gold);}
-.shop-item-art{width:100%;height:90px;border-radius:8px;background:linear-gradient(135deg,#2a2440,#191529);display:flex;align-items:center;justify-content:center;font-size:32px;background-size:contain !important;background-repeat:no-repeat;background-position:center;}
+.shop-item-art{width:100%;height:150px;border-radius:8px;background:linear-gradient(135deg,#2a2440,#191529);display:flex;align-items:center;justify-content:center;font-size:32px;background-size:contain !important;background-repeat:no-repeat;background-position:center;}
 .shop-item-name{font-family:'Cinzel',serif;font-size:12.5px;font-weight:700;}
 .shop-item-desc{font-size:10.5px;color:var(--parchment-dim);line-height:1.4;}
 .shop-item-price{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:var(--gold);}
+.booster-qty-row{display:flex;align-items:center;gap:10px;font-family:'Cinzel',serif;font-weight:700;}
+.booster-qty-row .qty-btn{width:26px;height:26px;border-radius:6px;background:var(--bg-panel-3);border:1px solid #3a3260;color:var(--parchment);cursor:pointer;font-size:15px;line-height:1;}
+.booster-qty-row .qty-btn:hover{border-color:var(--gold);}
+#my-boosters-btn{margin-top:10px;background:var(--bg-panel-3);border:1.5px solid var(--gold);color:var(--parchment);
+  border-radius:9px;padding:8px 14px;font-family:'Cinzel',serif;font-weight:700;font-size:13px;cursor:pointer;
+  display:flex;align-items:center;gap:8px;}
+#my-boosters-btn:hover{filter:brightness(1.1);}
+#my-boosters-badge{background:var(--gold);color:#1c1830;border-radius:10px;padding:1px 8px;font-size:12px;}
+.my-booster-row{display:flex;align-items:center;gap:12px;background:var(--bg-panel-2);border-radius:10px;padding:10px;margin-bottom:8px;}
+.my-booster-row .mb-art{width:48px;height:48px;border-radius:8px;background-size:cover;background-position:center;background-color:var(--bg-panel-3);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px;}
+.my-booster-row .mb-name{flex:1;font-family:'Cinzel',serif;font-weight:700;font-size:13px;}
+.my-booster-row .mb-qty{font-size:11.5px;color:var(--parchment-dim);}
 .buy-btn{width:100%;background:linear-gradient(180deg,var(--arcane),#5537c2);border:none;color:#fff;border-radius:8px;padding:7px;font-family:'Inter';font-weight:700;font-size:12px;cursor:pointer;}
 .buy-btn:hover{filter:brightness(1.12);}
 .buy-btn:disabled{background:#3a3260;cursor:not-allowed;filter:none;opacity:.6;}
@@ -126,7 +138,7 @@ header .spacer{flex:1;}
 .ncard .nlegendary-gem{position:absolute;z-index:8;aspect-ratio:231/297;}
 
 .ncard.n-big{width:300px;height:423.2px;}
-.ncard.n-big .nart-layer{left:14.43%;top:10.23%;width:72.64%;height:47.63%;}
+.ncard.n-big .nart-layer{left:11.1%;top:7.87%;width:79.31%;height:52.36%;}
 .ncard.n-big .nstat-wrap.n-mana{left:-6.5%;top:-6.5%;width:25.5%;}
 .ncard.n-big .nstat-wrap.n-mana .nstat-txt{font-size:26px;}
 .ncard.n-big .nname-wrap{left:50%;top:45.3%;width:92%;aspect-ratio:663/202;transform:translateX(-50%);}
@@ -258,6 +270,7 @@ header .spacer{flex:1;}
   <div id="vendor-area">
     <div id="vendor-portrait" style="background-image:url('images/vendor-bruno.png');background-size:cover;background-position:top center;border-style:solid;border-color:var(--gold);"></div>
     <div id="vendor-speech"></div>
+    <button id="my-boosters-btn" onclick="showMyBoostersModal()">📦 Mes boosters <span id="my-boosters-badge">0</span></button>
   </div>
 
   <div id="shelves">
@@ -282,6 +295,16 @@ header .spacer{flex:1;}
     <div class="reveal-grid" id="reveal-grid"></div>
     <div class="modal-actions">
       <button onclick="closeModal('reveal-modal')">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="my-boosters-modal">
+  <div class="modal-box">
+    <h2>📦 Mes boosters</h2>
+    <div id="my-boosters-list"></div>
+    <div class="modal-actions">
+      <button onclick="closeModal('my-boosters-modal')">Fermer</button>
     </div>
   </div>
 </div>
@@ -369,11 +392,21 @@ async function renderBoosterShelf(){
     <div class="shop-item">
       <div class="shop-item-art" style="${b.image_url?`background-image:url('${b.image_url}');background-size:cover;`:''}">${b.image_url?'':'📦'}</div>
       <div class="shop-item-name">${escapeHtmlShop(b.name)}</div>
-      <div class="shop-item-desc">6 cartes du set correspondant.</div>
-      <div class="shop-item-price"><span class="money-icon"></span> ${b.price}</div>
-      <button class="buy-btn" onclick="buyBooster('${b.id}', ${b.image_url ? `'${b.image_url}'` : 'null'})">Acheter</button>
+      <div class="shop-item-desc">6 cartes du set correspondant. Rejoint ton inventaire — s'ouvre séparément.</div>
+      <div class="shop-item-price"><span class="money-icon"></span> ${b.price} <span style="font-size:10px;color:var(--parchment-dim);">/ unité</span></div>
+      <div class="booster-qty-row">
+        <button class="qty-btn" onclick="adjustBoosterQty('${b.id}', -1)">−</button>
+        <span id="qty-${b.id}">1</span>
+        <button class="qty-btn" onclick="adjustBoosterQty('${b.id}', 1)">+</button>
+      </div>
+      <button class="buy-btn" onclick="buyBooster('${b.id}')">Acheter</button>
     </div>
   `).join('');
+}
+function adjustBoosterQty(boosterId, delta){
+  const el = document.getElementById('qty-'+boosterId);
+  const next = Math.max(1, Math.min(99, (parseInt(el.textContent)||1) + delta));
+  el.textContent = next;
 }
 
 async function renderSingleShelf(){
@@ -715,17 +748,63 @@ async function fetchFullCards(ids){
   return map;
 }
 
-async function buyBooster(boosterId, boosterImageUrl){
+async function buyBooster(boosterId){
   const user = await scGetCurrentUser();
   if(!user){ alert('Connecte-toi pour acheter dans la boutique.'); return; }
-  const { data, error } = await sb.rpc('buy_booster', { p_booster_id: boosterId });
+  const qtyEl = document.getElementById('qty-'+boosterId);
+  const quantity = qtyEl ? (parseInt(qtyEl.textContent)||1) : 1;
+  const { data, error } = await sb.rpc('buy_booster', { p_booster_id: boosterId, p_quantity: quantity });
   if(error){ alert('Erreur : ' + error.message); return; }
   if(data.error){ alert(shopErrorMessage(data.error)); return; }
   playSfx('coin');
   showBrunoThanks();
-  if(typeof progressQuest==='function'){ progressQuest('open_boosters'); progressQuest('open_boosters_total'); }
   refreshCurrency();
+  if(qtyEl) qtyEl.textContent = '1';
+  flashBoosterInventoryBadge();
+}
+
+async function flashBoosterInventoryBadge(){
+  const user = await scGetCurrentUser();
+  const badge = document.getElementById('my-boosters-badge');
+  if(!user || !badge) return;
+  const { data } = await sb.rpc('get_user_boosters');
+  const total = (data && data.boosters) ? data.boosters.reduce((sum,b)=>sum+b.quantity, 0) : 0;
+  badge.textContent = total;
+}
+
+async function showMyBoostersModal(){
+  const user = await scGetCurrentUser();
+  const list = document.getElementById('my-boosters-list');
+  if(!user){ list.innerHTML = `<div class="empty-shelf">Connecte-toi pour voir tes boosters.</div>`; openModal('my-boosters-modal'); return; }
+  list.innerHTML = `<div class="empty-shelf">Chargement...</div>`;
+  openModal('my-boosters-modal');
+  const { data, error } = await sb.rpc('get_user_boosters');
+  if(error || data.error || !data.boosters || data.boosters.length===0){
+    list.innerHTML = `<div class="empty-shelf">Tu n'as aucun booster en réserve — achète-en un dans la boutique !</div>`;
+    return;
+  }
+  list.innerHTML = '';
+  data.boosters.forEach(b=>{
+    const row = document.createElement('div');
+    row.className = 'my-booster-row';
+    row.innerHTML = `
+      <div class="mb-art" style="${b.image_url?`background-image:url('${b.image_url}');`:''}">${b.image_url?'':'📦'}</div>
+      <div class="mb-name">${escapeHtmlShop(b.name)}</div>
+      <div class="mb-qty">x${b.quantity}</div>
+      <button class="buy-btn" onclick="openBoosterFromInventory('${b.booster_id}', ${b.image_url?`'${b.image_url}'`:'null'})">Ouvrir</button>
+    `;
+    list.appendChild(row);
+  });
+}
+
+async function openBoosterFromInventory(boosterId, boosterImageUrl){
+  const { data, error } = await sb.rpc('open_booster', { p_booster_id: boosterId });
+  if(error){ alert('Erreur : ' + error.message); return; }
+  if(data.error){ alert(shopErrorMessage(data.error)); return; }
+  if(typeof progressQuest==='function'){ progressQuest('open_boosters'); progressQuest('open_boosters_total'); }
+  closeModal('my-boosters-modal');
   await openBoosterAnimation(boosterImageUrl, data.cards);
+  flashBoosterInventoryBadge();
 }
 
 async function getEquippedCardBackUrl(){
@@ -897,7 +976,9 @@ function shopErrorMessage(code){
     'unknown-card-back': "Ce dos de carte n'existe plus.",
     'no-card-available': "Toutes les cartes disponibles sont déjà au maximum dans ta collection !",
     'already-maxed': "Tu as déjà le maximum de cette carte, choisis-en une autre.",
-    'unknown-booster': "Ce booster n'existe plus."
+    'unknown-booster': "Ce booster n'existe plus.",
+    'no-booster-owned': "Tu n'as plus ce booster en réserve.",
+    'invalid-quantity': "Quantité invalide."
   }[code] || ('Erreur : ' + code);
 }
 
@@ -953,10 +1034,11 @@ async function initShop(){
   await renderSingleShelf();
   await renderCardBackShelf();
   await refreshCurrency();
+  await flashBoosterInventoryBadge();
 }
 initSpellcraftAuth();
 initShop();
-sb.auth.onAuthStateChange(()=>{ refreshCurrency(); renderCardBackShelf(); renderSingleShelf(); });
+sb.auth.onAuthStateChange(()=>{ refreshCurrency(); renderCardBackShelf(); renderSingleShelf(); flashBoosterInventoryBadge(); });
 </script>
 
 <div id="card-preview"></div>
