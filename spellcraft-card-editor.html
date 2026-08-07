@@ -580,6 +580,7 @@ header .spacer{flex:1;}
         <h2 style="margin:0">Toutes les cartes (<span id="gallery-count">0</span>)</h2>
         <div class="filter-tabs" id="filter-tabs"></div>
       </div>
+      <div class="filter-tabs" id="class-filter-tabs" style="margin-top:6px;"></div>
       <div id="gallery-grid"></div>
     </div>
 
@@ -990,6 +991,7 @@ let cards = [];
 let editingId = null;
 let currentType = 'Créature';
 let currentFilter = 'all';
+let currentClassFilter = 'all';
 let subtypes = [];
 let mcAllowedClasses = [];
 let currentEmotes = [];
@@ -4204,12 +4206,26 @@ function buildFilterTabs(){
     tab.onclick = ()=>{ currentFilter = t.key; renderGallery(); };
     wrap.appendChild(tab);
   });
+
+  const classWrap = document.getElementById('class-filter-tabs');
+  classWrap.innerHTML='';
+  const allClasses = [{key:'all', label:'Toutes classes'}, ...CLASSES.map(c=>({key:c,label:c}))];
+  allClasses.forEach(c=>{
+    const tab = document.createElement('div');
+    tab.className = 'filter-tab' + (currentClassFilter===c.key?' active':'');
+    tab.textContent = c.label;
+    tab.onclick = ()=>{ currentClassFilter = c.key; renderGallery(); };
+    classWrap.appendChild(tab);
+  });
 }
 function renderGallery(){
   buildFilterTabs();
   const grid = document.getElementById('gallery-grid');
   grid.innerHTML = '';
-  const filtered = currentFilter==='all' ? cards : cards.filter(c=>c.type===currentFilter);
+  let filtered = currentFilter==='all' ? cards : cards.filter(c=>c.type===currentFilter);
+  if(currentClassFilter!=='all'){
+    filtered = filtered.filter(c=>c.class===currentClassFilter || c.classSecondary===currentClassFilter);
+  }
   document.getElementById('gallery-count').textContent = cards.length;
   if(filtered.length===0){
     grid.innerHTML = `<div class="empty-state">Aucune carte pour l'instant. Crée-en une avec le formulaire ci-dessus !</div>`;
