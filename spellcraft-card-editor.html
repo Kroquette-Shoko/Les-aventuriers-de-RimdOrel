@@ -851,6 +851,7 @@ const EFFECT_TYPES = [
   {key:'stealCard', label:"Vole une carte à un adversaire (main → votre main)", needsTarget:true, needsValue:false},
   {key:'stealCreature', label:"Vole une créature en jeu et la passe de votre côté", needsTarget:true, needsValue:false},
   {key:'doubleEffectsTrigger', label:'Double les effets déclenchés par (capacité continue)', needsTarget:false, needsValue:false, isDoubleTrigger:true},
+  {key:'evolveTarget', label:'Fait évoluer la cible (bonus permanent et/ou nouveau mot-clé et/ou transformation)', needsTarget:true, needsValue:false, isEvolveTarget:true},
   {key:'doubleTrigger', label:'Double les déclencheurs de [X] (pour le reste de la partie)', needsTarget:false, needsValue:false, isDoubleTrigger:true},
   {key:'halveLife', label:'Divise la vie du joueur en deux', needsTarget:false, needsValue:false, isHalveLife:true},
   {key:'custom', label:'⚠ Effet personnalisé (texte libre)', needsTarget:false, needsValue:false}
@@ -2625,6 +2626,37 @@ function buildEffectRow(ab, eff, choiceKey){
     const trigOptions = Object.keys(TRIGGER_TEXT).map(k=>({key:k, label: TRIGGER_SHORT_NAME[k] ? `${TRIGGER_SHORT_NAME[k]} — ${TRIGGER_TEXT[k]}` : TRIGGER_TEXT[k]}));
     row.appendChild(makeSelectField('Déclencheur doublé', trigOptions, eff.doubleTriggerName||trigOptions[0]?.key, v=>{ eff.doubleTriggerName=v; onFormChange(); }));
   }
+  if(def.isEvolveTarget){
+    const evolveBox = document.createElement('div');
+    evolveBox.style.cssText = 'border:1.5px solid #3a3260;border-radius:8px;padding:10px;margin-top:6px;width:100%;';
+
+    const statRow = document.createElement('div');
+    statRow.style.cssText = 'display:flex;gap:10px;margin-bottom:8px;';
+    const atkField = document.createElement('div');
+    atkField.className='field';
+    atkField.innerHTML = `<label class="mini-field">Bonus de Force (permanent)</label>
+      <input type="number" id="evolveatk-${eff.id}" value="${eff.evolveAtkBonus||0}">`;
+    atkField.querySelector('input').oninput=(e)=>{ eff.evolveAtkBonus=parseInt(e.target.value)||0; onFormChange(); };
+    statRow.appendChild(atkField);
+    const hpField = document.createElement('div');
+    hpField.className='field';
+    hpField.innerHTML = `<label class="mini-field">Bonus d'Endurance (permanent)</label>
+      <input type="number" id="evolvehp-${eff.id}" value="${eff.evolveHpBonus||0}">`;
+    hpField.querySelector('input').oninput=(e)=>{ eff.evolveHpBonus=parseInt(e.target.value)||0; onFormChange(); };
+    statRow.appendChild(hpField);
+    evolveBox.appendChild(statRow);
+
+    evolveBox.appendChild(makeSelectField('Nouveau mot-clé (optionnel)', [{key:'',label:'Aucun'}, ...KEYWORDS.map(k=>({key:k.key,label:k.label}))], eff.evolveKeyword||'', v=>{ eff.evolveKeyword=v; onFormChange(); }));
+
+    const transformField = document.createElement('div');
+    transformField.className='field'; transformField.style.marginTop='8px';
+    transformField.innerHTML = `<label class="mini-field">Transforme en (optionnel — nom exact d'une carte, laisser vide pour ne pas transformer)</label>
+      <input type="text" id="evolvetransform-${eff.id}" value="${escapeHtml(eff.evolveTransformName||'')}" placeholder="Ex : Loup Alpha">`;
+    transformField.querySelector('input').oninput=(e)=>{ eff.evolveTransformName=e.target.value; onFormChange(); };
+    evolveBox.appendChild(transformField);
+
+    row.appendChild(evolveBox);
+  }
   if(def.isAmplify){
     row.appendChild(makeSelectField('Catégorie', [
       {key:'directDamage', label:'Dégâts directs (hors combat)'},
@@ -3083,6 +3115,15 @@ function buildEffectClause(eff, ab){
     case 'doubleEffectsTrigger': {
       const trigLabel = TRIGGER_SHORT_NAME[eff.doubleTriggerName] ? `${TRIGGER_SHORT_NAME[eff.doubleTriggerName]} — ${TRIGGER_TEXT[eff.doubleTriggerName]}` : (TRIGGER_TEXT[eff.doubleTriggerName] || '?');
       return `double les effets déclenchés par « ${trigLabel} » sur cette carte`;
+    }
+    case 'evolveTarget': {
+      const parts = [];
+      if(eff.evolveAtkBonus) parts.push(`+${eff.evolveAtkBonus} Force`);
+      if(eff.evolveHpBonus) parts.push(`+${eff.evolveHpBonus} Endurance`);
+      if(eff.evolveKeyword) parts.push((KEYWORDS.find(k=>k.key===eff.evolveKeyword)||{}).label || eff.evolveKeyword);
+      if(eff.evolveTransformName) parts.push(`se transforme en "${eff.evolveTransformName}"`);
+      const detail = parts.length ? ` (${parts.join(', ')})` : '';
+      return `fait évoluer ${targetPhrase(resolvedTarget)}${detail}, de façon permanente`;
     }
     case 'stun':
       return `étourdissez ${targetPhrase(resolvedTarget)} (elle ne peut ni attaquer ni bloquer lors de son prochain tour)`;
