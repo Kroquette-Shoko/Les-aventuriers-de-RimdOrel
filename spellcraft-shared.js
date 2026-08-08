@@ -408,9 +408,12 @@ function playFinalSfx(key, volume=0.8){
   playSfx(key, volume);
 }
 
-/* ---------- Menu d'options (icône engrenage, en haut à droite de chaque page) ---------- */
+/* ---------- Menu d'options (icône engrenage) — flottant par défaut, ou
+   ancré dans #sc-options-slot si une page fournit cet emplacement (barre
+   du haut unifiée). ---------- */
 function injectOptionsMenu(){
   if(document.getElementById('sc-options-gear')) return; // déjà injecté
+  const slot = document.getElementById('sc-options-slot');
   const style = document.createElement('style');
   style.textContent = `
     #sc-options-gear{position:fixed;top:10px;right:10px;z-index:99999;width:80px;height:80px;border-radius:50%;
@@ -429,6 +432,9 @@ function injectOptionsMenu(){
     #sc-options-modal .sc-opt-mute{display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer;padding-top:2px;border-top:1px solid rgba(212,175,55,.2);padding-top:10px;}
     #sc-options-modal .sc-opt-hub{display:block;margin-top:10px;padding-top:10px;border-top:1px solid rgba(212,175,55,.2);font-size:12.5px;font-weight:700;color:#d4af37;text-decoration:none;text-align:center;}
     #sc-options-modal .sc-opt-hub:hover{text-decoration:underline;}
+    #sc-options-gear.sc-options-inline{position:static;width:38px;height:38px;box-shadow:none;}
+    #sc-options-gear.sc-options-inline .sc-gear-icon{width:22px;height:22px;}
+    #sc-options-modal.sc-options-inline-modal{top:56px;right:16px;}
   `;
   document.head.appendChild(style);
 
@@ -452,8 +458,15 @@ function injectOptionsMenu(){
     ${onHubPage ? '' : '<a class="sc-opt-hub" href="spellcraft-hub.html">🏠 Menu principal</a>'}
   `;
 
-  document.body.appendChild(gear);
-  document.body.appendChild(modal);
+  if(slot){
+    gear.classList.add('sc-options-inline');
+    modal.classList.add('sc-options-inline-modal');
+    slot.appendChild(gear);
+    document.body.appendChild(modal);
+  } else {
+    document.body.appendChild(gear);
+    document.body.appendChild(modal);
+  }
 
   gear.onclick = (e)=>{ e.stopPropagation(); modal.classList.toggle('show'); };
   document.addEventListener('click', (e)=>{
@@ -467,6 +480,42 @@ function injectOptionsMenu(){
 }
 
 /* ---------- Bouton de retour testeur (bug / suggestion), en bas à gauche de chaque page ---------- */
+/* ---------- Barre du haut unifiée (titre, connexion, son, menu) ----------
+   Chaque page doit définir window.APP_TOPBAR_TITLE avant d'inclure ce
+   script pour donner le titre affiché ; window.APP_TOPBAR_NO_MENU=true
+   masque le bouton Menu (utile sur la page menu elle-même). S'exécute
+   immédiatement (pas en attendant DOMContentLoaded) pour que #sc-auth-slot
+   existe déjà quand initSpellcraftAuth() tourne juste après, dans le
+   script de la page. */
+function injectAppTopbar(){
+  if(document.getElementById('app-topbar') || !document.body) return;
+  const style = document.createElement('style');
+  style.textContent = `
+    #app-topbar{display:flex;align-items:center;gap:16px;padding:10px 20px;background:rgba(15,12,20,.92);
+      border-bottom:1.5px solid rgba(212,175,55,.4);font-family:'Inter',sans-serif;position:relative;z-index:150;
+      width:100%;box-sizing:border-box;flex-shrink:0;}
+    #app-topbar-title{font-family:'Cinzel',serif;font-weight:700;color:#d4af37;font-size:16px;letter-spacing:.5px;flex:1;}
+    #app-topbar-right{display:flex;align-items:center;gap:14px;}
+    #app-topbar-menu{font-family:'Cinzel',serif;font-weight:700;font-size:12.5px;color:#f2ead2;text-decoration:none;
+      border:1.5px solid #3a3260;border-radius:8px;padding:7px 14px;white-space:nowrap;}
+    #app-topbar-menu:hover{border-color:#d4af37;color:#d4af37;}
+  `;
+  document.head.appendChild(style);
+
+  const bar = document.createElement('div');
+  bar.id = 'app-topbar';
+  bar.innerHTML = `
+    <span id="app-topbar-title">${window.APP_TOPBAR_TITLE || ''}</span>
+    <div id="app-topbar-right">
+      <div id="sc-auth-slot"></div>
+      <div id="sc-options-slot"></div>
+      ${window.APP_TOPBAR_NO_MENU ? '' : '<a id="app-topbar-menu" href="spellcraft-hub.html">☰ Menu</a>'}
+    </div>
+  `;
+  document.body.insertBefore(bar, document.body.firstChild);
+}
+injectAppTopbar();
+
 function injectFeedbackButton(){
   if(document.getElementById('sc-feedback-btn')) return; // déjà injecté
   const style = document.createElement('style');

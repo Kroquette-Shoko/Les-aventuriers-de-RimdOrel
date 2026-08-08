@@ -36,12 +36,17 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 
 /* ---------- Bande de cuir du haut : tous les contrôles ---------- */
 #top-strap{position:absolute;top:0;left:0;width:100%;height:8%;display:flex;align-items:center;gap:8px;padding:0 2.5%;z-index:20;}
+#app-topbar{position:absolute;top:0;left:0;width:100%;height:8%;display:flex;align-items:center;gap:10px;padding:0 2.5%;z-index:20;box-sizing:border-box;}
+#app-topbar-title{font-family:'Cinzel',serif;font-weight:700;color:var(--gold);font-size:14px;letter-spacing:.5px;white-space:nowrap;}
+#app-topbar-right{display:flex;align-items:center;gap:10px;}
+#app-topbar-menu{font-family:'Cinzel',serif;font-weight:700;font-size:11.5px;color:var(--parchment);text-decoration:none;
+  border:1.5px solid #3a3260;border-radius:8px;padding:6px 12px;white-space:nowrap;}
+#app-topbar-menu:hover{border-color:var(--gold);color:var(--gold);}
 #left-toolbar{position:absolute;top:19%;left:2.5%;width:14%;display:flex;flex-direction:column;align-items:stretch;gap:8px;z-index:20;}
 #left-toolbar .btn{padding:9px 12px;font-size:12px;text-align:left;border-radius:8px;}
 #left-toolbar .select-mini{padding:8px 10px;font-size:11px;border-radius:8px;width:100%;}
 #left-toolbar .results-count{text-align:center;font-size:11px;}
-#top-strap h1{display:none;}
-#top-strap .spacer{flex:1;}
+#app-topbar .spacer{flex:1;}
 .save-indicator{font-size:10.5px;color:var(--green);opacity:0;transition:opacity .4s;white-space:nowrap;}
 .save-indicator.show{opacity:1;}
 .btn{background:rgba(23,19,37,.75);border:1px solid rgba(212,175,55,.35);color:var(--parchment);border-radius:7px;padding:6px 11px;font-family:'Inter';font-size:11.5px;font-weight:600;cursor:pointer;white-space:nowrap;}
@@ -256,8 +261,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
   background:rgba(15,12,20,.82);border:1px solid rgba(212,175,55,.3);border-radius:10px;
   overflow:hidden;z-index:10;
 }
-#hub-link-above-deck{position:absolute;top:16%;left:83.5%;width:15%;z-index:20;}
-#hub-link-above-deck .btn{width:100%;text-align:center;padding:16px 12px;font-size:18px;font-weight:800;}
+
 #deck-empty-state{flex:1;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:20px;text-align:center;color:var(--parchment-dim);font-size:13px;}
 #deck-empty-state.show{display:flex;}
 #deck-editor{flex:1;display:flex;flex-direction:column;min-height:0;}
@@ -378,14 +382,15 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 <body>
 
 <div id="app">
-  <div id="top-strap">
+  <div id="app-topbar">
+    <span id="app-topbar-title">📚 Collection</span>
     <span class="save-indicator" id="save-indicator">✓ Sauvegardé</span>
     <div class="spacer"></div>
-    <div id="sc-auth-slot"></div>
-  </div>
-
-  <div id="hub-link-above-deck">
-    <a href="spellcraft-hub.html" class="btn small" title="Retour à l'accueil" style="text-decoration:none;">🏠 Menu principal</a>
+    <div id="app-topbar-right">
+      <div id="sc-auth-slot"></div>
+      <div id="sc-options-slot"></div>
+      <a id="app-topbar-menu" href="spellcraft-hub.html">☰ Menu</a>
+    </div>
   </div>
 
   <div id="left-toolbar">
@@ -509,6 +514,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>window.APP_TOPBAR_TITLE = '📚 Collection';</script>
 <script src="spellcraft-shared.js"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>

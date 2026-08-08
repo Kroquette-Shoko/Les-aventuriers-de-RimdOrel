@@ -15,7 +15,7 @@
 body{margin:0;background:var(--bg-void);color:var(--parchment);font-family:'Inter',sans-serif;min-height:100vh;}
 h1,h2,h3,h4{font-family:'Cinzel',serif;color:var(--gold);margin:0 0 12px;}
 a{color:var(--frost);}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:var(--bg-panel);border-bottom:1.5px solid var(--gold);}
+
 .topbar h1{font-size:18px;margin:0;}
 .wrap{max-width:1200px;margin:0 auto;padding:24px;display:flex;gap:24px;align-items:flex-start;}
 .panel{background:var(--bg-panel);border:1.5px solid #3a3260;border-radius:12px;padding:18px;}
@@ -60,11 +60,6 @@ textarea{resize:vertical;min-height:60px;}
 </style>
 </head>
 <body>
-
-<div class="topbar">
-  <h1>🏆 Éditeur de succès</h1>
-  <a href="spellcraft-hub.html">← Retour au hub</a>
-</div>
 
 <div class="wrap">
   <div class="panel list-panel">
@@ -145,6 +140,7 @@ textarea{resize:vertical;min-height:60px;}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>window.APP_TOPBAR_TITLE = '🏆 Éditeur de succès';</script>
 <script src="spellcraft-shared.js"></script>
 <script src="spellcraft-auth.js"></script>
 <script>

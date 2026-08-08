@@ -27,9 +27,9 @@ body{padding:18px 24px 40px;}
 h1{font-family:'Cinzel',serif;font-weight:900;color:var(--gold);font-size:22px;text-align:center;margin:6px 0 4px;letter-spacing:1px;}
 .subtitle{text-align:center;color:var(--parchment-dim);font-size:12.5px;margin:0 0 18px;}
 
-#sc-auth-slot{position:absolute;top:10px;right:16px;z-index:6;}
 
-a.back-link{position:absolute;top:14px;left:18px;color:var(--parchment-dim);text-decoration:none;font-size:13px;display:flex;align-items:center;gap:6px;}
+
+
 a.back-link:hover{color:var(--gold);}
 
 /* ---------- Grille de decks ---------- */
@@ -112,9 +112,6 @@ a.back-link:hover{color:var(--gold);}
 </head>
 <body>
 
-<a class="back-link" href="spellcraft-hub.html">← Retour au hub</a>
-<div id="sc-auth-slot"></div>
-
 <h1>Recherche de partie</h1>
 <p class="subtitle">Choisis ton deck, puis affronte l'IA, un ami, ou rejoins une partie</p>
 
@@ -146,6 +143,7 @@ a.back-link:hover{color:var(--gold);}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>window.APP_TOPBAR_TITLE = '⚔️ Recherche de partie';</script>
 <script src="spellcraft-shared.js"></script>
 <script src="spellcraft-catalog.js"></script>
 <script src="spellcraft-server-client.js"></script>

@@ -15,7 +15,7 @@
 body{margin:0;background:var(--bg-void);color:var(--parchment);font-family:'Inter',sans-serif;min-height:100vh;}
 h1,h2,h3{font-family:'Cinzel',serif;color:var(--gold);margin:0;}
 a{color:var(--frost);}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:var(--bg-panel);border-bottom:1.5px solid var(--gold);}
+
 .wrap{max-width:1000px;margin:0 auto;padding:28px 20px;}
 .summary{text-align:center;margin-bottom:28px;color:var(--parchment-dim);font-size:14px;}
 .summary b{color:var(--gold);}
@@ -50,11 +50,6 @@ a{color:var(--frost);}
 </head>
 <body>
 
-<div class="topbar">
-  <h1>🏆 Succès</h1>
-  <a href="spellcraft-hub.html">← Retour au hub</a>
-</div>
-
 <div class="wrap">
   <div class="summary" id="summary"></div>
   <div class="grid" id="ach-grid"></div>
@@ -63,6 +58,7 @@ a{color:var(--frost);}
 <div id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>window.APP_TOPBAR_TITLE = '🏆 Haut fait';</script>
 <script src="spellcraft-shared.js"></script>
 <script src="spellcraft-auth.js"></script>
 <script>

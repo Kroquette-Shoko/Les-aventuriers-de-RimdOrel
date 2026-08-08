@@ -30,7 +30,7 @@ header a.back-link:hover{border-color:var(--gold);color:var(--parchment);}
 header h1{font-family:'Cinzel',serif;font-size:22px;color:var(--gold);margin:0;letter-spacing:1px;}
 header .spacer{flex:1;}
 .money-icon{width:22px;height:22px;display:inline-block;vertical-align:-6px;background-color:#f2c94c;-webkit-mask-image:url('images/money.png');mask-image:url('images/money.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;}
-#gold-chip{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;padding:6px 14px;border-radius:18px;background:var(--bg-panel-2);border:1px solid #3a3260;}
+#gold-chip{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;padding:6px 14px;border-radius:18px;background:var(--bg-panel-2);border:1px solid #3a3260;margin-bottom:14px;}
 
 main{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:26px;}
 .quest-section h2{font-family:'Cinzel',serif;font-size:16px;color:var(--gold);margin:0 0 10px;letter-spacing:.5px;border-bottom:1px solid #3a3260;padding-bottom:6px;}
@@ -110,13 +110,7 @@ main{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:26px;}
 <body>
 
 <div id="app">
-  <header>
-    <a href="spellcraft-hub.html" class="back-link">🏠 Hub</a>
-    <h1>📜 Quêtes</h1>
-    <div class="spacer"></div>
-    <div id="gold-chip"><span class="money-icon"></span><span id="gold-amount">–</span></div>
-    <div id="sc-auth-slot"></div>
-  </header>
+  <div id="gold-chip"><span class="money-icon"></span><span id="gold-amount">–</span></div>
 
   <main>
     <div class="quest-section">
@@ -137,6 +131,7 @@ main{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:26px;}
 <div id="reward-card-preview"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>window.APP_TOPBAR_TITLE = '📜 Quêtes';</script>
 <script src="spellcraft-shared.js"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>

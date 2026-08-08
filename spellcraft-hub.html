@@ -24,7 +24,9 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--bg-void);color:v
 
 #app{width:100vw;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;}
 
-#sc-auth-slot-wrap{position:absolute;top:10px;right:16px;z-index:6;width:auto;margin-bottom:0;}
+#app-topbar{position:absolute;top:0;left:0;width:100%;z-index:6;display:flex;align-items:center;gap:10px;padding:10px 16px;box-sizing:border-box;}
+#app-topbar-title{font-family:'Cinzel',serif;font-weight:700;color:var(--gold);font-size:14px;letter-spacing:.5px;flex:1;}
+#app-topbar-right{display:flex;align-items:center;gap:10px;}
 
 #board-title{
   position:absolute;top:0.5%;left:50%;transform:translateX(-50%);z-index:5;
@@ -114,7 +116,13 @@ footer strong{color:var(--parchment);}
 <body>
 
 <div id="app">
-  <div id="sc-auth-slot-wrap"><div id="sc-auth-slot"></div></div>
+  <div id="app-topbar">
+    <span id="app-topbar-title">Menu principal</span>
+    <div id="app-topbar-right">
+      <div id="sc-auth-slot"></div>
+      <div id="sc-options-slot"></div>
+    </div>
+  </div>
 
   <div id="board">
     <div id="board-title">Les aventuriers de Rimd'Orël</div>

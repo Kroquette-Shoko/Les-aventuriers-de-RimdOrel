@@ -250,12 +250,7 @@ header .spacer{flex:1;}
 <body>
 
 <div id="app">
-  <header>
-    <a class="back-link" href="spellcraft-hub.html">← Retour au hub</a>
-    <h1>🛒 Boutique</h1>
-    <div class="spacer"></div>
-    <div id="sc-auth-slot"></div>
-  </header>
+
 
   <div id="currency-bar">
     <div class="currency-chip gold"><span class="money-icon"></span><span id="cur-gold">–</span> Or</div>
@@ -319,6 +314,7 @@ header .spacer{flex:1;}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>window.APP_TOPBAR_TITLE = '🛒 Boutique';</script>
 <script src="spellcraft-shared.js"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>
