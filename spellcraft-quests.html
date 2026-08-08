@@ -318,7 +318,9 @@ async function ensureCardsCache(){
 function showRewardCardPreview(card, ev){
   const box = document.getElementById('reward-card-preview');
   box.innerHTML = '';
-  box.appendChild(buildCardEl(card));
+  const el = buildCardEl(card);
+  box.appendChild(el);
+  requestAnimationFrame(()=>fitNewCard(el));
   box.classList.add('show');
   moveRewardCardPreview(ev);
 }
@@ -348,7 +350,9 @@ function buildRewardEl(q){
         if(cardData){
           const mini = document.createElement('div');
           mini.className = 'reward-card-mini';
-          mini.appendChild(buildCardEl(cardData));
+          const miniEl = buildCardEl(cardData);
+          mini.appendChild(miniEl);
+          requestAnimationFrame(()=>fitNewCard(miniEl));
           mini.title = `${cardData.name} (${r.rarity}${r.foil?' Foil':''})`;
           mini.onmouseenter = (ev)=>showRewardCardPreview(cardData, ev);
           mini.onmousemove = moveRewardCardPreview;
