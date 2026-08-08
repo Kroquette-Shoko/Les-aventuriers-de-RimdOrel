@@ -519,9 +519,9 @@ let allCardsCache = []; // toutes les cartes du catalogue, possédées ou non (p
 let currentPage = 0;
 let deckBuildStep = null; // null | 'hero' | 'region' | 'cards'
 let filters = {
-  search:'', oracleText:'', setId:'', classes:new Set(), classMode:'any', types:new Set(), rarities:new Set(), keywords:new Set(),
+  search:'', setId:'', classes:new Set(), classMode:'any', types:new Set(), rarities:new Set(), keywords:new Set(),
   costMode:'eq', costValue:'', powerMode:'eq', powerValue:'', toughnessMode:'eq', toughnessValue:'',
-  showFoils:true, showUnowned:false
+  showFoils:true, showUnowned:false, hideOwned:false
 };
 let sortMode = 'class-cost-name';
 
@@ -593,8 +593,8 @@ function renderFilterPanel(){
 
   el.innerHTML = `
     <div class="ff-group">
-      <label>Nom de la carte</label>
-      <input type="text" id="ff-search" value="${escapeHtml(filters.search)}" placeholder="Ex : Golem de Jaäne">
+      <label>Rechercher</label>
+      <input type="text" id="ff-search" value="${escapeHtml(filters.search)}" placeholder="Ex : élémentaire">
     </div>
     <div class="ff-group">
       <label>Set / Édition</label>
@@ -602,10 +602,6 @@ function renderFilterPanel(){
         <option value="">Tous les sets</option>
         ${setNames.map(s=>`<option value="${escapeHtml(s)}" ${filters.setId===s?'selected':''}>${escapeHtml(s)}</option>`).join('')}
       </select>
-    </div>
-    <div class="ff-group">
-      <label>Texte de la carte</label>
-      <input type="text" id="ff-oracle" value="${escapeHtml(filters.oracleText)}" placeholder="Ex : détruisez">
     </div>
     <div class="ff-group">
       <label>Type de carte</label>
@@ -669,6 +665,10 @@ function renderFilterPanel(){
         <span>Afficher les cartes non possédées</span>
         <label class="ff-check"><input type="checkbox" id="ff-show-unowned" ${filters.showUnowned?'checked':''}> Oui</label>
       </div>
+      <div class="ff-toggle">
+        <span>Cacher les cartes possédées</span>
+        <label class="ff-check"><input type="checkbox" id="ff-hide-owned" ${filters.hideOwned?'checked':''}> Oui</label>
+      </div>
     </div>
     <div class="ff-actions">
       <button class="btn small primary" onclick="applyFilterPanel()" style="flex:1;">Appliquer</button>
@@ -712,7 +712,6 @@ document.addEventListener('click', (e)=>{
 function applyFilterPanel(){
   filters.search = document.getElementById('ff-search').value.trim().toLowerCase();
   filters.setId = document.getElementById('ff-set').value;
-  filters.oracleText = document.getElementById('ff-oracle').value.trim().toLowerCase();
   filters.types = readCheckGroup('ff-types');
   filters.classes = readCheckGroup('ff-classes');
   filters.classMode = document.getElementById('ff-class-mode').value;
@@ -726,6 +725,7 @@ function applyFilterPanel(){
   filters.toughnessValue = document.getElementById('ff-toughness-value').value.trim();
   filters.showFoils = document.getElementById('ff-show-foils').checked;
   filters.showUnowned = document.getElementById('ff-show-unowned').checked;
+  filters.hideOwned = document.getElementById('ff-hide-owned').checked;
   currentPage = 0;
   document.getElementById('filter-panel').classList.remove('show');
   renderBinder();
@@ -733,9 +733,9 @@ function applyFilterPanel(){
 
 function resetFilterPanel(){
   filters = {
-    search:'', oracleText:'', setId:'', classes:new Set(), classMode:'any', types:new Set(), rarities:new Set(), keywords:new Set(),
+    search:'', setId:'', classes:new Set(), classMode:'any', types:new Set(), rarities:new Set(), keywords:new Set(),
     costMode:'eq', costValue:'', powerMode:'eq', powerValue:'', toughnessMode:'eq', toughnessValue:'',
-    showFoils:true, showUnowned:false
+    showFoils:true, showUnowned:false, hideOwned:false
   };
   currentPage = 0;
   renderFilterPanel();
@@ -797,8 +797,14 @@ function getFilteredSortedCollection(){
       }
     }
 
-    if(filters.search && !c.name.toLowerCase().includes(filters.search)) return false;
-    if(filters.oracleText && !(c.text||'').toLowerCase().includes(filters.oracleText)) return false;
+    if(filters.hideOwned && (ownedCollection[c.id]||0) > 0) return false;
+
+    if(filters.search){
+      const inName = c.name.toLowerCase().includes(filters.search);
+      const inText = (c.text||'').toLowerCase().includes(filters.search);
+      const inSubtypes = (c.subtypes||[]).some(s=>s.toLowerCase().includes(filters.search));
+      if(!inName && !inText && !inSubtypes) return false;
+    }
     if(filters.setId && c.set!==filters.setId) return false;
     if(filters.classes.size){
       const realClasses = [...filters.classes].filter(k=>k!=='Multiclasse');
