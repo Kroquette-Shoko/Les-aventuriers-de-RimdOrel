@@ -813,7 +813,7 @@ const EFFECT_TYPES = [
   {key:'draw', label:'Pioche', needsTarget:false, needsValue:true},
   {key:'buff', label:'Renforcement (+Force/+Endurance)', needsTarget:true, needsValue:true, doubleValue:true},
   {key:'weaken', label:'Affaiblissement (-Force/-Endurance)', needsTarget:true, needsValue:true, doubleValue:true},
-  {key:'setStat', label:'Fixer une statistique (Force/Endurance/Coût/Utilisations)', needsTarget:false, needsValue:false, isSetStat:true},
+  {key:'setStat', label:'Fixer une statistique (Force/Endurance/Coût/Utilisations) sur la cible', needsTarget:true, needsValue:false, isSetStat:true},
   {key:'reduceCost', label:'Réduire le coût d\'un type/sous-type de carte', needsTarget:false, needsValue:false, isReduceCost:true},
   {key:'reduceAbilityCost', label:'Réduire le coût d\'activation (de cette carte)', needsTarget:false, needsValue:true, isReduceAbilityCost:true},
   {key:'stun', label:'Étourdir', needsTarget:true, needsValue:false},
@@ -2447,12 +2447,22 @@ function buildEffectRow(ab, eff, choiceKey){
   }
 
   if(def.isSetStat){
-    row.appendChild(makeSelectField('Statistique', [{key:'force',label:'Force'},{key:'endurance',label:'Endurance'},{key:'cost',label:'Coût de mana'},{key:'charges',label:'Utilisations (artefact)'}], eff.setStatTarget||'force', v=>{ eff.setStatTarget=v; onFormChange(); }));
-    row.appendChild(makeSelectField('Portée', [{key:'board',label:'Sur le champ de bataille'},{key:'hand',label:'En main'},{key:'deck',label:'Dans le deck'}], eff.setStatScope||'board', v=>{ eff.setStatScope=v; onFormChange(); }));
-    row.appendChild(makeSelectField('Propriétaire', TARGET_OWNERS.filter(o=>o.key!=='any' && o.key!=='self'), eff.setStatOwner||'ally', v=>{ eff.setStatOwner=v; onFormChange(); }));
-    const vf = document.createElement('div'); vf.className='field'; vf.innerHTML=`<label class="mini-field">Valeur fixée à</label>`;
-    const vi = document.createElement('input'); vi.type='number'; vi.min=0; vi.max=20; vi.value=eff.setStatValue??2;
-    vi.oninput=()=>{ eff.setStatValue=parseInt(vi.value)||0; onFormChange(); }; vf.appendChild(vi); row.appendChild(vf);
+    const buildStatToggle = (label, enabledKey, valueKey)=>{
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:6px;';
+      const cb = document.createElement('input'); cb.type='checkbox'; cb.checked = !!eff[enabledKey]; cb.style.width='auto';
+      const lbl = document.createElement('span'); lbl.className='mini-field'; lbl.style.minWidth='110px'; lbl.textContent=label;
+      const vi = document.createElement('input'); vi.type='number'; vi.min=0; vi.max=20; vi.style.width='80px';
+      vi.value = eff[valueKey] ?? 2; vi.disabled = !eff[enabledKey];
+      cb.onchange=()=>{ eff[enabledKey]=cb.checked; vi.disabled=!cb.checked; onFormChange(); };
+      vi.oninput=()=>{ eff[valueKey]=parseInt(vi.value)||0; onFormChange(); };
+      wrap.appendChild(cb); wrap.appendChild(lbl); wrap.appendChild(vi);
+      row.appendChild(wrap);
+    };
+    buildStatToggle('Fixer la Force à', 'setStatAtkEnabled', 'setStatAtkValue');
+    buildStatToggle("Fixer l'Endurance à", 'setStatHpEnabled', 'setStatHpValue');
+    buildStatToggle('Fixer le coût à', 'setStatCostEnabled', 'setStatCostValue');
+    buildStatToggle('Fixer les utilisations à', 'setStatChargesEnabled', 'setStatChargesValue');
   }
 
   if(def.isReduceCost){
@@ -3047,10 +3057,13 @@ function buildEffectClause(eff, ab){
       return `${targetPhrase(resolvedTarget)} subit -${v1}/-${v2}${durSuffix}`;
     }
     case 'setStat': {
-      const statLabel = {force:'la Force',endurance:"l'Endurance",cost:'le coût de mana',charges:"le nombre d'utilisations"}[eff.setStatTarget||'force'];
-      const scopeLabel = {board:'sur le champ de bataille', hand:'en main', deck:'dans le deck'}[eff.setStatScope||'board'];
-      const ownerLabel = eff.setStatOwner==='enemy' ? 'ennemies' : 'alliées';
-      return `fixez ${statLabel} des cartes ${ownerLabel} ${scopeLabel} à ${eff.setStatValue??2}`;
+      const parts = [];
+      if(eff.setStatAtkEnabled) parts.push(`la Force à ${eff.setStatAtkValue??2}`);
+      if(eff.setStatHpEnabled) parts.push(`l'Endurance à ${eff.setStatHpValue??2}`);
+      if(eff.setStatCostEnabled) parts.push(`le coût à ${eff.setStatCostValue??2}`);
+      if(eff.setStatChargesEnabled) parts.push(`les utilisations à ${eff.setStatChargesValue??2}`);
+      if(parts.length===0) return `fixez une statistique de ${targetPhrase(resolvedTarget)} (rien de coché)`;
+      return `fixez ${parts.join(', ')} de ${targetPhrase(resolvedTarget)}`;
     }
     case 'reduceCost': {
       const scopeLabel = {hand:'en main', deck:'dans le deck', both:'en main et dans le deck'}[eff.reduceCostScope];
