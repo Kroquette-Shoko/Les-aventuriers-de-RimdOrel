@@ -36,17 +36,18 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 
 /* ---------- Bande de cuir du haut : tous les contrôles ---------- */
 #top-strap{position:absolute;top:0;left:0;width:100%;height:8%;display:flex;align-items:center;gap:8px;padding:0 2.5%;z-index:20;}
-#app-topbar{position:absolute;top:0;left:0;width:100%;height:8%;display:flex;align-items:center;gap:10px;padding:0 2.5%;z-index:20;box-sizing:border-box;}
-#app-topbar-title{font-family:'Cinzel',serif;font-weight:700;color:var(--gold);font-size:14px;letter-spacing:.5px;white-space:nowrap;}
-#app-topbar-right{display:flex;align-items:center;gap:10px;}
-#app-topbar-menu{font-family:'Cinzel',serif;font-weight:700;font-size:11.5px;color:var(--parchment);text-decoration:none;
-  border:1.5px solid #3a3260;border-radius:8px;padding:6px 12px;white-space:nowrap;}
-#app-topbar-menu:hover{border-color:var(--gold);color:var(--gold);}
+#app-topbar{position:absolute;top:0;left:0;width:100%;height:8%;display:flex;align-items:center;gap:16px;z-index:20;
+  background:rgba(15,12,20,.92);border-bottom:1.5px solid rgba(212,175,55,.4);padding:0 20px;
+  font-family:'Inter',sans-serif;box-sizing:border-box;}
+#app-topbar-title{font-family:'Cinzel',serif;font-weight:700;color:#d4af37;font-size:16px;letter-spacing:.5px;flex:1;}
+#app-topbar-right{display:flex;align-items:center;gap:14px;}
+#app-topbar-menu{font-family:'Cinzel',serif;font-weight:700;font-size:12.5px;color:#f2ead2;text-decoration:none;
+  border:1.5px solid #3a3260;border-radius:8px;padding:7px 14px;white-space:nowrap;}
+#app-topbar-menu:hover{border-color:#d4af37;color:#d4af37;}
 #left-toolbar{position:absolute;top:19%;left:2.5%;width:14%;display:flex;flex-direction:column;align-items:stretch;gap:8px;z-index:20;}
 #left-toolbar .btn{padding:9px 12px;font-size:12px;text-align:left;border-radius:8px;}
 #left-toolbar .select-mini{padding:8px 10px;font-size:11px;border-radius:8px;width:100%;}
 #left-toolbar .results-count{text-align:center;font-size:11px;}
-#app-topbar .spacer{flex:1;}
 .save-indicator{font-size:10.5px;color:var(--green);opacity:0;transition:opacity .4s;white-space:nowrap;}
 .save-indicator.show{opacity:1;}
 .btn{background:rgba(23,19,37,.75);border:1px solid rgba(212,175,55,.35);color:var(--parchment);border-radius:7px;padding:6px 11px;font-family:'Inter';font-size:11.5px;font-weight:600;cursor:pointer;white-space:nowrap;}
@@ -385,7 +386,6 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
   <div id="app-topbar">
     <span id="app-topbar-title">📚 Collection</span>
     <span class="save-indicator" id="save-indicator">✓ Sauvegardé</span>
-    <div class="spacer"></div>
     <div id="app-topbar-right">
       <div id="sc-auth-slot"></div>
       <div id="sc-options-slot"></div>
