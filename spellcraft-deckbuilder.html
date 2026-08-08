@@ -24,14 +24,14 @@
   --leather-2:#4d3826;
 }
 *{box-sizing:border-box;}
-html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);font-family:'Inter',sans-serif;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);font-family:'Inter',sans-serif;overflow:hidden;display:flex;align-items:flex-start;justify-content:center;}
 .title-font{font-family:'Cinzel',serif;}
 
 #app{
   position:relative;
   width:100vw;
-  height:100vh;
-  background:url('images/binder-open.png') center/100% 100% no-repeat;
+  height:calc(100vw * 992 / 1586);
+  background:url('images/binder-open.png') center top/100% 100% no-repeat;
 }
 
 /* ---------- Bande de cuir du haut : tous les contrôles ---------- */
