@@ -2276,10 +2276,19 @@ function buildEffectRow(ab, eff, choiceKey){
 
   if(def.needsValue){
     const allowNegative = eff.effectType==='buff';
-    row.appendChild(buildValueField(eff, 'valueMode','valueFixed','valueDynamic', def.doubleValue?'Valeur (Force)':'Valeur', false, allowNegative));
-    if(def.doubleValue){
+    const isRandomSplit = (eff.effectType==='buff' || eff.effectType==='weaken') && eff.randomSplit;
+    row.appendChild(buildValueField(eff, 'valueMode','valueFixed','valueDynamic', def.doubleValue?(isRandomSplit?'Valeur':'Valeur (Force)'):'Valeur', false, allowNegative));
+    if(def.doubleValue && !isRandomSplit){
       row.appendChild(buildValueField(eff, 'valueMode2','valueFixed2','valueDynamic2','Valeur (Endurance)', false, allowNegative));
     }
+  }
+
+  if(eff.effectType==='buff' || eff.effectType==='weaken'){
+    const rsToggle = document.createElement('label');
+    rsToggle.className='evolve-toggle';
+    rsToggle.innerHTML = `<input type="checkbox" ${eff.randomSplit?'checked':''}> Répartition aléatoire — au hasard, toute la valeur va soit en Force soit en Endurance (ex : +1/+0 ou +0/+1)`;
+    rsToggle.querySelector('input').onchange=(e)=>{ eff.randomSplit=e.target.checked; rebuildAbilitiesUI(); onFormChange(); };
+    row.appendChild(rsToggle);
   }
 
   if(eff.effectType==='buff' || eff.effectType==='weaken'){
@@ -3013,6 +3022,11 @@ function buildEffectClause(eff, ab){
       return `piochez un nombre de cartes ${dyn}`;
     }
     case 'buff': {
+      if(eff.randomSplit){
+        const v1 = eff.valueMode==='dynamic' ? valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic') : eff.valueFixed;
+        const durSuffix = eff.durationMode==='endOfTurn' ? " jusqu'à la fin de ce tour" : eff.durationMode==='endOfNextTurn' ? " jusqu'à la fin du prochain tour" : '';
+        return `${targetPhrase(resolvedTarget)} gagne +${v1}/+0 ou +0/+${v1} au hasard${durSuffix}`;
+      }
       const v1 = eff.valueMode==='dynamic' ? '+'+valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic') : (eff.valueFixed>=0?'+':'')+eff.valueFixed;
       const v2m = eff.valueMode2||eff.valueMode;
       const v2 = v2m==='dynamic' ? '+'+valuePhrase(eff, v2m, eff.valueFixed2, 'valueDynamic2') : (eff.valueFixed2>=0?'+':'')+eff.valueFixed2;
@@ -3021,6 +3035,11 @@ function buildEffectClause(eff, ab){
       return `${targetPhrase(resolvedTarget)} ${verb} ${v1}/${v2}${durSuffix}`;
     }
     case 'weaken': {
+      if(eff.randomSplit){
+        const v1 = eff.valueMode==='dynamic' ? valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic') : Math.abs(eff.valueFixed);
+        const durSuffix = eff.durationMode==='endOfTurn' ? " jusqu'à la fin de ce tour" : eff.durationMode==='endOfNextTurn' ? " jusqu'à la fin du prochain tour" : '';
+        return `${targetPhrase(resolvedTarget)} subit -${v1}/-0 ou -0/-${v1} au hasard${durSuffix}`;
+      }
       const v1 = eff.valueMode==='dynamic' ? valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic') : Math.abs(eff.valueFixed);
       const v2m = eff.valueMode2||eff.valueMode;
       const v2 = v2m==='dynamic' ? valuePhrase(eff, v2m, eff.valueFixed2, 'valueDynamic2') : Math.abs(eff.valueFixed2);
