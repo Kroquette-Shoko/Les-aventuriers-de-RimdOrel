@@ -96,6 +96,14 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 .binder-page-half.right{left:52%;width:29%;}
 .binder-spine{display:none;}
 .binder-slot{width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
+#bulk-disenchant-bar{display:flex;align-items:center;gap:12px;background:var(--bg-panel-2);border:1.5px solid #6b3030;
+  border-radius:10px;padding:10px 14px;margin:8px 0;}
+#bulk-disenchant-bar #bulk-disenchant-summary{font-family:'Cinzel',serif;font-weight:700;font-size:13px;flex:1;}
+#bulk-disenchant-toggle.active{border-color:#e88;color:#e88;}
+.binder-slot.bulk-selected{outline:3px solid var(--gold);outline-offset:-3px;border-radius:8px;}
+.binder-slot.bulk-selectable{cursor:pointer;}
+.binder-slot .bulk-select-badge{position:absolute;top:4px;left:4px;width:22px;height:22px;border-radius:50%;
+  background:var(--gold);color:#1c1830;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;z-index:10;}
 .binder-slot .ncard{cursor:pointer;transition:transform .12s;transform-origin:center center;width:100% !important;height:100% !important;}
 .binder-slot .ncard:hover{transform:scale(1.03);}
 .binder-slot-empty{width:100%;height:100%;}
@@ -398,6 +406,13 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
       <option value="rarity">Rareté</option>
     </select>
     <span class="results-count" id="results-count"></span>
+    <button class="btn small" id="bulk-disenchant-toggle" onclick="toggleBulkDisenchantMode()">♻️ Désassembler en masse</button>
+  </div>
+
+  <div id="bulk-disenchant-bar" style="display:none;">
+    <span id="bulk-disenchant-summary">0 carte sélectionnée</span>
+    <button class="btn small" onclick="toggleBulkDisenchantMode()">Annuler</button>
+    <button class="btn small primary" id="bulk-disenchant-confirm" onclick="confirmBulkDisenchant()" disabled>Désassembler la sélection</button>
   </div>
 
   <div id="wizard-hint" style="display:none;"></div>
@@ -509,6 +524,8 @@ const SPREAD_SIZE = PAGE_SIZE * 2; // deux pages affichées côte à côte
 const DECK_SIZE = 30;
 const MAX_COPIES = 2;
 let ownedCollection = {}; // { cardId: quantité possédée }
+let bulkDisenchantMode = false;
+let bulkDisenchantSelection = new Set();
 let isLoggedInCache = false;
 
 /* ============================================================
@@ -1539,6 +1556,22 @@ function renderBinder(animate){
         const el = buildCardEl(card);
         el.onclick = ()=>onCardClick(card);
         slot.appendChild(el);
+        if(bulkDisenchantMode){
+          const canSelect = card.rarity!=='Basique' && (ownedCollection[card.id]||0)>0;
+          if(canSelect){
+            slot.classList.add('bulk-selectable');
+            if(bulkDisenchantSelection.has(card.id)){
+              slot.classList.add('bulk-selected');
+              const badge = document.createElement('div');
+              badge.className = 'bulk-select-badge';
+              badge.textContent = '✓';
+              slot.appendChild(badge);
+            }
+          } else {
+            el.style.opacity = '0.4';
+            el.style.pointerEvents = 'none';
+          }
+        }
         const count = deckCountFor(card.id);
         const isChosenHero = currentDeck && currentDeck.heroId===card.id;
         const isChosenRegion = currentDeck && currentDeck.regionId===card.id;
@@ -1688,6 +1721,7 @@ function classAllowedByDeck(card){
 }
 
 function onCardClick(card){
+  if(bulkDisenchantMode){ toggleBulkDisenchantSelection(card); return; }
   if(!currentDeck){
     if(card.type!=='Héros' && card.type!=='Région'){ showCraftModal(card); return; }
     flashError('Crée ou charge un deck avant d\'ajouter des cartes.');
@@ -1879,6 +1913,54 @@ async function doDisenchant(cardId, btn){
   flashSaved(`✓ ${data.refund} fragments récupérés`);
   ownedCollection = await loadUserCollection();
   showCraftModal(craftModalCard);
+  renderBinder();
+}
+
+/* ============================================================
+   DÉSASSEMBLAGE EN MASSE — sélection multiple, choix carte par carte
+   ============================================================ */
+function toggleBulkDisenchantMode(){
+  bulkDisenchantMode = !bulkDisenchantMode;
+  if(!bulkDisenchantMode) bulkDisenchantSelection.clear();
+  document.getElementById('bulk-disenchant-toggle').classList.toggle('active', bulkDisenchantMode);
+  document.getElementById('bulk-disenchant-bar').style.display = bulkDisenchantMode ? 'flex' : 'none';
+  updateBulkDisenchantSummary();
+  renderBinder();
+}
+function toggleBulkDisenchantSelection(card){
+  if(card.rarity==='Basique' || !(ownedCollection[card.id]>0)) return;
+  if(bulkDisenchantSelection.has(card.id)) bulkDisenchantSelection.delete(card.id);
+  else bulkDisenchantSelection.add(card.id);
+  updateBulkDisenchantSummary();
+  renderBinder();
+}
+function updateBulkDisenchantSummary(){
+  const n = bulkDisenchantSelection.size;
+  let totalRefund = 0;
+  bulkDisenchantSelection.forEach(id=>{
+    const card = cardById(id);
+    if(card){ const cost = CRAFT_COST_BY_RARITY[card.rarity]; if(cost) totalRefund += Math.floor(cost/4); }
+  });
+  document.getElementById('bulk-disenchant-summary').textContent =
+    n===0 ? '0 carte sélectionnée' : `${n} carte${n>1?'s':''} sélectionnée${n>1?'s':''} — environ ${totalRefund} fragments au total`;
+  document.getElementById('bulk-disenchant-confirm').disabled = n===0;
+}
+async function confirmBulkDisenchant(){
+  const ids = [...bulkDisenchantSelection];
+  if(ids.length===0) return;
+  if(!confirm(`Désassembler ces ${ids.length} carte(s) ? Cette action est irréversible.`)) return;
+  const btn = document.getElementById('bulk-disenchant-confirm');
+  btn.disabled = true;
+  const { data, error } = await sb.rpc('disenchant_cards_bulk', { p_card_ids: ids });
+  if(error || (data && data.error)){
+    flashError('Désassemblage impossible : ' + (data ? data.error : error.message));
+    btn.disabled = false;
+    return;
+  }
+  flashSaved(`✓ ${data.total_refund} fragments récupérés au total`);
+  ownedCollection = await loadUserCollection();
+  bulkDisenchantSelection.clear();
+  updateBulkDisenchantSummary();
   renderBinder();
 }
 
