@@ -471,16 +471,23 @@ function injectOptionsMenu(){
   gear.onclick = (e)=>{
     e.stopPropagation();
     const willShow = !modal.classList.contains('show');
-    modal.classList.toggle('show');
     if(willShow && slot){
       // Position calculée à partir de la vraie place de l'engrenage à
-      // l'écran plutôt qu'un top fixe en pixels — sinon le menu peut
-      // s'afficher hors de l'écran selon la hauteur réelle de la barre
-      // de chaque page (variable d'une page à l'autre).
+      // l'écran plutôt qu'un top/right fixe en pixels — sinon le menu
+      // peut s'afficher hors de l'écran selon la hauteur réelle de la
+      // barre de chaque page (variable d'une page à l'autre). Utilise
+      // left plutôt que right pour éviter tout calcul indirect, avec
+      // des bornes explicites pour ne jamais sortir de l'écran.
       const rect = gear.getBoundingClientRect();
-      modal.style.top = (rect.bottom + 8) + 'px';
-      modal.style.right = Math.max(10, window.innerWidth - rect.right) + 'px';
+      const modalWidth = 230; // largeur fixée en CSS
+      let left = rect.right - modalWidth;
+      left = Math.max(10, Math.min(left, window.innerWidth - modalWidth - 10));
+      let top = rect.bottom + 8;
+      modal.style.right = 'auto';
+      modal.style.left = left + 'px';
+      modal.style.top = top + 'px';
     }
+    modal.classList.toggle('show');
   };
   document.addEventListener('click', (e)=>{
     if(modal.classList.contains('show') && !modal.contains(e.target) && e.target!==gear){
