@@ -468,7 +468,20 @@ function injectOptionsMenu(){
     document.body.appendChild(modal);
   }
 
-  gear.onclick = (e)=>{ e.stopPropagation(); modal.classList.toggle('show'); };
+  gear.onclick = (e)=>{
+    e.stopPropagation();
+    const willShow = !modal.classList.contains('show');
+    modal.classList.toggle('show');
+    if(willShow && slot){
+      // Position calculée à partir de la vraie place de l'engrenage à
+      // l'écran plutôt qu'un top fixe en pixels — sinon le menu peut
+      // s'afficher hors de l'écran selon la hauteur réelle de la barre
+      // de chaque page (variable d'une page à l'autre).
+      const rect = gear.getBoundingClientRect();
+      modal.style.top = (rect.bottom + 8) + 'px';
+      modal.style.right = Math.max(10, window.innerWidth - rect.right) + 'px';
+    }
+  };
   document.addEventListener('click', (e)=>{
     if(modal.classList.contains('show') && !modal.contains(e.target) && e.target!==gear){
       modal.classList.remove('show');
