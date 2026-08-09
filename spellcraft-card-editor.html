@@ -852,6 +852,8 @@ const EFFECT_TYPES = [
   {key:'stealCard', label:"Vole une carte à un adversaire (main → votre main)", needsTarget:true, needsValue:false},
   {key:'stealCreature', label:"Vole une créature en jeu et la passe de votre côté", needsTarget:true, needsValue:false},
   {key:'addCharges', label:"Ajoute des charges à un artefact ciblé", needsTarget:true, needsValue:true},
+  {key:'preventHealing', label:"Empêche un joueur de gagner des PV jusqu'à votre prochain tour", needsTarget:false, needsValue:false, isPreventHealing:true},
+  {key:'destroyDealAtk', label:"Détruit la cible, puis inflige sa Force à une seconde cible", needsTarget:true, needsValue:false, isDestroyDealAtk:true},
   {key:'doubleEffectsTrigger', label:'Double les effets déclenchés par (capacité continue)', needsTarget:false, needsValue:false, isDoubleTrigger:true},
   {key:'evolveTarget', label:'Fait évoluer la cible (bonus permanent et/ou nouveau mot-clé et/ou transformation)', needsTarget:true, needsValue:false, isEvolveTarget:true},
   {key:'doubleTrigger', label:'Double les déclencheurs de [X] (pour le reste de la partie)', needsTarget:false, needsValue:false, isDoubleTrigger:true},
@@ -917,6 +919,7 @@ const TARGET_CATEGORIES = [
 const TARGET_OWNERS = [
   {key:'self', label:'Cette carte'},
   {key:'trigger', label:'La carte qui déclenche (source du trigger)'},
+  {key:'fight_opponent', label:"La créature qu'elle va affronter (avec le déclencheur \"Avant qu'une créature alliée ne combatte\")"},
   {key:'ally', label:'Alliée / vous'},
   {key:'enemy', label:'Ennemie / adversaire'},
   {key:'any', label:'Peu importe'},
@@ -2675,6 +2678,27 @@ function buildEffectRow(ab, eff, choiceKey){
   if(def.isHalveLife){
     row.appendChild(makeSelectField('Qui', [{key:'self',label:'Vous'},{key:'enemy',label:"L'adversaire"}], eff.halveLifeOwner||'enemy', v=>{ eff.halveLifeOwner=v; onFormChange(); }));
   }
+  if(def.isPreventHealing){
+    row.appendChild(makeSelectField('Qui ne peut plus gagner de PV', [{key:'self',label:'Vous'},{key:'enemy',label:"L'adversaire"}], eff.preventHealingOwner||'enemy', v=>{ eff.preventHealingOwner=v; onFormChange(); }));
+  }
+  if(def.isDestroyDealAtk){
+    const otherTargets = (ab.targets||[]).filter(t=>t.id!==eff.usesTarget);
+    if(otherTargets.length>0){
+      const opts = otherTargets.map((t,i)=>({key:t.id, label:`Cible ${String.fromCharCode(65+(ab.targets||[]).indexOf(t))}`}));
+      if(!eff.destroyDealAtkSecondTargetId || !otherTargets.some(t=>t.id===eff.destroyDealAtkSecondTargetId)) eff.destroyDealAtkSecondTargetId = otherTargets[0].id;
+      row.appendChild(makeSelectField('Inflige les dégâts à', opts, eff.destroyDealAtkSecondTargetId, v=>{ eff.destroyDealAtkSecondTargetId=v; onFormChange(); }));
+    } else {
+      const warn = document.createElement('div');
+      warn.style.cssText = 'font-size:11px;color:#e88;margin-top:4px;';
+      warn.textContent = "Il faut une seconde cible dans cette capacité pour désigner qui reçoit les dégâts.";
+      row.appendChild(warn);
+      const addBtn = document.createElement('button');
+      addBtn.type='button'; addBtn.className='add-row-btn';
+      addBtn.textContent = '+ Ajouter une seconde cible';
+      addBtn.onclick = ()=>{ addTargetEntry(ab.id, choiceKey); };
+      row.appendChild(addBtn);
+    }
+  }
   if(def.isDoubleTrigger){
     const trigOptions = Object.keys(TRIGGER_TEXT).map(k=>({key:k, label: TRIGGER_SHORT_NAME[k] ? `${TRIGGER_SHORT_NAME[k]} — ${TRIGGER_TEXT[k]}` : TRIGGER_TEXT[k]}));
     row.appendChild(makeSelectField('Déclencheur doublé', trigOptions, eff.doubleTriggerName||trigOptions[0]?.key, v=>{ eff.doubleTriggerName=v; onFormChange(); }));
@@ -3182,6 +3206,12 @@ function buildEffectClause(eff, ab){
       return `volez ${targetPhrase(resolvedTarget)} et faites-la passer de votre côté`;
     case 'addCharges':
       return `ajoutez ${valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic')} charge(s) à ${targetPhrase(resolvedTarget)}`;
+    case 'preventHealing': {
+      const phrase = eff.preventHealingOwner==='self' ? 'vous ne pouvez plus gagner de PV' : "l'adversaire ne peut plus gagner de PV";
+      return `${phrase} jusqu'à votre prochain tour`;
+    }
+    case 'destroyDealAtk':
+      return `détruisez ${targetPhrase(resolvedTarget)}, puis infligez sa Force à la carte visée par une autre cible de cette capacité`;
     case 'doubleEffectsTrigger': {
       const trigLabel = TRIGGER_SHORT_NAME[eff.doubleTriggerName] ? `${TRIGGER_SHORT_NAME[eff.doubleTriggerName]} — ${TRIGGER_TEXT[eff.doubleTriggerName]}` : (TRIGGER_TEXT[eff.doubleTriggerName] || '?');
       return `double les effets déclenchés par « ${trigLabel} » sur cette carte`;
