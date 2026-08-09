@@ -3950,10 +3950,10 @@ const NCLASS_TO_SLUG_NOACCENT = {
   'Aube':'aube', 'Crépuscule':'crepuscule', 'Volonté':'volonte', 'Prima':'prima', 'Arcane':'arcane', 'Neutre':'neutre'
 };
 const CARD_TYPE_TO_TEMPLATE_SLUG = {
-  'Créature':'creature', 'Artefact':'artefact', 'Sortilège':'spell', 'Piège':'trap', 'Région':'region'
+  'Créature':'creature', 'Artefact':'artefact', 'Sortilège':'spell', 'Piège':'trap', 'Région':'region', 'Héros':'hero'
 };
-function ncardRealPath(size, slug, cardClass, cardType){
-  if(size==='big' && CARD_TYPE_TO_TEMPLATE_SLUG[cardType] && NCLASS_TO_SLUG_NOACCENT[cardClass]){
+function ncardRealPath(size, slug, cardClass, cardType, useHeroFrame){
+  if(size==='big' && CARD_TYPE_TO_TEMPLATE_SLUG[cardType] && NCLASS_TO_SLUG_NOACCENT[cardClass] && (cardType!=='Héros' || useHeroFrame)){
     return `images/card/big%20frame/${NCLASS_TO_SLUG_NOACCENT[cardClass]}-${CARD_TYPE_TO_TEMPLATE_SLUG[cardType]}-bigframe.png`;
   }
   const folder = size==='big' ? 'big%20frame' : 'small%20frame';
@@ -3962,8 +3962,8 @@ function ncardRealPath(size, slug, cardClass, cardType){
 const HALF_FRAME_SLUG = {
   'Aube':'aube', 'Crépuscule':'crepuscule', 'Volonté':'volonté', 'Prima':'prima', 'Arcane':'arcane'
 };
-function ncardHalfFramePath(size, classSecondary, cardType){
-  if(size==='big' && CARD_TYPE_TO_TEMPLATE_SLUG[cardType] && NCLASS_TO_SLUG_NOACCENT[classSecondary]){
+function ncardHalfFramePath(size, classSecondary, cardType, useHeroFrame){
+  if(size==='big' && CARD_TYPE_TO_TEMPLATE_SLUG[cardType] && NCLASS_TO_SLUG_NOACCENT[classSecondary] && (cardType!=='Héros' || useHeroFrame)){
     return `images/card/big%20frame/${NCLASS_TO_SLUG_NOACCENT[classSecondary]}-${CARD_TYPE_TO_TEMPLATE_SLUG[cardType]}-bighalfframe.png`;
   }
   const slug = HALF_FRAME_SLUG[classSecondary];
@@ -3983,7 +3983,7 @@ const NRARITY_TO_SLUG = {
 function nEl(tag, cls){ const e = document.createElement(tag); if(cls) e.className = cls; return e; }
 function nImg(src, cls){ const i = document.createElement('img'); i.src = src; if(cls) i.className = cls; return i; }
 
-function buildNewCardEl(card, size){
+function buildNewCardEl(card, size, opts={}){
   const root = nEl('div', `ncard n-${size}`);
   const slug = NCLASS_TO_SLUG[card.class] || 'neutre';
   const isHero = card.type==='Héros';
@@ -4005,9 +4005,9 @@ function buildNewCardEl(card, size){
   root.appendChild(art);
 
   // Frame (par-dessus l'illustration, fenêtre transparente)
-  root.appendChild(nImg(ncardRealPath(size, slug, card.class, card.type), 'nframe-layer'));
+  root.appendChild(nImg(ncardRealPath(size, slug, card.class, card.type, opts.heroCardFrame), 'nframe-layer'));
   if(card.classSecondary){
-    const halfPath = ncardHalfFramePath(size, card.classSecondary, card.type);
+    const halfPath = ncardHalfFramePath(size, card.classSecondary, card.type, opts.heroCardFrame);
     if(halfPath) root.appendChild(nImg(halfPath, 'nframe-half-layer'));
   }
 

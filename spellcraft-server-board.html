@@ -493,6 +493,7 @@ body.targeting *{cursor:crosshair !important;}
   .mana-box-dot{width:20px;height:20px;border-radius:50%;border:1.5px solid rgba(0,0,0,.5);flex-shrink:0;}
   .mana-box-dot.filled{background:radial-gradient(circle at 35% 30%,#8fe0ff,#155a94);box-shadow:0 0 6px rgba(111,208,255,.75);}
   .mana-box-dot.fragile{background:radial-gradient(circle at 35% 30%,#d8f4ff,var(--frost));box-shadow:0 0 6px rgba(79,179,217,.8);}
+  .mana-box-dot.bonus{background:radial-gradient(circle at 35% 30%,#fff3d0,var(--gold));box-shadow:0 0 6px rgba(212,175,55,.8);}
 
   .hero-frame{position:absolute;bottom:8px;z-index:7;}
   .hero-portrait-big{width:130px;height:130px;border-radius:50%;background:radial-gradient(circle at 35% 30%, var(--arcane), #2a1f55);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:700;font-size:40px;color:#fff;flex-shrink:0;border:4px solid var(--gold);position:relative;cursor:pointer;padding:0;}
@@ -833,10 +834,10 @@ const NCLASS_TO_SLUG_NOACCENT = {
   'Aube':'aube', 'Crépuscule':'crepuscule', 'Volonté':'volonte', 'Prima':'prima', 'Arcane':'arcane', 'Neutre':'neutre'
 };
 const CARD_TYPE_TO_TEMPLATE_SLUG = {
-  'Créature':'creature', 'Artefact':'artefact', 'Sortilège':'spell', 'Piège':'trap', 'Région':'region'
+  'Créature':'creature', 'Artefact':'artefact', 'Sortilège':'spell', 'Piège':'trap', 'Région':'region', 'Héros':'hero'
 };
-function ncardRealPath(size, slug, cardClass, cardType){
-  if(size==='big' && CARD_TYPE_TO_TEMPLATE_SLUG[cardType] && NCLASS_TO_SLUG_NOACCENT[cardClass]){
+function ncardRealPath(size, slug, cardClass, cardType, useHeroFrame){
+  if(size==='big' && CARD_TYPE_TO_TEMPLATE_SLUG[cardType] && NCLASS_TO_SLUG_NOACCENT[cardClass] && (cardType!=='Héros' || useHeroFrame)){
     return `images/card/big%20frame/${NCLASS_TO_SLUG_NOACCENT[cardClass]}-${CARD_TYPE_TO_TEMPLATE_SLUG[cardType]}-bigframe.png`;
   }
   const folder = size==='big' ? 'big%20frame' : 'small%20frame';
@@ -848,8 +849,8 @@ function ncardRealPath(size, slug, cardClass, cardType){
 const HALF_FRAME_SLUG = {
   'Aube':'aube', 'Crépuscule':'crepuscule', 'Volonté':'volonté', 'Prima':'prima', 'Arcane':'arcane'
 };
-function ncardHalfFramePath(size, classSecondary, cardType){
-  if(size==='big' && CARD_TYPE_TO_TEMPLATE_SLUG[cardType] && NCLASS_TO_SLUG_NOACCENT[classSecondary]){
+function ncardHalfFramePath(size, classSecondary, cardType, useHeroFrame){
+  if(size==='big' && CARD_TYPE_TO_TEMPLATE_SLUG[cardType] && NCLASS_TO_SLUG_NOACCENT[classSecondary] && (cardType!=='Héros' || useHeroFrame)){
     return `images/card/big%20frame/${NCLASS_TO_SLUG_NOACCENT[classSecondary]}-${CARD_TYPE_TO_TEMPLATE_SLUG[cardType]}-bighalfframe.png`;
   }
   const slug = HALF_FRAME_SLUG[classSecondary];
@@ -868,7 +869,7 @@ const NRARITY_TO_SLUG = {
 function nEl(tag, cls){ const e = document.createElement(tag); if(cls) e.className = cls; return e; }
 function nImg(src, cls){ const i = document.createElement('img'); i.src = src; if(cls) i.className = cls; return i; }
 
-function buildNewCardEl(card, size, effectiveCostOverride){
+function buildNewCardEl(card, size, effectiveCostOverride, opts={}){
   const root = nEl('div', `ncard n-${size}`);
   const slug = NCLASS_TO_SLUG[card.class] || 'neutre';
   const isHero = card.type==='Héros';
@@ -887,9 +888,9 @@ function buildNewCardEl(card, size, effectiveCostOverride){
     art.style.backgroundSize = zoom>100 ? zoom+'%' : 'cover';
   }
   root.appendChild(art);
-  root.appendChild(nImg(ncardRealPath(size, slug, card.class, card.type), 'nframe-layer'));
+  root.appendChild(nImg(ncardRealPath(size, slug, card.class, card.type, opts.heroCardFrame), 'nframe-layer'));
   if(card.classSecondary){
-    const halfPath = ncardHalfFramePath(size, card.classSecondary, card.type);
+    const halfPath = ncardHalfFramePath(size, card.classSecondary, card.type, opts.heroCardFrame);
     if(halfPath) root.appendChild(nImg(halfPath, 'nframe-half-layer'));
   }
 
@@ -1269,11 +1270,13 @@ function renderManaBox(key, slot){
     const filled = i<p.manaNormal;
     return `<span class="mana-box-dot ${filled?'filled':''}"></span>`;
   }).join('');
+  const bonusCount = Math.max(0, p.manaNormal - p.manaNormalMax);
+  const bonusDots = Array.from({length:bonusCount}, ()=>`<span class="mana-box-dot bonus"></span>`).join('');
   const fragileDots = Array.from({length:p.manaFragile}, ()=>`<span class="mana-box-dot fragile"></span>`).join('');
   el.title = region.name || 'Région';
   el.innerHTML = `
     <div class="mana-box-region-thumb" style="${regionThumbStyle}"></div>
-    <div class="mana-box-fill">${normalDots}${fragileDots}</div>
+    <div class="mana-box-fill">${normalDots}${bonusDots}${fragileDots}</div>
   `;
 }
 
