@@ -508,7 +508,7 @@ function injectOptionsMenu(){
    existe déjà quand initSpellcraftAuth() tourne juste après, dans le
    script de la page. */
 function injectAppTopbar(){
-  if(document.getElementById('app-topbar') || !document.body) return;
+  if(document.getElementById('app-topbar') || !document.body || window.APP_TOPBAR_DISABLED) return;
   const style = document.createElement('style');
   style.textContent = `
     #app-topbar{display:flex;align-items:center;gap:16px;padding:10px 20px;background:rgba(15,12,20,.92);

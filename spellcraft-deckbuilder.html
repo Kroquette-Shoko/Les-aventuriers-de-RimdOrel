@@ -24,25 +24,22 @@
   --leather-2:#4d3826;
 }
 *{box-sizing:border-box;}
-html,body{margin:0;height:100%;background:var(--bg-void) url('images/binder-open.png') center/cover no-repeat;color:var(--parchment);font-family:'Inter',sans-serif;overflow:hidden;display:flex;align-items:center;justify-content:center;}
+html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);font-family:'Inter',sans-serif;overflow:hidden;display:flex;align-items:center;justify-content:center;}
 .title-font{font-family:'Cinzel',serif;}
 
 #app{
   position:relative;
-  width:min(100vw, 100vh * 1586 / 992);
-  height:min(100vh, 100vw * 992 / 1586);
+  width:100vw;
+  height:calc(100vw * 992 / 1586);
+  background:url('images/binder-open.png') center/100% 100% no-repeat;
 }
 
 /* ---------- Bande de cuir du haut : tous les contrôles ---------- */
 #top-strap{position:absolute;top:0;left:0;width:100%;height:8%;display:flex;align-items:center;gap:8px;padding:0 2.5%;z-index:20;}
-#app-topbar{position:absolute;top:16px;left:2%;width:96%;display:flex;align-items:center;gap:16px;z-index:20;
-  background:rgba(15,12,20,.92);border:1.5px solid rgba(212,175,55,.4);border-radius:10px;padding:8px 20px;
-  font-family:'Inter',sans-serif;box-sizing:border-box;}
-#app-topbar-title{font-family:'Cinzel',serif;font-weight:700;color:#d4af37;font-size:16px;letter-spacing:.5px;flex:1;}
-#app-topbar-right{display:flex;align-items:center;gap:14px;}
-#app-topbar-menu{font-family:'Cinzel',serif;font-weight:700;font-size:12.5px;color:#f2ead2;text-decoration:none;
-  border:1.5px solid #3a3260;border-radius:8px;padding:7px 14px;white-space:nowrap;}
-#app-topbar-menu:hover{border-color:#d4af37;color:#d4af37;}
+#hub-link-above-deck{position:absolute;top:16%;left:83.5%;width:15%;z-index:20;}
+#hub-link-above-deck .btn{width:100%;text-align:center;padding:16px 12px;font-size:18px;font-weight:800;}
+#top-strap h1{display:none;}
+#top-strap .spacer{flex:1;}
 #left-toolbar{position:absolute;top:19%;left:2.5%;width:14%;display:flex;flex-direction:column;align-items:stretch;gap:8px;z-index:20;}
 #left-toolbar .btn{padding:9px 12px;font-size:12px;text-align:left;border-radius:8px;}
 #left-toolbar .select-mini{padding:8px 10px;font-size:11px;border-radius:8px;width:100%;}
@@ -382,14 +379,14 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 <body>
 
 <div id="app">
-  <div id="app-topbar">
-    <span id="app-topbar-title">📚 Collection</span>
+  <div id="top-strap">
     <span class="save-indicator" id="save-indicator">✓ Sauvegardé</span>
-    <div id="app-topbar-right">
-      <div id="sc-auth-slot"></div>
-      <div id="sc-options-slot"></div>
-      <a id="app-topbar-menu" href="spellcraft-hub.html">☰ Menu</a>
-    </div>
+    <div class="spacer"></div>
+    <div id="sc-auth-slot"></div>
+  </div>
+
+  <div id="hub-link-above-deck">
+    <a href="spellcraft-hub.html" class="btn small" title="Retour à l'accueil" style="text-decoration:none;">🏠 Menu principal</a>
   </div>
 
   <div id="left-toolbar">
@@ -513,7 +510,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>window.APP_TOPBAR_TITLE = '📚 Collection';</script>
+<script>window.APP_TOPBAR_DISABLED = true;</script>
 <script src="spellcraft-shared.js"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>
