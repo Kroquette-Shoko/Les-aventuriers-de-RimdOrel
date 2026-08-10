@@ -4026,6 +4026,12 @@ function ncardRealPath(size, slug, cardClass, cardType, useHeroFrame){
   if(size==='big' && CARD_TYPE_TO_TEMPLATE_SLUG[cardType] && NCLASS_TO_SLUG_NOACCENT[cardClass] && (cardType!=='Héros' || useHeroFrame)){
     return `images/card/big%20frame/${NCLASS_TO_SLUG_NOACCENT[cardClass]}-${CARD_TYPE_TO_TEMPLATE_SLUG[cardType]}-bigframe.png`;
   }
+  // Format small : nouveau schéma disponible uniquement pour Créature et
+  // Artefact pour l'instant — les autres types restent sur l'ancien
+  // système en attendant leurs propres illustrations.
+  if(size==='small' && (cardType==='Créature' || cardType==='Artefact') && NCLASS_TO_SLUG_NOACCENT[cardClass]){
+    return `images/card/small%20frame/${NCLASS_TO_SLUG_NOACCENT[cardClass]}-${CARD_TYPE_TO_TEMPLATE_SLUG[cardType]}-smallframe.png`;
+  }
   const folder = size==='big' ? 'big%20frame' : 'small%20frame';
   return `images/card/${folder}/${size}-${slug}.png`;
 }
