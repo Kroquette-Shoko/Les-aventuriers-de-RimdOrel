@@ -705,12 +705,12 @@ booster-aube.png" oninput="saveImgPickerFileList()"></textarea>
 const WATCH_TRIGGERS = ['watchPlay','watchArrival','watchDeath','watchAttack','watchDamaged','watchHealed','watchHeroHealed','watchSpell','watchTrap','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchAfterReveal','watchReveal','watchExplore','watchRetrieveDiscard','watchRetrieveDeck','watchTargeted','watchDiscovered','watchDrawFromOpponentDeck','onTargeted'];
 
 const TRIGGERS_BY_TYPE = {
-  'Créature': ['onPlay','onAttack','onBlocked','onWasBlocked','onDealtHeroDamage','onDamaged','onHealed','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
-  'Héros':    ['gameStart','onPlay','onDamaged','onHealed','onKill','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
+  'Créature': ['onPlay','onAttack','onBlocked','onWasBlocked','onDealtHeroDamage','onDamaged','onHealed','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
+  'Héros':    ['gameStart','onPlay','onDamaged','onHealed','onKill','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
   'Région':   ['gameStart','onPlay','onDestroyed','onReturnFromGraveyard','manaAlternative','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
-  'Artefact': ['onPlay','onUse','onDestroyed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
+  'Artefact': ['onPlay','onUse','onDestroyed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
   'Sortilège':['onPlay'],
-  'Piège':    ['onOpponentAttack','onOpponentSpell','onOpponentPlayCreature','onOpponentPlayArtifact','onOpponentPlayCard','onOpponentEndTurn','onOpponentTargetsAlly','onAllySurvivesCombat','onEnemySurvivesCombat','beforeAllyFights','onAllyBlocked','onPlay','onDestroyed','gameStart','onAttack','onBlocked','onDamaged','onHealed','onDeath','onKill','onRevive','activated','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS]
+  'Piège':    ['onOpponentAttack','onOpponentSpell','onOpponentPlayCreature','onOpponentPlayArtifact','onOpponentPlayCard','onOpponentEndTurn','onOpponentTargetsAlly','onAllySurvivesCombat','onEnemySurvivesCombat','beforeAllyFights','onAllyBlocked','onPlay','onDestroyed','gameStart','onAttack','onBlocked','onDamaged','onHealed','onDeath','onKill','onRevive','activated','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS]
 };
 
 const TRIGGER_TEXT = {
@@ -741,6 +741,7 @@ const TRIGGER_TEXT = {
   onManaGained: 'Quand vous gagnez du mana',
   onManaGainedNonRegion: 'Quand vous gagnez du mana autrement que par la région',
   onDraw: 'Quand vous piochez une carte',
+  onDrawn: 'Quand cette carte est piochée',
   onHandDiscard: 'Quand vous défaussez une carte depuis votre main',
   onSummonSubtype: 'Quand vous invoquez une créature du sous-type X',
   onOpponentAttack: 'Quand une créature ennemie attaque',
@@ -811,6 +812,7 @@ const EFFECT_TYPES = [
   {key:'damage', label:'Dégâts', needsTarget:true, needsValue:true},
   {key:'heal', label:'Soin', needsTarget:true, needsValue:true},
   {key:'draw', label:'Pioche', needsTarget:false, needsValue:true},
+  {key:'drawTempCard', label:"Pioche une carte temporaire (sort de la partie à la fin du tour si non jouée)", needsTarget:false, needsValue:true},
   {key:'buff', label:'Renforcement (+Force/+Endurance)', needsTarget:true, needsValue:true, doubleValue:true},
   {key:'weaken', label:'Affaiblissement (-Force/-Endurance)', needsTarget:true, needsValue:true, doubleValue:true},
   {key:'setStat', label:'Fixer une statistique (Force/Endurance/Coût/Utilisations) sur la cible', needsTarget:true, needsValue:false, isSetStat:true},
@@ -3042,6 +3044,11 @@ function buildEffectClause(eff, ab){
     case 'heal': {
       const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic');
       return `restaurez ${val} PV à ${targetPhrase(resolvedTarget)}`;
+    }
+    case 'drawTempCard': {
+      const v = eff.valueMode==='dynamic' ? valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic') : eff.valueFixed;
+      const word = (eff.valueMode==='fixed' && eff.valueFixed===1) ? 'une carte temporaire' : `${v} cartes temporaires`;
+      return `piochez ${word} (sort${eff.valueMode==='fixed' && eff.valueFixed===1?'':'ent'} de la partie à la fin du tour si non jouée${eff.valueMode==='fixed' && eff.valueFixed===1?'':'s'})`;
     }
     case 'draw': {
       const cardsWord = (v)=> v===1 ? 'une carte' : `${v} cartes`;
