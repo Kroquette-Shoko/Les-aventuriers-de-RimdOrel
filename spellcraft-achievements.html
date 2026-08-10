@@ -41,6 +41,18 @@ a{color:var(--frost);}
 .claim-btn:hover{filter:brightness(1.1);}
 .claimed-tag{margin-top:6px;font-size:11px;color:var(--green);font-family:'Cinzel',serif;font-weight:700;}
 .empty-state{text-align:center;padding:60px 20px;color:var(--parchment-dim);}
+.btn{background:var(--bg-panel-3);border:1.5px solid #3a3260;color:var(--parchment);border-radius:8px;
+  padding:8px 16px;font-family:'Cinzel',serif;font-size:12.5px;font-weight:700;cursor:pointer;}
+.btn:hover{border-color:var(--gold);}
+.btn.small{padding:6px 14px;font-size:11.5px;}
+#leaderboard-wrap{max-width:520px;margin:0 auto;}
+.lb-row{display:flex;align-items:center;gap:14px;background:var(--bg-panel);border:1.5px solid #3a3260;border-radius:10px;
+  padding:10px 16px;margin-bottom:8px;}
+.lb-row .lb-rank{font-family:'Cinzel',serif;font-weight:700;color:var(--gold);font-size:15px;width:32px;text-align:center;flex-shrink:0;}
+.lb-row .lb-class-icon{width:24px;height:24px;flex-shrink:0;object-fit:contain;}
+.lb-row .lb-name{flex:1;font-weight:600;}
+.lb-row .lb-wins{font-family:'Cinzel',serif;font-weight:700;color:var(--gold);}
+.lb-row.lb-top1{border-color:var(--gold);box-shadow:0 0 14px rgba(212,175,55,.3);}
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg-panel-3);
   border:1.5px solid var(--gold);border-radius:10px;padding:14px 20px;opacity:0;pointer-events:none;
   transition:all .3s ease;z-index:99;text-align:center;font-family:'Cinzel',serif;font-size:13px;
@@ -51,8 +63,12 @@ a{color:var(--frost);}
 <body>
 
 <div class="wrap">
+  <div id="view-toggle-row" style="text-align:center;margin-bottom:16px;">
+    <button class="btn small" id="view-toggle-btn" onclick="toggleLeaderboardView()">🏆 Voir le classement</button>
+  </div>
   <div class="summary" id="summary"></div>
   <div class="grid" id="ach-grid"></div>
+  <div id="leaderboard-wrap" style="display:none;"></div>
 </div>
 
 <div id="toast"></div>
@@ -112,6 +128,39 @@ function renderGrid(){
         </div>
       </div>
     `;
+  }).join('');
+}
+
+let showingLeaderboard = false;
+async function toggleLeaderboardView(){
+  showingLeaderboard = !showingLeaderboard;
+  document.getElementById('summary').style.display = showingLeaderboard ? 'none' : 'block';
+  document.getElementById('ach-grid').style.display = showingLeaderboard ? 'none' : 'grid';
+  document.getElementById('leaderboard-wrap').style.display = showingLeaderboard ? 'block' : 'none';
+  document.getElementById('view-toggle-btn').textContent = showingLeaderboard ? '🏅 Voir mes succès' : '🏆 Voir le classement';
+  if(showingLeaderboard) await loadLeaderboard();
+}
+const CLASS_SLUG_NOACCENT = {'Aube':'aube', 'Crépuscule':'crepuscule', 'Volonté':'volonte', 'Prima':'prima', 'Arcane':'arcane', 'Neutre':'neutre'};
+
+async function loadLeaderboard(){
+  const wrap = document.getElementById('leaderboard-wrap');
+  wrap.innerHTML = `<div class="empty-state">Chargement...</div>`;
+  const { data, error } = await sb.rpc('get_leaderboard');
+  if(error || data.error || !data.leaderboard || data.leaderboard.length===0){
+    wrap.innerHTML = `<div class="empty-state">Aucune victoire enregistrée pour l'instant.</div>`;
+    return;
+  }
+  wrap.innerHTML = data.leaderboard.map((p,i)=>{
+    const slug = CLASS_SLUG_NOACCENT[p.favorite_class];
+    const classIcon = slug ? `<img src="images/${slug}.png" class="lb-class-icon" title="${escapeHtml(p.favorite_class)}" alt="${escapeHtml(p.favorite_class)}">` : '';
+    return `
+    <div class="lb-row ${i===0?'lb-top1':''}">
+      <div class="lb-rank">${i+1}</div>
+      ${classIcon}
+      <div class="lb-name">${escapeHtml(p.username)}</div>
+      <div class="lb-wins">${p.total_wins} victoire${p.total_wins>1?'s':''}</div>
+    </div>
+  `;
   }).join('');
 }
 

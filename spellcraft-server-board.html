@@ -467,7 +467,6 @@ body.targeting *{cursor:crosshair !important;}
   .emote-bubble img{width:56px;height:56px;border-radius:8px;display:block;}
   @keyframes emote-pop{from{transform:scale(0.4);opacity:0;}to{transform:scale(1);opacity:1;}}
   @keyframes emote-fade{to{opacity:0;}}
-  #debug-log{position:fixed;bottom:10px;left:10px;width:300px;max-height:150px;overflow-y:auto;background:rgba(11,10,18,.9);border:1px solid #3a3260;border-radius:8px;padding:8px;font-size:10.5px;color:#9d92b0;z-index:50;font-family:monospace;}
   .log-error{color:#c23b3b;}
   .log-ok{color:#4a9d6b;}
   .ai-debug-btn{position:fixed;top:10px;right:10px;z-index:60;}
@@ -617,7 +616,6 @@ body.targeting *{cursor:crosshair !important;}
   </div>
 </div>
 
-<div id="debug-log"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="spellcraft-shared.js"></script>
@@ -648,6 +646,7 @@ let MY_KEY = null, OPP_KEY = null;
 let UI = { selectingAttackers:false, selectedAttackers:[], pendingBlocker:null };
 
 function debugLog(msg, cls){
+  return; // panneau de débogage retiré de l'écran
   const el = document.getElementById('debug-log');
   const line = document.createElement('div');
   line.className = cls||'';
