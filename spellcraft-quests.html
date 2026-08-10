@@ -92,7 +92,8 @@ main{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:26px;}
 .ncard.n-small .nart-layer{left:20.47%;top:16.28%;width:58.05%;height:44.63%;}
 .ncard.n-small .nstat-wrap.n-mana{left:-1%;top:-3.5%;width:22%;}
 .ncard.n-small .nstat-wrap.n-mana .nstat-txt{font-size:16px;}
-.ncard.n-small .nname-text{left:50%;top:62%;width:76%;transform:translateX(-50%);font-size:14px;height:20px;}
+.ncard.n-small .nname-wrap{left:50%;top:62%;width:76%;height:20px;transform:translateX(-50%);}
+.ncard.n-small .nname-wrap .nname-text{font-size:14px;}
 .ncard.n-small .ncard-text{display:none;}
 .ncard.n-small .nrarity-gem{left:50%;bottom:-0.5%;width:11%;transform:translateX(-50%);}
 .ncard.n-small .ntypeline{bottom:15%;width:64%;font-size:8.5px;}
@@ -238,18 +239,12 @@ function buildNewCardEl(card, size, opts={}){
     root.appendChild(wf);
   }
 
-  if(size==='big'){
-    const nw = nEl('div','nname-wrap');
-    nw.appendChild(nImg('images/card/icon/bubble/nom.png'));
-    const nameEl = nEl('div','nname-text'); nameEl.textContent = card.name || '';
-    applyNameSizing(nameEl, card, size);
-    nw.appendChild(nameEl);
-    root.appendChild(nw);
-  } else {
-    const nameEl = nEl('div','nname-text'); nameEl.textContent = card.name || '';
-    applyNameSizing(nameEl, card, size);
-    root.appendChild(nameEl);
-  }
+  const nw = nEl('div','nname-wrap');
+  nw.appendChild(nImg('images/card/icon/bubble/nom.png'));
+  const nameEl = nEl('div','nname-text'); nameEl.textContent = card.name || '';
+  applyNameSizing(nameEl, card, size);
+  nw.appendChild(nameEl);
+  root.appendChild(nw);
 
   if(size==='big'){
     const textEl = nEl('div','ncard-text'); textEl.textContent = card.text || '';
