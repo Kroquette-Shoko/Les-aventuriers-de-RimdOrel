@@ -963,6 +963,7 @@ const DYNAMIC_VALUES = [
   {key:'artifactsInPlay', label:"= nombre d'artefacts en jeu"},
   {key:'cardsDeadThisTurn', label:'= nombre de cartes mortes ce tour-ci'},
   {key:'cardsByTypeZone', label:'= nombre de cartes [type de carte] [zone]', parametric:'typeZone'},
+  {key:'cardsPlayedOrDrawnMatch', label:'= nombre de cartes [critère] jouées ou piochées cette partie', parametric:'playedDrawnFilter'},
   {key:'cardsBySubtypeZone', label:'= nombre de cartes [sous-type précis] [zone]', parametric:'subtypeZone'},
   {key:'cardsByName', label:'= nombre de cartes [nom précis]', parametric:'cardName'},
   {key:'cardsDrawnThisTurn', label:'= nombre de cartes piochées ce tour-ci'},
@@ -1450,6 +1451,14 @@ function buildTargetsSectionUI(ab, targetsArray, choiceKey, heading){
       } else {
         trow.appendChild(makeSelectField('Valeur dynamique', DYNAMIC_VALUES, tgt.countDynamic, v=>{ tgt.countDynamic=v; onFormChange(); }));
       }
+    }
+
+    if(tgt.targetCategory==='creature' || tgt.targetCategory==='hero_creature' || tgt.targetCategory==='artifact' || (tgt.targetCategory && tgt.targetCategory.startsWith('card_in_'))){
+      const nbdToggle = document.createElement('label');
+      nbdToggle.className='evolve-toggle';
+      nbdToggle.innerHTML = `<input type="checkbox" ${tgt.notInBaseDeck?'checked':''}> Uniquement les cartes qui n'étaient pas dans votre deck de base (générées en cours de partie)`;
+      nbdToggle.querySelector('input').onchange=(e)=>{ tgt.notInBaseDeck=e.target.checked; onFormChange(); };
+      trow.appendChild(nbdToggle);
     }
 
     if(tgt.targetCategory==='creature' || tgt.targetCategory==='hero_creature' || tgt.targetCategory==='artifact'){
@@ -2913,6 +2922,29 @@ function buildValueField(eff, modeKey, fixedKey, dynKey, label, shareMode, allow
       const nf = document.createElement('div'); nf.className='field'; nf.innerHTML=`<label class="mini-field">Nom exact de la carte</label>`;
       const ni = document.createElement('input'); ni.type='text'; ni.value=eff[nameKey]||''; ni.placeholder='Ex : Golem de Jaäne';
       ni.oninput=()=>{ eff[nameKey]=ni.value; onFormChange(); }; nf.appendChild(ni); wrap.appendChild(nf);
+    }
+    if(dvDef && dvDef.parametric==='playedDrawnFilter'){
+      const evKey = dynKey+'PdEvent', dimKey = dynKey+'PdDim', valKey = dynKey+'PdValue';
+      wrap.appendChild(makeSelectField('Événement', [{key:'played',label:'Jouées'},{key:'drawn',label:'Piochées'}], eff[evKey]||'played', v=>{ eff[evKey]=v; onFormChange(); }));
+      const dim = eff[dimKey]||'type';
+      wrap.appendChild(makeSelectField('Critère', [{key:'type',label:'Type de carte'},{key:'subtype',label:'Sous-type'},{key:'class',label:'Classe'},{key:'cost',label:'Coût'},{key:'atk',label:'Force'},{key:'hp',label:'Endurance'},{key:'name',label:'Nom précis'}], dim, v=>{ eff[dimKey]=v; rebuildAbilitiesUI(); onFormChange(); }));
+      const vf = document.createElement('div'); vf.className='field'; vf.innerHTML=`<label class="mini-field">Valeur</label>`;
+      if(dim==='type'){
+        const sel = document.createElement('select');
+        ['Créature','Artefact','Sortilège','Piège','Région'].forEach(t=>{ const o=document.createElement('option'); o.value=t; o.textContent=t; if(eff[valKey]===t) o.selected=true; sel.appendChild(o); });
+        sel.onchange=()=>{ eff[valKey]=sel.value; onFormChange(); }; vf.appendChild(sel);
+      } else if(dim==='class'){
+        const sel = document.createElement('select');
+        CLASSES.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; if(eff[valKey]===c) o.selected=true; sel.appendChild(o); });
+        sel.onchange=()=>{ eff[valKey]=sel.value; onFormChange(); }; vf.appendChild(sel);
+      } else if(dim==='cost' || dim==='atk' || dim==='hp'){
+        const inp = document.createElement('input'); inp.type='number'; inp.min=0; inp.max=20; inp.value=eff[valKey]??0;
+        inp.oninput=()=>{ eff[valKey]=parseInt(inp.value)||0; onFormChange(); }; vf.appendChild(inp);
+      } else {
+        const inp = document.createElement('input'); inp.type='text'; inp.value=eff[valKey]||''; inp.placeholder = dim==='name' ? 'Ex : Golem de Jaäne' : 'Ex : Dragon';
+        inp.oninput=()=>{ eff[valKey]=inp.value; onFormChange(); }; vf.appendChild(inp);
+      }
+      wrap.appendChild(vf);
     }
 
     // Seuils optionnels — bornent le résultat final de la valeur dynamique
