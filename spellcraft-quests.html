@@ -304,7 +304,7 @@ function fitNewCard(rootEl){
   fitBoxFont(rootEl.querySelector('.ncard-text'), 7);
 }
 function buildCardEl(card){
-  const el = buildNewCardEl(card, 'big');
+  const el = buildNewCardEl(card, 'big', {heroCardFrame:true});
   requestAnimationFrame(()=>fitNewCard(el));
   return el;
 }

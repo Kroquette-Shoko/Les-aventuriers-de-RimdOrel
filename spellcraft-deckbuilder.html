@@ -1087,7 +1087,7 @@ function fitNewCard(rootEl){
 
 
 function buildCardEl(card, opts={}){
-  const el = buildNewCardEl(card, 'big');
+  const el = buildNewCardEl(card, 'big', {heroCardFrame:true});
   if(!opts.isPreview) attachHoverPreview(el, card);
   requestAnimationFrame(()=>fitNewCard(el));
   return el;

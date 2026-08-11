@@ -554,7 +554,7 @@ header .spacer{flex:1;}
         <div id="new-preview-wrap" style="display:none">
           <div class="n-preview-label">Nouveau template — Big</div>
           <div id="new-preview-big"></div>
-          <div class="n-preview-label">Nouveau template — Small (plateau)</div>
+          <div class="n-preview-label" id="new-preview-small-label">Nouveau template — Small (plateau)</div>
           <div id="new-preview-small"></div>
         </div>
         <div class="preview-meta" id="preview-meta"></div>
@@ -4273,27 +4273,32 @@ function renderPreview(){
   const card = readForm();
   const box = document.getElementById('preview-big');
   const newWrap = document.getElementById('new-preview-wrap');
+  const isHeroCard = card.type==='Héros';
   box.innerHTML = '';
-  if(card.type==='Héros'){
+  if(isHeroCard){
     box.style.transform = 'none';
     box.style.display = '';
     box.appendChild(buildHeroProfileEl(card));
   } else {
     box.style.display = 'none';
   }
-  // La version "carte à jouer" (bigframe/small) s'affiche toujours,
-  // y compris pour un Héros désormais — sinon impossible de régler le
-  // cadrage de son image sur cette version-là depuis l'éditeur.
+  // La version "carte à jouer" (bigframe) s'affiche aussi pour un Héros —
+  // sinon impossible de régler le cadrage de son image sur cette version.
+  // Le format small n'existe pas pour les Héros (jamais demandé), donc on
+  // ne le construit que pour les autres types.
   newWrap.style.display = 'flex';
   const bigBox = document.getElementById('new-preview-big');
   const smallBox = document.getElementById('new-preview-small');
   bigBox.innerHTML = ''; smallBox.innerHTML = '';
-  const bigEl = buildNewCardEl(card, 'big', undefined, {heroCardFrame:true});
-  const smallEl = buildNewCardEl(card, 'small', undefined, {heroCardFrame:true});
+  const bigEl = buildNewCardEl(card, 'big', {heroCardFrame:true});
   bigBox.appendChild(bigEl);
-  smallBox.appendChild(smallEl);
   fitNewCard(bigEl);
-  fitNewCard(smallEl);
+  document.getElementById('new-preview-small-label').style.display = isHeroCard ? 'none' : '';
+  if(!isHeroCard){
+    const smallEl = buildNewCardEl(card, 'small', {heroCardFrame:true});
+    smallBox.appendChild(smallEl);
+    fitNewCard(smallEl);
+  }
   document.getElementById('preview-meta').textContent =
     [card.class, card.rarity, card.set].filter(Boolean).join(' · ');
 }
