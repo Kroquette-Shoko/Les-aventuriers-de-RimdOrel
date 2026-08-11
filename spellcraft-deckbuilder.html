@@ -1023,13 +1023,13 @@ function buildNewCardEl(card, size, opts={}){
   root.appendChild(nw);
 
   // Texte (big uniquement)
-  if(size==='big'){
+  if(size==='big' && !isHero){
     const textEl = nEl('div','ncard-text'); textEl.textContent = card.text || '';
     root.appendChild(textEl);
   }
 
   // Type / sous-types (juste au-dessus de la gemme de rareté)
-  if(card.subtypes && card.subtypes.length){
+  if(card.subtypes && card.subtypes.length && !isHero){
     const tl = nEl('div','ntypeline'); tl.textContent = card.subtypes.join(' - ');
     root.appendChild(tl);
   }

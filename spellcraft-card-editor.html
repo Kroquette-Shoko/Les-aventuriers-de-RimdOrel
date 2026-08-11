@@ -4129,13 +4129,13 @@ function buildNewCardEl(card, size, opts={}){
   root.appendChild(nw);
 
   // Texte (big uniquement)
-  if(size==='big'){
+  if(size==='big' && !isHero){
     const textEl = nEl('div','ncard-text'); textEl.textContent = card.text || '';
     root.appendChild(textEl);
   }
 
   // Type / sous-types (juste au-dessus de la gemme de rareté)
-  if(card.subtypes && card.subtypes.length){
+  if(card.subtypes && card.subtypes.length && !isHero){
     const tl = nEl('div','ntypeline'); tl.textContent = card.subtypes.join(' - ');
     root.appendChild(tl);
   }
@@ -4276,22 +4276,24 @@ function renderPreview(){
   box.innerHTML = '';
   if(card.type==='Héros'){
     box.style.transform = 'none';
+    box.style.display = '';
     box.appendChild(buildHeroProfileEl(card));
-    newWrap.style.display = 'none';
   } else {
     box.style.display = 'none';
-    newWrap.style.display = 'flex';
-    const bigBox = document.getElementById('new-preview-big');
-    const smallBox = document.getElementById('new-preview-small');
-    bigBox.innerHTML = ''; smallBox.innerHTML = '';
-    const bigEl = buildNewCardEl(card, 'big');
-    const smallEl = buildNewCardEl(card, 'small');
-    bigBox.appendChild(bigEl);
-    smallBox.appendChild(smallEl);
-    fitNewCard(bigEl);
-    fitNewCard(smallEl);
   }
-  if(card.type==='Héros') box.style.display = '';
+  // La version "carte à jouer" (bigframe/small) s'affiche toujours,
+  // y compris pour un Héros désormais — sinon impossible de régler le
+  // cadrage de son image sur cette version-là depuis l'éditeur.
+  newWrap.style.display = 'flex';
+  const bigBox = document.getElementById('new-preview-big');
+  const smallBox = document.getElementById('new-preview-small');
+  bigBox.innerHTML = ''; smallBox.innerHTML = '';
+  const bigEl = buildNewCardEl(card, 'big', undefined, {heroCardFrame:true});
+  const smallEl = buildNewCardEl(card, 'small', undefined, {heroCardFrame:true});
+  bigBox.appendChild(bigEl);
+  smallBox.appendChild(smallEl);
+  fitNewCard(bigEl);
+  fitNewCard(smallEl);
   document.getElementById('preview-meta').textContent =
     [card.class, card.rarity, card.set].filter(Boolean).join(' · ');
 }
