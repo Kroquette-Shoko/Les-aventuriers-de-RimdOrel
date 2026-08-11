@@ -1078,7 +1078,7 @@ function attachHoverPreview(el, card){
 function showCardPreviewHover(card, ev){
   const box = document.getElementById('card-preview');
   box.innerHTML = '';
-  const big = buildNewCardEl(card, 'big');
+  const big = buildNewCardEl(card, 'big', undefined, {heroCardFrame:true});
   box.appendChild(big);
   requestAnimationFrame(()=>fitNewCard(big));
   box.classList.add('show');
