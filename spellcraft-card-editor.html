@@ -186,10 +186,10 @@ header .spacer{flex:1;}
 .ncard img.nframe-layer{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5;}
 .ncard img.nframe-half-layer{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:6;}
 .ncard .nart-layer{position:absolute;background-size:cover;background-repeat:no-repeat;background-color:#3a3450;z-index:1;overflow:hidden;}
-.ncard .nstat-wrap{position:absolute;aspect-ratio:1/1;z-index:6;}
+.ncard .nstat-wrap{position:absolute;aspect-ratio:1/1;z-index:8;}
 .ncard .nstat-wrap img{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
 .ncard .nstat-wrap .nstat-txt{position:absolute;inset:0;z-index:7;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.85);pointer-events:none;}
-.ncard .nname-wrap{position:absolute;z-index:5;display:flex;align-items:center;justify-content:center;}
+.ncard .nname-wrap{position:absolute;z-index:7;display:flex;align-items:center;justify-content:center;}
 .ncard .nname-wrap img{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;}
 .ncard .nname-wrap .nname-text{position:relative;z-index:1;left:auto;right:auto;top:auto;transform:none;width:84%;max-width:84%;}
 .ncard .nname-text{position:absolute;z-index:8;text-align:center;font-family:'Cinzel',serif;font-weight:700;color:#2a1f10;text-shadow:0 1px 0 rgba(255,255,255,.25);pointer-events:none;overflow:hidden;white-space:nowrap;}
@@ -205,6 +205,7 @@ header .spacer{flex:1;}
 
 .ncard.n-big{width:300px;height:423.2px;}
 .ncard.n-big .nart-layer{left:11.1%;top:7.87%;width:79.31%;height:52.36%;}
+.ncard.n-big.n-hero-card .nart-layer{height:83%;}
 .ncard.n-big .nstat-wrap.n-mana{left:-6.5%;top:-6.5%;width:25.5%;}
 .ncard.n-big .nstat-wrap.n-mana .nstat-txt{font-size:26px;}
 .ncard.n-big .nname-wrap{left:50%;top:45.3%;width:92%;aspect-ratio:663/202;transform:translateX(-50%);}
@@ -512,6 +513,21 @@ header .spacer{flex:1;}
               <input type="range" id="f-image-zoom-herocard" min="100" max="250" value="100" oninput="onFormChange()" style="flex:1;">
             </div>
             <button class="btn small" style="align-self:flex-start;" onclick="resetImageFrameHeroCard()">↺ Recentrer</button>
+          </div>
+        </div>
+
+        <div class="field" id="f-herocard-curve-wrap" style="display:none">
+          <label>Nom du héros — position et courbure</label>
+          <div style="display:flex;flex-direction:column;gap:6px;background:var(--bg-panel-2);border:1px solid #3a3260;border-radius:8px;padding:10px 12px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="mini-field" style="width:80px;flex-shrink:0;">Hauteur</span>
+              <input type="range" id="f-herocard-curve-top" min="0" max="30" value="4" oninput="onFormChange()" style="flex:1;">
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="mini-field" style="width:80px;flex-shrink:0;">Courbure</span>
+              <input type="range" id="f-herocard-curve-strength" min="0" max="100" value="34" oninput="onFormChange()" style="flex:1;">
+            </div>
+            <button class="btn small" style="align-self:flex-start;" onclick="resetHeroCardCurve()">↺ Réinitialiser</button>
           </div>
         </div>
 
@@ -3735,6 +3751,8 @@ function readForm(){
     imagePosXHeroCard: parseInt(document.getElementById('f-image-x-herocard').value) || 50,
     imagePosYHeroCard: parseInt(document.getElementById('f-image-y-herocard').value) || 50,
     imageZoomHeroCard: parseInt(document.getElementById('f-image-zoom-herocard').value) || 100,
+    heroNameCurveTop: parseInt(document.getElementById('f-herocard-curve-top').value) ?? 4,
+    heroNameCurveStrength: parseInt(document.getElementById('f-herocard-curve-strength').value) ?? 34,
     setLogo: document.getElementById('f-set-logo').value.trim(),
     extraCostEnabled: document.getElementById('f-extracost-enabled').checked,
     extraCostType: document.getElementById('f-extracost-type').value,
@@ -3810,9 +3828,12 @@ function loadCardIntoForm(card){
   document.getElementById('f-image-x-herocard').value = card.imagePosXHeroCard ?? 50;
   document.getElementById('f-image-y-herocard').value = card.imagePosYHeroCard ?? 50;
   document.getElementById('f-image-zoom-herocard').value = card.imageZoomHeroCard ?? 100;
+  document.getElementById('f-herocard-curve-top').value = card.heroNameCurveTop ?? 4;
+  document.getElementById('f-herocard-curve-strength').value = card.heroNameCurveStrength ?? 34;
   document.getElementById('f-image-frame-wrap').style.display = card.image ? 'block' : 'none';
   document.getElementById('f-image-frame-small-wrap').style.display = (card.image && card.type!=='Héros') ? 'block' : 'none';
   document.getElementById('f-image-frame-herocard-wrap').style.display = (card.image && card.type==='Héros') ? 'block' : 'none';
+  document.getElementById('f-herocard-curve-wrap').style.display = card.type==='Héros' ? 'block' : 'none';
   document.getElementById('f-set-logo').value = card.setLogo || '';
   document.getElementById('f-atk').value = card.atk ?? 1;
   document.getElementById('f-hp').value = card.hp ?? 1;
@@ -3901,6 +3922,7 @@ function onFormChange(){
   document.getElementById('f-image-frame-wrap').style.display = hasImg ? 'block' : 'none';
   document.getElementById('f-image-frame-small-wrap').style.display = (hasImg && !isHeroType) ? 'block' : 'none';
   document.getElementById('f-image-frame-herocard-wrap').style.display = (hasImg && isHeroType) ? 'block' : 'none';
+  document.getElementById('f-herocard-curve-wrap').style.display = isHeroType ? 'block' : 'none';
   renderPreview();
 }
 function resetImageFrame(){
@@ -3913,6 +3935,11 @@ function resetImageFrameHeroCard(){
   document.getElementById('f-image-x-herocard').value = 50;
   document.getElementById('f-image-y-herocard').value = 50;
   document.getElementById('f-image-zoom-herocard').value = 100;
+  onFormChange();
+}
+function resetHeroCardCurve(){
+  document.getElementById('f-herocard-curve-top').value = 4;
+  document.getElementById('f-herocard-curve-strength').value = 34;
   onFormChange();
 }
 function rebuildAbilitiesSentencesOnly(){
@@ -4105,9 +4132,11 @@ function nImg(src, cls){ const i = document.createElement('img'); i.src = src; i
 // symétriquement de part et d'autre du centre.
 function buildCurvedNameText(name, card, size){
   const wrap = nEl('div', 'nname-curved');
+  wrap.style.top = (card.heroNameCurveTop ?? 4) + '%';
   const chars = (name || '').split('');
   const n = chars.length;
-  const maxAngle = Math.min(46, Math.max(14, n * 3.4));
+  const strength = (card.heroNameCurveStrength ?? 34) / 100;
+  const maxAngle = Math.min(60, n * 4.2) * strength;
   const start = -maxAngle / 2;
   const step = n > 1 ? maxAngle / (n - 1) : 0;
   chars.forEach((ch, i) => {
@@ -4129,6 +4158,7 @@ function buildNewCardEl(card, size, opts={}){
   const hasMana = !isHero && !isRegion;
   const isCreature = card.type==='Créature';
   const isArtifact = card.type==='Artefact';
+  if(isHero) root.classList.add('n-hero-card');
 
   // Illustration (calibrage indépendant big/small — et encore différent
   // pour un Héros, qui a son propre cadrage dédié à la version carte,
@@ -4208,11 +4238,11 @@ function buildNewCardEl(card, size, opts={}){
     root.appendChild(tl);
   }
 
-  // Rareté + super-type Légendaire
-  if(card.rarity && NRARITY_TO_SLUG[card.rarity]){
+  // Rareté + super-type Légendaire (jamais affiché sur un Héros)
+  if(!isHero && card.rarity && NRARITY_TO_SLUG[card.rarity]){
     root.appendChild(nImg(`images/card/icon/rare/${NRARITY_TO_SLUG[card.rarity]}.png`, 'nrarity-gem'));
   }
-  if(card.isLegendary){
+  if(!isHero && card.isLegendary){
     root.appendChild(nImg('images/card/icon/rare/legendaire.png', 'nlegendary-gem'));
   }
 

@@ -59,10 +59,10 @@ main{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:26px;}
 .ncard img.nframe-layer{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5;}
 .ncard img.nframe-half-layer{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:6;}
 .ncard .nart-layer{position:absolute;background-size:cover;background-repeat:no-repeat;background-color:#3a3450;z-index:1;overflow:hidden;}
-.ncard .nstat-wrap{position:absolute;aspect-ratio:1/1;z-index:6;}
+.ncard .nstat-wrap{position:absolute;aspect-ratio:1/1;z-index:8;}
 .ncard .nstat-wrap img{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
 .ncard .nstat-wrap .nstat-txt{position:absolute;inset:0;z-index:7;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.85);pointer-events:none;}
-.ncard .nname-wrap{position:absolute;z-index:5;display:flex;align-items:center;justify-content:center;}
+.ncard .nname-wrap{position:absolute;z-index:7;display:flex;align-items:center;justify-content:center;}
 .ncard .nname-wrap img{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;}
 .ncard .nname-wrap .nname-text{position:relative;z-index:1;left:auto;right:auto;top:auto;transform:none;width:84%;max-width:84%;}
 .ncard .nname-text{position:absolute;z-index:8;text-align:center;font-family:'Cinzel',serif;font-weight:700;color:#2a1f10;text-shadow:0 1px 0 rgba(255,255,255,.25);pointer-events:none;overflow:hidden;white-space:nowrap;}
@@ -78,6 +78,7 @@ main{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:26px;}
 
 .ncard.n-big{width:300px;height:423.2px;}
 .ncard.n-big .nart-layer{left:11.1%;top:7.87%;width:79.31%;height:52.36%;}
+.ncard.n-big.n-hero-card .nart-layer{height:83%;}
 .ncard.n-big .nstat-wrap.n-mana{left:-6.5%;top:-6.5%;width:25.5%;}
 .ncard.n-big .nstat-wrap.n-mana .nstat-txt{font-size:26px;}
 .ncard.n-big .nname-wrap{left:50%;top:45.3%;width:92%;aspect-ratio:663/202;transform:translateX(-50%);}
@@ -192,9 +193,11 @@ function nImg(src, cls){ const i = document.createElement('img'); i.src = src; i
 
 function buildCurvedNameText(name, card, size){
   const wrap = nEl('div', 'nname-curved');
+  wrap.style.top = (card.heroNameCurveTop ?? 4) + '%';
   const chars = (name || '').split('');
   const n = chars.length;
-  const maxAngle = Math.min(46, Math.max(14, n * 3.4));
+  const strength = (card.heroNameCurveStrength ?? 34) / 100;
+  const maxAngle = Math.min(60, n * 4.2) * strength;
   const start = -maxAngle / 2;
   const step = n > 1 ? maxAngle / (n - 1) : 0;
   chars.forEach((ch, i) => {
@@ -216,6 +219,7 @@ function buildNewCardEl(card, size, opts={}){
   const hasMana = !isHero && !isRegion;
   const isCreature = card.type==='Créature';
   const isArtifact = card.type==='Artefact';
+  if(isHero) root.classList.add('n-hero-card');
 
   const posX = isHero ? (card.imagePosXHeroCard ?? 50) : size==='big' ? (card.imagePosX ?? 50) : (card.imagePosXSmall ?? 50);
   const posY = isHero ? (card.imagePosYHeroCard ?? 50) : size==='big' ? (card.imagePosY ?? 50) : (card.imagePosYSmall ?? 50);
@@ -283,10 +287,10 @@ function buildNewCardEl(card, size, opts={}){
     root.appendChild(tl);
   }
 
-  if(card.rarity && NRARITY_TO_SLUG[card.rarity]){
+  if(!isHero && card.rarity && NRARITY_TO_SLUG[card.rarity]){
     root.appendChild(nImg(`images/card/icon/rare/${NRARITY_TO_SLUG[card.rarity]}.png`, 'nrarity-gem'));
   }
-  if(card.isLegendary){
+  if(!isHero && card.isLegendary){
     root.appendChild(nImg('images/card/icon/rare/legendaire.png', 'nlegendary-gem'));
   }
 
