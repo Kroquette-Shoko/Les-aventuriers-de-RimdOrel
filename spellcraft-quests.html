@@ -66,6 +66,11 @@ main{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:26px;}
 .ncard .nname-wrap img{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;}
 .ncard .nname-wrap .nname-text{position:relative;z-index:1;left:auto;right:auto;top:auto;transform:none;width:84%;max-width:84%;}
 .ncard .nname-text{position:absolute;z-index:8;text-align:center;font-family:'Cinzel',serif;font-weight:700;color:#2a1f10;text-shadow:0 1px 0 rgba(255,255,255,.25);pointer-events:none;overflow:hidden;white-space:nowrap;}
+.ncard .nname-curved{position:absolute;z-index:8;left:50%;top:4%;width:80%;transform:translateX(-50%);
+  display:flex;justify-content:center;align-items:flex-end;font-family:'Cinzel',serif;font-weight:700;
+  color:#f2ead2;text-shadow:0 1px 3px rgba(0,0,0,.8), 0 0 2px rgba(0,0,0,.6);pointer-events:none;}
+.ncard .nname-curved span{display:inline-block;transform-origin:center 180px;line-height:1;}
+.ncard.n-big .nname-curved{font-size:19px;}
 .ncard .ncard-text{position:absolute;z-index:8;color:#2a2338;text-align:center;overflow:hidden;pointer-events:none;white-space:pre-wrap;}
 .ncard .nrarity-gem{position:absolute;z-index:8;aspect-ratio:231/297;}
 .ncard .ntypeline{position:absolute;left:50%;transform:translateX(-50%);z-index:9;text-align:center;color:#3a2f1f;font-style:italic;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -185,6 +190,24 @@ function ncardHalfFramePath(size, classSecondary, cardType, useHeroFrame){
 function nEl(tag, cls){ const e = document.createElement(tag); if(cls) e.className = cls; return e; }
 function nImg(src, cls){ const i = document.createElement('img'); i.src = src; if(cls) i.className = cls; return i; }
 
+function buildCurvedNameText(name, card, size){
+  const wrap = nEl('div', 'nname-curved');
+  const chars = (name || '').split('');
+  const n = chars.length;
+  const maxAngle = Math.min(46, Math.max(14, n * 3.4));
+  const start = -maxAngle / 2;
+  const step = n > 1 ? maxAngle / (n - 1) : 0;
+  chars.forEach((ch, i) => {
+    const span = document.createElement('span');
+    span.textContent = ch === ' ' ? '\u00A0' : ch;
+    const angle = start + step * i;
+    span.style.transform = `rotate(${angle.toFixed(2)}deg)`;
+    wrap.appendChild(span);
+  });
+  applyNameSizing(wrap, card, size);
+  return wrap;
+}
+
 function buildNewCardEl(card, size, opts={}){
   const root = nEl('div', `ncard n-${size}`);
   const slug = NCLASS_TO_SLUG[card.class] || 'neutre';
@@ -194,9 +217,9 @@ function buildNewCardEl(card, size, opts={}){
   const isCreature = card.type==='Créature';
   const isArtifact = card.type==='Artefact';
 
-  const posX = size==='big' ? (card.imagePosX ?? 50) : (card.imagePosXSmall ?? 50);
-  const posY = size==='big' ? (card.imagePosY ?? 50) : (card.imagePosYSmall ?? 50);
-  const zoom = size==='big' ? (card.imageZoom ?? 100) : (card.imageZoomSmall ?? 100);
+  const posX = isHero ? (card.imagePosXHeroCard ?? 50) : size==='big' ? (card.imagePosX ?? 50) : (card.imagePosXSmall ?? 50);
+  const posY = isHero ? (card.imagePosYHeroCard ?? 50) : size==='big' ? (card.imagePosY ?? 50) : (card.imagePosYSmall ?? 50);
+  const zoom = isHero ? (card.imageZoomHeroCard ?? 100) : size==='big' ? (card.imageZoom ?? 100) : (card.imageZoomSmall ?? 100);
   const art = nEl('div', 'nart-layer');
   if(card.image){
     art.style.backgroundImage = `url('${card.image.replace(/'/g,'')}')`;
@@ -239,12 +262,16 @@ function buildNewCardEl(card, size, opts={}){
     root.appendChild(wf);
   }
 
-  const nw = nEl('div','nname-wrap');
-  nw.appendChild(nImg('images/card/icon/bubble/nom.png'));
-  const nameEl = nEl('div','nname-text'); nameEl.textContent = card.name || '';
-  applyNameSizing(nameEl, card, size);
-  nw.appendChild(nameEl);
-  root.appendChild(nw);
+  if(isHero){
+    root.appendChild(buildCurvedNameText(card.name || '', card, size));
+  } else {
+    const nw = nEl('div','nname-wrap');
+    nw.appendChild(nImg('images/card/icon/bubble/nom.png'));
+    const nameEl = nEl('div','nname-text'); nameEl.textContent = card.name || '';
+    applyNameSizing(nameEl, card, size);
+    nw.appendChild(nameEl);
+    root.appendChild(nw);
+  }
 
   if(size==='big' && !isHero){
     const textEl = nEl('div','ncard-text'); textEl.textContent = card.text || '';
@@ -297,7 +324,7 @@ function fitBoxFont(el, minSize){
 }
 function fitNewCard(rootEl){
   if(!rootEl) return;
-  const nameEl = rootEl.querySelector('.nname-text');
+  const nameEl = rootEl.querySelector('.nname-text') || rootEl.querySelector('.nname-curved');
   if(nameEl && nameEl.dataset.auto !== '0'){
     fitBoxFont(nameEl, 6);
   }
