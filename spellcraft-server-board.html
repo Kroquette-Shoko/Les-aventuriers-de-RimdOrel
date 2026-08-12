@@ -2187,7 +2187,7 @@ function onEmoteMessage(msg){
   const bubble = document.createElement('div');
   bubble.className = 'emote-bubble';
   bubble.style.left = (rect.left + rect.width/2 - 34) + 'px';
-  bubble.style.top = (rect.top - 70) + 'px';
+  bubble.style.top = (rect.top + rect.height/2 - 34) + 'px';
   bubble.innerHTML = `<img src="${payload.image}" title="${escapeHtmlBoard(payload.label||'')}">`;
   document.body.appendChild(bubble);
   setTimeout(()=>bubble.remove(), 2700);
