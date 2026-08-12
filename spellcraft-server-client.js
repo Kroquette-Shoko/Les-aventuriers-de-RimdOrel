@@ -98,20 +98,13 @@ function gsConnect(onStateUpdate, onChatMessage) {
   GS_CHANNEL.on('broadcast', { event: 'state' }, ({ payload }) => {
     if (GS_ON_STATE_UPDATE) GS_ON_STATE_UPDATE(payload.state);
   });
-  GS_CHANNEL.subscribe();
-
-  // Chat : on écoute directement les insertions dans la table (pas besoin
-  // de passer par la fonction serveur, ça ne touche pas l'état de jeu).
+  // Émotes — diffusées sur ce même canal (déjà confirmé fiable pour l'état
+  // de partie), plutôt que via une écoute des insertions en base qui ne
+  // délivrait jamais l'événement malgré un abonnement pourtant "SUBSCRIBED".
   if (onChatMessage) {
-    sb.channel(`chat-${GS_SESSION_ID}`)
-      .on('postgres_changes', {
-        event: 'INSERT', schema: 'public', table: 'game_chat_messages',
-        filter: `session_id=eq.${GS_SESSION_ID}`
-      }, (payload) => { console.log('Événement brut game_chat_messages reçu', payload); onChatMessage(payload.new); })
-      .subscribe((status, err) => {
-        console.log('Statut abonnement émotes/chat :', status, err || '');
-      });
+    GS_CHANNEL.on('broadcast', { event: 'emote' }, ({ payload }) => onChatMessage(payload));
   }
+  GS_CHANNEL.subscribe();
 
   gsSetupPresence();
 }
@@ -188,16 +181,8 @@ async function gsSendEmote(image, label) {
   const user = await scGetCurrentUser();
   if (!user) return { error: 'not-logged-in' };
   if (GS_ROLE !== 'p1' && GS_ROLE !== 'p2') return { error: 'spectators-cannot-emote' };
-  console.log('Envoi émote — session:', GS_SESSION_ID, 'rôle:', GS_ROLE);
-  const { error } = await sb.from('game_chat_messages').insert({
-    session_id: GS_SESSION_ID,
-    sender_id: user.id,
-    sender_name: GS_ROLE, // détourné : porte 'p1'/'p2' plutôt qu'un nom d'affichage, pour savoir où faire apparaître la bulle
-    is_spectator: false,
-    message: JSON.stringify({ image, label })
-  });
-  console.log('Résultat insertion émote — erreur:', error || 'aucune');
-  if (error) return { error: error.message };
+  if (!GS_CHANNEL) return { error: 'not-connected' };
+  await GS_CHANNEL.send({ type: 'broadcast', event: 'emote', payload: { senderKey: GS_ROLE, image, label } });
   return { ok: true };
 }
 

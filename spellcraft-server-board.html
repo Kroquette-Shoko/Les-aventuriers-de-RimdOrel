@@ -2188,13 +2188,12 @@ async function uiSendEmote(emote){
   const res = await gsSendEmote(emote.image, emote.label||'');
   if(res && res.error){ console.error('Émote → ' + res.error); alert("L'émote n'a pas pu être envoyée : " + res.error); }
 }
-// Reçue via le même canal temps réel que l'ancien chat (game_chat_messages)
-// — le "message" transporte directement l'image et l'info-bulle de
-// l'émote plutôt qu'un texte libre, pas de nouvelle table nécessaire.
-function onEmoteMessage(msg){
-  let payload;
-  try{ payload = JSON.parse(msg.message); }catch(e){ return; }
-  const senderKey = msg.sender_name === 'p1' || msg.sender_name === 'p2' ? msg.sender_name : null;
+// Reçue via le canal de diffusion de la partie (broadcast, event 'emote')
+// — le payload transporte directement l'image, l'info-bulle et le camp de
+// l'émetteur, plus besoin de passer par la base de données.
+function onEmoteMessage(payload){
+  if(!payload) return;
+  const senderKey = payload.senderKey === 'p1' || payload.senderKey === 'p2' ? payload.senderKey : null;
   const anchorId = senderKey===MY_KEY ? `hero-frame-${MY_KEY}` : `hero-frame-${OPP_KEY}`;
   const anchor = document.getElementById(anchorId);
   console.log('Émote reçue', {senderKey, MY_KEY, OPP_KEY, anchorId, anchorFound: !!anchor});
