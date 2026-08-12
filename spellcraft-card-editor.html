@@ -875,7 +875,7 @@ const EFFECT_TYPES = [
   {key:'grantKeyword', label:'Octroi de mot-clé précis', needsTarget:true, needsValue:false, isGrantKeyword:true},
   {key:'keywordChoice', label:'Choix parmi 3 mots-clés', needsTarget:true, needsValue:false},
   {key:'summonCopy', label:'Invoquer des copies de cette carte', needsTarget:false, needsValue:true},
-  {key:'fight', label:'Combat forcé (cette créature contre la cible)', needsTarget:true, needsValue:false},
+  {key:'fight', label:'Combat forcé (première cible contre seconde cible)', needsTarget:true, needsValue:false, isFight:true},
   {key:'coinFlip', label:'Jet de pièce', needsTarget:false, needsValue:false, isCoinFlip:true},
   {key:'retrieve', label:'Récupération (deck ou défausse)', needsTarget:false, needsValue:false, isRetrieve:true},
   {key:'discover', label:'Réveler (choisir 1 carte parmi 3)', needsTarget:false, needsValue:false, isDiscover:true},
@@ -2757,6 +2757,28 @@ function buildEffectRow(ab, eff, choiceKey){
       row.appendChild(addBtn);
     }
   }
+  if(def.isFight){
+    const otherTargets = (ab.targets||[]).filter(t=>t.id!==eff.usesTarget);
+    if(otherTargets.length>0){
+      const opts = otherTargets.map((t,i)=>({key:t.id, label:`Cible ${String.fromCharCode(65+(ab.targets||[]).indexOf(t))}`}));
+      if(!eff.fightFirstTargetId || !otherTargets.some(t=>t.id===eff.fightFirstTargetId)) eff.fightFirstTargetId = otherTargets[0].id;
+      row.appendChild(makeSelectField('Créature qui combat (première cible)', opts, eff.fightFirstTargetId, v=>{ eff.fightFirstTargetId=v; onFormChange(); }));
+      const hint = document.createElement('div');
+      hint.style.cssText = 'font-size:11px;color:var(--parchment-dim);margin-top:2px;';
+      hint.textContent = `"Cible utilisée" ci-dessus reste la seconde participante au combat.`;
+      row.appendChild(hint);
+    } else {
+      const warn = document.createElement('div');
+      warn.style.cssText = 'font-size:11px;color:#e88;margin-top:4px;';
+      warn.textContent = "Il faut une seconde cible dans cette capacité pour désigner qui combat (l'autre reste la cible normale).";
+      row.appendChild(warn);
+      const addBtn = document.createElement('button');
+      addBtn.type='button'; addBtn.className='add-row-btn';
+      addBtn.textContent = '+ Ajouter une seconde cible';
+      addBtn.onclick = ()=>{ addTargetEntry(ab.id, choiceKey); };
+      row.appendChild(addBtn);
+    }
+  }
   if(def.isDoubleTrigger){
     const trigOptions = Object.keys(TRIGGER_TEXT).map(k=>({key:k, label: TRIGGER_SHORT_NAME[k] ? `${TRIGGER_SHORT_NAME[k]} — ${TRIGGER_TEXT[k]}` : TRIGGER_TEXT[k]}));
     row.appendChild(makeSelectField('Déclencheur doublé', trigOptions, eff.doubleTriggerName||trigOptions[0]?.key, v=>{ eff.doubleTriggerName=v; onFormChange(); }));
@@ -3211,7 +3233,7 @@ function buildEffectClause(eff, ab){
       return `invoquez ${val} ${isNum ? plural(eff.valueFixed,'copie','copies') : 'copies'} de cette carte`;
     }
     case 'fight': {
-      return `cette créature combat ${targetPhrase(resolvedTarget)} (elles s'infligent mutuellement des dégâts égaux à leur Force)`;
+      return `la carte visée par la seconde cible combat ${targetPhrase(resolvedTarget)} (elles s'infligent mutuellement des dégâts égaux à leur Force)`;
     }
     case 'coinFlip': {
       const ownerLabel = {ally:'alliée', enemy:'ennemie', any:''}[eff.coinFlipTargetOwner] || '';
