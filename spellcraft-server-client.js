@@ -139,6 +139,8 @@ function gsSetupPresence() {
 }
 
 function gsStartDisconnectWatch() {
+  return; // minuteur d'abandon automatique retiré — un adversaire absent ne
+           // déclenche plus de forfait tout seul, il peut revenir à tout moment.
   const opponentKey = GS_ROLE === 'p1' ? 'p2' : 'p1';
   // Ne présume pas que l'adversaire est déjà là : on attend un vrai signal
   // de présence avant de faire courir le délai de déconnexion. Sans ça, le
