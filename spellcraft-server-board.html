@@ -2197,12 +2197,22 @@ function onEmoteMessage(payload){
   const anchorId = senderKey===MY_KEY ? `hero-frame-${MY_KEY}` : `hero-frame-${OPP_KEY}`;
   const anchor = document.getElementById(anchorId);
   console.log('Émote reçue', {senderKey, MY_KEY, OPP_KEY, anchorId, anchorFound: !!anchor});
-  if(!anchor) return;
-  const rect = anchor.getBoundingClientRect();
   const bubble = document.createElement('div');
   bubble.className = 'emote-bubble';
-  bubble.style.left = (rect.left + rect.width/2 - 57) + 'px';
-  bubble.style.top = (rect.top - 100) + 'px';
+  if(anchor){
+    const rect = anchor.getBoundingClientRect();
+    bubble.style.left = (rect.left + rect.width/2 - 57) + 'px';
+    bubble.style.top = (rect.top - 100) + 'px';
+  } else {
+    // Repli de diagnostic : si le cadre n'est pas trouvé, on affiche quand
+    // même la bulle, bien visible au centre de l'écran, pour savoir si le
+    // souci est la réception (rien n'apparaît jamais) ou le positionnement
+    // (la bulle existe mais était invisible/mal placée).
+    console.warn('Cadre de héros introuvable (' + anchorId + ') — affichage de secours au centre.');
+    bubble.style.left = '50%';
+    bubble.style.top = '50%';
+    bubble.style.transform = 'translate(-50%,-50%)';
+  }
   bubble.innerHTML = `<img src="${payload.image}" title="${escapeHtmlBoard(payload.label||'')}">`;
   document.body.appendChild(bubble);
   setTimeout(()=>bubble.remove(), 2700);

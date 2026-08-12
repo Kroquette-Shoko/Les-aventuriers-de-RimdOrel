@@ -181,8 +181,10 @@ async function gsSendEmote(image, label) {
   const user = await scGetCurrentUser();
   if (!user) return { error: 'not-logged-in' };
   if (GS_ROLE !== 'p1' && GS_ROLE !== 'p2') return { error: 'spectators-cannot-emote' };
-  if (!GS_CHANNEL) return { error: 'not-connected' };
-  await GS_CHANNEL.send({ type: 'broadcast', event: 'emote', payload: { senderKey: GS_ROLE, image, label } });
+  if (!GS_CHANNEL) { console.error('Envoi émote impossible : GS_CHANNEL non initialisé'); return { error: 'not-connected' }; }
+  console.log('Diffusion émote — rôle:', GS_ROLE, 'canal:', `session-${GS_SESSION_ID}`);
+  const result = await GS_CHANNEL.send({ type: 'broadcast', event: 'emote', payload: { senderKey: GS_ROLE, image, label } });
+  console.log('Résultat diffusion émote :', result);
   return { ok: true };
 }
 
