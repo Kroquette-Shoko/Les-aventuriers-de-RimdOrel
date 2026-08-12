@@ -54,6 +54,16 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .deck-name-input{background:var(--bg-panel-2);border:1px solid #3a3260;color:var(--parchment);border-radius:8px;padding:7px 12px;font-family:'Cinzel',serif;font-size:13px;width:180px;}
 .save-indicator{font-size:11px;color:var(--green);opacity:0;transition:opacity .4s;}
 .save-indicator.show{opacity:1;}
+#deck-saved-popup{position:fixed;top:40%;left:50%;transform:translate(-50%,-50%) scale(.9);z-index:99998;
+  display:flex;align-items:center;gap:12px;background:rgba(18,15,28,.96);border:2px solid var(--green);
+  border-radius:14px;padding:18px 30px;box-shadow:0 14px 38px rgba(0,0,0,.65);opacity:0;pointer-events:none;
+  transition:opacity .25s ease, transform .25s ease;}
+#deck-saved-popup.show{opacity:1;transform:translate(-50%,-50%) scale(1);}
+#deck-saved-popup .dsp-icon{width:30px;height:30px;border-radius:50%;background:var(--green);color:#0b2a12;
+  font-weight:800;font-size:17px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+#deck-saved-popup #deck-saved-popup-text{font-family:'Cinzel',serif;font-weight:700;font-size:15px;color:var(--parchment);white-space:nowrap;}
+#deck-saved-popup.error{border-color:var(--blood);}
+#deck-saved-popup.error .dsp-icon{background:var(--blood);color:#2a0b0b;}
 select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:var(--parchment);border-radius:8px;padding:7px 10px;font-size:12px;}
 
 /* ---------- Filter bar ---------- */
@@ -396,6 +406,8 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
     <a href="spellcraft-hub.html" class="btn small" title="Retour à l'accueil" style="text-decoration:none;">🏠 Menu principal</a>
   </div>
 
+  <div id="deck-saved-popup"><span class="dsp-icon">✓</span><span id="deck-saved-popup-text">Deck sauvegardé</span></div>
+
   <div id="left-toolbar">
     <div class="dropdown-wrap">
       <button class="btn" onclick="toggleFilterPanel()" style="width:100%;">🔎 Filtre de recherche</button>
@@ -605,6 +617,15 @@ function flashError(msg){
   el.style.color = 'var(--blood)';
   el.classList.add('show');
   setTimeout(()=>{ el.classList.remove('show'); el.style.color=''; }, 2200);
+}
+let deckSavedPopupTimeout = null;
+function showDeckSavedPopup(msg, isError){
+  const el = document.getElementById('deck-saved-popup');
+  document.getElementById('deck-saved-popup-text').textContent = msg || 'Deck sauvegardé';
+  el.classList.toggle('error', !!isError);
+  el.classList.add('show');
+  if(deckSavedPopupTimeout) clearTimeout(deckSavedPopupTimeout);
+  deckSavedPopupTimeout = setTimeout(()=>el.classList.remove('show'), 2000);
 }
 
 /* ============================================================
@@ -1745,6 +1766,9 @@ function multiClassCount(deck, hero){
 function classAllowedByDeck(card){
   const hero = deckHeroCard();
   if(!hero) return true; // pas encore de héros choisi, pas de restriction pour l'instant
+  // Une carte liée à un héros précis (champ "hero") n'apparaît que si ce
+  // héros est celui actuellement sélectionné pour ce deck.
+  if(card.hero && card.hero.trim().toLowerCase() !== (hero.name||'').trim().toLowerCase()) return false;
   const heroClasses = [hero.class, hero.classSecondary].filter(Boolean);
   const cardClasses = [card.class, card.classSecondary].filter(Boolean);
   if(cardClasses.includes('Neutre') || cardClasses.some(c=>heroClasses.includes(c))) return true;
@@ -2093,6 +2117,7 @@ async function saveDeck(){
   currentDeck.id = res.id;
   savedDecks = await loadUserDecks();
   flashSaved('✓ Deck sauvegardé');
+  showDeckSavedPopup(`✓ « ${currentDeck.name || 'Deck'} » sauvegardé`);
 }
 function loadDeck(deckId){
   const d = savedDecks.find(x=>x.id===deckId);

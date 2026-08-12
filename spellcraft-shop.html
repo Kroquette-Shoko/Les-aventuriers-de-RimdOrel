@@ -285,6 +285,10 @@ header .spacer{flex:1;}
       <div class="shelf-items" id="shelf-singles"></div>
     </div>
     <div class="shelf">
+      <h2>👑 Héros</h2>
+      <div class="shelf-items" id="shelf-heroes"></div>
+    </div>
+    <div class="shelf">
       <h2>🎴 Dos de cartes</h2>
       <div class="shelf-items" id="shelf-backs"></div>
     </div>
@@ -518,6 +522,46 @@ async function renderCardBackShelf(){
       </div>
     `;
   }).join('');
+}
+
+// Nouveau mode d'obtention des héros : achat direct pour 1000 pièces
+// d'or de n'importe quel héros hors du set de base, s'il n'est pas déjà
+// possédé. Coexiste avec le tirage aléatoire (2% de chance) déjà présent
+// dans l'offre quotidienne de cartes à l'unité.
+async function renderHeroShelf(){
+  const el = document.getElementById('shelf-heroes');
+  const user = await scGetCurrentUser();
+  if(!user){
+    el.innerHTML = `<div class="empty-shelf">Connecte-toi pour voir les héros disponibles à l'achat.</div>`;
+    return;
+  }
+  const { data, error } = await sb.rpc('get_purchasable_heroes');
+  if(error || data.error || !data.heroes || data.heroes.length===0){
+    el.innerHTML = `<div class="empty-shelf">Tu possèdes déjà tous les héros disponibles à l'achat !</div>`;
+    return;
+  }
+  el.innerHTML = data.heroes.map(h=>{
+    const img = h.data && h.data.image;
+    return `
+      <div class="shop-item">
+        <div class="shop-item-art" style="${img?`background-image:url('${img}');background-size:cover;`:''}">${img?'':'👑'}</div>
+        <div class="shop-item-name">${escapeHtmlShop(h.name)}</div>
+        <div class="shop-item-desc">${escapeHtmlShop([h.class, h.class_secondary].filter(Boolean).join(' / '))}</div>
+        <div class="shop-item-price"><span class="money-icon"></span> 1000</div>
+        <button class="buy-btn" onclick="buyHeroCard('${h.card_id}')">Acheter</button>
+      </div>
+    `;
+  }).join('');
+}
+
+async function buyHeroCard(cardId){
+  if(!confirm("Acheter ce héros pour 1000 pièces d'or ?")) return;
+  const { data, error } = await sb.rpc('buy_hero_card', { p_card_id: cardId });
+  if(error || data.error){ alert(shopErrorMessage(data ? data.error : error.message)); return; }
+  playSfx('coin');
+  showBrunoThanks();
+  refreshCurrency();
+  renderHeroShelf();
 }
 
 async function equipCardBack(id){
@@ -1045,6 +1089,9 @@ function shopErrorMessage(code){
     'already-maxed': "Tu as déjà le maximum de cette carte, choisis-en une autre.",
     'unknown-booster': "Ce booster n'existe plus.",
     'no-booster-owned': "Tu n'as plus ce booster en réserve.",
+    'not-purchasable': "Ce héros fait partie du set de base, il n'est pas à vendre.",
+    'hero-already-owned': "Tu possèdes déjà ce héros.",
+    'unknown-hero': "Ce héros n'existe plus.",
     'invalid-quantity': "Quantité invalide."
   }[code] || ('Erreur : ' + code);
 }
@@ -1102,12 +1149,13 @@ async function initShop(){
   await renderBoosterShelf();
   await renderSingleShelf();
   await renderCardBackShelf();
+  await renderHeroShelf();
   await refreshCurrency();
   await flashBoosterInventoryBadge();
 }
 initSpellcraftAuth();
 initShop();
-sb.auth.onAuthStateChange(()=>{ refreshCurrency(); renderCardBackShelf(); renderSingleShelf(); flashBoosterInventoryBadge(); });
+sb.auth.onAuthStateChange(()=>{ refreshCurrency(); renderCardBackShelf(); renderSingleShelf(); renderHeroShelf(); flashBoosterInventoryBadge(); });
 </script>
 
 <div id="card-preview"></div>
