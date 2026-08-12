@@ -107,11 +107,9 @@ function gsConnect(onStateUpdate, onChatMessage) {
       .on('postgres_changes', {
         event: 'INSERT', schema: 'public', table: 'game_chat_messages',
         filter: `session_id=eq.${GS_SESSION_ID}`
-      }, (payload) => onChatMessage(payload.new))
+      }, (payload) => { console.log('Événement brut game_chat_messages reçu', payload); onChatMessage(payload.new); })
       .subscribe((status, err) => {
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          console.error('Abonnement émotes/chat : ' + status, err || '');
-        }
+        console.log('Statut abonnement émotes/chat :', status, err || '');
       });
   }
 
@@ -190,6 +188,7 @@ async function gsSendEmote(image, label) {
   const user = await scGetCurrentUser();
   if (!user) return { error: 'not-logged-in' };
   if (GS_ROLE !== 'p1' && GS_ROLE !== 'p2') return { error: 'spectators-cannot-emote' };
+  console.log('Envoi émote — session:', GS_SESSION_ID, 'rôle:', GS_ROLE);
   const { error } = await sb.from('game_chat_messages').insert({
     session_id: GS_SESSION_ID,
     sender_id: user.id,
@@ -197,6 +196,7 @@ async function gsSendEmote(image, label) {
     is_spectator: false,
     message: JSON.stringify({ image, label })
   });
+  console.log('Résultat insertion émote — erreur:', error || 'aucune');
   if (error) return { error: error.message };
   return { ok: true };
 }
