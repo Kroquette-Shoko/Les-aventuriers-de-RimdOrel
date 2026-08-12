@@ -491,13 +491,14 @@ body.targeting *{cursor:crosshair !important;}
   /* ---------- Nouvelle disposition : mana / héros / deck en coins séparés ---------- */
   .board-row{display:flex;align-items:center;gap:14px;padding:8px 16px;position:relative;min-height:265px;}
 
-  .mana-box{position:absolute;bottom:8px;width:44px;height:160px;border-radius:12px;background:#0b0a12;border:2px solid #3a3260;overflow:hidden;display:flex;flex-direction:column-reverse;align-items:center;padding-bottom:4px;z-index:6;}
+  .mana-box{position:absolute;bottom:8px;width:44px;height:220px;border-radius:12px;background:#0b0a12;border:2px solid #3a3260;overflow:hidden;display:flex;flex-direction:column-reverse;align-items:center;padding-bottom:4px;z-index:6;}
   .board-row.self{margin-top:auto;}
   .board-row.self .mana-box{left:16px;bottom:60px;}
   .board-row.enemy .mana-box{right:110px;top:16px;bottom:auto;flex-direction:column;padding-bottom:0;padding-top:4px;}
   .board-row.self .hero-frame{left:72px;bottom:60px;}
   .board-row.enemy .hero-frame{right:166px;top:16px;bottom:auto;}
   .mana-box-region-thumb{width:36px;height:36px;border-radius:8px;background-size:cover;background-position:center;background-color:#241f38;border:1px solid var(--gold);flex-shrink:0;}
+  .mana-box-count{flex-shrink:0;width:100%;text-align:center;font-family:'Cinzel',serif;font-weight:700;font-size:10px;color:var(--gold);}
   .mana-box-fill{display:flex;flex-direction:column-reverse;align-items:center;gap:3px;padding:5px 0;width:100%;}
   .board-row.enemy .mana-box-fill{flex-direction:column;}
   .mana-box-dot{width:20px;height:20px;border-radius:50%;border:1.5px solid rgba(0,0,0,.5);flex-shrink:0;}
@@ -1312,16 +1313,21 @@ function renderManaBox(key, slot){
   const el = document.getElementById(`mana-box-${slot}`);
   const region = p.region || {};
   const regionThumbStyle = region.image ? `background-image:url('${region.image.replace(/'/g,"")}');background-position:${region.imagePosX??50}% ${region.imagePosY??50}%;background-size:${(region.imageZoom??100)>100?region.imageZoom+'%':'cover'};` : '';
-  const normalDots = Array.from({length:p.manaNormalMax}, (_,i)=>{
+  // Le compteur numérique (juste en dessous) est la vraie valeur, sans
+  // limite. L'affichage en points, lui, est plafonné pour rester lisible
+  // visuellement — au-delà, seul le chiffre continue de refléter le total.
+  const MAX_VISIBLE_DOTS = 7;
+  const normalDots = Array.from({length:Math.min(p.manaNormalMax, MAX_VISIBLE_DOTS)}, (_,i)=>{
     const filled = i<p.manaNormal;
     return `<span class="mana-box-dot ${filled?'filled':''}"></span>`;
   }).join('');
-  const bonusCount = Math.max(0, p.manaNormal - p.manaNormalMax);
+  const bonusCount = Math.max(0, Math.min(p.manaNormal, MAX_VISIBLE_DOTS) - Math.min(p.manaNormalMax, MAX_VISIBLE_DOTS));
   const bonusDots = Array.from({length:bonusCount}, ()=>`<span class="mana-box-dot bonus"></span>`).join('');
-  const fragileDots = Array.from({length:p.manaFragile}, ()=>`<span class="mana-box-dot fragile"></span>`).join('');
+  const fragileDots = Array.from({length:Math.min(p.manaFragile, MAX_VISIBLE_DOTS)}, ()=>`<span class="mana-box-dot fragile"></span>`).join('');
   el.title = region.name || 'Région';
   el.innerHTML = `
     <div class="mana-box-region-thumb" style="${regionThumbStyle}"></div>
+    <div class="mana-box-count">${p.manaNormal + p.manaFragile}/${p.manaNormalMax}</div>
     <div class="mana-box-fill">${normalDots}${bonusDots}${fragileDots}</div>
   `;
 }
@@ -1430,8 +1436,16 @@ function renderArtifactStack(key, slot){
       const cardElNode = cardEl(r, {inPlay:true});
       wrap.appendChild(cardElNode);
       if(slot==='p1' && S.active===MY_KEY && S.phase==='main' && !UI.selectingAttackers){
-        const eff = r.triggeredEffects && r.triggeredEffects.activated;
-        if(eff && (r._activationCooldownRemaining||0)<=0){
+        // Nouveau format (card.abilities) — celui que l'éditeur actuel
+        // produit. L'ancien format (triggeredEffects.activated) reste
+        // vérifié en repli pour les cartes plus anciennes.
+        const hasNewActivated = r.abilities && r.abilities.some(ab=>ab.kind==='triggered' && (ab.triggers||[]).some(te=>te.trigger==='activated'));
+        const hasOldActivated = r.triggeredEffects && r.triggeredEffects.activated;
+        // Les artefacts sont désormais toujours gratuits et limités à une
+        // fois par tour (voir _activatedThisTurn côté serveur) — plus de
+        // cooldown à vérifier pour ce type de carte précis.
+        const alreadyUsed = !!r._activatedThisTurn;
+        if((hasNewActivated || hasOldActivated) && !alreadyUsed){
           cardElNode.style.cursor = 'pointer';
           cardElNode.onclick = ()=>uiActivatePermanent('artifact', r.instId);
         }
@@ -1670,8 +1684,9 @@ function onBoardCreatureClick(key, c){
   }
   // activation d'une créature ayant une capacité activée (mon tour, phase principale)
   if(isMine && S.active===MY_KEY && S.phase==='main' && !UI.selectingAttackers){
-    const eff = c.triggeredEffects && c.triggeredEffects.activated;
-    if(eff && (c._activationCooldownRemaining||0)<=0){
+    const hasNewActivated = c.abilities && c.abilities.some(ab=>ab.kind==='triggered' && (ab.triggers||[]).some(te=>te.trigger==='activated'));
+    const hasOldActivated = c.triggeredEffects && c.triggeredEffects.activated;
+    if((hasNewActivated || hasOldActivated) && (c._activationCooldownRemaining||0)<=0){
       uiActivatePermanent('creature', c.instId);
     }
   }
@@ -2139,8 +2154,12 @@ function renderPhaseBar(){
 function showHeroPreview(hero, ev){ showCardPreviewHover(hero, ev); }
 function moveHeroPreview(ev){
   const box = document.getElementById('card-preview');
-  const x = Math.min(ev.clientX + 20, window.innerWidth - 320);
-  const y = Math.min(ev.clientY + 20, window.innerHeight - 440);
+  // Décalage large et volontaire — sur le plateau, les cartes (surtout les
+  // artefacts) sont minuscules ; un aperçu trop proche du curseur les
+  // recouvre entièrement, rendant impossible de viser le clic précis en
+  // dessous (même si l'aperçu lui-même laisse passer les clics).
+  const x = Math.min(ev.clientX + 60, window.innerWidth - 320);
+  const y = Math.min(ev.clientY + 60, window.innerHeight - 440);
   box.style.left = x + 'px';
   box.style.top = y + 'px';
 }
@@ -2194,7 +2213,7 @@ async function uiSendEmote(emote){
 function onEmoteMessage(payload){
   if(!payload) return;
   const senderKey = payload.senderKey === 'p1' || payload.senderKey === 'p2' ? payload.senderKey : null;
-  const anchorId = senderKey===MY_KEY ? `hero-frame-${MY_KEY}` : `hero-frame-${OPP_KEY}`;
+  const anchorId = senderKey===MY_KEY ? 'hero-frame-p1' : 'hero-frame-p2';
   const anchor = document.getElementById(anchorId);
   console.log('Émote reçue', {senderKey, MY_KEY, OPP_KEY, anchorId, anchorFound: !!anchor});
   const bubble = document.createElement('div');
