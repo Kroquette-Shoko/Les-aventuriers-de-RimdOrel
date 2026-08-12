@@ -540,18 +540,36 @@ async function renderHeroShelf(){
     el.innerHTML = `<div class="empty-shelf">Tu possèdes déjà tous les héros disponibles à l'achat !</div>`;
     return;
   }
-  el.innerHTML = data.heroes.map(h=>{
-    const img = h.data && h.data.image;
-    return `
-      <div class="shop-item">
-        <div class="shop-item-art" style="${img?`background-image:url('${img}');background-size:cover;`:''}">${img?'':'👑'}</div>
-        <div class="shop-item-name">${escapeHtmlShop(h.name)}</div>
-        <div class="shop-item-desc">${escapeHtmlShop([h.class, h.class_secondary].filter(Boolean).join(' / '))}</div>
-        <div class="shop-item-price"><span class="money-icon"></span> 1000</div>
-        <button class="buy-btn" onclick="buyHeroCard('${h.card_id}')">Acheter</button>
-      </div>
-    `;
-  }).join('');
+  el.innerHTML = '';
+  data.heroes.forEach(h=>{
+    const full = { id: h.card_id, ...(h.data||{}) };
+    const wrap = document.createElement('div');
+    wrap.className = 'shop-item';
+    wrap.style.width = '240px';
+    const cardHolder = document.createElement('div');
+    cardHolder.style.cssText = 'position:relative;width:210px;height:296px;overflow:hidden;';
+    try {
+      const cardEl = buildBoosterCardEl(full);
+      cardEl.style.transform = 'scale(0.7)';
+      cardEl.style.transformOrigin = 'top left';
+      attachShopHoverPreview(cardEl, full);
+      cardHolder.appendChild(cardEl);
+    } catch(e) {
+      console.error('Erreur buildCardEl (héros) :', e, full);
+      cardHolder.innerHTML = `<div style="color:#e88;font-size:11px;padding:8px;border:1px dashed #e88;">Erreur carte : ${e.message}</div>`;
+    }
+    wrap.appendChild(cardHolder);
+    const price = document.createElement('div');
+    price.className = 'shop-item-price';
+    price.innerHTML = `<span class="money-icon"></span> 1000`;
+    wrap.appendChild(price);
+    const btn = document.createElement('button');
+    btn.className = 'buy-btn';
+    btn.textContent = 'Acheter';
+    btn.onclick = ()=>buyHeroCard(h.card_id);
+    wrap.appendChild(btn);
+    el.appendChild(wrap);
+  });
 }
 
 async function buyHeroCard(cardId){
