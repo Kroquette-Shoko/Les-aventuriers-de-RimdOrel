@@ -876,7 +876,7 @@ const EFFECT_TYPES = [
   {key:'keywordChoice', label:'Choix parmi 3 mots-clés', needsTarget:true, needsValue:false},
   {key:'summonCopy', label:'Invoquer des copies de cette carte', needsTarget:false, needsValue:true},
   {key:'fight', label:'Combat forcé (première cible contre seconde cible)', needsTarget:true, needsValue:false, isFight:true},
-  {key:'coinFlip', label:'Jet de pièce', needsTarget:false, needsValue:false, isCoinFlip:true},
+  {key:'coinFlip', label:'Jet de pièce (pile ou face)', needsTarget:true, needsValue:false, isCoinFlip:true},
   {key:'retrieve', label:'Récupération (deck ou défausse)', needsTarget:false, needsValue:false, isRetrieve:true},
   {key:'discover', label:'Réveler (choisir 1 carte parmi 3)', needsTarget:false, needsValue:false, isDiscover:true},
   {key:'conjure', label:'Conjuration (carte hors deck)', needsTarget:false, needsValue:false, isConjure:true},
@@ -1502,6 +1502,12 @@ function buildTargetsSectionUI(ab, targetsArray, choiceKey, heading){
       nbdToggle.innerHTML = `<input type="checkbox" ${tgt.notInBaseDeck?'checked':''}> Uniquement les cartes qui n'étaient pas dans votre deck de base (générées en cours de partie)`;
       nbdToggle.querySelector('input').onchange=(e)=>{ tgt.notInBaseDeck=e.target.checked; onFormChange(); };
       trow.appendChild(nbdToggle);
+
+      const exToggle = document.createElement('label');
+      exToggle.className='evolve-toggle';
+      exToggle.innerHTML = `<input type="checkbox" ${tgt.excludeSelf?'checked':''}> Exclut la carte qui déclenche cet effet (ex : "détruit toutes les autres créatures")`;
+      exToggle.querySelector('input').onchange=(e)=>{ tgt.excludeSelf=e.target.checked; onFormChange(); };
+      trow.appendChild(exToggle);
     }
 
     if(tgt.targetCategory==='creature' || tgt.targetCategory==='hero_creature' || tgt.targetCategory==='artifact'){
@@ -1850,15 +1856,19 @@ function buildTriggerEntryBox(te, tIdx, totalCount, availableTriggers, onRemove)
   if(te.trigger==='activated'){
     const arow = document.createElement('div');
     arow.className='ability-row';
-    arow.innerHTML = `
-      <div class="field"><label class="mini-field">Coût en mana</label>
-        <input type="number" id="actcost-${te.id}" min="0" max="10" value="${te.activationCost}">
-      </div>
-      <div class="field"><label class="mini-field">Cooldown (tours, 0 = aucun)</label>
-        <input type="number" id="actcd-${te.id}" min="0" max="10" value="${te.activationCooldown}">
-      </div>`;
-    arow.querySelector(`#actcost-${te.id}`).oninput = (e)=>{ te.activationCost=parseInt(e.target.value)||0; onFormChange(); };
-    arow.querySelector(`#actcd-${te.id}`).oninput = (e)=>{ te.activationCooldown=parseInt(e.target.value)||0; onFormChange(); };
+    if(currentType==='Artefact'){
+      arow.innerHTML = `<div class="hint" style="margin:0;">Un artefact activable est toujours gratuit et utilisable une seule fois par tour — pas de coût en mana ni de temps de recharge à régler.</div>`;
+    } else {
+      arow.innerHTML = `
+        <div class="field"><label class="mini-field">Coût en mana</label>
+          <input type="number" id="actcost-${te.id}" min="0" max="10" value="${te.activationCost}">
+        </div>
+        <div class="field"><label class="mini-field">Cooldown (tours, 0 = aucun)</label>
+          <input type="number" id="actcd-${te.id}" min="0" max="10" value="${te.activationCooldown}">
+        </div>`;
+      arow.querySelector(`#actcost-${te.id}`).oninput = (e)=>{ te.activationCost=parseInt(e.target.value)||0; onFormChange(); };
+      arow.querySelector(`#actcd-${te.id}`).oninput = (e)=>{ te.activationCooldown=parseInt(e.target.value)||0; onFormChange(); };
+    }
     tBox.appendChild(arow);
 
     const ecToggle = document.createElement('label');
@@ -2552,15 +2562,28 @@ function buildEffectRow(ab, eff, choiceKey){
   }
 
   if(def.isCoinFlip){
-    row.appendChild(makeSelectField('Cible du jet', TARGET_CATEGORIES.filter(c=>c.key==='creature'), 'creature', ()=>{}));
-    row.appendChild(makeSelectField('Propriétaire', TARGET_OWNERS.filter(o=>o.key!=='self'), eff.coinFlipTargetOwner, v=>{ eff.coinFlipTargetOwner=v; onFormChange(); }));
-    row.appendChild(makeSelectField('Groupe concerné', [{key:'all',label:'Toutes'},{key:'chosen',label:'Une désignée'}], eff.coinFlipSelectionMode, v=>{ eff.coinFlipSelectionMode=v; onFormChange(); }));
-    row.appendChild(makeSelectField('Si pile/face défavorable', [{key:'destroy',label:'Détruite'},{key:'damage',label:'Subit des dégâts'}], eff.coinFlipSuccessEffect, v=>{ eff.coinFlipSuccessEffect=v; rebuildAbilitiesUI(); onFormChange(); }));
-    if(eff.coinFlipSuccessEffect==='damage'){
-      const f = document.createElement('div'); f.className='field'; f.innerHTML=`<label class="mini-field">Dégâts</label>`;
-      const inp = document.createElement('input'); inp.type='number'; inp.min=1; inp.max=20; inp.value=eff.coinFlipSuccessValue||2;
-      inp.oninput=()=>{ eff.coinFlipSuccessValue=parseInt(inp.value)||1; onFormChange(); }; f.appendChild(inp); row.appendChild(f);
-    }
+    const buildOutcomeField = (side, label)=>{
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'background:var(--bg-panel-2);border:1px solid #3a3260;border-radius:8px;padding:10px 12px;margin-bottom:8px;';
+      const title = document.createElement('div');
+      title.className = 'mini-field'; title.style.marginBottom='6px'; title.textContent = label;
+      wrap.appendChild(title);
+      const typeKey = 'coinFlip'+side+'Type', valueKey = 'coinFlip'+side+'Value';
+      wrap.appendChild(makeSelectField('Effet', [
+        {key:'none',label:'Aucun effet'},
+        {key:'destroy',label:'Détruit la cible'},
+        {key:'damage',label:'Inflige des dégâts'},
+        {key:'heal',label:'Soigne'},
+      ], eff[typeKey]||'none', v=>{ eff[typeKey]=v; rebuildAbilitiesUI(); onFormChange(); }));
+      if(eff[typeKey]==='damage' || eff[typeKey]==='heal'){
+        const f = document.createElement('div'); f.className='field'; f.innerHTML=`<label class="mini-field">Valeur</label>`;
+        const inp = document.createElement('input'); inp.type='number'; inp.min=1; inp.max=20; inp.value=eff[valueKey]||2;
+        inp.oninput=()=>{ eff[valueKey]=parseInt(inp.value)||1; onFormChange(); }; f.appendChild(inp); wrap.appendChild(f);
+      }
+      row.appendChild(wrap);
+    };
+    buildOutcomeField('Pile', '🪙 Sur Pile');
+    buildOutcomeField('Face', '🪙 Sur Face');
   }
 
   if(def.isExplore){
@@ -3236,10 +3259,19 @@ function buildEffectClause(eff, ab){
       return `la carte visée par la seconde cible combat ${targetPhrase(resolvedTarget)} (elles s'infligent mutuellement des dégâts égaux à leur Force)`;
     }
     case 'coinFlip': {
-      const ownerLabel = {ally:'alliée', enemy:'ennemie', any:''}[eff.coinFlipTargetOwner] || '';
-      const groupLabel = eff.coinFlipSelectionMode==='all' ? `chaque créature ${ownerLabel}`.trim() : `une créature ${ownerLabel} désignée`.trim();
-      const consequence = eff.coinFlipSuccessEffect==='destroy' ? 'est détruite' : `subit ${eff.coinFlipSuccessValue} dégâts`;
-      return `lancez une pièce pour ${groupLabel} : sur un résultat défavorable, elle ${consequence}`;
+      const describe = (type, value)=>{
+        if(type==='destroy') return 'elle est détruite';
+        if(type==='damage') return `elle subit ${value||2} dégâts`;
+        if(type==='heal') return `elle est soignée de ${value||2}`;
+        return null;
+      };
+      const pile = describe(eff.coinFlipPileType, eff.coinFlipPileValue);
+      const face = describe(eff.coinFlipFaceType, eff.coinFlipFaceValue);
+      const parts = [];
+      if(pile) parts.push(`sur Pile, ${pile}`);
+      if(face) parts.push(`sur Face, ${face}`);
+      const outcome = parts.length ? parts.join(' ; ') : 'rien de configuré pour l\'instant';
+      return `lancez une pièce pour ${targetPhrase(resolvedTarget)} (${outcome})`;
     }
     case 'discard': {
       const who = eff.discardTargetOwner==='enemy' ? 'votre adversaire défausse' : eff.discardTargetOwner==='both' ? 'chaque joueur défausse' : 'défaussez';
@@ -3642,7 +3674,11 @@ function buildAbilitySentence(cardType, ab){
         prefix = `Après avoir attaqué avec au moins ${n} créature${n>1?'s':''}${subPhrase}${kwPhrase} ce tour-ci`;
       }
       if(te.trigger==='activated'){
-        prefix = `Payez ${te.activationCost ?? 0} mana`;
+        if(currentType==='Artefact'){
+          prefix = 'Activez (gratuit, une fois par tour)';
+        } else {
+          prefix = `Payez ${te.activationCost ?? 0} mana`;
+        }
         if(te.extraCostEnabled){
           const ecLabel = {
             sacrificeCreature: 'sacrifiez une créature alliée',
@@ -3652,7 +3688,7 @@ function buildAbilitySentence(cardType, ab){
           }[te.extraCostType];
           prefix += ` et ${ecLabel}`;
         }
-        if(te.activationCooldown>0) prefix += ` (rechargement : ${te.activationCooldown} tour${te.activationCooldown>1?'s':''})`;
+        if(currentType!=='Artefact' && te.activationCooldown>0) prefix += ` (rechargement : ${te.activationCooldown} tour${te.activationCooldown>1?'s':''})`;
       }
       return prefix;
     };
