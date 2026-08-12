@@ -1946,8 +1946,11 @@ function rebuildAbilitiesUI(){
       box.appendChild(kindRow);
     }
 
-    // liste des déclencheurs (un ou plusieurs) — masquée pour Sortilège et pour les capacités continues
-    if(!isSpellLike && ab.kind==='triggered'){
+    // liste des déclencheurs (un ou plusieurs) — masquée pour les capacités
+    // continues seulement. Affichée aussi pour Sortilège désormais (choix
+    // entre "Au jeu" et "Quand cette carte est piochée" notamment) — "Au
+    // jeu" reste le premier choix, donc rien ne change si on n'y touche pas.
+    if(ab.kind==='triggered'){
       const trigList = document.createElement('div');
       trigList.className = 'trigger-list-box';
       trigList.innerHTML = `<h4>Déclencheur(s)</h4>`;
