@@ -108,7 +108,11 @@ function gsConnect(onStateUpdate, onChatMessage) {
         event: 'INSERT', schema: 'public', table: 'game_chat_messages',
         filter: `session_id=eq.${GS_SESSION_ID}`
       }, (payload) => onChatMessage(payload.new))
-      .subscribe();
+      .subscribe((status, err) => {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          console.error('Abonnement émotes/chat : ' + status, err || '');
+        }
+      });
   }
 
   gsSetupPresence();
@@ -182,15 +186,16 @@ function gsDisconnect() {
 // ------------------------------------------------------------
 // Chat
 // ------------------------------------------------------------
-async function gsSendChatMessage(message, senderName) {
+async function gsSendEmote(image, label) {
   const user = await scGetCurrentUser();
   if (!user) return { error: 'not-logged-in' };
+  if (GS_ROLE !== 'p1' && GS_ROLE !== 'p2') return { error: 'spectators-cannot-emote' };
   const { error } = await sb.from('game_chat_messages').insert({
     session_id: GS_SESSION_ID,
     sender_id: user.id,
-    sender_name: senderName || user.email || 'Joueur',
-    is_spectator: GS_ROLE === 'spectator',
-    message: message
+    sender_name: GS_ROLE, // détourné : porte 'p1'/'p2' plutôt qu'un nom d'affichage, pour savoir où faire apparaître la bulle
+    is_spectator: false,
+    message: JSON.stringify({ image, label })
   });
   if (error) return { error: error.message };
   return { ok: true };

@@ -469,9 +469,10 @@ body.targeting *{cursor:crosshair !important;}
   #emote-grid img{width:44px;height:44px;border-radius:8px;object-fit:cover;cursor:pointer;border:2px solid transparent;background:#0b0a12;}
   #emote-grid img:hover{border-color:#d4af37;}
   #emote-grid .emote-empty{grid-column:1/-1;font-size:11px;color:#8a7f6a;text-align:center;padding:8px 0;}
-  .emote-bubble{position:absolute;z-index:60;background:rgba(23,19,37,.95);border:2px solid #d4af37;border-radius:12px;padding:6px;
+  .emote-bubble{position:absolute;z-index:60;background:rgba(23,19,37,.95);border:3px solid #d4af37;border-radius:14px;padding:8px;
+    box-shadow:0 6px 20px rgba(0,0,0,.6);
     animation:emote-pop .25s ease, emote-fade .4s ease 2.2s forwards;pointer-events:none;}
-  .emote-bubble img{width:56px;height:56px;border-radius:8px;display:block;}
+  .emote-bubble img{width:92px;height:92px;border-radius:10px;display:block;}
   @keyframes emote-pop{from{transform:scale(0.4);opacity:0;}to{transform:scale(1);opacity:1;}}
   @keyframes emote-fade{to{opacity:0;}}
   .log-error{color:#c23b3b;}
@@ -2171,7 +2172,7 @@ function renderEmoteGrid(){
 }
 async function uiSendEmote(emote){
   const res = await gsSendEmote(emote.image, emote.label||'');
-  if(res && res.error) debugLog('Émote → ' + res.error, 'log-error');
+  if(res && res.error){ console.error('Émote → ' + res.error); alert("L'émote n'a pas pu être envoyée : " + res.error); }
 }
 // Reçue via le même canal temps réel que l'ancien chat (game_chat_messages)
 // — le "message" transporte directement l'image et l'info-bulle de
@@ -2182,12 +2183,13 @@ function onEmoteMessage(msg){
   const senderKey = msg.sender_name === 'p1' || msg.sender_name === 'p2' ? msg.sender_name : null;
   const anchorId = senderKey===MY_KEY ? `hero-frame-${MY_KEY}` : `hero-frame-${OPP_KEY}`;
   const anchor = document.getElementById(anchorId);
+  console.log('Émote reçue', {senderKey, MY_KEY, OPP_KEY, anchorId, anchorFound: !!anchor});
   if(!anchor) return;
   const rect = anchor.getBoundingClientRect();
   const bubble = document.createElement('div');
   bubble.className = 'emote-bubble';
-  bubble.style.left = (rect.left + rect.width/2 - 34) + 'px';
-  bubble.style.top = (rect.top + rect.height/2 - 34) + 'px';
+  bubble.style.left = (rect.left + rect.width/2 - 57) + 'px';
+  bubble.style.top = (rect.top - 100) + 'px';
   bubble.innerHTML = `<img src="${payload.image}" title="${escapeHtmlBoard(payload.label||'')}">`;
   document.body.appendChild(bubble);
   setTimeout(()=>bubble.remove(), 2700);
