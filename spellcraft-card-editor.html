@@ -743,7 +743,7 @@ booster-aube.png" oninput="saveImgPickerFileList()"></textarea>
 /* CLASSES, CLASS_COLORS, RARITIES, CARD_TYPES, KEYWORDS, escapeHtml et migrateCard
    viennent maintenant de spellcraft-shared.js (chargé juste avant ce script). */
 
-const WATCH_TRIGGERS = ['watchPlay','watchArrival','watchDeath','watchAttack','watchDamaged','watchHealed','watchHeroHealed','watchSpell','watchTrap','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchAfterReveal','watchReveal','watchExplore','watchRetrieveDiscard','watchRetrieveDeck','watchTargeted','watchDiscovered','watchDrawFromOpponentDeck','onTargeted'];
+const WATCH_TRIGGERS = ['watchPlay','watchArrival','watchDeath','watchAttack','watchDamaged','watchHealed','watchHeroHealed','watchSpell','watchTrap','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchAfterReveal','watchReveal','watchExplore','watchRetrieveDiscard','watchRetrieveDeck','watchTargeted','watchDiscovered','watchDrawFromOpponentDeck','watchHeroPowerActivated','onTargeted'];
 
 const TRIGGERS_BY_TYPE = {
   'Créature': ['onPlay','onAttack','onBlocked','onWasBlocked','onDealtHeroDamage','onDamaged','onHealed','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
@@ -813,6 +813,7 @@ const TRIGGER_TEXT = {
   watchReveal: 'Quand un joueur révèle',
   watchDiscovered: 'Quand vous découvrez une carte',
   watchDrawFromOpponentDeck: "Quand vous piochez une carte dans le deck adverse",
+  watchHeroPowerActivated: "Quand un héros déclenche son pouvoir",
   watchExplore: 'Quand un joueur explore',
   watchRetrieveDiscard: 'Quand une carte est récupérée depuis la défausse',
   watchRetrieveDeck: 'Quand une carte est récupérée depuis le deck',
