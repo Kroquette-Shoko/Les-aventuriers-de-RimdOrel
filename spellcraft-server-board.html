@@ -85,6 +85,10 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 
 #discard-modal{position:fixed;inset:0;background:rgba(5,4,10,.88);display:none;align-items:center;justify-content:center;z-index:60;}
 #discard-modal.show{display:flex;}
+.modal-overlay{position:fixed;inset:0;background:rgba(5,4,10,.88);display:none;align-items:center;justify-content:center;z-index:9999;}
+.modal-overlay.show{display:flex;}
+.modal-overlay .modal-box{background:var(--bg-panel);border:1px solid #3a3260;border-radius:12px;padding:20px 24px;max-width:90vw;max-height:80vh;overflow:auto;display:flex;flex-direction:column;gap:12px;}
+.modal-overlay .modal-box h2{font-family:'Cinzel',serif;font-size:17px;color:var(--gold);margin:0;}
 #discard-modal .modal-box{background:var(--bg-panel);border:1px solid #3a3260;border-radius:12px;padding:20px 24px;max-width:520px;max-height:70vh;display:flex;flex-direction:column;gap:12px;}
 #discard-modal h2{font-family:'Cinzel',serif;font-size:17px;color:var(--gold);margin:0;}
 #discard-list{overflow-y:auto;display:flex;flex-wrap:wrap;gap:8px;padding-right:4px;}
@@ -1330,6 +1334,11 @@ function renderManaBox(key, slot){
     <div class="mana-box-count">${p.manaNormal + p.manaFragile}/${p.manaNormalMax}</div>
     <div class="mana-box-fill">${normalDots}${bonusDots}${fragileDots}</div>
   `;
+  if(region.name){
+    const thumbEl = el.querySelector('.mana-box-region-thumb');
+    thumbEl.style.cursor = 'pointer';
+    attachHoverPreview(thumbEl, region);
+  }
 }
 
 // Cadre du héros : le portrait lui-même sert de bouton d'activation quand
