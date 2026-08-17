@@ -1771,7 +1771,11 @@ function classAllowedByDeck(card){
   if(card.hero && card.hero.trim().toLowerCase() !== (hero.name||'').trim().toLowerCase()) return false;
   const heroClasses = [hero.class, hero.classSecondary].filter(Boolean);
   const cardClasses = [card.class, card.classSecondary].filter(Boolean);
-  if(cardClasses.includes('Neutre') || cardClasses.some(c=>heroClasses.includes(c))) return true;
+  // Toutes les classes de la carte doivent être couvertes par celles du
+  // héros — un héros bicolore "Aube-Volonté" ne peut pas jouer une carte
+  // "Volonté-Crépuscule" seulement parce qu'elles partagent Volonté :
+  // Crépuscule reste une classe à laquelle le héros n'a pas accès.
+  if(cardClasses.includes('Neutre') || cardClasses.every(c=>heroClasses.includes(c))) return true;
   const mc = hero.heroMultiClass;
   if(mc && mc.enabled && mc.allowedClasses && cardClasses.some(c=>mc.allowedClasses.includes(c))){
     if(mc.scope && mc.scope!=='Toutes' && card.type!==mc.scope) return false;

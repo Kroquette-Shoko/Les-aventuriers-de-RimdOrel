@@ -2547,6 +2547,29 @@ function buildEffectRow(ab, eff, choiceKey){
     const amF = document.createElement('div'); amF.className='field'; amF.innerHTML=`<label class="mini-field">Réduction</label>`;
     const amI = document.createElement('input'); amI.type='number'; amI.min=1; amI.max=15; amI.value=eff.reduceCostAmount||1;
     amI.oninput=()=>{ eff.reduceCostAmount=parseInt(amI.value)||1; onFormChange(); }; amF.appendChild(amI); row.appendChild(amF);
+    row.appendChild(makeSelectField('S\'applique à', [{key:'all',label:'Toutes les cartes correspondantes'},{key:'chosen',label:'Une carte désignée par le joueur'}], eff.reduceCostSelectionMode||'all', v=>{ eff.reduceCostSelectionMode=v; rebuildAbilitiesUI(); onFormChange(); }));
+    if(eff.reduceCostSelectionMode==='chosen'){
+      const otherTargets = (ab.targets||[]).filter(t=>t.id!==eff.usesTarget);
+      if(otherTargets.length>0){
+        const opts = otherTargets.map(t=>({key:t.id, label:`Cible ${String.fromCharCode(65+(ab.targets||[]).indexOf(t))}`}));
+        if(!eff.reduceCostTargetId || !otherTargets.some(t=>t.id===eff.reduceCostTargetId)) eff.reduceCostTargetId = otherTargets[0].id;
+        row.appendChild(makeSelectField('Carte désignée', opts, eff.reduceCostTargetId, v=>{ eff.reduceCostTargetId=v; onFormChange(); }));
+        const hint = document.createElement('div');
+        hint.style.cssText = 'font-size:11px;color:var(--parchment-dim);margin-top:2px;';
+        hint.textContent = `Cette cible doit être une carte en main pour que la réduction s'applique. Le type/sous-type choisis ci-dessus ne servent alors plus qu'à filtrer quelle carte le joueur peut désigner.`;
+        row.appendChild(hint);
+      } else {
+        const warn = document.createElement('div');
+        warn.style.cssText = 'font-size:11px;color:#e88;margin-top:4px;';
+        warn.textContent = "Il faut une cible « Carte en main » dans cette capacité pour désigner la carte concernée.";
+        row.appendChild(warn);
+        const addBtn = document.createElement('button');
+        addBtn.type='button'; addBtn.className='add-row-btn';
+        addBtn.textContent = '+ Ajouter une cible « Carte en main »';
+        addBtn.onclick = ()=>{ addTargetEntry(ab.id, choiceKey); };
+        row.appendChild(addBtn);
+      }
+    }
   }
 
   if(def.isGrantMana){
@@ -3222,6 +3245,9 @@ function buildEffectClause(eff, ab){
       return `fixez ${parts.join(', ')} de ${targetPhrase(resolvedTarget)}`;
     }
     case 'reduceCost': {
+      if(eff.reduceCostSelectionMode==='chosen'){
+        return `réduisez de ${eff.reduceCostAmount} le coût de la carte visée par la cible désignée (minimum 0)`;
+      }
       const scopeLabel = {hand:'en main', deck:'dans le deck', both:'en main et dans le deck'}[eff.reduceCostScope];
       const whose = eff.reduceCostOwner==='enemy' ? "de l'adversaire" : 'vos';
       const typeLabel = eff.reduceCostType && eff.reduceCostType!=='any' ? `de type ${eff.reduceCostType}` : 'de tout type';
