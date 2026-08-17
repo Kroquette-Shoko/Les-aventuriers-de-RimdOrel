@@ -2222,7 +2222,8 @@ async function uiSendEmote(emote){
 function onEmoteMessage(payload){
   if(!payload) return;
   const senderKey = payload.senderKey === 'p1' || payload.senderKey === 'p2' ? payload.senderKey : null;
-  const anchorId = senderKey===MY_KEY ? 'hero-frame-p1' : 'hero-frame-p2';
+  const isMine = senderKey===MY_KEY;
+  const anchorId = isMine ? 'hero-frame-p1' : 'hero-frame-p2';
   const anchor = document.getElementById(anchorId);
   console.log('Émote reçue', {senderKey, MY_KEY, OPP_KEY, anchorId, anchorFound: !!anchor});
   const bubble = document.createElement('div');
@@ -2230,7 +2231,12 @@ function onEmoteMessage(payload){
   if(anchor){
     const rect = anchor.getBoundingClientRect();
     bubble.style.left = (rect.left + rect.width/2 - 57) + 'px';
-    bubble.style.top = (rect.top - 100) + 'px';
+    // Notre propre cadre est en bas de l'écran : la bulle flotte au-dessus.
+    // Le cadre adverse est en haut : la bulle flotte en dessous. Les deux
+    // se rapprochent donc du centre du plateau, plutôt que de toujours
+    // remonter (ce qui, pour le cadre adverse déjà en haut, la poussait
+    // hors de l'écran ou la rendait à peine visible).
+    bubble.style.top = isMine ? (rect.top - 100) + 'px' : (rect.bottom + 20) + 'px';
   } else {
     // Repli de diagnostic : si le cadre n'est pas trouvé, on affiche quand
     // même la bulle, bien visible au centre de l'écran, pour savoir si le
