@@ -751,7 +751,7 @@ const TRIGGERS_BY_TYPE = {
   'Région':   ['gameStart','onPlay','onDestroyed','onReturnFromGraveyard','manaAlternative','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
   'Artefact': ['onPlay','onUse','onDestroyed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
   'Sortilège':['onPlay','onDrawn'],
-  'Piège':    ['onOpponentAttack','onOpponentSpell','onOpponentPlayCreature','onOpponentPlayArtifact','onOpponentPlayCard','onOpponentEndTurn','onOpponentTargetsAlly','onAllySurvivesCombat','onEnemySurvivesCombat','beforeAllyFights','onAllyBlocked','onPlay','onDestroyed','gameStart','onAttack','onBlocked','onDamaged','onHealed','onDeath','onKill','onRevive','activated','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS]
+  'Piège':    ['onOpponentAttack','onOpponentSpell','onOpponentPlayCreature','onOpponentPlayArtifact','onOpponentPlayCard','onOpponentEndTurn','onOpponentTargetsAlly','onAllySurvivesCombat','onEnemySurvivesCombat','beforeAllyFights','onAllyBlocked','onDestroyed','gameStart','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS]
 };
 
 const TRIGGER_TEXT = {
@@ -883,6 +883,7 @@ const EFFECT_TYPES = [
   {key:'sacrificeEffect', label:'Sacrifice une créature (effet, pas un coût)', needsTarget:true, needsValue:false},
   {key:'counterCard', label:'Contre : met la carte jouée en défausse et annule son effet', needsTarget:false, needsValue:false},
   {key:'disarmTraps', label:"Désarme les pièges adverses", needsTarget:false, needsValue:false},
+  {key:'exhaustArtifact', label:"Épuise un artefact (il ne peut plus être activé ce tour-ci)", needsTarget:true, needsValue:false},
   {key:'stealStat', label:'Vole une statistique de la cible', needsTarget:true, needsValue:false, isStealStat:true},
   {key:'copyCard', label:'Copie la carte ciblée', needsTarget:true, needsValue:false, isCopyCard:true},
   {key:'increaseCost', label:'Augmente le coût des cartes concernées', needsTarget:false, needsValue:true, isReduceCostLike:true},
@@ -3296,6 +3297,8 @@ function buildEffectClause(eff, ab){
       return `mettez la carte jouée dans la défausse de son propriétaire et annulez son effet`;
     case 'disarmTraps':
       return `désarmez tous les pièges adverses actifs ou en attente`;
+    case 'exhaustArtifact':
+      return `${targetPhrase(resolvedTarget)} ne peut plus être activé ce tour-ci`;
     case 'stealStat': {
       const statLabel = {force:'la Force', endurance:"l'Endurance", charges:"l'utilisation"}[eff.stealStatType||'force'];
       return `volez ${statLabel} de ${targetPhrase(resolvedTarget)} (elle tombe à 0)`;
