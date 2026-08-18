@@ -417,6 +417,7 @@ body.targeting *{cursor:crosshair !important;}
 .ncard.n-big .nstat-wrap.n-art .nstat-txt{font-size:15px;}
 
 .ncard.n-small{width:144px;height:144px;}
+.ncard.n-small.n-artifact-card{width:120px;height:120px;}
 .ncard.n-small .nart-layer{left:20.47%;top:16.28%;width:58.05%;height:44.63%;}
 .ncard.n-small .nstat-wrap.n-mana{left:-1%;top:-3.5%;width:22%;}
 .ncard.n-small .nstat-wrap.n-mana .nstat-txt{font-size:8px;}
@@ -1080,6 +1081,7 @@ function buildNewCardEl(card, size, effectiveCostOverride, opts={}){
   const isCreature = card.type==='Créature';
   const isArtifact = card.type==='Artefact';
   if(isHero) root.classList.add('n-hero-card');
+  if(isArtifact) root.classList.add('n-artifact-card');
 
   const posX = isHero ? (card.imagePosXHeroCard ?? 50) : size==='big' ? (card.imagePosX ?? 50) : (card.imagePosXSmall ?? 50);
   const posY = isHero ? (card.imagePosYHeroCard ?? 50) : size==='big' ? (card.imagePosY ?? 50) : (card.imagePosYSmall ?? 50);
@@ -1281,11 +1283,25 @@ function cardEl(card, opts={}){
 }
 
 // Aperçu au survol (toujours n-big, même pour une créature affichée en
-// n-small sur le plateau — pour pouvoir lire le texte complet).
+// n-small sur le plateau — pour pouvoir lire le texte complet). Pour un
+// artefact spécifiquement : léger délai de 1,5s avant l'affichage, plutôt
+// qu'immédiat comme pour les autres cartes — annulé proprement si la
+// souris quitte avant que ce délai ne soit écoulé.
 function attachHoverPreview(el, card){
-  el.addEventListener('mouseenter', (ev)=>showCardPreviewHover(card, ev));
+  let pendingTimer = null;
+  el.addEventListener('mouseenter', (ev)=>{
+    if(card.type==='Artefact'){
+      const evCopy = { clientX: ev.clientX, clientY: ev.clientY };
+      pendingTimer = setTimeout(()=>{ pendingTimer = null; showCardPreviewHover(card, evCopy); }, 1500);
+    } else {
+      showCardPreviewHover(card, ev);
+    }
+  });
   el.addEventListener('mousemove', moveHeroPreview);
-  el.addEventListener('mouseleave', hidePreview);
+  el.addEventListener('mouseleave', ()=>{
+    if(pendingTimer){ clearTimeout(pendingTimer); pendingTimer = null; }
+    hidePreview();
+  });
 }
 let __previewHoverToken = 0;
 let __lastPreviewEvent = null;
