@@ -500,7 +500,7 @@ body.targeting *{cursor:crosshair !important;}
   /* ---------- Nouvelle disposition : mana / héros / deck en coins séparés ---------- */
   .board-row{display:flex;align-items:center;gap:14px;padding:8px 16px;position:relative;min-height:265px;}
 
-  .mana-box{position:absolute;bottom:8px;width:44px;height:220px;border-radius:12px;background:#0b0a12;border:2px solid #3a3260;overflow:hidden;display:flex;flex-direction:column-reverse;align-items:center;padding-bottom:4px;z-index:6;}
+  .mana-box{position:absolute;bottom:8px;width:76px;height:300px;border-radius:12px;background:#0b0a12;border:2px solid #3a3260;overflow:hidden;display:flex;flex-direction:column-reverse;align-items:center;padding-bottom:4px;z-index:6;}
   .board-row.self{margin-top:auto;}
   .board-row.self .mana-box{left:16px;bottom:60px;}
   .board-row.enemy .mana-box{right:110px;top:16px;bottom:auto;flex-direction:column;padding-bottom:0;padding-top:4px;}
@@ -508,12 +508,13 @@ body.targeting *{cursor:crosshair !important;}
   .board-row.enemy .hero-frame{right:166px;top:16px;bottom:auto;}
   .mana-box-region-thumb{width:36px;height:36px;border-radius:8px;background-size:cover;background-position:center;background-color:#241f38;border:1px solid var(--gold);flex-shrink:0;}
   .mana-box-count{flex-shrink:0;width:100%;text-align:center;font-family:'Cinzel',serif;font-weight:700;font-size:10px;color:var(--gold);}
-  .mana-box-fill{display:flex;flex-direction:column-reverse;align-items:center;gap:3px;padding:5px 0;width:100%;}
-  .board-row.enemy .mana-box-fill{flex-direction:column;}
-  .mana-box-dot{width:20px;height:20px;border-radius:50%;border:1.5px solid rgba(0,0,0,.5);flex-shrink:0;}
-  .mana-box-dot.filled{background:radial-gradient(circle at 35% 30%,#8fe0ff,#155a94);box-shadow:0 0 6px rgba(111,208,255,.75);}
-  .mana-box-dot.fragile{background:radial-gradient(circle at 35% 30%,#d8f4ff,var(--frost));box-shadow:0 0 6px rgba(79,179,217,.8);}
-  .mana-box-dot.bonus{background:radial-gradient(circle at 35% 30%,#fff3d0,var(--gold));box-shadow:0 0 6px rgba(212,175,55,.8);}
+  .mana-box-fill{display:flex;flex-direction:column-reverse;flex-wrap:wrap;align-content:center;justify-content:center;gap:3px;padding:5px 0;width:100%;max-height:233px;}
+  .board-row.enemy .mana-box-fill{flex-direction:column;flex-wrap:wrap;}
+  .mana-box-dot{width:20px;height:20px;border-radius:50%;flex-shrink:0;background-size:contain;background-repeat:no-repeat;background-position:center;}
+  .mana-box-dot.filled{background-image:url('images/mana-plein.png');}
+  .mana-box-dot:not(.filled):not(.fragile):not(.bonus){background-image:url('images/mana-vide.png');}
+  .mana-box-dot.fragile{background-image:url('images/mana-fragile.png');}
+  .mana-box-dot.bonus{background:radial-gradient(circle at 35% 30%,#fff3d0,var(--gold));box-shadow:0 0 6px rgba(212,175,55,.8);border-radius:50%;}
 
   .hero-frame{position:absolute;bottom:8px;z-index:7;}
   .hero-portrait-big{width:130px;height:130px;border-radius:50%;background:radial-gradient(circle at 35% 30%, var(--arcane), #2a1f55);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:700;font-size:40px;color:#fff;flex-shrink:0;border:4px solid var(--gold);position:relative;cursor:pointer;padding:0;}
@@ -832,7 +833,7 @@ function renderGameLog(){
         });
       }
     } else if(entry.cardName){
-      if(entry.isTrap){
+      if(entry.kind==='trap'){
         playSfx('trap');
       } else {
         const c = entry.cardId ? JOURNAL_CARD_LOOKUP[entry.cardId] : null;
@@ -845,6 +846,7 @@ function renderGameLog(){
   el.innerHTML = '';
   (S.__gameLog||[]).forEach(entry=>{
     const who = entry.ownerKey===MY_KEY ? 'Vous' : "L'adversaire";
+    const isMe = entry.ownerKey===MY_KEY;
     const line = document.createElement('div');
     line.className = 'journal-entry';
     if(entry.raw){
@@ -858,33 +860,39 @@ function renderGameLog(){
         line.onmouseleave = onJournalEffectLeave;
       }
     } else {
-      // "déclenche" pour un piège (qui était déjà posé et vient de se
-      // déclencher) plutôt que "joue" (qui donne l'impression trompeuse
-      // qu'il vient tout juste d'être posé à cet instant).
-      const verb = entry.isTrap ? 'déclenche' : 'joue';
-      const whoVerb = `${who} ${verb}`;
       const nameSpan = `<span class="card-name-ref" data-cardid="${entry.cardId||''}">"${escapeHtmlGS(entry.cardName)}"</span>`;
+      // Une phrase d'en-tête distincte par catégorie — validées ensemble,
+      // voir la conversation sur la refonte du journal.
+      const headerPhrase = ({
+        play: isMe ? `Vous jouez la carte ${nameSpan}.` : `L'adversaire joue la carte ${nameSpan}.`,
+        trap: isMe ? `Votre piège ${nameSpan} se déclenche.` : `Le piège ${nameSpan} de l'adversaire se déclenche.`,
+        creature_trigger: `La capacité de ${nameSpan} se déclenche.`,
+        creature_activate: isMe ? `Vous activez la capacité de ${nameSpan}.` : `L'adversaire active la capacité de ${nameSpan}.`,
+        hero_activate: isMe ? `Vous activez le pouvoir de votre héros ${nameSpan}.` : `L'adversaire active le pouvoir de son héros ${nameSpan}.`,
+        hero_trigger: isMe ? `Le pouvoir de votre héros ${nameSpan} se déclenche.` : `Le pouvoir du héros adverse ${nameSpan} se déclenche.`,
+        artifact_activate: isMe ? `Vous activez ${nameSpan}.` : `L'adversaire active ${nameSpan}.`,
+        artifact_trigger: `La capacité de ${nameSpan} se déclenche.`,
+        region_trigger: isMe ? `La capacité de votre région ${nameSpan} se déclenche.` : `La capacité de la région adverse ${nameSpan} se déclenche.`,
+        region_activate: isMe ? `Vous activez la capacité de votre région ${nameSpan}.` : `L'adversaire active la capacité de sa région ${nameSpan}.`,
+      })[entry.kind] || `${who} joue ${nameSpan}.`;
       const effects = entry.effects || [];
       const header = document.createElement('div');
       header.className = 'journal-entry-card';
       if(effects.length <= 1){
-        // Un seul effet (ou aucun) : tout tient sur une ligne, comme avant.
+        // Un seul effet (ou aucun) : deux phrases distinctes plutôt qu'une
+        // seule avec "et" — "Vous jouez X. Vous gagnez 1 mana fragile."
         const eff = effects[0];
         header.innerHTML = eff
-          ? `<span class="who">${whoVerb}</span> ${nameSpan} et ${escapeHtmlGS(eff.text)}.`
-          : `<span class="who">${whoVerb}</span> ${nameSpan}.`;
+          ? `${headerPhrase} <span class="effect-sentence">${who} ${escapeHtmlGS(eff.text)}.</span>`
+          : headerPhrase;
         if(eff && eff.targetInstIds && eff.targetInstIds.length){
-          header.classList.add('hl-ref');
-          header.onmouseenter = (ev)=>{
-            // Le nom de la carte garde son aperçu habituel ; le survol du
-            // reste de la ligne (le résultat) active la surbrillance.
-            if(ev.target.closest('.card-name-ref')) return;
-            onJournalEffectHover(entry, eff.targetInstIds);
-          };
-          header.onmouseleave = onJournalEffectLeave;
+          const effSpan = header.querySelector('.effect-sentence');
+          effSpan.classList.add('hl-ref');
+          effSpan.onmouseenter = ()=>onJournalEffectHover(entry, eff.targetInstIds);
+          effSpan.onmouseleave = onJournalEffectLeave;
         }
       } else {
-        header.innerHTML = `<span class="who">${whoVerb}</span> ${nameSpan} (${effects.length} effets).`;
+        header.innerHTML = `${headerPhrase} <span class="effect-count">(${effects.length} effets)</span>`;
       }
       line.appendChild(header);
       if(effects.length > 1){
@@ -893,7 +901,7 @@ function renderGameLog(){
         effects.forEach(eff=>{
           const effLine = document.createElement('div');
           effLine.className = 'journal-effect-line';
-          effLine.textContent = eff.text;
+          effLine.textContent = `${who} ${eff.text}.`;
           if(eff.targetInstIds && eff.targetInstIds.length){
             effLine.classList.add('hl-ref');
             effLine.onmouseenter = ()=>onJournalEffectHover(entry, eff.targetInstIds);
@@ -1511,9 +1519,11 @@ function renderManaBox(key, slot){
   const region = p.region || {};
   const regionThumbStyle = region.image ? `background-image:url('${region.image.replace(/'/g,"")}');background-position:${region.imagePosX??50}% ${region.imagePosY??50}%;background-size:${(region.imageZoom??100)>100?region.imageZoom+'%':'cover'};` : '';
   // Le compteur numérique (juste en dessous) est la vraie valeur, sans
-  // limite. L'affichage en points, lui, est plafonné pour rester lisible
-  // visuellement — au-delà, seul le chiffre continue de refléter le total.
-  const MAX_VISIBLE_DOTS = 7;
+  // limite. L'affichage en points, lui, remplit une colonne de 10 puis
+  // en ouvre une seconde à côté (voir .mana-box-fill en CSS) — au-delà de
+  // deux colonnes pleines, seul le chiffre continue de refléter le total.
+  const DOTS_PER_COLUMN = 10;
+  const MAX_VISIBLE_DOTS = DOTS_PER_COLUMN * 2;
   const normalDots = Array.from({length:Math.min(p.manaNormalMax, MAX_VISIBLE_DOTS)}, (_,i)=>{
     const filled = i<p.manaNormal;
     return `<span class="mana-box-dot ${filled?'filled':''}"></span>`;
