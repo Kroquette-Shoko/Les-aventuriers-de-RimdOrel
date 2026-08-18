@@ -119,9 +119,13 @@ header .spacer{flex:1;}
 #card-preview{position:fixed;z-index:9999;display:none;pointer-events:none;}
 #card-preview.show{display:block;}
 #card-preview.show.hero-preview{display:flex;align-items:flex-start;gap:10px;}
-.hero-preview-linked{display:flex;flex-direction:column;gap:6px;max-height:420px;overflow:visible;}
-.hero-preview-linked-title{font-family:'Cinzel',serif;font-size:11px;color:var(--gold);text-align:center;}
-.hero-preview-linked-card{width:90px;}
+.hero-preview-linked{display:flex;flex-direction:column;gap:2px;max-height:420px;overflow:visible;min-width:140px;background:rgba(15,12,24,.9);border:1px solid #3a3260;border-radius:8px;padding:8px 10px;}
+.hero-text-panel{width:260px;background:rgba(15,12,24,.96);border:2px solid var(--gold);border-radius:12px;padding:14px 16px;box-shadow:0 10px 30px rgba(0,0,0,.6);}
+.hero-text-panel-name{font-family:'Cinzel',serif;font-weight:700;font-size:16px;color:var(--gold);margin-bottom:2px;}
+.hero-text-panel-class{font-size:11px;color:var(--parchment-dim);margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em;}
+.hero-text-panel-text{font-size:13.5px;line-height:1.45;color:#f2ead2;white-space:pre-wrap;}
+.hero-preview-linked-title{font-family:'Cinzel',serif;font-size:11px;color:var(--gold);text-align:center;margin-bottom:2px;}
+.hero-preview-linked-item{font-size:12px;color:#f2ead2;text-align:center;padding:2px 4px;white-space:nowrap;}
 #card-preview .ncard{transform:scale(1.1);transform-origin:top left;box-shadow:0 16px 34px rgba(0,0,0,.65);}
 
 /* ---------- NOUVEAU TEMPLATE (frames illustrées) ---------- */
@@ -154,7 +158,7 @@ header .spacer{flex:1;}
 .ncard.n-big .nname-wrap{left:50%;top:45.3%;width:92%;aspect-ratio:663/202;transform:translateX(-50%);}
 .ncard.n-big .nname-wrap .nname-text{font-size:17px;transform:translateY(-13px);}
 .ncard.n-big .ncard-text{left:16%;top:65.79%;width:68%;height:27.5%;font-size:13.5px;line-height:1.32;padding-top:4px;}
-.ncard.n-big.n-hero-card .ncard-text{top:84%;height:15%;font-size:11.5px;background:rgba(11,10,18,.72);border-radius:6px;padding:4px 6px;}
+.ncard.n-big.n-hero-card .ncard-text{top:84%;height:15%;font-size:11.5px;color:#f2ead2;background:rgba(11,10,18,.72);border-radius:6px;padding:4px 6px;}
 .ncard.n-big .nrarity-gem{left:50%;bottom:0.89%;width:12%;transform:translateX(-50%);}
 .ncard.n-big .ntypeline{bottom:11.63%;width:72%;font-size:10.5px;}
 .ncard.n-big .nlegendary-gem{left:50%;top:-3%;width:12%;transform:translateX(-50%);}
@@ -836,10 +840,26 @@ function showCardPreview(card, x, y){
   const myToken = ++__previewHoverToken;
   box.innerHTML = '';
   if(card.type==='Héros'){
+    // Dans la boutique, l'illustration du héros est déjà bien visible dans
+    // le rayon lui-même — inutile de l'agrandir. Ce qui manque, c'est le
+    // texte de son pouvoir : un panneau centré sur le texte, pas la carte
+    // en grand.
     box.classList.add('hero-preview');
-    const el = buildNewCardEl(card, 'big', {heroCardFrame:true, forceHeroText:true});
-    box.appendChild(el);
-    requestAnimationFrame(()=>fitNewCard(el));
+    const panel = document.createElement('div');
+    panel.className = 'hero-text-panel';
+    const nameEl = document.createElement('div');
+    nameEl.className = 'hero-text-panel-name';
+    nameEl.textContent = card.name || '';
+    panel.appendChild(nameEl);
+    const classEl = document.createElement('div');
+    classEl.className = 'hero-text-panel-class';
+    classEl.textContent = [card.class, card.classSecondary].filter(Boolean).join(' / ');
+    panel.appendChild(classEl);
+    const textEl = document.createElement('div');
+    textEl.className = 'hero-text-panel-text';
+    textEl.textContent = card.text || 'Aucun pouvoir décrit.';
+    panel.appendChild(textEl);
+    box.appendChild(panel);
     repositionCardPreview(x, y);
     box.classList.add('show');
     loadCardsLinkedToHero(card.name).then(linked=>{
@@ -852,10 +872,10 @@ function showCardPreview(card, x, y){
       title.textContent = 'Cartes liées';
       col.appendChild(title);
       linked.forEach(lc=>{
-        const wrap = document.createElement('div');
-        wrap.className = 'hero-preview-linked-card';
-        wrap.appendChild(buildNewCardEl(lc, 'small', {}));
-        col.appendChild(wrap);
+        const item = document.createElement('div');
+        item.className = 'hero-preview-linked-item';
+        item.textContent = lc.name || '';
+        col.appendChild(item);
       });
       box.appendChild(col);
       repositionCardPreview(x, y); // la boîte vient de s'élargir

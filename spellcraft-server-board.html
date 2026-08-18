@@ -95,10 +95,9 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 #discard-modal .close-btn{align-self:flex-end;background:var(--arcane);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-family:'Cinzel',serif;font-weight:700;cursor:pointer;}
 
 #card-preview{position:fixed;z-index:99999;pointer-events:none;display:none;opacity:0;transition:opacity .15s ease;}
-.hero-preview-linked{display:flex;flex-direction:column;gap:6px;max-height:420px;overflow:visible;}
-.hero-preview-linked-title{font-family:'Cinzel',serif;font-size:11px;color:var(--gold);text-align:center;}
-.hero-preview-linked-card{width:90px;}
-.hero-preview-linked-card .ncard{transform:scale(1);}
+.hero-preview-linked{display:flex;flex-direction:column;gap:2px;max-height:420px;overflow:visible;min-width:140px;background:rgba(15,12,24,.9);border:1px solid #3a3260;border-radius:8px;padding:8px 10px;}
+.hero-preview-linked-title{font-family:'Cinzel',serif;font-size:11px;color:var(--gold);text-align:center;margin-bottom:2px;}
+.hero-preview-linked-item{font-size:12px;color:#f2ead2;text-align:center;padding:2px 4px;white-space:nowrap;}
 #card-preview .ncard{box-shadow:0 16px 34px rgba(0,0,0,.65);}
 #card-preview.show{display:block;opacity:1;}
 #card-preview.show.hero-preview{display:flex;align-items:flex-start;gap:10px;}
@@ -1161,11 +1160,10 @@ function showCardPreviewHover(card, ev){
       title.textContent = 'Cartes liées';
       col.appendChild(title);
       linked.forEach(lc=>{
-        const wrap = document.createElement('div');
-        wrap.className = 'hero-preview-linked-card';
-        const el = buildNewCardEl(lc, 'small', undefined, {});
-        wrap.appendChild(el);
-        col.appendChild(wrap);
+        const item = document.createElement('div');
+        item.className = 'hero-preview-linked-item';
+        item.textContent = lc.name || '';
+        col.appendChild(item);
       });
       box.appendChild(col);
       // La boîte vient de s'élargir — on recalcule sa position pour ne pas
