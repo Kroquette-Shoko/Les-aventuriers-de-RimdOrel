@@ -500,7 +500,7 @@ body.targeting *{cursor:crosshair !important;}
   /* ---------- Nouvelle disposition : mana / héros / deck en coins séparés ---------- */
   .board-row{display:flex;align-items:center;gap:14px;padding:8px 16px;position:relative;min-height:265px;}
 
-  .mana-box{position:absolute;bottom:8px;width:76px;height:300px;border-radius:12px;background:#0b0a12;border:2px solid #3a3260;overflow:hidden;display:flex;flex-direction:column-reverse;align-items:center;padding-bottom:4px;z-index:6;}
+  .mana-box{position:absolute;bottom:8px;width:auto;min-width:76px;height:300px;border-radius:12px;background:#0b0a12;border:2px solid #3a3260;overflow-x:visible;overflow-y:hidden;display:flex;flex-direction:column-reverse;align-items:center;padding-bottom:4px;z-index:6;}
   .board-row.self{margin-top:auto;}
   .board-row.self .mana-box{left:16px;bottom:60px;}
   .board-row.enemy .mana-box{right:110px;top:16px;bottom:auto;flex-direction:column;padding-bottom:0;padding-top:4px;}
@@ -508,7 +508,7 @@ body.targeting *{cursor:crosshair !important;}
   .board-row.enemy .hero-frame{right:166px;top:16px;bottom:auto;}
   .mana-box-region-thumb{width:36px;height:36px;border-radius:8px;background-size:cover;background-position:center;background-color:#241f38;border:1px solid var(--gold);flex-shrink:0;}
   .mana-box-count{flex-shrink:0;width:100%;text-align:center;font-family:'Cinzel',serif;font-weight:700;font-size:10px;color:var(--gold);}
-  .mana-box-fill{display:flex;flex-direction:column-reverse;flex-wrap:wrap;align-content:center;justify-content:center;gap:3px;padding:5px 0;width:100%;max-height:233px;}
+  .mana-box-fill{display:flex;flex-direction:column-reverse;flex-wrap:wrap;align-content:center;justify-content:center;gap:3px;padding:5px 8px;max-height:233px;}
   .board-row.enemy .mana-box-fill{flex-direction:column;flex-wrap:wrap;}
   .mana-box-dot{width:20px;height:20px;border-radius:50%;flex-shrink:0;background-size:contain;background-repeat:no-repeat;background-position:center;}
   .mana-box-dot.filled{background-image:url('images/mana-plein.png');}
@@ -1519,9 +1519,12 @@ function renderManaBox(key, slot){
   const region = p.region || {};
   const regionThumbStyle = region.image ? `background-image:url('${region.image.replace(/'/g,"")}');background-position:${region.imagePosX??50}% ${region.imagePosY??50}%;background-size:${(region.imageZoom??100)>100?region.imageZoom+'%':'cover'};` : '';
   // Le compteur numérique (juste en dessous) est la vraie valeur, sans
-  // limite. L'affichage en points, lui, remplit une colonne de 10 puis
-  // en ouvre une seconde à côté (voir .mana-box-fill en CSS) — au-delà de
-  // deux colonnes pleines, seul le chiffre continue de refléter le total.
+  // limite. L'affichage en points, lui, remplit une colonne de 10 puis en
+  // ouvre une nouvelle à côté (voir .mana-box-fill en CSS, flex-wrap). Le
+  // mana normal est plafonné à 20 par le moteur (vraie limite du jeu, donc
+  // 2 colonnes suffisent toujours) — le mana fragile, lui, peut dépasser
+  // cette limite, donc pas de plafond ici : autant de colonnes que
+  // nécessaire s'ouvrent au fil de l'eau.
   const DOTS_PER_COLUMN = 10;
   const MAX_VISIBLE_DOTS = DOTS_PER_COLUMN * 2;
   const normalDots = Array.from({length:Math.min(p.manaNormalMax, MAX_VISIBLE_DOTS)}, (_,i)=>{
@@ -1530,7 +1533,7 @@ function renderManaBox(key, slot){
   }).join('');
   const bonusCount = Math.max(0, Math.min(p.manaNormal, MAX_VISIBLE_DOTS) - Math.min(p.manaNormalMax, MAX_VISIBLE_DOTS));
   const bonusDots = Array.from({length:bonusCount}, ()=>`<span class="mana-box-dot bonus"></span>`).join('');
-  const fragileDots = Array.from({length:Math.min(p.manaFragile, MAX_VISIBLE_DOTS)}, ()=>`<span class="mana-box-dot fragile"></span>`).join('');
+  const fragileDots = Array.from({length:p.manaFragile}, ()=>`<span class="mana-box-dot fragile"></span>`).join('');
   el.title = region.name || 'Région';
   el.innerHTML = `
     <div class="mana-box-region-thumb" style="${regionThumbStyle}"></div>
