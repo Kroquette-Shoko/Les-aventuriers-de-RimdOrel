@@ -2828,7 +2828,13 @@ function buildEffectRow(ab, eff, choiceKey){
   }
   if(def.isDoubleTrigger){
     const trigOptions = Object.keys(TRIGGER_TEXT).map(k=>({key:k, label: TRIGGER_SHORT_NAME[k] ? `${TRIGGER_SHORT_NAME[k]} — ${TRIGGER_TEXT[k]}` : TRIGGER_TEXT[k]}));
-    row.appendChild(makeSelectField('Déclencheur doublé', trigOptions, eff.doubleTriggerName||trigOptions[0]?.key, v=>{ eff.doubleTriggerName=v; onFormChange(); }));
+    row.appendChild(makeSelectField('Déclencheur doublé', trigOptions, eff.doubleTriggerName||trigOptions[0]?.key, v=>{ eff.doubleTriggerName=v; rebuildAbilitiesUI(); onFormChange(); }));
+    // Le filtre allié/adverse n'a de sens que pour les déclencheurs de la
+    // famille "watch" (ceux qui, ailleurs dans l'éditeur, proposent déjà ce
+    // choix de "Propriétaire" — ex. "Quand un héros déclenche son pouvoir").
+    if(WATCH_TRIGGERS.includes(eff.doubleTriggerName)){
+      row.appendChild(makeSelectField('Concerne', [{key:'ally',label:'Allié seulement'},{key:'enemy',label:'Adverse seulement'},{key:'any',label:'Peu importe'}], eff.doubleTriggerOwner||'any', v=>{ eff.doubleTriggerOwner=v; onFormChange(); }));
+    }
   }
   if(def.isEvolveTarget){
     const evolveBox = document.createElement('div');

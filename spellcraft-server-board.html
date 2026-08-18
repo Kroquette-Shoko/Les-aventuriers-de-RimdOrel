@@ -95,8 +95,13 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 #discard-modal .close-btn{align-self:flex-end;background:var(--arcane);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-family:'Cinzel',serif;font-weight:700;cursor:pointer;}
 
 #card-preview{position:fixed;z-index:99999;pointer-events:none;display:none;opacity:0;transition:opacity .15s ease;}
+.hero-preview-linked{display:flex;flex-direction:column;gap:6px;max-height:420px;overflow:visible;}
+.hero-preview-linked-title{font-family:'Cinzel',serif;font-size:11px;color:var(--gold);text-align:center;}
+.hero-preview-linked-card{width:90px;}
+.hero-preview-linked-card .ncard{transform:scale(1);}
 #card-preview .ncard{box-shadow:0 16px 34px rgba(0,0,0,.65);}
 #card-preview.show{display:block;opacity:1;}
+#card-preview.show.hero-preview{display:flex;align-items:flex-start;gap:10px;}
 
 #card-reveal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:85;opacity:0;background:rgba(5,4,10,0);transition:opacity .3s ease, background .3s ease;}
 #card-reveal.show{opacity:1;background:rgba(5,4,10,.5);}
@@ -401,6 +406,7 @@ body.targeting *{cursor:crosshair !important;}
 .ncard.n-big .nname-wrap{left:50%;top:45.3%;width:92%;aspect-ratio:663/202;transform:translateX(-50%);}
 .ncard.n-big .nname-wrap .nname-text{font-size:17px;transform:translateY(-13px);}
 .ncard.n-big .ncard-text{left:16%;top:65.79%;width:68%;height:27.5%;font-size:13.5px;line-height:1.32;padding-top:4px;}
+.ncard.n-big.n-hero-card .ncard-text{top:84%;height:15%;font-size:11.5px;background:rgba(11,10,18,.72);border-radius:6px;padding:4px 6px;}
 .ncard.n-big .nrarity-gem{left:50%;bottom:0.89%;width:12%;transform:translateX(-50%);}
 .ncard.n-big .ntypeline{bottom:11.63%;width:72%;font-size:10.5px;}
 .ncard.n-big .nlegendary-gem{left:50%;top:-3%;width:12%;transform:translateX(-50%);}
@@ -983,7 +989,7 @@ function buildNewCardEl(card, size, effectiveCostOverride, opts={}){
     root.appendChild(nw);
   }
 
-  if(size==='big' && !isHero){
+  if(size==='big' && (!isHero || opts.forceHeroText)){
     const textEl = nEl('div','ncard-text'); textEl.textContent = card.text || '';
     root.appendChild(textEl);
   }
@@ -1126,14 +1132,55 @@ function attachHoverPreview(el, card){
   el.addEventListener('mousemove', moveHeroPreview);
   el.addEventListener('mouseleave', hidePreview);
 }
+let __previewHoverToken = 0;
+let __lastPreviewEvent = null;
 function showCardPreviewHover(card, ev){
   const box = document.getElementById('card-preview');
+  const myToken = ++__previewHoverToken;
+  __lastPreviewEvent = ev;
   box.innerHTML = '';
-  const big = buildNewCardEl(card, 'big', undefined, {heroCardFrame:true});
-  box.appendChild(big);
-  requestAnimationFrame(()=>fitNewCard(big));
-  box.classList.add('show');
-  moveHeroPreview(ev);
+  if(card.type==='Héros'){
+    box.classList.add('hero-preview');
+    const big = buildNewCardEl(card, 'big', undefined, {heroCardFrame:true, forceHeroText:true});
+    box.appendChild(big);
+    requestAnimationFrame(()=>fitNewCard(big));
+    box.classList.add('show');
+    moveHeroPreview(ev);
+    // Cartes liées à ce héros — chargées à la demande (pas de catalogue
+    // complet préchargé côté client) puis ajoutées à côté une fois prêtes.
+    loadCardsLinkedToHero(card.name).then(linked=>{
+      // La souris a peut-être déjà quitté, ou survolé autre chose entre-
+      // temps : on ignore ce résultat périmé plutôt que de l'ajouter au
+      // mauvais aperçu.
+      if(myToken !== __previewHoverToken) return;
+      if(!linked.length) return;
+      const col = document.createElement('div');
+      col.className = 'hero-preview-linked';
+      const title = document.createElement('div');
+      title.className = 'hero-preview-linked-title';
+      title.textContent = 'Cartes liées';
+      col.appendChild(title);
+      linked.forEach(lc=>{
+        const wrap = document.createElement('div');
+        wrap.className = 'hero-preview-linked-card';
+        const el = buildNewCardEl(lc, 'small', undefined, {});
+        wrap.appendChild(el);
+        col.appendChild(wrap);
+      });
+      box.appendChild(col);
+      // La boîte vient de s'élargir — on recalcule sa position pour ne pas
+      // déborder de l'écran (le premier calcul ne connaissait pas encore
+      // la largeur finale, les cartes liées arrivant après coup).
+      if(__lastPreviewEvent) moveHeroPreview(__lastPreviewEvent);
+    }).catch(()=>{});
+  } else {
+    box.classList.remove('hero-preview');
+    const big = buildNewCardEl(card, 'big', undefined, {heroCardFrame:true});
+    box.appendChild(big);
+    requestAnimationFrame(()=>fitNewCard(big));
+    box.classList.add('show');
+    moveHeroPreview(ev);
+  }
 }
 
 // ---------------- Rendu principal ----------------
@@ -2162,17 +2209,23 @@ function renderPhaseBar(){
 
 function showHeroPreview(hero, ev){ showCardPreviewHover(hero, ev); }
 function moveHeroPreview(ev){
+  __lastPreviewEvent = ev;
   const box = document.getElementById('card-preview');
   // Décalage large et volontaire — sur le plateau, les cartes (surtout les
   // artefacts) sont minuscules ; un aperçu trop proche du curseur les
   // recouvre entièrement, rendant impossible de viser le clic précis en
   // dessous (même si l'aperçu lui-même laisse passer les clics).
-  const x = Math.min(ev.clientX + 60, window.innerWidth - 320);
-  const y = Math.min(ev.clientY + 60, window.innerHeight - 440);
+  // Largeur réelle de la boîte (variable : un héros avec ses cartes liées
+  // est bien plus large qu'une carte seule) plutôt qu'une valeur fixe.
+  const boxWidth = box.offsetWidth || 300;
+  const boxHeight = box.offsetHeight || 420;
+  const x = Math.min(ev.clientX + 60, window.innerWidth - boxWidth - 20);
+  const y = Math.min(ev.clientY + 60, window.innerHeight - boxHeight - 20);
   box.style.left = x + 'px';
   box.style.top = y + 'px';
 }
 function hidePreview(){
+  __previewHoverToken++;
   document.getElementById('card-preview').classList.remove('show');
 }
 

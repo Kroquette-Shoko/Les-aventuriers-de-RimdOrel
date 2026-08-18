@@ -118,6 +118,10 @@ header .spacer{flex:1;}
 .card.class-Arcane{--class-color:#4682b4;}
 #card-preview{position:fixed;z-index:9999;display:none;pointer-events:none;}
 #card-preview.show{display:block;}
+#card-preview.show.hero-preview{display:flex;align-items:flex-start;gap:10px;}
+.hero-preview-linked{display:flex;flex-direction:column;gap:6px;max-height:420px;overflow:visible;}
+.hero-preview-linked-title{font-family:'Cinzel',serif;font-size:11px;color:var(--gold);text-align:center;}
+.hero-preview-linked-card{width:90px;}
 #card-preview .ncard{transform:scale(1.1);transform-origin:top left;box-shadow:0 16px 34px rgba(0,0,0,.65);}
 
 /* ---------- NOUVEAU TEMPLATE (frames illustrées) ---------- */
@@ -150,6 +154,7 @@ header .spacer{flex:1;}
 .ncard.n-big .nname-wrap{left:50%;top:45.3%;width:92%;aspect-ratio:663/202;transform:translateX(-50%);}
 .ncard.n-big .nname-wrap .nname-text{font-size:17px;transform:translateY(-13px);}
 .ncard.n-big .ncard-text{left:16%;top:65.79%;width:68%;height:27.5%;font-size:13.5px;line-height:1.32;padding-top:4px;}
+.ncard.n-big.n-hero-card .ncard-text{top:84%;height:15%;font-size:11.5px;background:rgba(11,10,18,.72);border-radius:6px;padding:4px 6px;}
 .ncard.n-big .nrarity-gem{left:50%;bottom:0.89%;width:12%;transform:translateX(-50%);}
 .ncard.n-big .ntypeline{bottom:11.63%;width:72%;font-size:10.5px;}
 .ncard.n-big .nlegendary-gem{left:50%;top:-3%;width:12%;transform:translateX(-50%);}
@@ -740,7 +745,7 @@ function buildNewCardEl(card, size, opts={}){
   }
 
   // Texte (big uniquement)
-  if(size==='big' && !isHero){
+  if(size==='big' && (!isHero || opts.forceHeroText)){
     const textEl = nEl('div','ncard-text'); textEl.textContent = card.text || '';
     root.appendChild(textEl);
   }
@@ -817,21 +822,55 @@ function buildBoosterCardEl(card){
 }
 
 // ---------------- Aperçu au survol ----------------
-function showCardPreview(card, x, y){
+let __previewHoverToken = 0;
+function repositionCardPreview(x, y){
   const box = document.getElementById('card-preview');
-  box.innerHTML = '';
-  const el = buildNewCardEl(card, 'big', {heroCardFrame:true});
-  box.appendChild(el);
-  requestAnimationFrame(()=>fitNewCard(el));
-
-  const w = 300*1.1, h = 423.2*1.1;
+  const w = box.offsetWidth || 330, h = box.offsetHeight || 465;
   let left = x + 24, top = y - h/2;
   if(left + w > window.innerWidth - 12) left = x - 24 - w;
   top = Math.max(12, Math.min(top, window.innerHeight - h - 12));
   box.style.left = left+'px'; box.style.top = top+'px';
-  box.classList.add('show');
+}
+function showCardPreview(card, x, y){
+  const box = document.getElementById('card-preview');
+  const myToken = ++__previewHoverToken;
+  box.innerHTML = '';
+  if(card.type==='Héros'){
+    box.classList.add('hero-preview');
+    const el = buildNewCardEl(card, 'big', {heroCardFrame:true, forceHeroText:true});
+    box.appendChild(el);
+    requestAnimationFrame(()=>fitNewCard(el));
+    repositionCardPreview(x, y);
+    box.classList.add('show');
+    loadCardsLinkedToHero(card.name).then(linked=>{
+      if(myToken !== __previewHoverToken) return;
+      if(!linked.length) return;
+      const col = document.createElement('div');
+      col.className = 'hero-preview-linked';
+      const title = document.createElement('div');
+      title.className = 'hero-preview-linked-title';
+      title.textContent = 'Cartes liées';
+      col.appendChild(title);
+      linked.forEach(lc=>{
+        const wrap = document.createElement('div');
+        wrap.className = 'hero-preview-linked-card';
+        wrap.appendChild(buildNewCardEl(lc, 'small', {}));
+        col.appendChild(wrap);
+      });
+      box.appendChild(col);
+      repositionCardPreview(x, y); // la boîte vient de s'élargir
+    }).catch(()=>{});
+  } else {
+    box.classList.remove('hero-preview');
+    const el = buildNewCardEl(card, 'big', {heroCardFrame:true});
+    box.appendChild(el);
+    requestAnimationFrame(()=>fitNewCard(el));
+    repositionCardPreview(x, y);
+    box.classList.add('show');
+  }
 }
 function hideCardPreview(){
+  __previewHoverToken++;
   document.getElementById('card-preview').classList.remove('show');
 }
 function attachShopHoverPreview(el, card){

@@ -91,6 +91,18 @@ async function loadAllCardsAcrossSets(){
   return cards;
 }
 
+// Cartes explicitement liées à un héros précis (champ "hero" de la carte,
+// comparé sans tenir compte de la casse/des espaces). Utilisé par l'aperçu
+// au survol d'un héros, dans la boutique comme sur le plateau.
+async function loadCardsLinkedToHero(heroName){
+  if(!heroName) return [];
+  const { data, error } = await sb.from('cards').select('id, data').eq('data->>hero', heroName);
+  if(error){ console.error('Erreur de chargement des cartes liées au héros', error); return []; }
+  const cards = (data||[]).map(row => ({...row.data, id: row.id}));
+  cards.forEach(migrateCard);
+  return cards;
+}
+
 /* ============================================================
    COLLECTION PERSONNELLE
    ============================================================
