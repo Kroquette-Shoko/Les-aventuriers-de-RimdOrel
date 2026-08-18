@@ -555,7 +555,31 @@ body.targeting *{cursor:crosshair !important;}
   .journal-entry .card-name-ref{color:var(--frost);text-decoration:underline dotted;cursor:default;font-weight:600;}
   .journal-entry .card-name-ref:hover{color:#7dd3f0;}
   .journal-entry .hl-ref{text-decoration:underline dotted;cursor:default;}
-  .ncard.journal-highlight{outline:3px solid var(--gold);outline-offset:2px;box-shadow:0 0 14px rgba(212,175,55,.8);}
+  .ncard.journal-highlight{outline:3px solid var(--gold);outline-offset:2px;box-shadow:0 0 14px rgba(212,175,55,.8);z-index:50;position:relative;}
+  /* Assombrit tout le plateau sauf les cibles en surbrillance — le
+     survol d'un effet du journal (dégâts, soin, etc. sur une ou plusieurs
+     cartes précises) active ce mode. */
+  #board.journal-spotlight-active .ncard{opacity:.25;filter:grayscale(60%);transition:opacity .15s ease;}
+  #board.journal-spotlight-active .ncard.journal-highlight{opacity:1;filter:none;}
+  #board.journal-spotlight-active .hero-frame{opacity:.25;filter:grayscale(60%);transition:opacity .15s ease;}
+  #board.journal-spotlight-active .hero-frame.journal-highlight-hero{opacity:1;filter:none;outline:3px solid var(--gold);outline-offset:2px;box-shadow:0 0 14px rgba(212,175,55,.8);}
+  /* Voyage dans le temps — le plateau se fige et un bandeau rappelle qu'on
+     regarde un instant passé, pas l'état réel actuel. */
+  #board.journal-time-travel{pointer-events:none;}
+  #board.journal-time-travel::before{
+    content:'Aperçu au tour 'attr(data-travel-turn)' — le plateau reprendra son état actuel';
+    position:absolute;top:6px;left:50%;transform:translateX(-50%);z-index:999;
+    background:rgba(20,15,10,.92);border:1px solid var(--gold);border-radius:8px;
+    padding:4px 14px;font-family:'Cinzel',serif;font-size:11px;color:var(--gold);
+    pointer-events:none;white-space:nowrap;
+  }
+  /* Structure hiérarchique du journal — le nom de la carte reste visible,
+     le détail des effets se déroule au survol. */
+  .journal-entry-card{cursor:default;}
+  .journal-entry-effects{max-height:0;overflow:hidden;transition:max-height .18s ease;padding-left:14px;border-left:2px solid #3a3260;margin-left:4px;}
+  .journal-entry:hover .journal-entry-effects, .journal-entry-effects.force-open{max-height:200px;}
+  .journal-effect-line{font-size:11px;color:var(--parchment-dim,#d9cfae);padding:2px 0;cursor:default;}
+  .journal-effect-line.hl-ref{text-decoration:underline dotted;}
 </style>
 
 <div id="sc-auth-slot" style="text-align:center;margin-bottom:8px;"></div>
@@ -675,6 +699,92 @@ function debugLog(msg, cls){
   line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
   el.prepend(line);
 }
+// ---------------- Voyage dans le temps du journal ----------------
+// Reconstitue un état de partie complet à partir d'un instantané de
+// journal (voir captureBoardSnapshot côté serveur) — on ne remplace QUE le
+// contenu des deux joueurs (héros, région, mana, main, plateau, reliques),
+// en gardant toutes les autres propriétés de l'état réel actuel (phase,
+// pendingX, etc.) pour que le rendu ne plante pas sur des champs absents
+// de l'instantané, qui est volontairement allégé.
+function buildFakeStateFromSnapshot(snapshot){
+  const fakePlayer = (real, snap) => snap ? {
+    ...real,
+    hp: snap.hp, hero: snap.hero, region: snap.region,
+    manaNormal: snap.manaNormal, manaNormalMax: snap.manaNormalMax, manaFragile: snap.manaFragile,
+    board: snap.board, relics: snap.relics, hand: snap.hand,
+    deck: new Array(snap.deckCount).fill(null),
+    discard: new Array(snap.discardCount).fill(null)
+  } : real;
+  return { ...S, turn: snapshot.turn, active: snapshot.active, p1: fakePlayer(S.p1, snapshot.p1), p2: fakePlayer(S.p2, snapshot.p2) };
+}
+
+let __realStateBeforeTravel = null;
+function enterTimeTravel(snapshot, highlightIds){
+  if(!snapshot) return;
+  if(!__realStateBeforeTravel) __realStateBeforeTravel = S;
+  S = buildFakeStateFromSnapshot(snapshot);
+  render();
+  const board = document.getElementById('board');
+  board.classList.add('journal-time-travel');
+  board.setAttribute('data-travel-turn', snapshot.turn);
+  applySpotlight(highlightIds);
+}
+function exitTimeTravel(){
+  if(!__realStateBeforeTravel) { clearSpotlight(); return; }
+  S = __realStateBeforeTravel;
+  __realStateBeforeTravel = null;
+  render();
+  const board = document.getElementById('board');
+  board.classList.remove('journal-time-travel');
+  board.removeAttribute('data-travel-turn');
+  clearSpotlight();
+}
+// Cible spéciale non-instId pour les héros (voir captureBoardSnapshot /
+// logCardOutcome côté serveur : "hero-p1" / "hero-p2").
+function applySpotlight(highlightIds){
+  const board = document.getElementById('board');
+  board.classList.add('journal-spotlight-active');
+  (highlightIds||[]).forEach(id=>{
+    if(id==='hero-p1' || id==='hero-p2'){
+      const slot = id==='hero-p1' ? 'p1' : 'p2';
+      const el = document.getElementById(`hero-frame-${slot}`);
+      if(el) el.classList.add('journal-highlight-hero');
+    } else {
+      document.querySelectorAll(`[data-instid="${id}"]`).forEach(elc=>elc.classList.add('journal-highlight'));
+    }
+  });
+}
+function clearSpotlight(){
+  const board = document.getElementById('board');
+  board.classList.remove('journal-spotlight-active');
+  document.querySelectorAll('.journal-highlight').forEach(el=>el.classList.remove('journal-highlight'));
+  document.querySelectorAll('.journal-highlight-hero').forEach(el=>el.classList.remove('journal-highlight-hero'));
+}
+// Un identifiant de cible existe-t-il encore sur le VRAI plateau actuel
+// (pas l'instantané) ? Sert à décider : simple surbrillance sur place, ou
+// vrai voyage dans le temps.
+function targetStillOnRealBoard(id, realState){
+  if(id==='hero-p1' || id==='hero-p2') return true; // un héros ne "disparaît" jamais du plateau
+  const check = (p)=> (p.board||[]).some(c=>c.instId===id) || (p.relics||[]).some(c=>c.instId===id);
+  return check(realState.p1) || check(realState.p2);
+}
+function onJournalEffectHover(entry, highlightIds){
+  const realState = __realStateBeforeTravel || S;
+  const allPresent = (highlightIds||[]).every(id=>targetStillOnRealBoard(id, realState));
+  if(allPresent){
+    applySpotlight(highlightIds);
+  } else {
+    enterTimeTravel(entry.snapshot, highlightIds);
+  }
+}
+function onJournalEffectLeave(){
+  if(__realStateBeforeTravel){
+    exitTimeTravel();
+  } else {
+    clearSpotlight();
+  }
+}
+
 // Reconstruit l'affichage du journal à partir de S.__gameLog — traduit
 // "Vous"/"L'adversaire" selon le rôle du joueur qui regarde (la donnée
 // stockée côté serveur est neutre, sans ça les deux joueurs verraient
@@ -739,21 +849,13 @@ function renderGameLog(){
     line.className = 'journal-entry';
     if(entry.raw){
       // message de combat : {who} est remplacé, et si des créatures sont
-      // listées, tout le texte devient survolable pour les mettre en
-      // surbrillance sur le plateau.
+      // listées, tout le texte devient survolable — surbrillance sur
+      // place si tout est encore là, sinon voyage dans le temps.
       line.textContent = entry.raw.replace('{who}', who);
       if(entry.highlightIds && entry.highlightIds.length){
         line.classList.add('hl-ref');
-        line.onmouseenter = ()=>{
-          entry.highlightIds.forEach(id=>{
-            document.querySelectorAll(`[data-instid="${id}"]`).forEach(elc=>elc.classList.add('journal-highlight'));
-          });
-        };
-        line.onmouseleave = ()=>{
-          entry.highlightIds.forEach(id=>{
-            document.querySelectorAll(`[data-instid="${id}"]`).forEach(elc=>elc.classList.remove('journal-highlight'));
-          });
-        };
+        line.onmouseenter = ()=>onJournalEffectHover(entry, entry.highlightIds);
+        line.onmouseleave = onJournalEffectLeave;
       }
     } else {
       // "déclenche" pour un piège (qui était déjà posé et vient de se
@@ -762,11 +864,47 @@ function renderGameLog(){
       const verb = entry.isTrap ? 'déclenche' : 'joue';
       const whoVerb = `${who} ${verb}`;
       const nameSpan = `<span class="card-name-ref" data-cardid="${entry.cardId||''}">"${escapeHtmlGS(entry.cardName)}"</span>`;
-      line.innerHTML = entry.outcome
-        ? `<span class="who">${whoVerb}</span> ${nameSpan} et ${escapeHtmlGS(entry.outcome)}.`
-        : `<span class="who">${whoVerb}</span> ${nameSpan}.`;
-      if(entry.cardId){
-        const ref = line.querySelector('.card-name-ref');
+      const effects = entry.effects || [];
+      const header = document.createElement('div');
+      header.className = 'journal-entry-card';
+      if(effects.length <= 1){
+        // Un seul effet (ou aucun) : tout tient sur une ligne, comme avant.
+        const eff = effects[0];
+        header.innerHTML = eff
+          ? `<span class="who">${whoVerb}</span> ${nameSpan} et ${escapeHtmlGS(eff.text)}.`
+          : `<span class="who">${whoVerb}</span> ${nameSpan}.`;
+        if(eff && eff.targetInstIds && eff.targetInstIds.length){
+          header.classList.add('hl-ref');
+          header.onmouseenter = (ev)=>{
+            // Le nom de la carte garde son aperçu habituel ; le survol du
+            // reste de la ligne (le résultat) active la surbrillance.
+            if(ev.target.closest('.card-name-ref')) return;
+            onJournalEffectHover(entry, eff.targetInstIds);
+          };
+          header.onmouseleave = onJournalEffectLeave;
+        }
+      } else {
+        header.innerHTML = `<span class="who">${whoVerb}</span> ${nameSpan} (${effects.length} effets).`;
+      }
+      line.appendChild(header);
+      if(effects.length > 1){
+        const list = document.createElement('div');
+        list.className = 'journal-entry-effects';
+        effects.forEach(eff=>{
+          const effLine = document.createElement('div');
+          effLine.className = 'journal-effect-line';
+          effLine.textContent = eff.text;
+          if(eff.targetInstIds && eff.targetInstIds.length){
+            effLine.classList.add('hl-ref');
+            effLine.onmouseenter = ()=>onJournalEffectHover(entry, eff.targetInstIds);
+            effLine.onmouseleave = onJournalEffectLeave;
+          }
+          list.appendChild(effLine);
+        });
+        line.appendChild(list);
+      }
+      const ref = line.querySelector('.card-name-ref');
+      if(ref && entry.cardId){
         ref.onmouseenter = (ev)=>{ const c = JOURNAL_CARD_LOOKUP[entry.cardId]; if(c) showCardPreviewHover(c, ev); };
         ref.onmousemove = moveHeroPreview;
         ref.onmouseleave = hidePreview;
@@ -812,6 +950,15 @@ function afterConnected(code){
 function onStateUpdate(state){
   if(!state || !state.p1){
     debugLog("En attente d'un adversaire pour démarrer la partie...", 'log-ok');
+    return;
+  }
+  // Si on est en train de regarder un instant historique du journal (voir
+  // enterTimeTravel), une mise à jour en direct de la partie ne doit
+  // jamais être perdue — on la garde de côté, sans re-rendre l'instant
+  // figé par-dessus. exitTimeTravel() l'appliquera dès que la souris
+  // quittera l'entrée du journal survolée.
+  if(__realStateBeforeTravel){
+    __realStateBeforeTravel = state;
     return;
   }
   // vue toujours du point de vue du joueur local : si je suis p2 côté
