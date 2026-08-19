@@ -568,6 +568,14 @@ body.targeting *{cursor:crosshair !important;}
   /* Structure hiérarchique du journal — le nom de la carte reste visible,
      le détail des effets se déroule au survol. */
   .journal-entry-card{cursor:default;}
+  /* Fige les actions des deux joueurs tant qu'une charge de combat joue
+     encore dans la file (voir queueCombatAnim / processCombatAnimQueue) —
+     évite qu'un clic pendant l'animation ne parte sur un plateau qui va
+     encore changer sous nos yeux. */
+  body.combat-anim-lock #board,
+  body.combat-anim-lock #hand-p1{
+    pointer-events:none;
+  }
   .journal-entry-effects{max-height:0;overflow:hidden;transition:max-height .18s ease;padding-left:14px;border-left:2px solid #3a3260;margin-left:4px;}
   .journal-entry:hover .journal-entry-effects, .journal-entry-effects.force-open{max-height:200px;}
   .journal-effect-line{font-size:11px;color:var(--parchment-dim,#d9cfae);padding:2px 0;cursor:default;}
@@ -763,10 +771,13 @@ function renderGameLog(){
           playSfx(hitSfxForDamage(dmg));
         }
         (entry.highlightIds||[]).forEach(attackerInstId=>{
-          const heroSlot = entry.ownerKey===MY_KEY ? 'p1' : 'p2';
-          const attEl = document.querySelector(`[data-instid="${attackerInstId}"]`);
-          const heroEl = document.getElementById(`hero-frame-${heroSlot}`);
-          if(attEl && heroEl) lungeToward(attEl, heroEl, 420);
+          queueCombatAnim(()=>{
+            const heroSlot = entry.ownerKey===MY_KEY ? 'p1' : 'p2';
+            const attEl = document.querySelector(`[data-instid="${attackerInstId}"]`);
+            const heroEl = document.getElementById(`hero-frame-${heroSlot}`);
+            if(!attEl || !heroEl) return Promise.resolve();
+            return lungeToward(attEl, heroEl, 480);
+          });
         });
       }
     } else if(entry.cardName){
@@ -2033,14 +2044,18 @@ function drawBlockArrows(){
    ANIMATION DE FRAPPE — les cartes qui se ruent l'une sur l'autre (ou
    sur le héros) au moment du combat
    ============================================================ */
+// Anime une charge de combat — recul exagéré (élan), puis fonce jusqu'au
+// centre de la cible en passant par-dessus elle (façon MTG Arena), avant
+// de revenir à sa position. Retourne une Promise résolue à la fin, pour
+// pouvoir être mise en file (voir queueCombatAnim) plutôt que jouée
+// immédiatement.
 function lungeToward(el, targetEl, duration){
-  if(!el || !targetEl) return;
+  if(!el || !targetEl) return Promise.resolve();
   const a = el.getBoundingClientRect(), b = targetEl.getBoundingClientRect();
   const dx = (b.left+b.width/2) - (a.left+a.width/2);
   const dy = (b.top+b.height/2) - (a.top+a.height/2);
   const len = Math.hypot(dx,dy) || 1;
   const ux = dx/len, uy = dy/len;
-  const dist = 16;
   const dur = duration||650;
 
   // Anime une copie indépendante plutôt que l'élément réel du plateau —
@@ -2059,20 +2074,47 @@ function lungeToward(el, targetEl, duration){
   ghost.style.pointerEvents = 'none';
   document.body.appendChild(ghost);
   el.style.opacity = '0';
-  const restore = ()=>{ ghost.remove(); if(el && el.style) el.style.opacity=''; };
+  return new Promise(resolve=>{
+    const restore = ()=>{ ghost.remove(); if(el && el.style) el.style.opacity=''; resolve(); };
+    if(ghost.animate){
+      // Recul marqué (élan), puis fonce jusqu'au CENTRE de la cible (dx/dy
+      // représentent déjà le vecteur exact jusqu'à ce centre) en le
+      // dépassant légèrement, pour donner l'impression de passer par-
+      // dessus elle plutôt que de simplement s'y arrêter.
+      const anim = ghost.animate([
+        { transform:'translate(0,0) scale(1)' },
+        { transform:`translate(${-ux*22}px, ${-uy*22}px) scale(1.06)`, offset:0.25 },
+        { transform:`translate(${dx*1.12}px, ${dy*1.12}px) scale(1.22)`, offset:0.6 },
+        { transform:'translate(0,0) scale(1)' }
+      ], { duration: dur, easing:'ease-in-out' });
+      anim.onfinish = restore;
+      anim.oncancel = restore;
+    } else {
+      setTimeout(restore, dur);
+    }
+  });
+}
 
-  if(ghost.animate){
-    const anim = ghost.animate([
-      { transform:'translate(0,0)' },
-      { transform:`translate(${-ux*6}px, ${-uy*6}px)`, offset:0.22 },
-      { transform:`translate(${ux*dist}px, ${uy*dist}px)`, offset:0.5 },
-      { transform:'translate(0,0)' }
-    ], { duration: dur, easing:'ease-in-out' });
-    anim.onfinish = restore;
-    anim.oncancel = restore;
-  } else {
-    setTimeout(restore, dur);
+// ---------------- File d'animations de combat ----------------
+// Toutes les frappes se jouent maintenant une par une, jamais simultanément
+// (même quand plusieurs créatures attaquent la même cible) — et les
+// actions des deux joueurs sont figées tant que la file n'est pas vide.
+let __combatAnimQueue = [];
+let __combatAnimPlaying = false;
+function queueCombatAnim(fn){
+  __combatAnimQueue.push(fn);
+  processCombatAnimQueue();
+}
+async function processCombatAnimQueue(){
+  if(__combatAnimPlaying) return;
+  __combatAnimPlaying = true;
+  document.body.classList.add('combat-anim-lock');
+  while(__combatAnimQueue.length){
+    const fn = __combatAnimQueue.shift();
+    try { await fn(); } catch(e) { console.error('Erreur animation de combat', e); }
   }
+  document.body.classList.remove('combat-anim-lock');
+  __combatAnimPlaying = false;
 }
 function spawnDamageNumber(anchorEl, amount){
   if(!anchorEl || !amount) return;
@@ -2087,16 +2129,18 @@ function spawnDamageNumber(anchorEl, amount){
 }
 // Joue l'animation de frappe pour un combat entre deux instId (créature vs
 // créature) — appelé juste après avoir reçu la confirmation du serveur.
+// Seul l'attaquant charge — le bloqueur ne fait jamais de charge en
+// retour, même s'il riposte (voir la discussion sur les animations : la
+// bloqueuse ripostant n'est pas "agressive" au sens visuel du terme).
 function playCombatStrike(attackerInstId, blockerInstId){
-  const attEl = document.querySelector(`[data-instid="${attackerInstId}"]`);
-  const heroSlot = S.active===MY_KEY ? 'p2' : 'p1';
-  const blkEl = blockerInstId ? document.querySelector(`[data-instid="${blockerInstId}"]`) : document.getElementById(`hero-frame-${heroSlot}`);
-  debugLog(`[anim] playCombatStrike : attEl=${!!attEl} blkEl=${!!blkEl}`, attEl&&blkEl ? 'log-ok' : 'log-error');
-  if(!attEl) return;
-  if(blkEl){
-    lungeToward(attEl, blkEl, 420);
-    if(blockerInstId) lungeToward(blkEl, attEl, 420);
-  }
+  queueCombatAnim(()=>{
+    const attEl = document.querySelector(`[data-instid="${attackerInstId}"]`);
+    const heroSlot = S.active===MY_KEY ? 'p2' : 'p1';
+    const blkEl = blockerInstId ? document.querySelector(`[data-instid="${blockerInstId}"]`) : document.getElementById(`hero-frame-${heroSlot}`);
+    debugLog(`[anim] playCombatStrike : attEl=${!!attEl} blkEl=${!!blkEl}`, attEl&&blkEl ? 'log-ok' : 'log-error');
+    if(!attEl || !blkEl) return Promise.resolve();
+    return lungeToward(attEl, blkEl, 480);
+  });
 }
 
 let JOURNAL_CARD_LOOKUP = {}; // id -> carte complète, pour les aperçus au survol dans le journal
