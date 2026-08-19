@@ -565,16 +565,6 @@ body.targeting *{cursor:crosshair !important;}
   #board.journal-spotlight-active .ncard.journal-highlight{opacity:1;filter:none;}
   #board.journal-spotlight-active .hero-frame{opacity:.25;filter:grayscale(60%);transition:opacity .15s ease;}
   #board.journal-spotlight-active .hero-frame.journal-highlight-hero{opacity:1;filter:none;outline:3px solid var(--gold);outline-offset:2px;box-shadow:0 0 14px rgba(212,175,55,.8);}
-  /* Voyage dans le temps — le plateau se fige et un bandeau rappelle qu'on
-     regarde un instant passé, pas l'état réel actuel. */
-  #board.journal-time-travel{pointer-events:none;}
-  #board.journal-time-travel::before{
-    content:'Aperçu au tour 'attr(data-travel-turn)' — le plateau reprendra son état actuel';
-    position:absolute;top:6px;left:50%;transform:translateX(-50%);z-index:999;
-    background:rgba(20,15,10,.92);border:1px solid var(--gold);border-radius:8px;
-    padding:4px 14px;font-family:'Cinzel',serif;font-size:11px;color:var(--gold);
-    pointer-events:none;white-space:nowrap;
-  }
   /* Structure hiérarchique du journal — le nom de la carte reste visible,
      le détail des effets se déroule au survol. */
   .journal-entry-card{cursor:default;}
@@ -701,48 +691,12 @@ function debugLog(msg, cls){
   line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
   el.prepend(line);
 }
-// ---------------- Voyage dans le temps du journal ----------------
-// Reconstitue un état de partie complet à partir d'un instantané de
-// journal (voir captureBoardSnapshot côté serveur) — on ne remplace QUE le
-// contenu des deux joueurs (héros, région, mana, main, plateau, reliques),
-// en gardant toutes les autres propriétés de l'état réel actuel (phase,
-// pendingX, etc.) pour que le rendu ne plante pas sur des champs absents
-// de l'instantané, qui est volontairement allégé.
-function buildFakeStateFromSnapshot(snapshot){
-  const fakePlayer = (real, snap) => snap ? {
-    ...real,
-    hp: snap.hp, hero: snap.hero, region: snap.region,
-    manaNormal: snap.manaNormal, manaNormalMax: snap.manaNormalMax, manaFragile: snap.manaFragile,
-    board: snap.board, relics: snap.relics, hand: snap.hand,
-    deck: new Array(snap.deckCount).fill(null),
-    discard: new Array(snap.discardCount).fill(null)
-  } : real;
-  return { ...S, turn: snapshot.turn, active: snapshot.active, p1: fakePlayer(S.p1, snapshot.p1), p2: fakePlayer(S.p2, snapshot.p2) };
-}
-
-let __realStateBeforeTravel = null;
-function enterTimeTravel(snapshot, highlightIds){
-  if(!snapshot) return;
-  if(!__realStateBeforeTravel) __realStateBeforeTravel = S;
-  S = buildFakeStateFromSnapshot(snapshot);
-  render();
-  const board = document.getElementById('board');
-  board.classList.add('journal-time-travel');
-  board.setAttribute('data-travel-turn', snapshot.turn);
-  applySpotlight(highlightIds);
-}
-function exitTimeTravel(){
-  if(!__realStateBeforeTravel) { clearSpotlight(); return; }
-  S = __realStateBeforeTravel;
-  __realStateBeforeTravel = null;
-  render();
-  const board = document.getElementById('board');
-  board.classList.remove('journal-time-travel');
-  board.removeAttribute('data-travel-turn');
-  clearSpotlight();
-}
-// Cible spéciale non-instId pour les héros (voir captureBoardSnapshot /
-// logCardOutcome côté serveur : "hero-p1" / "hero-p2").
+// ---------------- Mise en surbrillance du journal ----------------
+// Assombrit tout le plateau sauf les cibles concernées, au survol d'un
+// effet du journal — uniquement pour les cibles encore présentes sur le
+// plateau actuel. Si une cible a disparu depuis (morte, renvoyée en
+// main...), elle est simplement ignorée : pas de reconstitution de l'état
+// passé du plateau (jugée pas assez utile pour sa complexité).
 function applySpotlight(highlightIds){
   const board = document.getElementById('board');
   board.classList.add('journal-spotlight-active');
@@ -762,29 +716,11 @@ function clearSpotlight(){
   document.querySelectorAll('.journal-highlight').forEach(el=>el.classList.remove('journal-highlight'));
   document.querySelectorAll('.journal-highlight-hero').forEach(el=>el.classList.remove('journal-highlight-hero'));
 }
-// Un identifiant de cible existe-t-il encore sur le VRAI plateau actuel
-// (pas l'instantané) ? Sert à décider : simple surbrillance sur place, ou
-// vrai voyage dans le temps.
-function targetStillOnRealBoard(id, realState){
-  if(id==='hero-p1' || id==='hero-p2') return true; // un héros ne "disparaît" jamais du plateau
-  const check = (p)=> (p.board||[]).some(c=>c.instId===id) || (p.relics||[]).some(c=>c.instId===id);
-  return check(realState.p1) || check(realState.p2);
-}
 function onJournalEffectHover(entry, highlightIds){
-  const realState = __realStateBeforeTravel || S;
-  const allPresent = (highlightIds||[]).every(id=>targetStillOnRealBoard(id, realState));
-  if(allPresent){
-    applySpotlight(highlightIds);
-  } else {
-    enterTimeTravel(entry.snapshot, highlightIds);
-  }
+  applySpotlight(highlightIds);
 }
 function onJournalEffectLeave(){
-  if(__realStateBeforeTravel){
-    exitTimeTravel();
-  } else {
-    clearSpotlight();
-  }
+  clearSpotlight();
 }
 
 // Reconstruit l'affichage du journal à partir de S.__gameLog — traduit
@@ -959,15 +895,6 @@ function afterConnected(code){
 function onStateUpdate(state){
   if(!state || !state.p1){
     debugLog("En attente d'un adversaire pour démarrer la partie...", 'log-ok');
-    return;
-  }
-  // Si on est en train de regarder un instant historique du journal (voir
-  // enterTimeTravel), une mise à jour en direct de la partie ne doit
-  // jamais être perdue — on la garde de côté, sans re-rendre l'instant
-  // figé par-dessus. exitTimeTravel() l'appliquera dès que la souris
-  // quittera l'entrée du journal survolée.
-  if(__realStateBeforeTravel){
-    __realStateBeforeTravel = state;
     return;
   }
   // vue toujours du point de vue du joueur local : si je suis p2 côté
@@ -2234,6 +2161,39 @@ function onCardDragMove(ev){
   zone.classList.toggle('drop-target', over);
 }
 
+// Une créature qui vise une cible "alliée désignée" doit pouvoir se
+// cibler elle-même une fois posée — mais au moment de cette vérification,
+// elle n'existe pas encore visuellement sur le plateau (juste en main).
+// On la compte donc comme candidate potentielle hypothétique ici, en plus
+// des créatures déjà en jeu, pour savoir s'il existe VRAIMENT une raison
+// de demander une cible au joueur.
+function hasAnyPossibleTargetForPlay(card, tgt){
+  const oppKey = MY_KEY==='p1' ? 'p2' : 'p1';
+  const allowedKeys = tgt.targetOwner==='ally' ? [MY_KEY] : tgt.targetOwner==='enemy' ? [oppKey] : [MY_KEY, oppKey];
+  const matchesFilters = (c)=>{
+    if(tgt.subtypeFilter && !(c.subtypes||[]).some(s=>s.toLowerCase()===tgt.subtypeFilter.toLowerCase())) return false;
+    if(tgt.statFilterEnabled){
+      const stat = tgt.statFilterStat==='atk' ? (c.curAtk ?? c.atk) : (c.curHp ?? c.hp);
+      if(tgt.statFilterMode==='atLeast' && !(stat>=tgt.statFilterValue)) return false;
+      if(tgt.statFilterMode==='atMost' && !(stat<=tgt.statFilterValue)) return false;
+      if(tgt.statFilterMode==='exactly' && stat!==tgt.statFilterValue) return false;
+    }
+    return true;
+  };
+  if(tgt.targetCategory==='creature' || tgt.targetCategory==='hero_creature' || tgt.targetCategory==='artifact'){
+    for(const k of allowedKeys){
+      const pool = tgt.targetCategory==='artifact' ? S[k].relics : S[k].board;
+      if((pool||[]).some(matchesFilters)) return true;
+    }
+    // La carte en cours de pose elle-même, une fois en jeu — seulement si
+    // "allié" est autorisé et qu'elle est bien une créature (les cibles
+    // de type artefact ne peuvent jamais se référer à une créature qu'on
+    // pose).
+    if(card.type==='Créature' && tgt.targetCategory!=='artifact' && allowedKeys.includes(MY_KEY) && matchesFilters(card)) return true;
+    if(tgt.targetCategory==='hero_creature') return true; // un héros est toujours une cible valide
+  }
+  return false;
+}
 function onCardDragEnd(ev){
   if(!DRAG_STATE) return;
   const { handIndex, ghost, sourceEl } = DRAG_STATE;
@@ -2253,6 +2213,12 @@ function onCardDragEnd(ev){
     const chosen = card ? findNewFormatChosenTarget(card, newTrigger) : null;
     if(card && card.type==='Piège'){
       uiSetTrap(handIndex);
+    } else if(chosen && card.type==='Créature' && !hasAnyPossibleTargetForPlay(card, chosen.target)){
+      // Aucune cible possible, même en comptant la créature elle-même une
+      // fois posée — contrairement à un sort ou un piège, une créature
+      // doit quand même pouvoir être jouée : son effet à la pose ne fera
+      // simplement rien faute de cible.
+      uiPlayCard(handIndex);
     } else if(chosen){
       UI.pendingNewTarget = { kind:'card', target: chosen.target, ability: chosen.ability, selectedInstIds: [], extra: { index: handIndex } };
       render();
