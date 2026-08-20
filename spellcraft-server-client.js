@@ -100,6 +100,20 @@ async function gsReportBug(description, sessionId, stateSnapshot) {
   if (error) return { error: error.message || String(error) };
   return data;
 }
+async function gsGetProfile(userId) {
+  const { data, error } = await sb.functions.invoke('game-action', {
+    body: { action: 'getProfile', userId }
+  });
+  if (error) return { error: error.message || String(error) };
+  return data;
+}
+async function gsUpdateProfileCustomization(avatarHeroName, featuredAchievements) {
+  const { data, error } = await sb.functions.invoke('game-action', {
+    body: { action: 'updateProfileCustomization', avatarHeroName, featuredAchievements }
+  });
+  if (error) return { error: error.message || String(error) };
+  return data;
+}
 
 // ------------------------------------------------------------
 // Matchmaking — file d'attente semi-aléatoire, en complément des parties

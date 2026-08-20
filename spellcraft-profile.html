@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Les aventuriers de Rimd'Orël — Profil</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@400;500;600;700&display=swap');
+:root{
+  --bg-void:#0b0a12; --bg-panel:#171325; --bg-panel-2:#1f1a30;
+  --parchment:#efe6c8; --parchment-dim:#d9cfae;
+  --arcane:#7c5cff; --gold:#d4af37; --blood:#c23b3b; --green:#4a9d6b;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;min-height:100%;background:var(--bg-void);color:var(--parchment);font-family:'Inter',sans-serif;}
+body{padding:16px 24px 40px;}
+h1{font-family:'Cinzel',serif;font-weight:900;color:var(--gold);font-size:20px;text-align:center;margin:4px 0 18px;}
+
+#profile-wrap{max-width:820px;margin:0 auto;display:flex;flex-direction:column;gap:18px;}
+
+/* ---------- En-tête : avatar + nom + succès mis en avant ---------- */
+#profile-header{
+  display:flex;align-items:center;gap:20px;background:var(--bg-panel);
+  border:1.5px solid #3a3260;border-radius:14px;padding:18px 22px;
+}
+#avatar-circle{
+  width:90px;height:90px;border-radius:50%;flex-shrink:0;cursor:pointer;
+  background:radial-gradient(circle at 35% 30%, var(--arcane), #2a1f55);
+  background-size:cover;background-position:center;
+  border:3px solid var(--gold);box-shadow:0 4px 14px rgba(0,0,0,.6);
+  display:flex;align-items:center;justify-content:center;font-size:26px;
+}
+#profile-username{font-family:'Cinzel',serif;font-weight:700;color:var(--parchment);font-size:18px;margin:0 0 4px;}
+#profile-since{font-size:11.5px;color:var(--parchment-dim);}
+
+#featured-row{display:flex;gap:10px;margin-left:auto;}
+.featured-badge{
+  width:52px;height:52px;border-radius:50%;background:var(--bg-panel-2);
+  border:2px solid var(--gold);display:flex;align-items:center;justify-content:center;
+  background-size:cover;background-position:center;cursor:default;position:relative;
+}
+.featured-badge.empty{border-style:dashed;border-color:#3a3260;opacity:.4;}
+.featured-badge .tooltip{
+  display:none;position:absolute;bottom:120%;left:50%;transform:translateX(-50%);
+  background:#100d1a;border:1px solid var(--gold);border-radius:8px;padding:8px 10px;
+  width:180px;font-size:11px;color:var(--parchment-dim);z-index:20;text-align:left;
+}
+.featured-badge .tooltip strong{display:block;color:var(--gold);font-family:'Cinzel',serif;font-size:11.5px;margin-bottom:3px;}
+.featured-badge:hover .tooltip{display:block;}
+
+#btn-edit-profile{
+  background:var(--bg-panel-2);border:1.5px solid #3a3260;color:var(--parchment-dim);
+  border-radius:8px;padding:8px 14px;cursor:pointer;font-size:12px;align-self:flex-start;
+}
+#btn-edit-profile:hover{border-color:var(--gold);color:var(--parchment);}
+
+/* ---------- Statistiques ---------- */
+#stats-grid{
+  display:grid;grid-template-columns:repeat(3, 1fr);gap:12px;
+}
+.stat-tile{
+  background:var(--bg-panel);border:1.5px solid #3a3260;border-radius:12px;
+  padding:14px 16px;text-align:center;
+}
+.stat-tile .stat-label{font-size:11px;color:var(--parchment-dim);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;}
+.stat-tile .stat-value{font-family:'Cinzel',serif;font-weight:700;color:var(--gold);font-size:17px;}
+.stat-tile .stat-value.small{font-size:14px;color:var(--parchment);}
+
+/* ---------- Panneau d'édition ---------- */
+#edit-overlay{
+  position:fixed;inset:0;background:rgba(11,10,18,.94);z-index:60;
+  display:none;align-items:center;justify-content:center;
+}
+#edit-overlay.show{display:flex;}
+#edit-panel{
+  background:var(--bg-panel);border:1.5px solid var(--gold);border-radius:14px;
+  padding:22px;max-width:560px;width:92%;max-height:85vh;overflow-y:auto;
+}
+#edit-panel h2{font-family:'Cinzel',serif;color:var(--gold);font-size:16px;margin:0 0 14px;}
+#edit-panel h3{font-family:'Cinzel',serif;color:var(--parchment-dim);font-size:12px;margin:16px 0 8px;text-transform:uppercase;}
+#avatar-choices{display:flex;flex-wrap:wrap;gap:10px;}
+.avatar-choice{
+  width:60px;height:60px;border-radius:50%;cursor:pointer;background-size:cover;background-position:center;
+  border:2px solid #3a3260;background-color:var(--bg-panel-2);
+}
+.avatar-choice.selected{border-color:var(--gold);box-shadow:0 0 0 2px rgba(212,175,55,.4);}
+#achievement-choices{display:flex;flex-wrap:wrap;gap:10px;max-height:220px;overflow-y:auto;}
+.achievement-choice{
+  width:56px;height:56px;border-radius:10px;cursor:pointer;background-size:cover;background-position:center;
+  border:2px solid #3a3260;background-color:var(--bg-panel-2);position:relative;
+}
+.achievement-choice.selected{border-color:var(--gold);box-shadow:0 0 0 2px rgba(212,175,55,.4);}
+.achievement-choice.disabled{opacity:.3;cursor:not-allowed;}
+#edit-status{font-size:11.5px;color:var(--parchment-dim);min-height:14px;margin:12px 0;}
+#edit-buttons{display:flex;gap:10px;margin-top:6px;}
+#edit-buttons button{flex:1;padding:9px;border-radius:8px;cursor:pointer;font-size:13px;font-family:'Inter';}
+#btn-save-profile{background:var(--arcane);border:none;color:#fff;font-weight:600;}
+#btn-cancel-profile{background:transparent;border:1.5px solid #3a3260;color:var(--parchment-dim);}
+</style>
+</head>
+<body>
+
+<h1>Profil</h1>
+<div id="profile-wrap">
+  <div id="profile-header">
+    <div id="avatar-circle" onclick="openEditPanel()">👤</div>
+    <div>
+      <div id="profile-username">...</div>
+      <div id="profile-since"></div>
+    </div>
+    <div id="featured-row"></div>
+  </div>
+
+  <button id="btn-edit-profile" onclick="openEditPanel()">✎ Modifier photo & succès mis en avant</button>
+
+  <div id="stats-grid"></div>
+</div>
+
+<div id="edit-overlay">
+  <div id="edit-panel">
+    <h2>Personnaliser mon profil</h2>
+
+    <h3>Photo de profil (héros possédés)</h3>
+    <div id="avatar-choices"></div>
+
+    <h3>5 succès mis en avant</h3>
+    <div id="achievement-choices"></div>
+
+    <div id="edit-status"></div>
+    <div id="edit-buttons">
+      <button id="btn-cancel-profile" onclick="closeEditPanel()">Annuler</button>
+      <button id="btn-save-profile" onclick="saveProfileCustomization()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>window.APP_TOPBAR_TITLE = '👤 Profil';</script>
+<script src="spellcraft-shared.js"></script>
+<script src="spellcraft-catalog.js"></script>
+<script src="spellcraft-server-client.js"></script>
+<script src="spellcraft-auth.js"></script>
+<script>
+let MY_USER_ID = null;
+let OWNED_HEROES = [];
+let ALL_ACHIEVEMENTS = [];
+let UNLOCKED_ACHIEVEMENT_IDS = [];
+let SELECTED_AVATAR = null;
+let SELECTED_ACHIEVEMENTS = [];
+
+function escapeHtmlProfile(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function initProfile(){
+  const { data: { user } } = await sb.auth.getUser();
+  MY_USER_ID = user?.id;
+  await loadAndRenderProfile();
+}
+
+async function loadAndRenderProfile(){
+  const res = await gsGetProfile(MY_USER_ID);
+  if(res.error){ document.getElementById('profile-username').textContent = 'Erreur : ' + res.error; return; }
+
+  document.getElementById('profile-username').textContent = res.username;
+  document.getElementById('profile-since').textContent =
+    `Membre depuis le ${new Date(res.createdAt).toLocaleDateString('fr-FR', {day:'numeric', month:'long', year:'numeric'})}`;
+
+  const avatarEl = document.getElementById('avatar-circle');
+  if(res.avatarHeroName){
+    const collection = await loadAllCardsAcrossSets();
+    const hero = collection.find(c=>c.name===res.avatarHeroName && c.type==='Héros');
+    if(hero && hero.image){ avatarEl.style.backgroundImage = `url('${hero.image.replace(/'/g,"")}')`; avatarEl.textContent=''; }
+  }
+
+  const featuredRow = document.getElementById('featured-row');
+  featuredRow.innerHTML = '';
+  const featured = res.featuredAchievements || [];
+  for(let i=0;i<5;i++){
+    const a = featured[i];
+    const badge = document.createElement('div');
+    badge.className = 'featured-badge' + (a ? '' : ' empty');
+    if(a){
+      badge.style.backgroundImage = a.imageUrl ? `url('${a.imageUrl.replace(/'/g,"")}')` : '';
+      badge.innerHTML = `<div class="tooltip"><strong>${escapeHtmlProfile(a.name)}</strong>${escapeHtmlProfile(a.description||'')}</div>`;
+    }
+    featuredRow.appendChild(badge);
+  }
+
+  const winRate = res.totalGamesPlayed>0 ? Math.round((res.totalWins/res.totalGamesPlayed)*100) : 0;
+  const losses = Math.max(0, res.totalGamesPlayed - res.totalWins);
+  const stats = [
+    { label:'Parties jouées', value: res.totalGamesPlayed + (res.rank ? ` (#${res.rank} au classement)` : ''), small:true },
+    { label:'Ratio victoire / défaite', value: `${res.totalWins}V — ${losses}D (${winRate}%)` },
+    { label:'Source de magie favorite', value: res.favoriteClass || '—' },
+    { label:'Héros favori', value: res.favoriteHero || '—' },
+    { label:'Decks construits', value: res.deckCount },
+    { label:'Deck favori', value: res.favoriteDeckName || '—', small:true },
+  ];
+  const grid = document.getElementById('stats-grid');
+  grid.innerHTML = stats.map(s=>`
+    <div class="stat-tile">
+      <div class="stat-label">${escapeHtmlProfile(s.label)}</div>
+      <div class="stat-value${s.small?' small':''}">${escapeHtmlProfile(String(s.value))}</div>
+    </div>
+  `).join('');
+}
+
+async function openEditPanel(){
+  document.getElementById('edit-status').textContent = 'Chargement...';
+  document.getElementById('edit-overlay').classList.add('show');
+
+  const collection = await loadAllCardsAcrossSets();
+  const owned = await loadUserCollection();
+  OWNED_HEROES = collection.filter(c=>c.type==='Héros' && owned[c.id]);
+
+  const avatarWrap = document.getElementById('avatar-choices');
+  avatarWrap.innerHTML = OWNED_HEROES.map(h=>`
+    <div class="avatar-choice" data-hero="${escapeHtmlProfile(h.name)}"
+         style="${h.image?`background-image:url('${h.image.replace(/'/g,"")}')`:''}"
+         title="${escapeHtmlProfile(h.name)}"></div>
+  `).join('') || "<p style=\"font-size:12px;color:var(--parchment-dim);\">Aucun héros possédé pour l'instant.</p>";
+  avatarWrap.querySelectorAll('.avatar-choice').forEach(el=>{
+    el.onclick = ()=>{
+      SELECTED_AVATAR = el.dataset.hero;
+      avatarWrap.querySelectorAll('.avatar-choice').forEach(e=>e.classList.remove('selected'));
+      el.classList.add('selected');
+    };
+  });
+
+  const { data: achievements } = await sb.from('achievement_definitions').select('id, name, description, image_url').order('order_index');
+  const { data: unlocked } = await sb.from('user_achievements').select('achievement_id').eq('user_id', MY_USER_ID).eq('completed', true);
+  ALL_ACHIEVEMENTS = achievements || [];
+  UNLOCKED_ACHIEVEMENT_IDS = (unlocked||[]).map(u=>u.achievement_id);
+  SELECTED_ACHIEVEMENTS = [];
+
+  const achWrap = document.getElementById('achievement-choices');
+  achWrap.innerHTML = ALL_ACHIEVEMENTS.map(a=>{
+    const isUnlocked = UNLOCKED_ACHIEVEMENT_IDS.includes(a.id);
+    return `
+      <div class="achievement-choice${isUnlocked?'':' disabled'}" data-id="${escapeHtmlProfile(a.id)}"
+           style="${a.image_url?`background-image:url('${a.image_url.replace(/'/g,"")}')`:''}"
+           title="${escapeHtmlProfile(a.name)}${isUnlocked?'':' (non débloqué)'}"></div>
+    `;
+  }).join('') || '<p style="font-size:12px;color:var(--parchment-dim);">Aucun succès disponible.</p>';
+  achWrap.querySelectorAll('.achievement-choice:not(.disabled)').forEach(el=>{
+    el.onclick = ()=>{
+      const id = el.dataset.id;
+      const idx = SELECTED_ACHIEVEMENTS.indexOf(id);
+      if(idx>=0){ SELECTED_ACHIEVEMENTS.splice(idx,1); el.classList.remove('selected'); }
+      else {
+        if(SELECTED_ACHIEVEMENTS.length>=5){ document.getElementById('edit-status').textContent = 'Maximum 5 succès mis en avant.'; return; }
+        SELECTED_ACHIEVEMENTS.push(id); el.classList.add('selected');
+      }
+    };
+  });
+
+  document.getElementById('edit-status').textContent = '';
+}
+
+function closeEditPanel(){
+  document.getElementById('edit-overlay').classList.remove('show');
+}
+
+async function saveProfileCustomization(){
+  const statusEl = document.getElementById('edit-status');
+  statusEl.textContent = 'Enregistrement...';
+  const res = await gsUpdateProfileCustomization(SELECTED_AVATAR, SELECTED_ACHIEVEMENTS);
+  if(res.error){ statusEl.textContent = 'Erreur : ' + res.error; return; }
+  statusEl.textContent = 'Enregistré !';
+  await loadAndRenderProfile();
+  setTimeout(closeEditPanel, 700);
+}
+
+initSpellcraftAuth().then(initProfile);
+</script>
+</body>
+</html>
