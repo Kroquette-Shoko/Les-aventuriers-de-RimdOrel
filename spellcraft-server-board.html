@@ -287,6 +287,13 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .side-zone.self{right:16px;top:calc(50% + 100px);}
 .side-zone.enemy{right:16px;top:50%;transform:translateY(-50%);}
 .relic-slot{width:78px;height:106px;position:relative;overflow:hidden;border-radius:8px;box-shadow:0 4px 10px rgba(0,0,0,.5);cursor:default;}
+.artifact-used-this-turn{filter:grayscale(85%) brightness(.55);transition:filter .2s ease;}
+@keyframes artifactActivateFlash{
+  0%{box-shadow:0 0 0 0 rgba(212,175,55,0);filter:brightness(1);}
+  35%{box-shadow:0 0 22px 6px rgba(212,175,55,.9);filter:brightness(1.5);}
+  100%{box-shadow:0 0 0 0 rgba(212,175,55,0);filter:brightness(1);}
+}
+.artifact-activate-flash{animation:artifactActivateFlash .75s ease-out;}
 .relic-slot .card{transform:scale(.52);transform-origin:top left;}
 .relic-charges-badge{position:absolute;bottom:3px;right:3px;background:rgba(15,12,20,.8);border:1px solid var(--gold);color:var(--gold);font-size:9.5px;font-weight:700;border-radius:9px;padding:1px 6px;z-index:2;}
 .mini-tag{width:52px;height:44px;border-radius:6px;background:var(--bg-panel-2);border:1px solid var(--frost);display:flex;align-items:center;justify-content:center;font-size:8px;text-align:center;padding:2px;position:relative;}
@@ -542,7 +549,23 @@ body.targeting *{cursor:crosshair !important;}
   /* ---------- Menus repliables (journal / chat) ---------- */
   .phase-bar-wrap{position:relative;}
   .menu-toggles-row{position:absolute;bottom:100%;right:0;margin-bottom:6px;display:flex;gap:6px;}
-  #emote-toggle-btn, #journal-toggle-btn, #leave-game-btn{width:44px;height:36px;border-radius:10px;background:rgba(23,19,37,.85);border:2px solid rgba(212,175,55,.45);color:#f2ead2;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
+  #emote-toggle-btn, #journal-toggle-btn, #leave-game-btn, #report-bug-btn{width:44px;height:36px;border-radius:10px;background:rgba(23,19,37,.85);border:2px solid rgba(212,175,55,.45);color:#f2ead2;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
+  #bug-report-panel{
+    display:none;position:fixed;top:60px;right:20px;z-index:9990;width:280px;
+    background:rgba(15,12,24,.97);border:1.5px solid var(--gold);border-radius:12px;padding:14px;
+    box-shadow:0 10px 30px rgba(0,0,0,.6);
+  }
+  #bug-report-panel.show{display:block;}
+  #bug-report-panel h3{font-family:'Cinzel',serif;color:var(--gold);font-size:13px;margin:0 0 10px;}
+  #bug-report-text{
+    width:100%;background:#1a1628;border:1.5px solid #3a3260;border-radius:8px;color:#f2ead2;
+    font-size:12.5px;padding:8px;resize:vertical;font-family:'Inter',sans-serif;
+  }
+  #bug-report-status{font-size:11px;color:var(--parchment-dim);min-height:14px;margin:6px 0;}
+  #bug-report-buttons{display:flex;gap:8px;}
+  #bug-report-buttons button{flex:1;padding:7px;border-radius:8px;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;}
+  #bug-report-cancel{background:transparent;border:1.5px solid #3a3260;color:var(--parchment-dim);}
+  #bug-report-send{background:var(--arcane,#7c5cff);border:none;color:#fff;font-weight:600;}
   #emote-toggle-btn:hover, #journal-toggle-btn:hover, #leave-game-btn:hover{border-color:#d4af37;}
   #leave-game-btn:hover{border-color:var(--blood);}
   #journal-panel{position:fixed;bottom:20px;right:20px;width:320px;max-height:45vh;background:var(--bg-panel);border:1px solid #3a3260;border-radius:12px;padding:12px;z-index:99997;display:none;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,.6);}
@@ -606,6 +629,16 @@ body.targeting *{cursor:crosshair !important;}
               <button id="emote-toggle-btn" title="Émotes" onclick="toggleEmotePanel()">😄</button>
               <button id="journal-toggle-btn" title="Journal" onclick="toggleJournal()">📜</button>
               <button id="leave-game-btn" title="Quitter la partie" onclick="uiLeaveGame()">🚪</button>
+              <button id="report-bug-btn" title="Signaler un problème" onclick="openBugReportPanel()">🐞</button>
+            </div>
+            <div id="bug-report-panel">
+              <h3>Signaler un problème</h3>
+              <textarea id="bug-report-text" placeholder="Décris ce qui s'est passé (le plus précisément possible)..." rows="4"></textarea>
+              <div id="bug-report-status"></div>
+              <div id="bug-report-buttons">
+                <button id="bug-report-cancel" onclick="closeBugReportPanel()">Annuler</button>
+                <button id="bug-report-send" onclick="submitBugReport()">Envoyer</button>
+              </div>
             </div>
             <div id="journal-panel">
               <h3>Journal <span class="close-journal-btn" onclick="toggleJournal()">✕</span></h3>
@@ -690,6 +723,29 @@ function escapeHtmlGS(s){ return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;',
 let S = null; // état de la partie reçu du serveur
 let MY_KEY = null, OPP_KEY = null;
 let UI = { selectingAttackers:false, selectedAttackers:[], pendingBlocker:null };
+
+// ---------------- Signalement de problème ----------------
+// Capture l'état complet de la partie au moment du clic (main, plateau,
+// journal encore disponible) — pour éviter le "ça a buggé mais je ne sais
+// plus exactement quand" pendant les sessions de test.
+function openBugReportPanel(){
+  document.getElementById('bug-report-status').textContent = '';
+  document.getElementById('bug-report-text').value = '';
+  document.getElementById('bug-report-panel').classList.add('show');
+}
+function closeBugReportPanel(){
+  document.getElementById('bug-report-panel').classList.remove('show');
+}
+async function submitBugReport(){
+  const desc = document.getElementById('bug-report-text').value.trim();
+  const statusEl = document.getElementById('bug-report-status');
+  if(!desc){ statusEl.textContent = 'Décris au moins brièvement ce qui se passe.'; return; }
+  statusEl.textContent = 'Envoi en cours...';
+  const res = await gsReportBug(desc, GS_SESSION_ID, S);
+  if(res.error){ statusEl.textContent = 'Erreur : ' + res.error; return; }
+  statusEl.textContent = 'Envoyé, merci !';
+  setTimeout(closeBugReportPanel, 1200);
+}
 
 function debugLog(msg, cls){
   return; // panneau de débogage retiré de l'écran
@@ -1573,7 +1629,20 @@ async function uiActivatePermanent(permanentType, permanentInstId, targetInfo, c
       return;
     }
   }
-  await runAction('Capacité activée', ()=>gsActivatePermanent(permanentType, permanentInstId, targetInfo, chosenTargets));
+  const res = await runAction('Capacité activée', ()=>gsActivatePermanent(permanentType, permanentInstId, targetInfo, chosenTargets));
+  if(permanentType==='artifact' && res && !res.error){
+    // Le nouveau rendu (qui grise l'artefact désormais utilisé) vient de
+    // reconstruire l'élément — on attend une frame pour cibler le NOUVEL
+    // élément avant de lancer le flash, sinon on animerait un nœud déjà
+    // remplacé et donc invisible.
+    requestAnimationFrame(()=>{
+      const el = document.querySelector(`[data-instid="${permanentInstId}"]`);
+      if(el){
+        el.classList.add('artifact-activate-flash');
+        el.addEventListener('animationend', ()=>el.classList.remove('artifact-activate-flash'), {once:true});
+      }
+    });
+  }
 }
 
 // La zone deck : visuel du dos de carte + nombre de cartes restantes +
@@ -1617,6 +1686,8 @@ function renderArtifactStack(key, slot){
         if((hasNewActivated || hasOldActivated) && !alreadyUsed){
           cardElNode.style.cursor = 'pointer';
           cardElNode.onclick = ()=>uiActivatePermanent('artifact', r.instId);
+        } else if((hasNewActivated || hasOldActivated) && alreadyUsed){
+          cardElNode.classList.add('artifact-used-this-turn');
         }
       }
     } else {
@@ -2538,6 +2609,7 @@ async function runAction(label, fn){
       // à l'écran pour l'auteur de l'action lui-même.
       onStateUpdate(res.state);
     }
+    return res;
   } catch(e){
     debugLog(`${label} → exception : ${e && e.message || e}`, 'log-error');
   } finally {

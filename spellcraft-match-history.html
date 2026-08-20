@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Les aventuriers de Rimd'Orël — Historique des parties</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@400;500;600;700&display=swap');
+:root{
+  --bg-void:#0b0a12; --bg-panel:#171325; --bg-panel-2:#1f1a30;
+  --parchment:#efe6c8; --parchment-dim:#d9cfae;
+  --arcane:#7c5cff; --gold:#d4af37; --blood:#c23b3b; --green:#4a9d6b;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;min-height:100%;background:var(--bg-void);color:var(--parchment);font-family:'Inter',sans-serif;}
+body{padding:16px 24px 40px;}
+h1{font-family:'Cinzel',serif;font-weight:900;color:var(--gold);font-size:20px;text-align:center;margin:4px 0 18px;}
+
+#history-wrap{max-width:820px;margin:0 auto;}
+.match-row{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  background:var(--bg-panel);border:1.5px solid #3a3260;border-radius:10px;
+  padding:12px 16px;margin-bottom:8px;cursor:pointer;
+}
+.match-row:hover{border-color:var(--gold);}
+.match-row .result{font-family:'Cinzel',serif;font-weight:700;font-size:13px;padding:4px 10px;border-radius:6px;}
+.match-row .result.win{background:rgba(74,157,107,.2);color:var(--green);}
+.match-row .result.loss{background:rgba(194,59,59,.2);color:var(--blood);}
+.match-row .opponent{font-size:13px;color:var(--parchment);}
+.match-row .date{font-size:11px;color:var(--parchment-dim);}
+#empty-msg{text-align:center;color:var(--parchment-dim);font-size:13px;padding:40px 10px;}
+
+#detail-panel{display:none;background:var(--bg-panel);border:1.5px solid var(--gold);border-radius:12px;padding:18px;margin-top:14px;}
+#detail-panel.show{display:block;}
+#detail-panel h2{font-family:'Cinzel',serif;color:var(--gold);font-size:15px;margin:0 0 12px;}
+.detail-side{margin-bottom:16px;}
+.detail-side h3{font-family:'Cinzel',serif;color:var(--parchment-dim);font-size:12px;margin:0 0 8px;text-transform:uppercase;letter-spacing:.5px;}
+.mini-card-row{display:flex;flex-wrap:wrap;gap:6px;}
+.mini-card{
+  width:52px;height:72px;border-radius:6px;background:var(--bg-panel-2);border:1.5px solid #3a3260;
+  display:flex;align-items:center;justify-content:center;text-align:center;font-size:9px;padding:3px;
+  color:var(--parchment-dim);position:relative;overflow:hidden;
+}
+.mini-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.35;}
+.mini-card span{position:relative;z-index:1;}
+#detail-log{background:#100d1a;border-radius:8px;padding:10px 12px;font-size:11.5px;color:var(--parchment-dim);max-height:220px;overflow-y:auto;line-height:1.6;}
+#btn-close-detail{margin-top:12px;background:transparent;border:1.5px solid #3a3260;color:var(--parchment-dim);border-radius:8px;padding:7px 14px;cursor:pointer;font-size:12px;}
+</style>
+</head>
+<body>
+
+<h1>Historique des parties</h1>
+<div id="history-wrap">
+  <div id="match-list"></div>
+  <div id="empty-msg" style="display:none;">Aucune partie terminée pour l'instant.</div>
+  <div id="detail-panel">
+    <h2 id="detail-title"></h2>
+    <div class="detail-side">
+      <h3>Votre plateau en fin de partie</h3>
+      <div class="mini-card-row" id="detail-my-board"></div>
+    </div>
+    <div class="detail-side">
+      <h3>Plateau adverse en fin de partie</h3>
+      <div class="mini-card-row" id="detail-opp-board"></div>
+    </div>
+    <div class="detail-side">
+      <h3>Journal (fin de partie)</h3>
+      <div id="detail-log"></div>
+    </div>
+    <button id="btn-close-detail" onclick="closeDetail()">Fermer</button>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>window.APP_TOPBAR_TITLE = '📜 Historique des parties';</script>
+<script src="spellcraft-shared.js"></script>
+<script src="spellcraft-auth.js"></script>
+<script>
+let MY_USER_ID = null;
+
+async function initHistory(){
+  const { data: { user } } = await sb.auth.getUser();
+  MY_USER_ID = user?.id;
+  const { data, error } = await sb
+    .from('match_history')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(50);
+  const list = document.getElementById('match-list');
+  if(error || !data || data.length===0){
+    document.getElementById('empty-msg').style.display = 'block';
+    return;
+  }
+  data.forEach(m=>renderMatchRow(m, list));
+}
+
+function escapeHtmlHist(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function renderMatchRow(m, list){
+  const iAmP1 = m.player1_id === MY_USER_ID;
+  const myKey = iAmP1 ? 'p1' : 'p2';
+  const won = m.winner_key === myKey;
+  const opponentLabel = m.vs_ai ? "l'IA" : 'un adversaire';
+  const row = document.createElement('div');
+  row.className = 'match-row';
+  row.innerHTML = `
+    <span class="result ${won?'win':'loss'}">${won?'Victoire':'Défaite'}</span>
+    <span class="opponent">Contre ${escapeHtmlHist(opponentLabel)}</span>
+    <span class="date">${new Date(m.created_at).toLocaleString('fr-FR')}</span>
+  `;
+  row.onclick = ()=>showMatchDetail(m, myKey);
+  list.appendChild(row);
+}
+
+function miniCardHtml(c){
+  const img = c.image ? `<img src="${c.image.replace(/"/g,'')}">` : '';
+  return `<div class="mini-card">${img}<span>${escapeHtmlHist(c.name||'')}</span></div>`;
+}
+
+function showMatchDetail(m, myKey){
+  const oppKey = myKey==='p1' ? 'p2' : 'p1';
+  const state = m.final_state || {};
+  document.getElementById('detail-title').textContent =
+    `${m.winner_key===myKey ? 'Victoire' : 'Défaite'} — ${new Date(m.created_at).toLocaleString('fr-FR')}`;
+
+  const myBoard = (state[myKey]?.board || []);
+  const oppBoard = (state[oppKey]?.board || []);
+  document.getElementById('detail-my-board').innerHTML = myBoard.length
+    ? myBoard.map(miniCardHtml).join('') : '<span style="color:var(--parchment-dim);font-size:11px;">Plateau vide</span>';
+  document.getElementById('detail-opp-board').innerHTML = oppBoard.length
+    ? oppBoard.map(miniCardHtml).join('') : '<span style="color:var(--parchment-dim);font-size:11px;">Plateau vide</span>';
+
+  const log = m.game_log || [];
+  const logEl = document.getElementById('detail-log');
+  if(log.length===0){
+    logEl.innerHTML = '<em>Aucune entrée de journal disponible pour cette partie.</em>';
+  } else {
+    logEl.innerHTML = log.map(entry=>{
+      if(entry.raw) return escapeHtmlHist(entry.raw.replace('{who}', entry.ownerKey===myKey ? 'Vous' : "L'adversaire"));
+      const who = entry.ownerKey===myKey ? 'Vous' : "L'adversaire";
+      const effects = (entry.effects||[]).map(e=>e.text).join(' — ');
+      return escapeHtmlHist(`${who} : ${entry.cardName}${effects ? ' — '+effects : ''}`);
+    }).map(line=>`<div>${line}</div>`).join('');
+  }
+
+  document.getElementById('detail-panel').classList.add('show');
+  document.getElementById('detail-panel').scrollIntoView({behavior:'smooth'});
+}
+function closeDetail(){
+  document.getElementById('detail-panel').classList.remove('show');
+}
+
+initSpellcraftAuth().then(initHistory);
+</script>
+</body>
+</html>
