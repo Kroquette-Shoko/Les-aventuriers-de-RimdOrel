@@ -30,13 +30,13 @@ h1{font-family:'Cinzel',serif;font-weight:900;color:var(--gold);font-size:20px;t
 /* ---------- Mise en page paysage à deux colonnes ---------- */
 #lobby-columns{
   display:flex;
-  gap:26px;
-  max-width:1080px;
+  gap:72px;
+  max-width:1160px;
   margin:0 auto;
   align-items:flex-start;
 }
 .lobby-col{flex:1; min-width:0;}
-#deck-col{flex:1.15;}
+#deck-col{flex:1.05;}
 #menu-col{flex:1;}
 
 .panel-title{font-family:'Cinzel',serif;color:var(--gold);font-size:13px;margin:0 0 10px;text-align:center;letter-spacing:.5px;}
@@ -53,41 +53,39 @@ h1{font-family:'Cinzel',serif;font-weight:900;color:var(--gold);font-size:20px;t
 #deck-grid{
   display:grid;
   grid-template-columns:repeat(2, 1fr);
-  grid-template-rows:repeat(3, 1fr);
-  gap:12px;
+  grid-template-rows:repeat(3, auto);
+  gap:14px 16px;
   margin-bottom:12px;
 }
+.deck-tile-wrap{cursor:pointer;}
 .deck-tile{
   position:relative;
-  cursor:pointer;
   border-radius:12px;
-  padding-top:62%; /* tuile large plutôt que carrée, plus adaptée à 2 colonnes */
+  padding-top:139%; /* format portrait, proche du ratio réel d'une carte, pour bien voir le dos choisi */
   background:var(--bg-panel-2);
   border:2px solid #3a3260;
   transition:transform .15s ease, border-color .15s ease, box-shadow .15s ease;
   overflow:visible;
 }
-.deck-tile:hover{transform:translateY(-3px);border-color:var(--gold);box-shadow:0 8px 18px rgba(0,0,0,.5);}
-.deck-tile.selected{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,.35), 0 8px 18px rgba(0,0,0,.5);}
+.deck-tile-wrap:hover .deck-tile{transform:translateY(-3px);border-color:var(--gold);box-shadow:0 8px 18px rgba(0,0,0,.5);}
+.deck-tile-wrap.selected .deck-tile{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,.35), 0 8px 18px rgba(0,0,0,.5);}
 .deck-tile .db-back{
   position:absolute;inset:0;border-radius:10px;overflow:hidden;
   background-size:cover;background-position:center;background-color:#2a2440;
 }
 .deck-tile .db-hero{
-  position:absolute;top:50%;left:14%;transform:translateY(-50%);
-  width:34%;aspect-ratio:1/1;border-radius:50%;
+  position:absolute;top:-10%;left:50%;transform:translateX(-50%);
+  width:38%;aspect-ratio:1/1;border-radius:50%;
   background:radial-gradient(circle at 35% 30%, var(--arcane), #2a1f55);
   background-size:cover;background-position:center;
   border:3px solid var(--gold);box-shadow:0 4px 10px rgba(0,0,0,.6);
   z-index:2;
 }
-.deck-tile .db-name{
-  position:absolute;left:36%;right:5%;top:50%;transform:translateY(-50%);z-index:2;
-  text-align:left;font-family:'Cinzel',serif;font-weight:700;font-size:11.5px;
-  color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9);
-  overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;
-  line-height:1.25;
+.db-name-below{
+  margin-top:8px;text-align:center;font-family:'Cinzel',serif;font-weight:700;font-size:11.5px;
+  color:var(--parchment);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
 }
+.deck-tile-wrap.selected .db-name-below{color:var(--gold);}
 
 #deck-pagination{display:flex;justify-content:center;align-items:center;gap:12px;}
 #deck-pagination button{background:var(--bg-panel-2);border:1.5px solid #3a3260;color:var(--parchment);border-radius:8px;padding:5px 12px;cursor:pointer;font-family:'Inter';font-size:12.5px;}
@@ -301,18 +299,20 @@ function renderDeckGrid(){
 
   pageDecks.forEach(d=>{
     const sum = deckSummaryLobby(d, LOADED_COLLECTION);
-    const tile = document.createElement('div');
-    tile.className = 'deck-tile' + (d.id===CHOSEN_DECK_ID ? ' selected' : '');
+    const wrap = document.createElement('div');
+    wrap.className = 'deck-tile-wrap' + (d.id===CHOSEN_DECK_ID ? ' selected' : '');
     const backUrl = d.cardBackId ? CARD_BACKS_BY_ID[d.cardBackId] : null;
     const heroImg = sum.hero && sum.hero.image;
 
-    tile.innerHTML = `
-      <div class="db-back" style="${backUrl?`background-image:url('${backUrl.replace(/'/g,"")}')`:''}"></div>
-      <div class="db-hero" style="${heroImg?`background-image:url('${heroImg.replace(/'/g,"")}')`:''}"></div>
-      <div class="db-name">${escapeHtmlLobby(d.name||'Deck sans nom')}</div>
+    wrap.innerHTML = `
+      <div class="deck-tile">
+        <div class="db-back" style="${backUrl?`background-image:url('${backUrl.replace(/'/g,"")}')`:''}"></div>
+        <div class="db-hero" style="${heroImg?`background-image:url('${heroImg.replace(/'/g,"")}')`:''}"></div>
+      </div>
+      <div class="db-name-below">${escapeHtmlLobby(d.name||'Deck sans nom')}</div>
     `;
-    tile.onclick = ()=>{ CHOSEN_DECK_ID = d.id; renderDeckGrid(); updateActionButtons(); };
-    grid.appendChild(tile);
+    wrap.onclick = ()=>{ CHOSEN_DECK_ID = d.id; renderDeckGrid(); updateActionButtons(); };
+    grid.appendChild(wrap);
   });
   // remplit les emplacements restants de la grille pour garder 2x3 stable visuellement
   for(let i=pageDecks.length;i<DECKS_PER_PAGE;i++){
