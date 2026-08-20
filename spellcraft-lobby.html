@@ -52,8 +52,8 @@ h1{font-family:'Cinzel',serif;font-weight:900;color:var(--gold);font-size:20px;t
 #deck-grid-wrap{background:var(--bg-panel);border:1px solid #3a3260;border-radius:14px;padding:16px;}
 #deck-grid{
   display:grid;
-  grid-template-columns:repeat(2, 1fr);
-  grid-template-rows:repeat(3, auto);
+  grid-template-columns:repeat(3, 1fr);
+  grid-template-rows:repeat(2, auto);
   gap:12px 14px;
   margin:0 auto 12px;
   max-width:60%; /* réduit la taille des tuiles d'environ 40% */
@@ -76,7 +76,7 @@ h1{font-family:'Cinzel',serif;font-weight:900;color:var(--gold);font-size:20px;t
 }
 .deck-tile .db-hero{
   position:absolute;top:-10%;left:50%;transform:translateX(-50%);
-  width:38%;aspect-ratio:1/1;border-radius:50%;
+  width:76%;aspect-ratio:1/1;border-radius:50%;
   background:radial-gradient(circle at 35% 30%, var(--arcane), #2a1f55);
   background-size:cover;background-position:center;
   border:3px solid var(--gold);box-shadow:0 4px 10px rgba(0,0,0,.6);
@@ -236,7 +236,7 @@ let LOADED_DECKS = [];
 let CARD_BACKS_BY_ID = {};
 let CHOSEN_DECK_ID = null;
 let DECK_PAGE = 0;
-const DECKS_PER_PAGE = 6; // grille 2 colonnes x 3 lignes
+const DECKS_PER_PAGE = 6; // grille 3 colonnes x 2 lignes
 
 const LAST_DECK_STORAGE_KEY = 'spellcraft-last-used-deck-id';
 
