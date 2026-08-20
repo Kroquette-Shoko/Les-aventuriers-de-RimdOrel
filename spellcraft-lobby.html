@@ -125,6 +125,7 @@ a.back-link:hover{color:var(--gold);}
   <h3>Lancer une partie</h3>
   <div id="chosen-deck-label">Sélectionne un deck ci-dessus</div>
   <button id="btn-vs-ai" disabled>Affronter l'IA</button>
+  <button class="secondary" id="btn-matchmaking" disabled>Rechercher un adversaire</button>
   <button class="secondary" id="btn-vs-friend" disabled>Créer et attendre un ami</button>
   <div class="divider">— ou rejoindre une partie existante —</div>
   <input id="join-code-input" placeholder="Code à 6 caractères" maxlength="6">
@@ -136,7 +137,7 @@ a.back-link:hover{color:var(--gold);}
 <div id="waiting-overlay">
   <h2 id="waiting-title">En attente de l'adversaire...</h2>
   <div id="waiting-code"></div>
-  <p>Partage ce code avec ton ami pour qu'il puisse rejoindre.</p>
+  <p id="waiting-code-hint">Partage ce code avec ton ami pour qu'il puisse rejoindre.</p>
   <div class="spinner"></div>
   <p id="waiting-sub" style="font-size:11.5px;">La partie démarrera automatiquement dès qu'il aura rejoint.</p>
   <button id="btn-cancel-wait">Annuler</button>
@@ -230,6 +231,7 @@ function escapeHtmlLobby(s){ return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp
 function updateActionButtons(){
   const has = !!CHOSEN_DECK_ID;
   document.getElementById('btn-vs-ai').disabled = !has;
+  document.getElementById('btn-matchmaking').disabled = !has;
   document.getElementById('btn-vs-friend').disabled = !has;
   document.getElementById('btn-join').disabled = !has;
   const d = LOADED_DECKS.find(x=>x.id===CHOSEN_DECK_ID);
@@ -256,6 +258,18 @@ function wireActionButtons(){
     showWaitingScreen(res.sessionId, res.code, 'p1');
   };
 
+  document.getElementById('btn-matchmaking').onclick = async ()=>{
+    showLobbyError('');
+    const res = await gsJoinMatchmaking(CHOSEN_DECK_ID);
+    if(res.error) return showLobbyError('Erreur : ' + res.error);
+    if(!res.waiting){
+      // Un adversaire attendait déjà — la partie est prête immédiatement.
+      goToBoard(res.sessionId, 'p2');
+    } else {
+      showMatchmakingWaitScreen();
+    }
+  };
+
   document.getElementById('btn-join').onclick = async ()=>{
     showLobbyError('');
     const code = document.getElementById('join-code-input').value.trim().toUpperCase();
@@ -275,15 +289,23 @@ function wireActionButtons(){
     goToBoard(res.session_id, 'spectator');
   };
 
-  document.getElementById('btn-cancel-wait').onclick = ()=>{
+  document.getElementById('btn-cancel-wait').onclick = async ()=>{
     if(WAIT_POLL_TIMER) clearInterval(WAIT_POLL_TIMER);
+    if(WAITING_MODE==='matchmaking') await gsLeaveMatchmaking();
+    WAITING_MODE = null;
     document.getElementById('waiting-overlay').classList.remove('show');
   };
 }
 
 let WAIT_POLL_TIMER = null;
+let WAITING_MODE = null; // 'friend' | 'matchmaking'
 function showWaitingScreen(sessionId, code, role){
+  WAITING_MODE = 'friend';
+  document.getElementById('waiting-title').textContent = "En attente de l'adversaire...";
+  document.getElementById('waiting-code').style.display = '';
+  document.getElementById('waiting-code-hint').style.display = '';
   document.getElementById('waiting-code').textContent = code;
+  document.getElementById('waiting-sub').textContent = "La partie démarrera automatiquement dès qu'il aura rejoint.";
   document.getElementById('waiting-overlay').classList.add('show');
 
   GS_SESSION_ID = sessionId;
@@ -299,6 +321,30 @@ function showWaitingScreen(sessionId, code, role){
       goToBoard(sessionId, role);
     }
   }, 1800);
+}
+
+function showMatchmakingWaitScreen(){
+  WAITING_MODE = 'matchmaking';
+  document.getElementById('waiting-title').textContent = "Recherche d'un adversaire...";
+  document.getElementById('waiting-code').style.display = 'none';
+  document.getElementById('waiting-code-hint').style.display = 'none';
+  document.getElementById('waiting-sub').textContent = "La partie démarrera automatiquement dès qu'un autre joueur rejoint la file.";
+  document.getElementById('waiting-overlay').classList.add('show');
+
+  const since = new Date().toISOString();
+  WAIT_POLL_TIMER = setInterval(async ()=>{
+    const res = await gsCheckMatchmaking(since);
+    if(res.error){
+      clearInterval(WAIT_POLL_TIMER);
+      document.getElementById('waiting-overlay').classList.remove('show');
+      showLobbyError('Erreur : ' + res.error);
+      return;
+    }
+    if(!res.waiting){
+      clearInterval(WAIT_POLL_TIMER);
+      goToBoard(res.sessionId, 'p1');
+    }
+  }, 2500);
 }
 
 function goToBoard(sessionId, role, vsAI){

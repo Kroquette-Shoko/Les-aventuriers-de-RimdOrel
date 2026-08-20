@@ -88,6 +88,37 @@ async function gsJoinAsSpectator(code) {
 }
 
 // ------------------------------------------------------------
+// Matchmaking — file d'attente semi-aléatoire, en complément des parties
+// par code (utiles pour les duels/tests entre amis, mais pas pour trouver
+// un adversaire au hasard).
+// ------------------------------------------------------------
+async function gsJoinMatchmaking(deckId) {
+  const { data, error } = await sb.functions.invoke('game-action', {
+    body: { action: 'joinMatchmaking', deckId }
+  });
+  if (error) return { error: error.message || String(error) };
+  if (data.error) return data;
+  if (!data.waiting) { GS_SESSION_ID = data.sessionId; GS_ROLE = 'p2'; }
+  return data; // { ok, waiting, sessionId? }
+}
+async function gsLeaveMatchmaking() {
+  const { data, error } = await sb.functions.invoke('game-action', {
+    body: { action: 'leaveMatchmaking' }
+  });
+  if (error) return { error: error.message || String(error) };
+  return data;
+}
+async function gsCheckMatchmaking(since) {
+  const { data, error } = await sb.functions.invoke('game-action', {
+    body: { action: 'checkMatchmaking', since }
+  });
+  if (error) return { error: error.message || String(error) };
+  if (data.error) return data;
+  if (!data.waiting) { GS_SESSION_ID = data.sessionId; GS_ROLE = 'p1'; }
+  return data; // { ok, waiting, sessionId? }
+}
+
+// ------------------------------------------------------------
 // Connexion au canal temps réel de la session (état de jeu + chat)
 // et à la présence (pour détecter une déconnexion adverse).
 // ------------------------------------------------------------
