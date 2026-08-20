@@ -86,6 +86,13 @@ async function gsJoinAsSpectator(code) {
   GS_ROLE = 'spectator';
   return data;
 }
+async function gsListActiveSessions() {
+  const { data, error } = await sb.functions.invoke('game-action', {
+    body: { action: 'listActiveSessions' }
+  });
+  if (error) return { error: error.message || String(error) };
+  return data; // { ok, sessions: [{id, room_code, player1_name, player2_name, vs_ai}] }
+}
 
 // ------------------------------------------------------------
 // Matchmaking — file d'attente semi-aléatoire, en complément des parties

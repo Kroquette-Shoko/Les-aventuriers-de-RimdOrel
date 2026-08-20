@@ -22,79 +22,128 @@
 }
 *{box-sizing:border-box;}
 html,body{margin:0;min-height:100%;background:var(--bg-void);color:var(--parchment);font-family:'Inter',sans-serif;}
-body{padding:18px 24px 40px;}
+body{padding:16px 24px 32px;}
 
-h1{font-family:'Cinzel',serif;font-weight:900;color:var(--gold);font-size:22px;text-align:center;margin:6px 0 4px;letter-spacing:1px;}
-.subtitle{text-align:center;color:var(--parchment-dim);font-size:12.5px;margin:0 0 18px;}
+h1{font-family:'Cinzel',serif;font-weight:900;color:var(--gold);font-size:20px;text-align:center;margin:4px 0 2px;letter-spacing:1px;}
+.subtitle{text-align:center;color:var(--parchment-dim);font-size:12px;margin:0 0 16px;}
 
+/* ---------- Mise en page paysage à deux colonnes ---------- */
+#lobby-columns{
+  display:flex;
+  gap:26px;
+  max-width:1080px;
+  margin:0 auto;
+  align-items:flex-start;
+}
+.lobby-col{flex:1; min-width:0;}
+#deck-col{flex:1.15;}
+#menu-col{flex:1;}
 
+.panel-title{font-family:'Cinzel',serif;color:var(--gold);font-size:13px;margin:0 0 10px;text-align:center;letter-spacing:.5px;}
 
+/* ---------- Colonne des decks ---------- */
+#btn-last-deck{
+  width:100%;background:var(--bg-panel-2);border:1.5px solid #3a3260;color:var(--parchment-dim);
+  border-radius:9px;padding:9px;font-family:'Inter';font-size:12.5px;cursor:pointer;margin-bottom:14px;
+}
+#btn-last-deck:hover:not(:disabled){border-color:var(--gold);color:var(--parchment);}
+#btn-last-deck:disabled{opacity:.35;cursor:not-allowed;}
 
-a.back-link:hover{color:var(--gold);}
-
-/* ---------- Grille de decks ---------- */
-#deck-grid-wrap{max-width:1180px;margin:0 auto;}
+#deck-grid-wrap{background:var(--bg-panel);border:1px solid #3a3260;border-radius:14px;padding:16px;}
 #deck-grid{
   display:grid;
-  grid-template-columns:repeat(8, 1fr);
-  grid-template-rows:repeat(2, auto);
-  gap:14px;
-  margin-bottom:14px;
+  grid-template-columns:repeat(2, 1fr);
+  grid-template-rows:repeat(3, 1fr);
+  gap:12px;
+  margin-bottom:12px;
 }
 .deck-tile{
   position:relative;
   cursor:pointer;
   border-radius:12px;
-  padding-top:100%; /* carré, dos de carte en fond */
+  padding-top:62%; /* tuile large plutôt que carrée, plus adaptée à 2 colonnes */
   background:var(--bg-panel-2);
   border:2px solid #3a3260;
   transition:transform .15s ease, border-color .15s ease, box-shadow .15s ease;
   overflow:visible;
 }
-.deck-tile:hover{transform:translateY(-4px);border-color:var(--gold);box-shadow:0 8px 18px rgba(0,0,0,.5);}
+.deck-tile:hover{transform:translateY(-3px);border-color:var(--gold);box-shadow:0 8px 18px rgba(0,0,0,.5);}
 .deck-tile.selected{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,.35), 0 8px 18px rgba(0,0,0,.5);}
 .deck-tile .db-back{
   position:absolute;inset:0;border-radius:10px;overflow:hidden;
   background-size:cover;background-position:center;background-color:#2a2440;
 }
 .deck-tile .db-hero{
-  position:absolute;top:-16%;left:50%;transform:translateX(-50%);
-  width:46%;aspect-ratio:1/1;border-radius:50%;
+  position:absolute;top:50%;left:14%;transform:translateY(-50%);
+  width:34%;aspect-ratio:1/1;border-radius:50%;
   background:radial-gradient(circle at 35% 30%, var(--arcane), #2a1f55);
   background-size:cover;background-position:center;
   border:3px solid var(--gold);box-shadow:0 4px 10px rgba(0,0,0,.6);
   z-index:2;
 }
 .deck-tile .db-name{
-  position:absolute;left:6%;right:6%;bottom:6%;z-index:2;
-  text-align:center;font-family:'Cinzel',serif;font-weight:700;font-size:10.5px;
+  position:absolute;left:36%;right:5%;top:50%;transform:translateY(-50%);z-index:2;
+  text-align:left;font-family:'Cinzel',serif;font-weight:700;font-size:11.5px;
   color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.9);
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
-  background:rgba(11,10,18,.55);border-radius:6px;padding:3px 4px;
-}
-.deck-tile .db-invalid-badge{
-  position:absolute;top:4px;right:4px;z-index:3;background:var(--blood);color:#fff;
-  font-size:9px;font-weight:700;padding:2px 5px;border-radius:5px;
+  overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;
+  line-height:1.25;
 }
 
-#deck-pagination{display:flex;justify-content:center;align-items:center;gap:14px;margin-bottom:22px;}
-#deck-pagination button{background:var(--bg-panel-2);border:1.5px solid #3a3260;color:var(--parchment);border-radius:8px;padding:6px 14px;cursor:pointer;font-family:'Inter';font-size:13px;}
+#deck-pagination{display:flex;justify-content:center;align-items:center;gap:12px;}
+#deck-pagination button{background:var(--bg-panel-2);border:1.5px solid #3a3260;color:var(--parchment);border-radius:8px;padding:5px 12px;cursor:pointer;font-family:'Inter';font-size:12.5px;}
 #deck-pagination button:disabled{opacity:.35;cursor:not-allowed;}
-#deck-pagination span{font-size:12.5px;color:var(--parchment-dim);}
+#deck-pagination span{font-size:12px;color:var(--parchment-dim);}
 
-#no-decks-msg{text-align:center;color:var(--parchment-dim);font-size:13px;padding:30px;line-height:1.6;}
+#no-decks-msg{text-align:center;color:var(--parchment-dim);font-size:13px;padding:30px 10px;line-height:1.6;}
 #no-decks-msg a{color:var(--gold);}
 
-/* ---------- Panneau d'actions ---------- */
-#action-panel{max-width:460px;margin:0 auto;background:var(--bg-panel);border:1px solid #3a3260;border-radius:14px;padding:18px 20px;}
-#action-panel h3{font-family:'Cinzel',serif;color:var(--gold);font-size:14px;margin:0 0 12px;text-align:center;}
-#action-panel button{width:100%;margin-bottom:8px;background:var(--arcane);border:none;color:#fff;font-family:'Cinzel',serif;font-weight:700;font-size:13.5px;padding:11px;border-radius:9px;cursor:pointer;}
-#action-panel button:disabled{opacity:.4;cursor:not-allowed;}
-#action-panel button.secondary{background:var(--bg-panel-2);border:1.5px solid #3a3260;color:var(--parchment);}
-#action-panel .divider{text-align:center;color:var(--parchment-dim);font-size:11.5px;margin:10px 0;}
-#action-panel input{width:100%;padding:9px;border-radius:8px;border:1.5px solid #3a3260;background:var(--bg-panel-2);color:var(--parchment);font-size:13px;margin-bottom:8px;text-transform:uppercase;text-align:center;letter-spacing:2px;}
-#chosen-deck-label{text-align:center;font-size:12px;color:var(--parchment-dim);margin-bottom:12px;min-height:16px;}
-#lobby-error{color:var(--blood);font-size:12px;text-align:center;margin-top:8px;min-height:14px;}
+#chosen-deck-label{text-align:center;font-size:11.5px;color:var(--parchment-dim);margin-top:10px;min-height:15px;}
+
+/* ---------- Colonne du menu de partie — tailles dégressives ---------- */
+#menu-col button{
+  width:100%;display:block;border:none;cursor:pointer;font-family:'Cinzel',serif;font-weight:700;
+  border-radius:10px;margin-bottom:10px;color:#fff;background:var(--arcane);
+  text-align:center;transition:transform .1s ease, filter .15s ease;
+}
+#menu-col button:hover:not(:disabled){filter:brightness(1.12);transform:translateY(-1px);}
+#menu-col button:disabled{opacity:.4;cursor:not-allowed;}
+#menu-col button .btn-sub{display:block;font-family:'Inter';font-weight:500;opacity:.85;margin-top:2px;}
+
+#btn-matchmaking{padding:22px 14px;font-size:18px;background:linear-gradient(135deg, var(--arcane), #5a3fd6);box-shadow:0 6px 18px rgba(124,92,255,.35);}
+#btn-matchmaking .btn-sub{font-size:11.5px;}
+#btn-create-private{padding:16px 14px;font-size:15px;background:var(--bg-panel-3);border:1.5px solid var(--gold);color:var(--parchment);}
+#btn-create-private .btn-sub{font-size:10.5px;color:var(--parchment-dim);}
+#btn-vs-ai{padding:14px 14px;font-size:14px;background:var(--bg-panel-2);border:1.5px solid #3a3260;color:var(--parchment);}
+#btn-join{padding:11px 14px;font-size:13px;background:var(--bg-panel-2);border:1.5px solid #3a3260;color:var(--parchment-dim);}
+#btn-spectate-list{padding:9px 14px;font-size:12px;background:transparent;border:1.5px solid #3a3260;color:var(--parchment-dim);}
+
+#lobby-error{color:var(--blood);font-size:12px;text-align:center;margin-top:10px;min-height:14px;}
+
+/* ---------- Saisie de code inline (Rejoindre une partie) ---------- */
+#join-inline{display:none;background:var(--bg-panel-3);border:1.5px solid #3a3260;border-radius:10px;padding:12px;margin-bottom:10px;}
+#join-inline.show{display:block;}
+#join-inline input{
+  width:100%;padding:9px;border-radius:8px;border:1.5px solid #3a3260;background:var(--bg-panel-2);
+  color:var(--parchment);font-size:14px;margin-bottom:8px;text-transform:uppercase;text-align:center;letter-spacing:3px;
+}
+#join-inline .row{display:flex;gap:8px;}
+#join-inline .row button{flex:1;margin-bottom:0;padding:9px;font-size:12.5px;}
+#join-inline .btn-confirm{background:var(--arcane);color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:'Cinzel',serif;font-weight:700;}
+#join-inline .btn-cancel-inline{background:transparent;border:1.5px solid #3a3260;color:var(--parchment-dim);border-radius:8px;cursor:pointer;font-family:'Inter';}
+
+/* ---------- Liste des parties à regarder ---------- */
+#spectate-list-panel{display:none;background:var(--bg-panel-3);border:1.5px solid #3a3260;border-radius:10px;padding:12px;margin-bottom:10px;max-height:260px;overflow-y:auto;}
+#spectate-list-panel.show{display:block;}
+#spectate-list-panel .empty{color:var(--parchment-dim);font-size:12px;text-align:center;padding:14px 6px;}
+.spectate-row{
+  display:flex;justify-content:space-between;align-items:center;gap:8px;
+  padding:8px 10px;border-radius:8px;background:var(--bg-panel-2);border:1px solid #3a3260;
+  margin-bottom:6px;cursor:pointer;font-size:12px;
+}
+.spectate-row:hover{border-color:var(--gold);}
+.spectate-row .vs{color:var(--parchment-dim);font-size:10.5px;}
+.spectate-row button{width:auto;margin:0;padding:5px 10px;font-size:11px;background:var(--arcane);border-radius:6px;color:#fff;border:none;font-family:'Inter';font-weight:600;cursor:pointer;}
+#spectate-list-panel .btn-cancel-inline{width:100%;margin-top:4px;padding:7px;font-size:11.5px;background:transparent;border:1.5px solid #3a3260;color:var(--parchment-dim);border-radius:8px;cursor:pointer;font-family:'Inter';}
 
 /* ---------- Écran d'attente ---------- */
 #waiting-overlay{
@@ -108,30 +157,63 @@ a.back-link:hover{color:var(--gold);}
 .spinner{width:34px;height:34px;border:3px solid #3a3260;border-top-color:var(--gold);border-radius:50%;animation:spin 1s linear infinite;margin:14px auto;}
 @keyframes spin{to{transform:rotate(360deg);}}
 #waiting-overlay button{margin-top:18px;background:var(--bg-panel-2);border:1.5px solid #3a3260;color:var(--parchment);border-radius:8px;padding:9px 18px;cursor:pointer;font-size:12.5px;}
+
+/* En dessous d'une certaine largeur, on repasse en une seule colonne
+   plutôt que de forcer un mode paysage illisible. */
+@media (max-width: 720px){
+  #lobby-columns{flex-direction:column;}
+}
 </style>
 </head>
 <body>
 
 <h1>Recherche de partie</h1>
-<p class="subtitle">Choisis ton deck, puis affronte l'IA, un ami, ou rejoins une partie</p>
+<p class="subtitle">Choisis ton deck, puis lance-toi</p>
 
-<div id="deck-grid-wrap">
-  <div id="deck-grid"></div>
-  <div id="deck-pagination"></div>
-  <div id="no-decks-msg" style="display:none;">Aucun deck valide trouvé — <a href="spellcraft-deckbuilder.html">construis-en un dans le classeur</a> d'abord.</div>
-</div>
+<div id="lobby-columns">
+  <div class="lobby-col" id="deck-col">
+    <div class="panel-title">Ton deck</div>
+    <button id="btn-last-deck" disabled>Utiliser mon dernier deck</button>
+    <div id="deck-grid-wrap">
+      <div id="deck-grid"></div>
+      <div id="deck-pagination"></div>
+      <div id="no-decks-msg" style="display:none;">Aucun deck valide trouvé — <a href="spellcraft-deckbuilder.html">construis-en un dans le classeur</a> d'abord.</div>
+    </div>
+    <div id="chosen-deck-label">Sélectionne un deck ci-dessus</div>
+  </div>
 
-<div id="action-panel">
-  <h3>Lancer une partie</h3>
-  <div id="chosen-deck-label">Sélectionne un deck ci-dessus</div>
-  <button id="btn-vs-ai" disabled>Affronter l'IA</button>
-  <button class="secondary" id="btn-matchmaking" disabled>Rechercher un adversaire</button>
-  <button class="secondary" id="btn-vs-friend" disabled>Créer et attendre un ami</button>
-  <div class="divider">— ou rejoindre une partie existante —</div>
-  <input id="join-code-input" placeholder="Code à 6 caractères" maxlength="6">
-  <button class="secondary" id="btn-join" disabled>Rejoindre avec ce deck</button>
-  <button class="secondary" id="btn-spectate">Regarder en spectateur</button>
-  <div id="lobby-error"></div>
+  <div class="lobby-col" id="menu-col">
+    <div class="panel-title">Type de partie</div>
+
+    <button id="btn-matchmaking" disabled>
+      Recherche de partie
+      <span class="btn-sub">Trouve un adversaire au hasard</span>
+    </button>
+
+    <button id="btn-create-private" disabled>
+      Créer une partie privée
+      <span class="btn-sub">Génère un code à partager</span>
+    </button>
+
+    <button id="btn-vs-ai" disabled>Affronter l'IA</button>
+
+    <button id="btn-join" disabled>Rejoindre une partie</button>
+    <div id="join-inline">
+      <input id="join-code-input" placeholder="Code à 6 caractères" maxlength="6">
+      <div class="row">
+        <button class="btn-confirm" id="btn-join-confirm">Rejoindre</button>
+        <button class="btn-cancel-inline" id="btn-join-cancel">Annuler</button>
+      </div>
+    </div>
+
+    <button id="btn-spectate-list">Regarder une partie</button>
+    <div id="spectate-list-panel">
+      <div id="spectate-list-content"></div>
+      <button class="btn-cancel-inline" id="btn-spectate-cancel">Fermer</button>
+    </div>
+
+    <div id="lobby-error"></div>
+  </div>
 </div>
 
 <div id="waiting-overlay">
@@ -155,7 +237,9 @@ let LOADED_DECKS = [];
 let CARD_BACKS_BY_ID = {};
 let CHOSEN_DECK_ID = null;
 let DECK_PAGE = 0;
-const DECKS_PER_PAGE = 16; // 8 colonnes x 2 lignes
+const DECKS_PER_PAGE = 6; // grille 2 colonnes x 3 lignes
+
+const LAST_DECK_STORAGE_KEY = 'spellcraft-last-used-deck-id';
 
 function deckSummaryLobby(d, collection){
   const hero = collection.find(c=>c.id===d.heroId);
@@ -176,6 +260,27 @@ async function initLobby(){
 
   renderDeckGrid();
   wireActionButtons();
+  setupLastDeckButton();
+}
+
+function setupLastDeckButton(){
+  const lastId = localStorage.getItem(LAST_DECK_STORAGE_KEY);
+  const btn = document.getElementById('btn-last-deck');
+  const stillValid = lastId && LOADED_DECKS.some(d=>d.id===lastId && deckSummaryLobby(d, LOADED_COLLECTION).valid);
+  btn.disabled = !stillValid;
+  btn.onclick = ()=>{
+    if(!stillValid) return;
+    CHOSEN_DECK_ID = lastId;
+    // se replace sur la bonne page pour que la tuile choisie soit visible
+    const validDecks = LOADED_DECKS.filter(d=>deckSummaryLobby(d, LOADED_COLLECTION).valid);
+    const idx = validDecks.findIndex(d=>d.id===lastId);
+    if(idx>=0) DECK_PAGE = Math.floor(idx / DECKS_PER_PAGE);
+    renderDeckGrid();
+  };
+}
+
+function rememberLastDeck(deckId){
+  try{ localStorage.setItem(LAST_DECK_STORAGE_KEY, deckId); }catch(e){}
 }
 
 function renderDeckGrid(){
@@ -209,6 +314,12 @@ function renderDeckGrid(){
     tile.onclick = ()=>{ CHOSEN_DECK_ID = d.id; renderDeckGrid(); updateActionButtons(); };
     grid.appendChild(tile);
   });
+  // remplit les emplacements restants de la grille pour garder 2x3 stable visuellement
+  for(let i=pageDecks.length;i<DECKS_PER_PAGE;i++){
+    const filler = document.createElement('div');
+    filler.style.visibility = 'hidden';
+    grid.appendChild(filler);
+  }
 
   const pag = document.getElementById('deck-pagination');
   pag.innerHTML = '';
@@ -232,7 +343,7 @@ function updateActionButtons(){
   const has = !!CHOSEN_DECK_ID;
   document.getElementById('btn-vs-ai').disabled = !has;
   document.getElementById('btn-matchmaking').disabled = !has;
-  document.getElementById('btn-vs-friend').disabled = !has;
+  document.getElementById('btn-create-private').disabled = !has;
   document.getElementById('btn-join').disabled = !has;
   const d = LOADED_DECKS.find(x=>x.id===CHOSEN_DECK_ID);
   document.getElementById('chosen-deck-label').textContent = d ? `Deck choisi : ${d.name}` : 'Sélectionne un deck ci-dessus';
@@ -242,24 +353,32 @@ function showLobbyError(msg){
   document.getElementById('lobby-error').textContent = msg;
 }
 
+function closeInlinePanels(){
+  document.getElementById('join-inline').classList.remove('show');
+  document.getElementById('spectate-list-panel').classList.remove('show');
+}
+
 function wireActionButtons(){
   document.getElementById('btn-vs-ai').onclick = async ()=>{
-    showLobbyError('');
+    showLobbyError(''); closeInlinePanels();
+    rememberLastDeck(CHOSEN_DECK_ID);
     const res = await gsCreateSession(CHOSEN_DECK_ID, true);
     if(res.error) return showLobbyError('Erreur : ' + res.error);
     // contre l'IA, aucune attente nécessaire — elle est "prête" immédiatement
     goToBoard(res.sessionId, 'p1', true);
   };
 
-  document.getElementById('btn-vs-friend').onclick = async ()=>{
-    showLobbyError('');
+  document.getElementById('btn-create-private').onclick = async ()=>{
+    showLobbyError(''); closeInlinePanels();
+    rememberLastDeck(CHOSEN_DECK_ID);
     const res = await gsCreateSession(CHOSEN_DECK_ID, false);
     if(res.error) return showLobbyError('Erreur : ' + res.error);
     showWaitingScreen(res.sessionId, res.code, 'p1');
   };
 
   document.getElementById('btn-matchmaking').onclick = async ()=>{
-    showLobbyError('');
+    showLobbyError(''); closeInlinePanels();
+    rememberLastDeck(CHOSEN_DECK_ID);
     const res = await gsJoinMatchmaking(CHOSEN_DECK_ID);
     if(res.error) return showLobbyError('Erreur : ' + res.error);
     if(!res.waiting){
@@ -270,23 +389,62 @@ function wireActionButtons(){
     }
   };
 
-  document.getElementById('btn-join').onclick = async ()=>{
+  // "Rejoindre une partie" ouvre directement la saisie du code au clic,
+  // plutôt qu'un champ toujours visible.
+  document.getElementById('btn-join').onclick = ()=>{
+    showLobbyError('');
+    document.getElementById('spectate-list-panel').classList.remove('show');
+    document.getElementById('join-inline').classList.add('show');
+    document.getElementById('join-code-input').focus();
+  };
+  document.getElementById('btn-join-cancel').onclick = ()=>{
+    document.getElementById('join-inline').classList.remove('show');
+  };
+  document.getElementById('btn-join-confirm').onclick = async ()=>{
     showLobbyError('');
     const code = document.getElementById('join-code-input').value.trim().toUpperCase();
     if(!code || code.length!==6) return showLobbyError('Entre un code à 6 caractères.');
+    rememberLastDeck(CHOSEN_DECK_ID);
     const res = await gsJoinAsPlayer(code, CHOSEN_DECK_ID);
     if(res.error) return showLobbyError('Erreur : ' + res.error);
-    // en rejoignant, les deux joueurs sont désormais présents — la partie peut commencer
     goToBoard(res.sessionId, 'p2');
   };
+  document.getElementById('join-code-input').addEventListener('keydown', (ev)=>{
+    if(ev.key==='Enter') document.getElementById('btn-join-confirm').click();
+  });
 
-  document.getElementById('btn-spectate').onclick = async ()=>{
+  // "Regarder une partie" affiche la liste des parties en cours plutôt que
+  // de demander un code.
+  document.getElementById('btn-spectate-list').onclick = async ()=>{
     showLobbyError('');
-    const code = document.getElementById('join-code-input').value.trim().toUpperCase();
-    if(!code || code.length!==6) return showLobbyError('Entre un code à 6 caractères.');
-    const res = await gsJoinAsSpectator(code);
-    if(res.error) return showLobbyError('Erreur : ' + res.error);
-    goToBoard(res.session_id, 'spectator');
+    document.getElementById('join-inline').classList.remove('show');
+    const panel = document.getElementById('spectate-list-panel');
+    panel.classList.add('show');
+    const content = document.getElementById('spectate-list-content');
+    content.innerHTML = '<div class="empty">Chargement...</div>';
+    const res = await gsListActiveSessions();
+    if(res.error){ content.innerHTML = `<div class="empty">Erreur : ${escapeHtmlLobby(res.error)}</div>`; return; }
+    const sessions = res.sessions || [];
+    if(sessions.length===0){ content.innerHTML = '<div class="empty">Aucune partie en cours pour le moment.</div>'; return; }
+    content.innerHTML = '';
+    sessions.forEach(s=>{
+      const row = document.createElement('div');
+      row.className = 'spectate-row';
+      row.innerHTML = `
+        <span>${escapeHtmlLobby(s.player1_name)} <span class="vs">vs</span> ${escapeHtmlLobby(s.player2_name || '?')}</span>
+        <button>Regarder</button>
+      `;
+      row.querySelector('button').onclick = async ()=>{
+        showLobbyError('');
+        const joinRes = await gsJoinAsSpectator(s.room_code);
+        if(joinRes.error) return showLobbyError('Erreur : ' + joinRes.error);
+        goToBoard(joinRes.session_id, 'spectator');
+      };
+      content.appendChild(row);
+    });
+  };
+  document.getElementById('btn-spectate-cancel').onclick = ()=>{
+    document.getElementById('spectate-list-panel').classList.remove('show');
   };
 
   document.getElementById('btn-cancel-wait').onclick = async ()=>{
