@@ -112,6 +112,17 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
   border-radius:10px;padding:10px 14px;margin:8px 0;}
 #bulk-disenchant-bar #bulk-disenchant-summary{font-family:'Cinzel',serif;font-weight:700;font-size:13px;flex:1;}
 #bulk-disenchant-toggle.active{border-color:#e88;color:#e88;}
+#craftable-toggle.active{border-color:var(--gold,#d4af37);color:var(--gold,#d4af37);}
+#fragments-bar{display:flex;align-items:center;gap:10px;background:var(--bg-panel-2);border:1.5px solid #3a3260;
+  border-radius:10px;padding:8px 16px;margin:0 18px 8px;flex-wrap:wrap;}
+.currency-chip{display:flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;padding:5px 12px;border-radius:18px;background:var(--bg-panel-3,#241f38);color:var(--parchment,#efe6c8);}
+.currency-chip .gem-icon{width:22px;height:22px;flex-shrink:0;background-size:contain;background-repeat:no-repeat;background-position:center;}
+.currency-chip.aube .gem-icon{background-color:#d4af37;-webkit-mask-image:url('images/gem-aub.png');mask-image:url('images/gem-aub.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;}
+.currency-chip.crepuscule .gem-icon{background-color:#8a5cf0;-webkit-mask-image:url('images/gem-crep.png');mask-image:url('images/gem-crep.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;}
+.currency-chip.volonte .gem-icon{background-color:#c23b3b;-webkit-mask-image:url('images/gem-vol.png');mask-image:url('images/gem-vol.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;}
+.currency-chip.prima .gem-icon{background-color:#3fae5c;-webkit-mask-image:url('images/gem-prim.png');mask-image:url('images/gem-prim.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;}
+.currency-chip.arcane .gem-icon{background-color:#5b9bd5;-webkit-mask-image:url('images/gem-arc.png');mask-image:url('images/gem-arc.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;}
+.currency-chip.opale .gem-icon{background-image:url('images/gem-multi.png');background-size:contain;background-repeat:no-repeat;background-position:center;}
 .binder-slot.bulk-selected{outline:3px solid var(--gold);outline-offset:-3px;border-radius:8px;}
 .binder-slot.bulk-selectable{cursor:pointer;}
 .binder-slot .bulk-select-badge{position:absolute;top:4px;left:4px;width:22px;height:22px;border-radius:50%;
@@ -426,8 +437,11 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
       <option value="rarity">Rareté</option>
     </select>
     <span class="results-count" id="results-count"></span>
+    <button class="btn small" id="craftable-toggle" onclick="toggleCraftableOnly()">🔨 Fabriquer des cartes</button>
     <button class="btn small" id="bulk-disenchant-toggle" onclick="toggleBulkDisenchantMode()">♻️ Désassembler en masse</button>
   </div>
+
+  <div id="fragments-bar"></div>
 
   <div id="bulk-disenchant-bar" style="display:none;">
     <span id="bulk-disenchant-summary">0 carte sélectionnée</span>
@@ -559,7 +573,7 @@ let deckBuildStep = null; // null | 'hero' | 'region' | 'cards'
 let filters = {
   search:'', setId:'', classes:new Set(), classMode:'any', types:new Set(), rarities:new Set(), keywords:new Set(),
   costMode:'eq', costValue:'', powerMode:'eq', powerValue:'', toughnessMode:'eq', toughnessValue:'',
-  showFoils:true, showUnowned:false, hideOwned:false
+  showFoils:true, showUnowned:false, hideOwned:false, craftableOnly:false
 };
 let sortMode = 'class-cost-name';
 
@@ -578,6 +592,7 @@ async function loadAll(){
   savedDecks = await loadUserDecks();
   buildFilterDropdowns();
   renderAll();
+  renderFragmentsBar();
 }
 
 sb.auth.onAuthStateChange(async (event)=>{
@@ -587,6 +602,7 @@ sb.auth.onAuthStateChange(async (event)=>{
     if(isLoggedInCache) await migrateLocalDecksToSupabaseIfNeeded();
     savedDecks = await loadUserDecks();
     renderAll();
+    renderFragmentsBar();
   }
 });
 
@@ -773,6 +789,10 @@ function applyFilterPanel(){
   filters.showFoils = document.getElementById('ff-show-foils').checked;
   filters.showUnowned = document.getElementById('ff-show-unowned').checked;
   filters.hideOwned = document.getElementById('ff-hide-owned').checked;
+  if(filters.hideOwned && filters.craftableOnly){
+    filters.craftableOnly = false;
+    document.getElementById('craftable-toggle').classList.remove('active');
+  }
   currentPage = 0;
   document.getElementById('filter-panel').classList.remove('show');
   renderBinder();
@@ -827,7 +847,7 @@ function jumpToBinderStart(){
 }
 
 function getFilteredSortedCollection(){
-  const sourceList = (!currentDeck && filters.showUnowned) ? allCardsCache : collection;
+  const sourceList = (!currentDeck && (filters.showUnowned || filters.craftableOnly)) ? allCardsCache : collection;
   let list = sourceList.filter(c=>{
     if((c.subtypes||[]).some(s=>s.trim().toLowerCase()==='conjuration')) return false;
     if(c.type==='Héros') return false; // les héros ont leur propre page dédiée à la fin du classeur
@@ -845,6 +865,16 @@ function getFilteredSortedCollection(){
     }
 
     if(filters.hideOwned && (ownedCollection[c.id]||0) > 0) return false;
+
+    if(filters.craftableOnly){
+      const maxCopies = c.isLegendary ? 1 : MAX_COPIES;
+      const ownedQty = ownedCollection[c.id] || 0;
+      const craftCost = CRAFT_COST_BY_RARITY[c.rarity];
+      // Fabricable = il manque au moins un exemplaire ET cette rareté peut
+      // effectivement être fabriquée (les cartes Basique, par exemple, ne
+      // le peuvent pas — voir renderCraftAction).
+      if(!(ownedQty < maxCopies && craftCost)) return false;
+    }
 
     if(filters.search){
       const inName = c.name.toLowerCase().includes(filters.search);
@@ -1838,6 +1868,44 @@ function onCardClick(card){
    ============================================================ */
 const CRAFT_COST_BY_RARITY = { 'Commune':60, 'Rare':120, 'Épique':240, 'Mythique':500 };
 const GEM_NAMES = {Volonté:'Rubis', Aube:'Diamant', 'Crépuscule':'Obsidienne', Arcane:'Saphir', Prima:'Émeraude', Opale:'Opale'};
+
+// Affiche le solde des 6 types de fragments (un par classe + Opale pour
+// les cartes multiclasse) juste sous les filtres — pratique pour voir
+// d'un coup d'œil ce qu'il manque avant de se lancer dans du craft.
+const FRAGMENT_COLUMNS = [
+  {key:'fragments_aube', label:GEM_NAMES.Aube, chipClass:'aube'},
+  {key:'fragments_crepuscule', label:GEM_NAMES['Crépuscule'], chipClass:'crepuscule'},
+  {key:'fragments_volonte', label:GEM_NAMES.Volonté, chipClass:'volonte'},
+  {key:'fragments_prima', label:GEM_NAMES.Prima, chipClass:'prima'},
+  {key:'fragments_arcane', label:GEM_NAMES.Arcane, chipClass:'arcane'},
+  {key:'fragments_opale', label:GEM_NAMES.Opale, chipClass:'opale'},
+];
+async function renderFragmentsBar(){
+  const bar = document.getElementById('fragments-bar');
+  if(!isLoggedInCache){ bar.style.display = 'none'; return; }
+  const profile = await loadUserProfile();
+  if(!profile){ bar.style.display = 'none'; return; }
+  bar.style.display = 'flex';
+  bar.innerHTML = FRAGMENT_COLUMNS.map(f=>`
+    <div class="currency-chip ${f.chipClass}" title="${f.label} (fragments ${f.chipClass})">
+      <span class="gem-icon"></span> ${profile[f.key]||0}
+    </div>
+  `).join('');
+}
+
+function toggleCraftableOnly(){
+  filters.craftableOnly = !filters.craftableOnly;
+  document.getElementById('craftable-toggle').classList.toggle('active', filters.craftableOnly);
+  // Ces deux filtres se contredisent (l'un cache ce qu'on possède déjà,
+  // l'autre cache ce qu'on possède déjà EN SUFFISANCE) — les cumuler
+  // n'aurait aucun sens, donc on désactive l'autre au passage.
+  if(filters.craftableOnly && filters.hideOwned){
+    filters.hideOwned = false;
+    const hideOwnedCheckbox = document.getElementById('ff-hide-owned');
+    if(hideOwnedCheckbox) hideOwnedCheckbox.checked = false;
+  }
+  renderAll();
+}
 let craftModalCard = null;
 
 function showCraftModal(card){
