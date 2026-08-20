@@ -157,7 +157,7 @@ async function loadLeaderboard(){
     <div class="lb-row ${i===0?'lb-top1':''}">
       <div class="lb-rank">${i+1}</div>
       ${classIcon}
-      <div class="lb-name">${escapeHtml(p.username)}</div>
+      <a class="lb-name" href="spellcraft-profile.html?uid=${encodeURIComponent(p.id)}" style="text-decoration:none;color:inherit;">${escapeHtml(p.username)}</a>
       <div class="lb-wins">${p.total_wins} victoire${p.total_wins>1?'s':''}</div>
     </div>
   `;

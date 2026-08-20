@@ -141,6 +141,7 @@ h1{font-family:'Cinzel',serif;font-weight:900;color:var(--gold);font-size:20px;t
 <script src="spellcraft-auth.js"></script>
 <script>
 let MY_USER_ID = null;
+let VIEWED_USER_ID = null;
 let OWNED_HEROES = [];
 let ALL_ACHIEVEMENTS = [];
 let UNLOCKED_ACHIEVEMENT_IDS = [];
@@ -152,11 +153,16 @@ function escapeHtmlProfile(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&a
 async function initProfile(){
   const { data: { user } } = await sb.auth.getUser();
   MY_USER_ID = user?.id;
+  const params = new URLSearchParams(window.location.search);
+  VIEWED_USER_ID = params.get('uid') || MY_USER_ID;
+  document.getElementById('btn-edit-profile').style.display = (VIEWED_USER_ID===MY_USER_ID) ? '' : 'none';
+  document.getElementById('avatar-circle').style.cursor = (VIEWED_USER_ID===MY_USER_ID) ? 'pointer' : 'default';
+  document.getElementById('avatar-circle').onclick = (VIEWED_USER_ID===MY_USER_ID) ? openEditPanel : null;
   await loadAndRenderProfile();
 }
 
 async function loadAndRenderProfile(){
-  const res = await gsGetProfile(MY_USER_ID);
+  const res = await gsGetProfile(VIEWED_USER_ID);
   if(res.error){ document.getElementById('profile-username').textContent = 'Erreur : ' + res.error; return; }
 
   document.getElementById('profile-username').textContent = res.username;

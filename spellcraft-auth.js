@@ -181,7 +181,7 @@ async function renderAuthWidget(){
     const username = await scGetProfile(user.id);
     widget.innerHTML = `
       <div class="sc-auth-account">
-        <span class="sc-auth-name">👤 ${escapeHtml(username || user.email)}</span>
+        <a class="sc-auth-name" href="spellcraft-profile.html" style="text-decoration:none;color:inherit;">👤 ${escapeHtml(username || user.email)}</a>
         <button class="sc-auth-btn" onclick="scSignOut()">Déconnexion</button>
       </div>`;
   } else {

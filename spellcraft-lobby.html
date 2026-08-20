@@ -432,7 +432,11 @@ function wireActionButtons(){
       const row = document.createElement('div');
       row.className = 'spectate-row';
       row.innerHTML = `
-        <span>${escapeHtmlLobby(s.player1_name)} <span class="vs">vs</span> ${escapeHtmlLobby(s.player2_name || '?')}</span>
+        <span>
+          <a href="spellcraft-profile.html?uid=${encodeURIComponent(s.player1_id)}" style="text-decoration:none;color:inherit;">${escapeHtmlLobby(s.player1_name)}</a>
+          <span class="vs">vs</span>
+          ${s.player2_id ? `<a href="spellcraft-profile.html?uid=${encodeURIComponent(s.player2_id)}" style="text-decoration:none;color:inherit;">${escapeHtmlLobby(s.player2_name)}</a>` : escapeHtmlLobby(s.player2_name || '?')}
+        </span>
         <button>Regarder</button>
       `;
       row.querySelector('button').onclick = async ()=>{
