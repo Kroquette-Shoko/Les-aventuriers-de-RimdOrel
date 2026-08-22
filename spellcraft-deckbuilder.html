@@ -1773,6 +1773,7 @@ function changePage(dir){
 
 function maxCopiesFor(card){
   const ruleMax = card.isLegendary ? 1 : MAX_COPIES;
+  if(currentDeck && currentDeck.isExempt) return ruleMax; // deck spécial (ex: "Appel") — pas plafonné par la possession réelle
   const owned = ownedCollection[card.id] ?? ruleMax; // repli permissif si l'info n'a pas pu être chargée
   return Math.min(ruleMax, owned);
 }

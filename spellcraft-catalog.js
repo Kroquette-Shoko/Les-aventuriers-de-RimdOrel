@@ -170,7 +170,7 @@ async function setUserCardQuantity(cardId, quantity){
 async function loadUserDecks(){
   const user = await scGetCurrentUser();
   if(!user) return [];
-  const { data, error } = await sb.from('user_decks').select('id, name, data, updated_at').order('updated_at', {ascending:false});
+  const { data, error } = await sb.from('user_decks').select('id, name, data, updated_at, is_exempt').order('updated_at', {ascending:false});
   if(error){ console.error('Erreur de chargement des decks', error); return []; }
   return (data||[]).map(row => ({
     id: row.id,
@@ -178,7 +178,8 @@ async function loadUserDecks(){
     heroId: row.data?.heroId ?? null,
     regionId: row.data?.regionId ?? null,
     cards: row.data?.cards || [],
-    cardBackId: row.data?.cardBackId ?? null
+    cardBackId: row.data?.cardBackId ?? null,
+    isExempt: !!row.is_exempt
   }));
 }
 
