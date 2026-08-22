@@ -442,6 +442,11 @@ function wireActionButtons(){
       row.querySelector('button').onclick = async ()=>{
         showLobbyError('');
         const joinRes = await gsJoinAsSpectator(s.room_code);
+        if(joinRes.error === 'game-not-active'){
+          showLobbyError("Cette partie vient de se terminer — la liste a été actualisée.");
+          document.getElementById('btn-spectate-list').click(); // rafraîchit la liste, retire l'entrée périmée
+          return;
+        }
         if(joinRes.error) return showLobbyError('Erreur : ' + joinRes.error);
         goToBoard(joinRes.session_id, 'spectator');
       };
