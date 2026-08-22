@@ -959,9 +959,20 @@ function afterConnected(code){
   // simplement jamais sollicitée, pour pouvoir la réactiver facilement.
 }
 
+let __pendingStateWhileAnimating = null;
 function onStateUpdate(state){
   if(!state || !state.p1){
     debugLog("En attente d'un adversaire pour démarrer la partie...", 'log-ok');
+    return;
+  }
+  // Une animation de combat est en cours (voir queueCombatAnim) : re-rendre
+  // maintenant reconstruirait la carte en plein vol et la ferait
+  // réapparaître à sa position d'origine, PENDANT que son clone animé
+  // continue de se déplacer ailleurs — donnant l'impression trompeuse que
+  // la carte s'est dédoublée. On garde donc cet état de côté, appliqué dès
+  // que la file d'animation sera vide (voir processCombatAnimQueue).
+  if(__combatAnimPlaying){
+    __pendingStateWhileAnimating = state;
     return;
   }
   // vue toujours du point de vue du joueur local : si je suis p2 côté
@@ -1961,19 +1972,20 @@ function renderHand(){
   if(newCount>0) playSfx('draw');
   hand.forEach((card, i)=>{
     const affordable = getEffectiveCostClient(p, card) <= (p.manaNormal + p.manaFragile);
-    const isLockedTrap = card.pendingTrap || card.activeTrap;
-    const canPlay = myTurn && S.phase==='main' && affordable && !UI.selectingAttackers && !isLockedTrap;
+    const isPendingTrap = !!card.pendingTrap;
+    const isLockedTrap = !!card.activeTrap; // un piège déjà armé, lui, reste verrouillé
+    const canPlay = myTurn && S.phase==='main' && affordable && !UI.selectingAttackers && !isLockedTrap && !isPendingTrap;
     const el2 = cardEl(card, {});
     el2.classList.add('hand-card');
     const slot = document.createElement('div');
     slot.className = 'hand-card-slot';
     if(newCount>0 && i>=hand.length-newCount) slot.classList.add('card-just-drawn');
     slot.appendChild(el2);
-    if(!canPlay) el2.style.opacity = '.5';
-    if(isLockedTrap){
+    if(!canPlay && !isPendingTrap) el2.style.opacity = '.5';
+    if(isPendingTrap || isLockedTrap){
       const badge = document.createElement('div');
       badge.style.cssText = 'position:absolute;top:-10px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;padding:2px 8px;border-radius:8px;background:var(--gold);color:#231d33;white-space:nowrap;z-index:6;';
-      badge.textContent = card.activeTrap ? 'Armé' : 'En attente...';
+      badge.textContent = isLockedTrap ? 'Armé' : 'En attente... (cliquer pour annuler)';
       el2.appendChild(badge);
     }
     el2.addEventListener('mouseenter', (ev)=>{ revealHand(); showHeroPreview(card, ev); });
@@ -1983,6 +1995,11 @@ function renderHand(){
       el2.style.cursor = 'grab';
       el2.style.touchAction = 'none';
       el2.addEventListener('pointerdown', (ev)=>startCardDrag(ev, i, el2));
+    } else if(isPendingTrap && myTurn && S.phase==='main' && !UI.selectingAttackers){
+      // Toujours interactif — un simple clic annule le piège, pas besoin de
+      // glisser-déposer puisqu'il ne s'agit pas de le jouer une seconde fois.
+      el2.style.cursor = 'pointer';
+      el2.onclick = ()=>uiSetTrap(i);
     }
     el.appendChild(slot);
   });
@@ -2186,6 +2203,14 @@ async function processCombatAnimQueue(){
   }
   document.body.classList.remove('combat-anim-lock');
   __combatAnimPlaying = false;
+  // Applique maintenant le dernier état arrivé pendant que la file jouait
+  // (voir onStateUpdate) — sinon le plateau resterait figé sur un état
+  // périmé jusqu'à la prochaine mise à jour, qui peut tarder.
+  if(__pendingStateWhileAnimating){
+    const pending = __pendingStateWhileAnimating;
+    __pendingStateWhileAnimating = null;
+    onStateUpdate(pending);
+  }
 }
 function spawnDamageNumber(anchorEl, amount){
   if(!anchorEl || !amount) return;
