@@ -2721,6 +2721,29 @@ function buildEffectRow(ab, eff, choiceKey){
 
   if(def.isStealStat){
     row.appendChild(makeSelectField('Statistique volée', [{key:'force',label:'Force'},{key:'endurance',label:'Endurance'},{key:'charges',label:'Utilisation (charges)'}], eff.stealStatType||'force', v=>{ eff.stealStatType=v; onFormChange(); }));
+    row.appendChild(makeSelectField('Qui reçoit la statistique', [{key:'self',label:'Cette carte'},{key:'chosen',label:'Une cible désignée'}], eff.stealStatReceiver||'self', v=>{ eff.stealStatReceiver=v; rebuildAbilitiesUI(); onFormChange(); }));
+    if(eff.stealStatReceiver==='chosen'){
+      const otherTargets = (ab.targets||[]).filter(t=>t.id!==eff.usesTarget);
+      if(otherTargets.length>0){
+        const opts = otherTargets.map(t=>({key:t.id, label:`Cible ${String.fromCharCode(65+(ab.targets||[]).indexOf(t))}`}));
+        if(!eff.stealStatReceiverTargetId || !otherTargets.some(t=>t.id===eff.stealStatReceiverTargetId)) eff.stealStatReceiverTargetId = otherTargets[0].id;
+        row.appendChild(makeSelectField('Cible qui reçoit', opts, eff.stealStatReceiverTargetId, v=>{ eff.stealStatReceiverTargetId=v; onFormChange(); }));
+        const hint = document.createElement('div');
+        hint.style.cssText = 'font-size:11px;color:var(--parchment-dim);margin-top:2px;';
+        hint.textContent = `"Cible utilisée" ci-dessus reste celle qui PERD la statistique.`;
+        row.appendChild(hint);
+      } else {
+        const warn = document.createElement('div');
+        warn.style.cssText = 'font-size:11px;color:#e88;margin-top:4px;';
+        warn.textContent = "Il faut une seconde cible dans cette capacité pour désigner qui reçoit la statistique.";
+        row.appendChild(warn);
+        const addBtn = document.createElement('button');
+        addBtn.type='button'; addBtn.className='add-row-btn';
+        addBtn.textContent = '+ Ajouter une seconde cible';
+        addBtn.onclick = ()=>{ addTargetEntry(ab.id, choiceKey); };
+        row.appendChild(addBtn);
+      }
+    }
   }
   if(def.isCopyCard){
     row.appendChild(makeSelectField('Destination de la copie', [{key:'battlefield',label:'En jeu'},{key:'hand',label:'En main'},{key:'deck',label:'Dans le deck'}], eff.copyDestination||'battlefield', v=>{ eff.copyDestination=v; rebuildAbilitiesUI(); onFormChange(); }));
@@ -3333,7 +3356,8 @@ function buildEffectClause(eff, ab){
       return `${targetPhrase(resolvedTarget)} ne peut plus être activé ce tour-ci`;
     case 'stealStat': {
       const statLabel = {force:'la Force', endurance:"l'Endurance", charges:"l'utilisation"}[eff.stealStatType||'force'];
-      return `volez ${statLabel} de ${targetPhrase(resolvedTarget)} (elle tombe à 0)`;
+      const receiverPhrase = eff.stealStatReceiver==='chosen' ? ', donnée à la cible désignée pour la recevoir' : ' pour cette carte';
+      return `volez ${statLabel} de ${targetPhrase(resolvedTarget)} (elle tombe à 0)${receiverPhrase}`;
     }
     case 'copyCard': {
       const destLabel = eff.copyDestination==='hand' ? 'dans votre main'
