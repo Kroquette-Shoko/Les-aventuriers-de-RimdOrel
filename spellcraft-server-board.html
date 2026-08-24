@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Spellcraft — Plateau serveur</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@400;500;600;700&display=swap');
@@ -25,7 +26,8 @@
 html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);font-family:'Inter',sans-serif;overflow:hidden;}
 .title-font{font-family:'Cinzel',serif;}
 
-#app-outer{height:100vh;width:100vw;}
+#board-scale-outer{position:fixed;inset:0;background:var(--bg-void,#0b0a12);overflow:hidden;display:flex;align-items:center;justify-content:center;z-index:1;}
+#app-outer{width:1920px;height:1080px;transform-origin:center center;flex-shrink:0;}
 #app{display:flex;height:100%;width:100%;min-height:0;}
 
 /* ---------- Board ---------- */
@@ -609,6 +611,7 @@ body.targeting *{cursor:crosshair !important;}
 
 <button class="ai-debug-btn phase-btn secondary" id="ai-debug-btn" style="display:none;" onclick="uiProcessAi()">Faire jouer l'IA (debug)</button>
 
+<div id="board-scale-outer">
 <div id="app-outer">
   <div class="enemy-hand-row" id="enemy-hand-row"></div>
   <div id="app">
@@ -661,6 +664,7 @@ body.targeting *{cursor:crosshair !important;}
     </div>
   </div>
   <div class="hand-row" id="hand-p1"></div>
+</div>
 </div>
 
 <div class="tip" id="tip"></div>
@@ -719,6 +723,23 @@ const KEYWORD_LABELS = {
   assault:'Assault', debut:'Début', final:'Final'
 };
 function escapeHtmlGS(s){ return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+// ---------------- Mise à l'échelle du plateau ----------------
+// Tout le plateau est construit pour une résolution de référence fixe
+// (1920x1080) — plutôt que de retoucher chaque positionnement en pixels
+// un par un pour chaque taille d'écran (risqué, aurait pu casser
+// l'agencement déjà réglé), toute la zone se redimensionne uniformément
+// pour s'adapter à l'écran réel du joueur, en conservant les proportions
+// (letterboxing si le ratio d'écran diffère de 16:9).
+const BOARD_REF_WIDTH = 1920, BOARD_REF_HEIGHT = 1080;
+function updateBoardScale(){
+  const outer = document.getElementById('app-outer');
+  if(!outer) return;
+  const scale = Math.min(window.innerWidth / BOARD_REF_WIDTH, window.innerHeight / BOARD_REF_HEIGHT);
+  outer.style.transform = `scale(${scale})`;
+}
+window.addEventListener('resize', updateBoardScale);
+updateBoardScale();
 
 let S = null; // état de la partie reçu du serveur
 let MY_KEY = null, OPP_KEY = null;
