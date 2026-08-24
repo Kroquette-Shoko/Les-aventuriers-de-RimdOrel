@@ -1895,6 +1895,9 @@ async function resolvePendingSacrifice(instId){
   } else if(pending.action==='activatePermanent'){
     const targetInfo = pending.targetIsHero ? { isHeroTarget:true, playerKey:pending.targetPlayerKey } : (pending.targetInstId ? { instId:pending.targetInstId } : null);
     await runAction('Capacité activée', ()=>gsActivatePermanent(pending.permanentType, pending.permanentInstId, targetInfo, pending.chosenTargets, instId));
+  } else if(pending.action==='playCardSimple'){
+    const targetInfo = pending.targetIsHero ? { isHeroTarget:true, playerKey:pending.targetPlayerKey } : (pending.targetInstId ? { instId:pending.targetInstId } : null);
+    await runAction('Jouer la carte', ()=>gsPlayCardSimple(pending.handIndex, targetInfo, pending.chosenTargets, pending.choiceKey, instId));
   }
 }
 
@@ -2349,26 +2352,44 @@ function onCardDragEnd(ev){
 
   if(over){
     const card = S[MY_KEY].hand[handIndex];
-    const newTrigger = card && card.type==='Sortilège' ? null : 'onPlay'; // sortilège : n'importe quelle capacité s'applique direct
-    const chosen = card ? findNewFormatChosenTarget(card, newTrigger) : null;
+    // Le choix A/B (s'il y en a un) doit être résolu EN PREMIER, avant
+    // toute logique de ciblage — sinon une carte qui a à la fois une
+    // cible désignée ET un choix ne proposait jamais son choix, puisque
+    // le sélecteur de cible prenait la main avant que uiPlayCard() (qui
+    // contient cette vérification) n'ait jamais la moindre chance de
+    // s'exécuter.
+    const choiceAbility = card ? getUseChoiceAbility(card) : null;
     if(card && card.type==='Piège'){
       uiSetTrap(handIndex);
-    } else if(chosen && card.type==='Créature' && !hasAnyPossibleTargetForPlay(card, chosen.target)){
+    } else if(choiceAbility){
+      showCardChoiceModal(card, choiceAbility, (pickedKey)=>{ continueCardDragDecision(handIndex, pickedKey); });
+    } else {
+      continueCardDragDecision(handIndex, null);
+    }
+  }
+}
+// Suite de la décision après glisser-déposer — extrait de onCardDragEnd
+// pour pouvoir être rejouée une fois un choix A/B résolu (voir ci-dessus),
+// avec le choix maintenant connu (choiceKey).
+function continueCardDragDecision(handIndex, choiceKey){
+    const card = S[MY_KEY].hand[handIndex];
+    const newTrigger = card && card.type==='Sortilège' ? null : 'onPlay'; // sortilège : n'importe quelle capacité s'applique direct
+    const chosen = card ? findNewFormatChosenTarget(card, newTrigger) : null;
+    if(chosen && card.type==='Créature' && !hasAnyPossibleTargetForPlay(card, chosen.target)){
       // Aucune cible possible, même en comptant la créature elle-même une
       // fois posée — contrairement à un sort ou un piège, une créature
       // doit quand même pouvoir être jouée : son effet à la pose ne fera
       // simplement rien faute de cible.
-      uiPlayCard(handIndex);
+      uiPlayCard(handIndex, null, null, choiceKey);
     } else if(chosen){
-      UI.pendingNewTarget = { kind:'card', target: chosen.target, ability: chosen.ability, selectedInstIds: [], extra: { index: handIndex } };
+      UI.pendingNewTarget = { kind:'card', target: chosen.target, ability: chosen.ability, selectedInstIds: [], extra: { index: handIndex, choiceKey } };
       render();
     } else if(card && needsTargetClient(card)){
-      UI.pendingCard = { index: handIndex, card };
+      UI.pendingCard = { index: handIndex, card, choiceKey };
       render();
     } else {
-      uiPlayCard(handIndex);
+      uiPlayCard(handIndex, null, null, choiceKey);
     }
-  }
 }
 
 // Affiche un compte à rebours — interpolé localement entre deux passages du
