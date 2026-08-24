@@ -946,6 +946,8 @@ const RETRIEVE_CRITERIA = [
 const CONJURE_DESTINATIONS = [
   {key:'hand', label:'dans votre main'},
   {key:'battlefield', label:'directement en jeu'},
+  {key:'battlefield_attacking', label:'en jeu, attaquante'},
+  {key:'cast', label:'en jeu, lancée (pour un sort)'},
   {key:'deck', label:'mélangée dans votre deck'}
 ];
 
@@ -3553,6 +3555,8 @@ function numericFilterPhrase(eff, modeKey, valueKey, label){
 
 function conjureClause(eff){
   const destPhrase = eff.conjureDestination==='battlefield' ? ', directement en jeu'
+    : eff.conjureDestination==='battlefield_attacking' ? ', directement en jeu et attaquante'
+    : eff.conjureDestination==='cast' ? ', lancée directement (comme si elle était jouée)'
     : eff.conjureDestination==='deck' ? ', mélangée dans votre deck' : '';
   const isDynQty = eff.conjureQuantityMode==='dynamic';
   const qty = eff.conjureQuantity||1;
