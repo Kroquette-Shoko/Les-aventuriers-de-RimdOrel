@@ -114,6 +114,27 @@ async function gsUpdateProfileCustomization(avatarHeroName, featuredAchievements
   if (error) return { error: error.message || String(error) };
   return data;
 }
+async function gsGetLatestPatchNote(userId) {
+  const { data, error } = await sb.functions.invoke('game-action', {
+    body: { action: 'getLatestPatchNote', userId }
+  });
+  if (error) return { error: error.message || String(error) };
+  return data;
+}
+async function gsMarkPatchNotesSeen() {
+  const { data, error } = await sb.functions.invoke('game-action', {
+    body: { action: 'markPatchNotesSeen' }
+  });
+  if (error) return { error: error.message || String(error) };
+  return data;
+}
+async function gsPublishPatchNote(content) {
+  const { data, error } = await sb.functions.invoke('game-action', {
+    body: { action: 'publishPatchNote', content }
+  });
+  if (error) return { error: error.message || String(error) };
+  return data;
+}
 
 // ------------------------------------------------------------
 // Matchmaking — file d'attente semi-aléatoire, en complément des parties

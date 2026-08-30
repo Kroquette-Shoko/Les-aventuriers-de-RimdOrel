@@ -137,6 +137,12 @@ footer strong{color:var(--parchment);}
       <span class="poster-label">Boutique</span>
     </a>
 
+    <button class="poster poster-wall-left" id="patchnote-btn" onclick="openPatchNotes()" style="border:none;cursor:pointer;background:none;padding:0;font-family:inherit;position:relative;">
+      <img src="images/hub-poster-patchnote.png" alt="Notes de version">
+      <span class="poster-label">Notes de version</span>
+      <span id="patchnote-badge" style="display:none;position:absolute;top:-6px;right:6px;width:26px;height:26px;border-radius:50%;background:#ffd23f;color:#231d33;font-weight:900;font-size:17px;align-items:center;justify-content:center;box-shadow:0 0 12px rgba(255,210,63,.9);">!</span>
+    </button>
+
     <a class="poster poster-right" href="spellcraft-deckbuilder.html" title="Ta collection et tes decks">
       <img src="images/hub-poster-collection.png" alt="Collection et Deck">
       <span class="poster-label">Collection &amp; Deck</span>
@@ -160,12 +166,112 @@ footer strong{color:var(--parchment);}
   </div>
 </div>
 
+<!-- ---------------- Notes de version ---------------- -->
+<div id="patchnote-overlay" style="display:none;position:fixed;inset:0;background:rgba(11,10,18,.92);z-index:200;align-items:center;justify-content:center;">
+  <div id="patchnote-panel" style="background:#171325;border:1.5px solid #3a3260;border-radius:14px;padding:22px 26px;max-width:640px;width:92%;max-height:82vh;overflow-y:auto;position:relative;">
+    <button onclick="closePatchNotes()" style="position:absolute;top:12px;right:14px;background:none;border:none;color:#d9cfae;font-size:20px;cursor:pointer;">✕</button>
+    <h2 style="font-family:'Cinzel',serif;color:#d4af37;margin:0 0 4px;">Notes de version</h2>
+    <button id="patchnote-gear-btn" onclick="openPatchNoteEditor()" title="Modifier (Kroquette uniquement)" style="display:none;position:absolute;top:14px;right:44px;background:none;border:none;font-size:18px;cursor:pointer;">⚙️</button>
+
+    <div id="patchnote-view-mode">
+      <div id="patchnote-content" style="font-size:13.5px;line-height:1.6;color:#efe6c8;margin-top:14px;"></div>
+      <p id="patchnote-empty" style="display:none;color:#d9cfae;font-size:13px;text-align:center;padding:20px 0;">Aucune note de version pour l'instant.</p>
+    </div>
+
+    <div id="patchnote-edit-mode" style="display:none;margin-top:14px;">
+      <div id="patchnote-toolbar" style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+        <button type="button" onclick="document.execCommand('bold')" style="font-weight:700;" class="pn-tb-btn">G</button>
+        <button type="button" onclick="document.execCommand('italic')" style="font-style:italic;" class="pn-tb-btn">I</button>
+        <button type="button" onclick="document.execCommand('underline')" style="text-decoration:underline;" class="pn-tb-btn">S</button>
+        <button type="button" onclick="document.execCommand('insertUnorderedList')" class="pn-tb-btn">• Liste</button>
+        <button type="button" onclick="document.execCommand('formatBlock', false, 'H3')" class="pn-tb-btn">Titre</button>
+        <button type="button" onclick="document.execCommand('formatBlock', false, 'P')" class="pn-tb-btn">Texte</button>
+      </div>
+      <div id="patchnote-editable" contenteditable="true" style="background:#1f1a30;border:1.5px solid #3a3260;border-radius:8px;padding:12px;min-height:220px;color:#efe6c8;font-size:13.5px;line-height:1.6;"></div>
+      <div style="display:flex;gap:10px;margin-top:12px;">
+        <button onclick="cancelPatchNoteEdit()" style="flex:1;padding:9px;border-radius:8px;background:transparent;border:1.5px solid #3a3260;color:#d9cfae;cursor:pointer;">Annuler</button>
+        <button onclick="savePatchNote()" style="flex:1;padding:9px;border-radius:8px;background:#7c5cff;border:none;color:#fff;font-weight:600;cursor:pointer;">Publier cette version</button>
+      </div>
+      <div id="patchnote-edit-status" style="font-size:11.5px;color:#d9cfae;margin-top:8px;min-height:14px;"></div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .pn-tb-btn{background:#241f38;border:1px solid #3a3260;color:#efe6c8;border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;}
+  .pn-tb-btn:hover{border-color:#d4af37;}
+  #patchnote-content h3{font-family:'Cinzel',serif;color:#d4af37;font-size:14px;margin:14px 0 6px;}
+  #patchnote-content ul{padding-left:20px;}
+</style>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="spellcraft-shared.js"></script>
+<script src="spellcraft-server-client.js"></script>
 <script src="spellcraft-auth.js"></script>
 <script>
-initSpellcraftAuth();
+initSpellcraftAuth().then(initPatchNotesBadge);
 playMusic('menu', {loop:true, volume:0.35});
+
+let PATCHNOTE_CAN_EDIT = false;
+let MY_USER_ID_HUB = null;
+
+async function initPatchNotesBadge(){
+  const { data: { user } } = await sb.auth.getUser();
+  MY_USER_ID_HUB = user?.id;
+  if(!MY_USER_ID_HUB) return;
+  const res = await gsGetLatestPatchNote(MY_USER_ID_HUB);
+  if(res.error) return;
+  document.getElementById('patchnote-badge').style.display = res.hasUnread ? 'flex' : 'none';
+}
+
+async function openPatchNotes(){
+  const overlay = document.getElementById('patchnote-overlay');
+  overlay.style.display = 'flex';
+  document.getElementById('patchnote-edit-mode').style.display = 'none';
+  document.getElementById('patchnote-view-mode').style.display = 'block';
+
+  const res = await gsGetLatestPatchNote(MY_USER_ID_HUB);
+  if(res.error) return;
+  PATCHNOTE_CAN_EDIT = !!res.canEdit;
+  document.getElementById('patchnote-gear-btn').style.display = PATCHNOTE_CAN_EDIT ? 'block' : 'none';
+
+  if(res.content){
+    document.getElementById('patchnote-content').innerHTML = res.content;
+    document.getElementById('patchnote-content').style.display = 'block';
+    document.getElementById('patchnote-empty').style.display = 'none';
+  } else {
+    document.getElementById('patchnote-content').style.display = 'none';
+    document.getElementById('patchnote-empty').style.display = 'block';
+  }
+
+  if(MY_USER_ID_HUB){
+    await gsMarkPatchNotesSeen();
+    document.getElementById('patchnote-badge').style.display = 'none';
+  }
+}
+function closePatchNotes(){
+  document.getElementById('patchnote-overlay').style.display = 'none';
+}
+function openPatchNoteEditor(){
+  document.getElementById('patchnote-view-mode').style.display = 'none';
+  document.getElementById('patchnote-edit-mode').style.display = 'block';
+  document.getElementById('patchnote-editable').innerHTML = document.getElementById('patchnote-content').innerHTML || '';
+  document.getElementById('patchnote-edit-status').textContent = '';
+}
+function cancelPatchNoteEdit(){
+  document.getElementById('patchnote-edit-mode').style.display = 'none';
+  document.getElementById('patchnote-view-mode').style.display = 'block';
+}
+async function savePatchNote(){
+  const statusEl = document.getElementById('patchnote-edit-status');
+  const content = document.getElementById('patchnote-editable').innerHTML.trim();
+  if(!content){ statusEl.textContent = 'Écris quelque chose avant de publier.'; return; }
+  statusEl.textContent = 'Publication en cours...';
+  const res = await gsPublishPatchNote(content);
+  if(res.error){ statusEl.textContent = 'Erreur : ' + res.error; return; }
+  statusEl.textContent = 'Publié !';
+  setTimeout(()=>{ openPatchNotes(); }, 600);
+}
 </script>
 
 </body>
