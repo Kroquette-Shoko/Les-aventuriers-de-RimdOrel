@@ -342,7 +342,15 @@ header .spacer{flex:1;}
 <script>
 const RARITY_COLORS = {Basique:'#8a7f6a', Commune:'#c7c2b3', Rare:'#4fb3d9', Épique:'#7c5cff', Mythique:'#d4af37'};
 const BOOSTER_PRICE = 120;
-const SINGLE_CARD_PRICES = {Basique:20, Commune:50, Rare:150, 'Épique':250, 'Mythique':500};
+const SINGLE_CARD_PRICES = {Basique:20, Commune:50, Rare:250, 'Épique':500, 'Mythique':1000};
+const SINGLE_CARD_LEGENDARY_PRICE = 2000;
+// Reproduit exactement single_card_price_for_rarity côté serveur (addendum
+// 39) — une carte Légendaire coûte toujours 2000, peu importe sa rareté de
+// base, avant même de regarder la table normale.
+function singleCardPriceFor(c){
+  if(c.isLegendary) return SINGLE_CARD_LEGENDARY_PRICE;
+  return SINGLE_CARD_PRICES[c.rarity] ?? 50;
+}
 const GEM_NAMES = {Volonté:'Rubis', Aube:'Diamant', 'Crépuscule':'Obsidienne', Arcane:'Saphir', Prima:'Émeraude', Opale:'Opale'};
 const GEM_ICON_FILES = {Volonté:'gem-vol.png', Aube:'gem-aub.png', 'Crépuscule':'gem-crep.png', Arcane:'gem-arc.png', Prima:'gem-prim.png', Opale:'gem-multi.png'};
 
@@ -466,7 +474,7 @@ async function renderSingleShelf(){
     wrap.appendChild(label);
     const price = document.createElement('div');
     price.className = 'shop-item-price';
-    price.innerHTML = `<span class="money-icon"></span> ${SINGLE_CARD_PRICES[c.rarity] ?? 50}`;
+    price.innerHTML = `<span class="money-icon"></span> ${singleCardPriceFor(c)}`;
     wrap.appendChild(price);
     const btn = document.createElement('button');
     if(alreadyBought){
