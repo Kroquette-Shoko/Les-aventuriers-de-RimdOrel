@@ -284,6 +284,7 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 
 .enemy-hand-row{position:fixed;top:0;left:0;right:0;z-index:39;display:flex;flex-wrap:nowrap;overflow:visible;gap:6px;justify-content:center;padding:6px 14px 30px;pointer-events:none;}
 .enemy-hand-card{width:92px;height:130px;border-radius:8px;background-size:cover;background-position:center;background-color:#2a2440;border:2px solid #3a3260;box-shadow:0 4px 10px rgba(0,0,0,.5);transform:rotate(180deg);flex-shrink:0;}
+.enemy-hand-card-revealed{flex-shrink:0;transform:scale(.72);transform-origin:top center;margin:0 -18px;}
 
 .side-zone{position:absolute;display:flex;flex-direction:column;gap:8px;z-index:6;}
 .side-zone.self{right:16px;top:calc(50% + 100px);}
@@ -551,7 +552,8 @@ body.targeting *{cursor:crosshair !important;}
   /* ---------- Menus repliables (journal / chat) ---------- */
   .phase-bar-wrap{position:relative;}
   .menu-toggles-row{position:absolute;bottom:100%;right:0;margin-bottom:6px;display:flex;gap:6px;}
-  #emote-toggle-btn, #journal-toggle-btn, #leave-game-btn, #report-bug-btn{width:44px;height:36px;border-radius:10px;background:rgba(23,19,37,.85);border:2px solid rgba(212,175,55,.45);color:#f2ead2;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
+  #emote-toggle-btn, #journal-toggle-btn, #leave-game-btn, #report-bug-btn, #reveal-hand-toggle-btn{width:44px;height:36px;border-radius:10px;background:rgba(23,19,37,.85);border:2px solid rgba(212,175,55,.45);color:#f2ead2;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
+  #reveal-hand-toggle-btn.active{border-color:var(--gold,#d4af37);background:rgba(212,175,55,.25);}
   #bug-report-panel{
     display:none;position:fixed;top:60px;right:20px;z-index:9990;width:280px;
     background:rgba(15,12,24,.97);border:1.5px solid var(--gold);border-radius:12px;padding:14px;
@@ -630,6 +632,7 @@ body.targeting *{cursor:crosshair !important;}
           <div class="phase-bar-wrap">
             <div class="menu-toggles-row">
               <button id="emote-toggle-btn" title="Émotes" onclick="toggleEmotePanel()">😄</button>
+              <button id="reveal-hand-toggle-btn" title="Révéler ma main aux spectateurs" onclick="toggleRevealHandToSpectators()" style="display:none;">🙈</button>
               <button id="journal-toggle-btn" title="Journal" onclick="toggleJournal()">📜</button>
               <button id="leave-game-btn" title="Quitter la partie" onclick="uiLeaveGame()">🚪</button>
               <button id="report-bug-btn" title="Signaler un problème" onclick="openBugReportPanel()">🐞</button>
@@ -1395,6 +1398,7 @@ function render(){
   renderArtifactStack(MY_KEY, 'p1');
   renderArtifactStack(OPP_KEY, 'p2');
   renderHand();
+  renderRevealHandToggle();
   renderEnemyHand();
   renderPhaseBar();
   renderGameOverOverlay();
@@ -1973,8 +1977,20 @@ function renderEnemyHand(){
   if(!el || !S) return;
   el.innerHTML = '';
   const opp = S[OPP_KEY];
-  const backUrl = opp && opp.cardBackUrl;
-  const count = opp ? (opp.hand||[]).length : 0;
+  if(!opp) return;
+  // En mode spectateur, cette main (celle du "haut") devient visible en
+  // clair si son propriétaire a activé le partage — sinon dos de cartes
+  // comme d'habitude.
+  if(GS_ROLE==='spectator' && opp.showHandToSpectators){
+    (opp.hand||[]).forEach(card=>{
+      const c = cardEl(card, {});
+      c.classList.add('enemy-hand-card-revealed');
+      el.appendChild(c);
+    });
+    return;
+  }
+  const backUrl = opp.cardBackUrl;
+  const count = (opp.hand||[]).length;
   for(let i=0;i<count;i++){
     const c = document.createElement('div');
     c.className = 'enemy-hand-card';
@@ -1982,12 +1998,47 @@ function renderEnemyHand(){
     el.appendChild(c);
   }
 }
+// Bouton œil (révéler sa main aux spectateurs) — visible uniquement pour
+// les deux joueurs (pas pour un spectateur lui-même, qui n'a pas de main
+// à révéler), reflète l'état réel à chaque rendu.
+function renderRevealHandToggle(){
+  const btn = document.getElementById('reveal-hand-toggle-btn');
+  if(!btn) return;
+  if(GS_ROLE!=='p1' && GS_ROLE!=='p2'){ btn.style.display = 'none'; return; }
+  btn.style.display = 'flex';
+  const revealed = !!S[MY_KEY].showHandToSpectators;
+  btn.textContent = revealed ? '👁️' : '🙈';
+  btn.title = revealed ? 'Les spectateurs voient ta main — cliquer pour la cacher' : 'Révéler ta main aux spectateurs';
+  btn.classList.toggle('active', revealed);
+}
+async function toggleRevealHandToSpectators(){
+  const currentlyRevealed = !!S[MY_KEY].showHandToSpectators;
+  await runAction('Main révélée', ()=>gsSetShowHandToSpectators(!currentlyRevealed));
+}
+
 function renderHand(){
   const el = document.getElementById('hand-p1');
   el.innerHTML = '';
   const p = S[MY_KEY];
   const myTurn = S.active===MY_KEY;
   const hand = p.hand||[];
+  // Correctif d'un vrai bug préexistant : un spectateur héritait de
+  // MY_KEY='p1' par défaut (voir plus haut), ce qui lui montrait la main
+  // de p1 en clair sans le vouloir, en permanence. Désormais, en mode
+  // spectateur, cette main ne s'affiche en clair que si son propriétaire
+  // a explicitement activé le partage — sinon dos de cartes, comme pour
+  // l'autre main.
+  if(GS_ROLE==='spectator' && !p.showHandToSpectators){
+    el.innerHTML = '';
+    const backUrl = p.cardBackUrl;
+    hand.forEach(()=>{
+      const c = document.createElement('div');
+      c.className = 'enemy-hand-card';
+      if(backUrl) c.style.backgroundImage = `url('${backUrl.replace(/'/g,"")}')`;
+      el.appendChild(c);
+    });
+    return;
+  }
   // anime les cartes nouvellement arrivées en main depuis le dernier rendu
   // (mulligan, pioche normale, etc.) — repose sur le fait que les nouvelles
   // cartes sont toujours ajoutées à la fin côté serveur.
@@ -1998,7 +2049,7 @@ function renderHand(){
     const affordable = getEffectiveCostClient(p, card) <= (p.manaNormal + p.manaFragile);
     const isPendingTrap = !!card.pendingTrap;
     const isLockedTrap = !!card.activeTrap; // un piège déjà armé, lui, reste verrouillé
-    const canPlay = myTurn && S.phase==='main' && affordable && !UI.selectingAttackers && !isLockedTrap && !isPendingTrap;
+    const canPlay = GS_ROLE!=='spectator' && myTurn && S.phase==='main' && affordable && !UI.selectingAttackers && !isLockedTrap && !isPendingTrap;
     const el2 = cardEl(card, {});
     el2.classList.add('hand-card');
     const slot = document.createElement('div');
@@ -2801,6 +2852,14 @@ async function initFromUrl(){
   // gagner le joueur humain par forfait automatique, comme si l'IA s'était
   // déconnectée.
   GS_VS_AI = params.get('vsai') === '1';
+  // Signal de présence régulier, pour que "Regarder une partie" (dans le
+  // lobby) sache distinguer une partie vraiment en cours d'une partie
+  // abandonnée — uniquement pour les deux joueurs, pas les spectateurs
+  // (c'est leur présence à eux qui détermine si la partie est "vivante").
+  if((GS_ROLE==='p1' || GS_ROLE==='p2') && !GS_VS_AI){
+    gsRecordPresence(GS_SESSION_ID);
+    setInterval(()=>gsRecordPresence(GS_SESSION_ID), 20000);
+  }
   // Musique dédiée au combat : rotation entre combat-1 à combat-4 (déjà
   // construite dans spellcraft-shared.js) pour toute la durée de la
   // partie — j'utilisais par erreur playMusic('combat',...) qui cherchait

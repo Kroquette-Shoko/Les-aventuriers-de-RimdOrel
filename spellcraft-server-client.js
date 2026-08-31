@@ -135,6 +135,13 @@ async function gsPublishPatchNote(content) {
   if (error) return { error: error.message || String(error) };
   return data;
 }
+async function gsRecordPresence(sessionId) {
+  const { data, error } = await sb.functions.invoke('game-action', {
+    body: { action: 'recordPresence', sessionId }
+  });
+  if (error) return { error: error.message || String(error) };
+  return data;
+}
 
 // ------------------------------------------------------------
 // Matchmaking — file d'attente semi-aléatoire, en complément des parties
