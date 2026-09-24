@@ -135,6 +135,20 @@ async function gsPublishPatchNote(content) {
   if (error) return { error: error.message || String(error) };
   return data;
 }
+async function gsGetTutorialStatus() {
+  const { data, error } = await sb.functions.invoke('game-action', {
+    body: { action: 'getTutorialStatus' }
+  });
+  if (error) return { error: error.message || String(error) };
+  return data;
+}
+async function gsMarkTutorialCompleted() {
+  const { data, error } = await sb.functions.invoke('game-action', {
+    body: { action: 'markTutorialCompleted' }
+  });
+  if (error) return { error: error.message || String(error) };
+  return data;
+}
 async function gsRecordPresence(sessionId) {
   const { data, error } = await sb.functions.invoke('game-action', {
     body: { action: 'recordPresence', sessionId }

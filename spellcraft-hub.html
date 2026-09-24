@@ -159,9 +159,15 @@ footer strong{color:var(--parchment);}
     </a>
   </div>
 
-  <div style="text-align:center;margin-top:10px;">
+  <div style="text-align:center;margin-top:10px;display:flex;gap:10px;justify-content:center;">
     <a href="spellcraft-match-history.html" style="color:var(--parchment-dim,#d9cfae);font-size:12px;text-decoration:none;border:1px solid #3a3260;border-radius:8px;padding:6px 14px;">
       📜 Historique des parties
+    </a>
+    <a href="spellcraft-tutorial.html" style="color:var(--parchment-dim,#d9cfae);font-size:12px;text-decoration:none;border:1px solid #3a3260;border-radius:8px;padding:6px 14px;">
+      📖 Revoir le tutoriel
+    </a>
+    <a href="spellcraft-grimoire.html" style="color:var(--parchment-dim,#d9cfae);font-size:12px;text-decoration:none;border:1px solid #3a3260;border-radius:8px;padding:6px 14px;">
+      📜 Le Grimoire (règles complètes)
     </a>
   </div>
 </div>
@@ -209,7 +215,7 @@ footer strong{color:var(--parchment);}
 <script src="spellcraft-server-client.js"></script>
 <script src="spellcraft-auth.js"></script>
 <script>
-initSpellcraftAuth().then(initPatchNotesBadge);
+initSpellcraftAuth().then(initPatchNotesBadge).then(checkTutorialAutoLaunch);
 playMusic('menu', {loop:true, volume:0.35});
 
 let PATCHNOTE_CAN_EDIT = false;
@@ -222,6 +228,16 @@ async function initPatchNotesBadge(){
   const res = await gsGetLatestPatchNote(MY_USER_ID_HUB);
   if(res.error) return;
   document.getElementById('patchnote-badge').style.display = res.hasUnread ? 'flex' : 'none';
+}
+
+async function checkTutorialAutoLaunch(){
+  if(!MY_USER_ID_HUB) return; // pas connecté : rien à vérifier
+  try {
+    const res = await gsGetTutorialStatus();
+    if(res && res.ok && res.completed === false){
+      window.location.href = 'spellcraft-tutorial.html';
+    }
+  } catch(e) { /* si l'appel échoue, on ne bloque pas l'accès au hub */ }
 }
 
 async function openPatchNotes(){

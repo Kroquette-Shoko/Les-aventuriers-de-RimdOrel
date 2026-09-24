@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Le Grimoire — Les aventuriers de Rimd'Orël</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg-void:#0b0a12;
+  --bg-panel:#171325;
+  --bg-panel-2:#1f1a30;
+  --parchment:#efe6c8;
+  --parchment-dim:#d9cfae;
+  --ink:#1c1830;
+  --arcane:#7c5cff;
+  --gold:#d4af37;
+  --blood:#c23b3b;
+  --frost:#4fb3d9;
+  --green:#4a9d6b;
+  --border:#3a3260;
+}
+*{box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{margin:0;background:var(--bg-void);color:var(--parchment);font-family:'Inter',sans-serif;}
+a{color:var(--frost);}
+
+#topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:var(--bg-panel);border-bottom:1px solid rgba(212,175,55,.3);}
+#topbar h1{font-family:'Cinzel',serif;font-size:16px;color:var(--gold);margin:0;}
+#topbar a.back{color:var(--parchment-dim);text-decoration:none;font-size:12.5px;border:1px solid var(--border);border-radius:8px;padding:7px 13px;}
+#topbar a.back:hover{border-color:var(--gold);color:var(--gold);}
+
+#layout{display:flex;max-width:1180px;margin:0 auto;padding:24px 20px 80px;gap:32px;align-items:flex-start;}
+
+#toc{position:sticky;top:64px;width:230px;flex-shrink:0;background:var(--bg-panel);border:1px solid var(--border);border-radius:12px;padding:16px;font-size:13px;}
+#toc h2{font-family:'Cinzel',serif;font-size:12px;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin:0 0 10px;}
+#toc ol{margin:0;padding-left:18px;color:var(--parchment-dim);}
+#toc li{margin-bottom:7px;line-height:1.35;}
+#toc a{color:var(--parchment-dim);text-decoration:none;}
+#toc a:hover{color:var(--gold);}
+
+main{flex:1;min-width:0;}
+section{background:var(--bg-panel);border:1px solid var(--border);border-radius:14px;padding:22px 26px;margin-bottom:20px;scroll-margin-top:72px;}
+section h2{font-family:'Cinzel',serif;color:var(--gold);font-size:19px;margin:0 0 4px;display:flex;align-items:center;gap:8px;}
+section h3{font-family:'Cinzel',serif;color:var(--parchment);font-size:14.5px;margin:18px 0 8px;}
+section p{line-height:1.65;font-size:14px;color:var(--parchment);}
+section p.dim{color:var(--parchment-dim);font-size:13px;}
+section ul, section ol.steps{line-height:1.65;font-size:14px;padding-left:22px;}
+section ol.steps > li{margin-bottom:6px;}
+.badge{display:inline-block;font-family:'Cinzel',serif;font-size:10.5px;font-weight:700;padding:2px 9px;border-radius:12px;background:var(--bg-panel-2);border:1px solid var(--border);color:var(--parchment-dim);margin-left:4px;}
+
+table.kw{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px;}
+table.kw th{text-align:left;font-family:'Cinzel',serif;color:var(--gold);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;padding:6px 10px;border-bottom:2px solid var(--border);}
+table.kw td{padding:9px 10px;border-bottom:1px solid rgba(58,50,96,.5);vertical-align:top;}
+table.kw tr:hover td{background:rgba(124,92,255,.06);}
+table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
+
+.cardtype-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-top:10px;}
+.cardtype{background:var(--bg-panel-2);border:1px solid var(--border);border-radius:10px;padding:13px 15px;}
+.cardtype h4{font-family:'Cinzel',serif;color:var(--gold);margin:0 0 6px;font-size:13.5px;}
+.cardtype p{margin:0;font-size:12.5px;color:var(--parchment-dim);line-height:1.5;}
+
+.trigger-cat{margin-top:6px;}
+.trigger-cat h4{font-family:'Cinzel',serif;color:var(--frost);font-size:13px;margin:14px 0 6px;}
+.trigger-cat ul{margin:0;}
+.trigger-cat li{margin-bottom:4px;}
+.trigger-cat code{background:var(--bg-panel-2);border:1px solid var(--border);border-radius:5px;padding:1px 6px;color:var(--parchment);font-style:normal;font-size:12.5px;}
+
+.callout{background:rgba(124,92,255,.1);border:1px solid rgba(124,92,255,.4);border-radius:10px;padding:12px 15px;font-size:13px;color:var(--parchment-dim);margin-top:12px;}
+.callout.warn{background:rgba(194,59,59,.1);border-color:rgba(194,59,59,.4);}
+.callout strong{color:var(--parchment);}
+
+@media (max-width:880px){
+  #layout{flex-direction:column;}
+  #toc{position:static;width:100%;}
+}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <h1>📖 Le Grimoire — Règles complètes</h1>
+  <a class="back" href="spellcraft-hub.html">← Retour au hub</a>
+</div>
+
+<div id="layout">
+  <nav id="toc">
+    <h2>Sommaire</h2>
+    <ol>
+      <li><a href="#objectif">Objectif du jeu</a></li>
+      <li><a href="#mise-en-place">Mise en place</a></li>
+      <li><a href="#tour">Déroulé d'un tour</a></li>
+      <li><a href="#mana">Le mana</a></li>
+      <li><a href="#types">Les types de cartes</a></li>
+      <li><a href="#combat">Le combat</a></li>
+      <li><a href="#motscles">Les mots-clés</a></li>
+      <li><a href="#pieges">Les pièges</a></li>
+      <li><a href="#declencheurs">Lire une capacité</a></li>
+      <li><a href="#fin">Fin de partie</a></li>
+    </ol>
+  </nav>
+
+  <main>
+
+    <section id="objectif">
+      <h2>1. Objectif du jeu</h2>
+      <p>Chaque joueur incarne un <strong>Héros</strong>, soutenu par une <strong>Région</strong>, et affronte son adversaire avec un deck de créatures, sortilèges, artefacts et pièges. Le but : ramener les points de vie (PV) du héros adverse à 0 avant que le vôtre ne tombe — ou faire en sorte que l'adversaire n'ait plus de carte à piocher.</p>
+      <p class="dim">Un héros démarre en général avec 30 PV (cette valeur dépend du héros choisi).</p>
+    </section>
+
+    <section id="mise-en-place">
+      <h2>2. Mise en place d'une partie</h2>
+      <ol class="steps">
+        <li>Chaque joueur choisit un <strong>deck</strong> (héros + région + cartes).</li>
+        <li>Les decks sont mélangés, chacun pioche une <strong>main de départ de 4 cartes</strong>.</li>
+        <li><strong>Mulligan</strong> : avant que la partie ne commence vraiment, chaque joueur peut renvoyer autant de cartes qu'il le souhaite parmi ces 4 — elles sont mélangées dans le deck et remplacées par de nouvelles cartes piochées au hasard.</li>
+        <li>Une fois les deux joueurs prêts, la partie démarre : le premier joueur actif est désigné, et le premier tour commence.</li>
+      </ol>
+      <div class="callout">Le mulligan sert à se débarrasser d'une main trop chère à jouer (que des cartes à 5-6 mana, par exemple) sans pénalité — vous ne savez juste pas à l'avance ce que vous repiocherez à la place.</div>
+    </section>
+
+    <section id="tour">
+      <h2>3. Déroulé d'un tour</h2>
+      <p>Un tour se déroule toujours dans le même ordre :</p>
+      <ol class="steps">
+        <li><strong>Début de tour</strong> — votre mana maximum augmente de 1 (jusqu'à 20), votre mana disponible est rechargé à ce maximum, vous piochez une carte, et les capacités "Au début de votre tour" se déclenchent.</li>
+        <li><strong>Phase principale</strong> — vous pouvez, dans l'ordre que vous voulez et autant de fois que votre mana le permet : jouer des cartes de votre main (créatures, sortilèges, artefacts, pièges), activer les capacités activables de vos créatures/artefacts/région déjà en jeu, et utiliser le pouvoir de votre héros (une fois par tour).</li>
+        <li><strong>Déclaration des attaquants</strong> — vous désignez les créatures qui attaquent ce tour-ci (celles qui n'ont pas de fatigue d'invocation et ne sont pas endormies/étourdies).</li>
+        <li><strong>Blocage</strong> — l'adversaire désigne, pour chaque attaquant, une créature de son plateau pour le bloquer (ou laisse passer, auquel cas les dégâts touchent son héros directement).</li>
+        <li><strong>Résolution du combat</strong> — les dégâts sont appliqués simultanément des deux côtés d'un affrontement (attaquant ↔ bloqueur), les créatures à 0 PV ou moins meurent.</li>
+        <li><strong>Fin de tour</strong> — les capacités "À la fin de votre tour" se déclenchent, les effets temporaires ("ce tour-ci") expirent, les créatures Fugaces meurent, et la main passe à l'adversaire.</li>
+      </ol>
+    </section>
+
+    <section id="mana">
+      <h2>4. Le mana</h2>
+      <p>Le mana sert à payer le coût des cartes et des capacités activées. Il existe deux réserves, qui se cumulent :</p>
+      <ul>
+        <li><strong>Mana normal</strong> — votre réserve principale. Son maximum augmente de 1 chaque tour (jusqu'à 20), et elle se recharge intégralement à son maximum au début de chaque tour.</li>
+        <li><strong>Mana fragile</strong> — un bonus ponctuel accordé par certains effets ou par votre région. Il s'ajoute par-dessus le mana normal.</li>
+      </ul>
+      <p class="dim">Quand vous payez un coût, le mana normal est toujours dépensé en premier ; le mana fragile ne sert que pour le complément si le normal ne suffit pas.</p>
+    </section>
+
+    <section id="types">
+      <h2>5. Les types de cartes</h2>
+      <div class="cardtype-grid">
+        <div class="cardtype"><h4>Héros</h4><p>Vous en avez un seul, choisi à la construction du deck. Il porte vos PV et un pouvoir unique, utilisable une fois par tour.</p></div>
+        <div class="cardtype"><h4>Région</h4><p>Une seule également. Elle influence la façon dont vous gagnez du mana (bonus fragile, remplacement du gain normal...) et peut avoir ses propres capacités.</p></div>
+        <div class="cardtype"><h4>Créature</h4><p>A une Force (dégâts infligés au combat) et des PV. Peut attaquer et bloquer. Nouvellement arrivée, elle a la <em>fatigue d'invocation</em> et ne peut pas attaquer ce tour-ci (sauf mot-clé Charge).</p></div>
+        <div class="cardtype"><h4>Artefact</h4><p>Reste en jeu sans combattre. Offre en général une capacité passive ou activable. Peut avoir des charges limitées.</p></div>
+        <div class="cardtype"><h4>Sortilège</h4><p>Effet ponctuel résolu immédiatement, puis la carte part en défausse. Souvent, demande une cible.</p></div>
+        <div class="cardtype"><h4>Piège</h4><p>Se pose face cachée, sans effet immédiat. Se déclenche automatiquement plus tard, dès que sa condition est remplie (voir section 8).</p></div>
+      </div>
+      <p class="dim" style="margin-top:12px;">Chaque carte a aussi une <strong>classe</strong> (Aube, Crépuscule, Volonté, Prima, Arcane ou Neutre) qui la relie à une couleur/identité de jeu, et une <strong>rareté</strong> (Basique, Commune, Rare, Épique, Mythique) qui influence surtout la collection et le craft, pas les règles elles-mêmes.</p>
+    </section>
+
+    <section id="combat">
+      <h2>6. Le combat</h2>
+      <h3>Attaquer</h3>
+      <p>En phase de déclaration des attaquants, vous choisissez quelles créatures (sans fatigue d'invocation, sans être étourdies) attaquent. Une créature qui n'est pas bloquée inflige sa Force directement au héros adverse.</p>
+      <h3>Bloquer</h3>
+      <p>L'adversaire assigne, à chacun de vos attaquants, au plus une de ses créatures pour le bloquer (une créature bloqueuse ne peut bloquer qu'un seul attaquant). L'attaquant et le bloqueur s'infligent alors mutuellement des dégâts égaux à leur Force.</p>
+      <h3>Résolution des dégâts</h3>
+      <p>Une créature meurt dès que ses PV tombent à 0 ou moins. Sauf mot-clé particulier (Brutalité, Toxique, Initiative...), les dégâts d'un combat sont simultanés : deux créatures qui s'affrontent peuvent mourir toutes les deux.</p>
+      <div class="callout warn"><strong>À retenir :</strong> plusieurs mots-clés de combat (Envol, Discret, Peureux, Protecteur...) changent qui peut attaquer, bloquer, ou être bloqué — voir la section suivante.</div>
+    </section>
+
+    <section id="motscles">
+      <h2>7. Les mots-clés</h2>
+      <h3>Mots-clés de combat</h3>
+      <table class="kw">
+        <tr><th>Mot-clé</th><th>Effet</th></tr>
+        <tr><td class="kwname">Charge</td><td>Peut attaquer dès le tour où elle arrive en jeu, sans attendre le tour suivant.</td></tr>
+        <tr><td class="kwname">Envol</td><td>Ne peut être bloquée que par des créatures qui ont elles-mêmes le Vol ou la Portée.</td></tr>
+        <tr><td class="kwname">Portée</td><td>Peut bloquer une créature avec Envol, sans avoir elle-même ce mot-clé.</td></tr>
+        <tr><td class="kwname">Brutalité</td><td>Si les dégâts qu'elle inflige dépassent les PV de sa cible, l'excédent est reporté directement sur le héros adverse.</td></tr>
+        <tr><td class="kwname">Vol de vie</td><td>Chaque point de dégât qu'elle inflige soigne d'autant votre héros.</td></tr>
+        <tr><td class="kwname">Initiative</td><td>Frappe la première lors d'un combat. Si ce premier coup suffit à tuer sa cible, elle ne subit aucun dégât en retour.</td></tr>
+        <tr><td class="kwname">Armure</td><td>Ignore entièrement la première fois qu'elle devrait subir des dégâts.</td></tr>
+        <tr><td class="kwname">Parade</td><td>Ne peut pas être ciblée par un sortilège pendant le tour où elle arrive en jeu.</td></tr>
+        <tr><td class="kwname">Tenace</td><td>À sa mort, revient automatiquement en jeu une fois — sans le mot-clé Tenace la seconde fois.</td></tr>
+        <tr><td class="kwname">Peureux</td><td>Ne peut jamais bloquer une créature adverse.</td></tr>
+        <tr><td class="kwname">Protecteur</td><td>Ne peut jamais attaquer.</td></tr>
+        <tr><td class="kwname">Toxique</td><td>Toute créature à qui elle inflige des dégâts au combat meurt, peu importe ses PV restants.</td></tr>
+        <tr><td class="kwname">Discret</td><td>Ne peut jamais être bloquée.</td></tr>
+        <tr><td class="kwname">Imparable</td><td>Ne peut pas être ciblée par un piège.</td></tr>
+        <tr><td class="kwname">Fugace</td><td>Meurt automatiquement à la fin du tour où elle est en jeu.</td></tr>
+      </table>
+      <h3>Étiquettes de suivi (sans effet de jeu direct)</h3>
+      <p class="dim">Ces mots-clés ne font rien par eux-mêmes — ils servent de marqueur pour qu'une autre carte puisse repérer précisément ce type de carte (par exemple via une conjuration ciblée).</p>
+      <table class="kw">
+        <tr><th>Étiquette</th><th>Sens</th></tr>
+        <tr><td class="kwname">Assaut</td><td>Cartes liées au thème de l'attaque/l'agression.</td></tr>
+        <tr><td class="kwname">Début</td><td>Cartes liées au tout début d'une partie ou d'un tour.</td></tr>
+        <tr><td class="kwname">Final</td><td>Cartes liées à la fin d'une partie ou d'un tour.</td></tr>
+      </table>
+    </section>
+
+    <section id="pieges">
+      <h2>8. Les pièges</h2>
+      <p>Un piège se pose face cachée, sans effet immédiat. Sa condition de déclenchement (écrite sur la carte, ex. "quand une créature ennemie attaque") est surveillée en permanence :</p>
+      <ul>
+        <li>Vous pouvez avoir <strong>plusieurs pièges actifs en même temps</strong>.</li>
+        <li>Un piège se déclenche automatiquement dès que sa condition se réalise — le plus souvent au moment d'un <strong>changement de phase</strong> (par exemple, quand l'adversaire déclare ses attaquants), pas seulement en fin de tour.</li>
+        <li>Si vous rejouez un piège qui n'est pas encore armé (parce qu'il vient d'être posé et attend le prochain changement de phase pour s'activer), cela <strong>annule</strong> ce piège au lieu d'en poser un second à la même case — le mana réservé est alors libéré.</li>
+      </ul>
+    </section>
+
+    <section id="declencheurs">
+      <h2>9. Lire une capacité de carte</h2>
+      <p>Une capacité de carte se lit toujours ainsi : <strong>« Déclencheur → (Condition) → Effet »</strong>. Le déclencheur dit <em>quand</em> l'effet se produit. Voici les familles de déclencheurs les plus courantes que vous croiserez sur les cartes :</p>
+
+      <div class="trigger-cat">
+        <h4>Sur cette carte elle-même</h4>
+        <ul>
+          <li><code>Quand cette carte entre en jeu</code> — au moment où elle est jouée depuis la main.</li>
+          <li><code>Quand cette créature attaque</code> / <code>a bloqué</code> / <code>a été bloquée</code></li>
+          <li><code>Quand cette carte subit des dégâts</code> / <code>est soignée</code></li>
+          <li><code>Quand cette créature meurt</code> / <code>est détruite</code> / <code>élimine une créature</code></li>
+          <li><code>Quand cette carte est piochée</code> — utile pour des sortilèges qui agissent dès qu'on les pioche.</li>
+        </ul>
+      </div>
+
+      <div class="trigger-cat">
+        <h4>Sur l'ensemble du plateau ("Quand une carte...")</h4>
+        <p class="dim">Ces déclencheurs surveillent n'importe quelle carte en jeu, pas seulement celle qui porte la capacité — pratiques pour les effets qui "doublent" ou "réagissent à" ce qui se passe ailleurs sur le plateau.</p>
+        <ul>
+          <li><code>Quand une créature est jouée / arrive en jeu / meurt / attaque</code></li>
+          <li><code>Quand un sortilège est joué</code> · <code>Quand un piège se déclenche</code></li>
+        </ul>
+      </div>
+
+      <div class="trigger-cat">
+        <h4>Côté adversaire</h4>
+        <ul>
+          <li><code>Quand une créature ennemie attaque</code></li>
+          <li><code>Quand l'adversaire lance un sortilège / invoque une créature / joue un artefact</code></li>
+          <li><code>À la fin du tour de l'adversaire</code></li>
+        </ul>
+      </div>
+
+      <div class="trigger-cat">
+        <h4>Dans le temps</h4>
+        <ul>
+          <li><code>Au début / à la fin de votre tour</code></li>
+          <li><code>Au début de la partie</code></li>
+        </ul>
+      </div>
+
+      <div class="trigger-cat">
+        <h4>Capacité activée</h4>
+        <p class="dim">Certaines créatures, artefacts ou régions ont une capacité que <strong>vous</strong> déclenchez volontairement en cliquant dessus, en payant un coût de mana indiqué sur la carte (parfois limitée à une fois par tour, ou à un nombre de charges).</p>
+      </div>
+
+      <div class="callout">Plusieurs déclencheurs sur une même capacité (« Début OU Assaut », par exemple) fonctionnent en <strong>OU</strong> : n'importe lequel des deux suffit à déclencher l'effet, une seule fois — ce n'est pas une condition qui exige les deux à la fois.</div>
+    </section>
+
+    <section id="fin">
+      <h2>10. Fin de partie</h2>
+      <p>La partie se termine dès que l'une de ces conditions survient :</p>
+      <ul>
+        <li>Les PV d'un héros tombent à 0 ou moins → son adversaire gagne.</li>
+        <li>Un joueur doit piocher alors que son deck est vide → il perd immédiatement.</li>
+      </ul>
+    </section>
+
+    <p style="text-align:center;color:var(--parchment-dim);font-size:12.5px;margin-top:30px;">
+      Besoin d'un rappel en jeu plutôt qu'à lire ? <a href="spellcraft-tutorial.html">Revoir le tutoriel guidé</a>.
+    </p>
+
+  </main>
+</div>
+
+</body>
+</html>

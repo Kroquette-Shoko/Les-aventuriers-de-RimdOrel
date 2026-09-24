@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tutoriel — Les aventuriers de Rimd'Orël</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@400;500;600;700&display=swap');
+
+:root{
+  --bg-void:#0b0a12;
+  --bg-panel:#171325;
+  --bg-panel-2:#1f1a30;
+  --parchment:#efe6c8;
+  --parchment-dim:#d9cfae;
+  --ink:#1c1830;
+  --arcane:#7c5cff;
+  --gold:#d4af37;
+  --blood:#c23b3b;
+  --frost:#4fb3d9;
+  --green:#4a9d6b;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);font-family:'Inter',sans-serif;overflow:hidden;}
+#app{position:relative;width:100vw;height:100vh;display:flex;flex-direction:column;}
+
+/* -------- Barre du haut -------- */
+#topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 18px;background:var(--bg-panel);border-bottom:1px solid rgba(212,175,55,.25);z-index:20;}
+#topbar h1{font-family:'Cinzel',serif;font-size:15px;color:var(--gold);margin:0;letter-spacing:.5px;}
+#skip-btn{background:transparent;border:1px solid rgba(239,230,200,.35);color:var(--parchment-dim);font-family:'Inter',sans-serif;font-size:12px;padding:6px 12px;border-radius:6px;cursor:pointer;}
+#skip-btn:hover{border-color:var(--gold);color:var(--gold);}
+
+/* -------- Plateau -------- */
+#board{position:relative;flex:1;display:flex;flex-direction:column;justify-content:space-between;padding:10px 24px;overflow:hidden;}
+
+.hero-row{display:flex;align-items:center;gap:14px;padding:6px 0;}
+.hero-row.enemy{justify-content:flex-start;}
+.hero-row.me{justify-content:flex-start;}
+.hero-portrait{width:56px;height:56px;border-radius:50%;border:3px solid var(--gold);background:radial-gradient(circle at 35% 30%, #3a2f55, #14101f);display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:700;font-size:20px;color:var(--gold);flex-shrink:0;position:relative;transition:box-shadow .2s ease, transform .2s ease;}
+.hero-portrait.targetable{cursor:pointer;box-shadow:0 0 0 4px rgba(194,59,59,.55), 0 0 22px rgba(194,59,59,.7);animation:pulseTarget 1.1s ease-in-out infinite;}
+.hero-name{font-family:'Cinzel',serif;font-weight:700;color:var(--parchment);font-size:13px;}
+.hero-hp{display:flex;align-items:center;gap:4px;font-weight:700;color:var(--blood);font-size:15px;}
+.hero-hp::before{content:'♥';font-size:13px;}
+.hero-power-btn{margin-left:6px;background:var(--bg-panel-2);border:1px solid var(--frost);color:var(--frost);border-radius:8px;padding:6px 10px;font-size:11px;font-family:'Inter',sans-serif;font-weight:600;cursor:pointer;opacity:.4;pointer-events:none;transition:all .15s ease;}
+.hero-power-btn.active{opacity:1;pointer-events:auto;box-shadow:0 0 0 3px rgba(79,179,217,.5), 0 0 16px rgba(79,179,217,.6);animation:pulseFrost 1.1s ease-in-out infinite;}
+.hero-power-btn:hover.active{background:var(--frost);color:#08202b;}
+
+.mana-bar{display:flex;align-items:center;gap:6px;margin-left:auto;background:var(--bg-panel-2);border:1px solid rgba(79,179,217,.4);border-radius:20px;padding:5px 12px;font-family:'Cinzel',serif;font-weight:700;color:var(--frost);font-size:13px;}
+.mana-bar .drop{width:11px;height:11px;border-radius:50% 50% 50% 0;background:var(--frost);transform:rotate(45deg);box-shadow:0 0 5px rgba(79,179,217,.7);}
+.mana-bar .drop.empty{background:transparent;border:1.5px solid rgba(79,179,217,.35);box-shadow:none;}
+
+.board-zone{display:flex;gap:12px;justify-content:center;align-items:center;min-height:150px;padding:4px 0;}
+
+.mcard{position:relative;width:118px;height:158px;border-radius:9px;background:linear-gradient(160deg,#221c34,#140f20);border:2px solid rgba(239,230,200,.25);padding:6px;display:flex;flex-direction:column;box-shadow:0 4px 10px rgba(0,0,0,.55);transition:transform .15s ease, box-shadow .15s ease;flex-shrink:0;}
+.mcard .cost{position:absolute;top:-8px;left:-8px;width:24px;height:24px;border-radius:50%;background:var(--frost);color:#08202b;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;border:2px solid #08202b;font-family:'Cinzel',serif;}
+.mcard .name{font-family:'Cinzel',serif;font-weight:700;font-size:11px;color:var(--parchment);margin-top:10px;line-height:1.15;}
+.mcard .type{font-size:9px;color:var(--parchment-dim);opacity:.75;margin-top:2px;}
+.mcard .txt{font-size:8.5px;color:var(--parchment-dim);margin-top:auto;line-height:1.25;}
+.mcard .stats{position:absolute;bottom:4px;left:6px;right:6px;display:flex;justify-content:space-between;font-family:'Cinzel',serif;font-weight:800;font-size:13px;}
+.mcard .atk{color:var(--blood);}
+.mcard .hp{color:var(--green);}
+.mcard.hand-card{cursor:default;}
+.mcard.playable{cursor:pointer;box-shadow:0 0 0 3px rgba(212,175,55,.6), 0 0 18px rgba(212,175,55,.7);animation:pulseGold 1.1s ease-in-out infinite;}
+.mcard.playable:hover{transform:translateY(-10px);}
+.mcard.selected{transform:translateY(-14px);box-shadow:0 0 0 3px var(--gold), 0 0 22px rgba(212,175,55,.9);}
+.mcard.attack-ready{cursor:pointer;box-shadow:0 0 0 3px rgba(194,59,59,.55);}
+.mcard.attack-ready:hover{transform:translateY(-6px);}
+.mcard.sick{filter:grayscale(55%) brightness(.75);}
+.mcard.sick::after{content:'Fatigue d\'invocation';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;font-size:8px;color:var(--parchment-dim);padding:8px;background:rgba(0,0,0,.35);border-radius:7px;}
+.mcard.targetable{cursor:pointer;box-shadow:0 0 0 3px rgba(194,59,59,.55), 0 0 16px rgba(194,59,59,.65);animation:pulseTarget 1.1s ease-in-out infinite;}
+.mcard.trap-face{background:repeating-linear-gradient(135deg,#241a12,#241a12 8px,#2c2013 8px,#2c2013 16px);display:flex;align-items:center;justify-content:center;}
+.mcard.trap-face .name{position:static;text-align:center;font-size:10px;}
+
+.hand-row{display:flex;gap:10px;justify-content:center;align-items:flex-end;min-height:170px;padding:6px 0 2px;}
+
+@keyframes pulseGold{0%,100%{box-shadow:0 0 0 3px rgba(212,175,55,.6),0 0 18px rgba(212,175,55,.7);}50%{box-shadow:0 0 0 5px rgba(212,175,55,.85),0 0 26px rgba(212,175,55,.9);}}
+@keyframes pulseTarget{0%,100%{box-shadow:0 0 0 3px rgba(194,59,59,.55),0 0 16px rgba(194,59,59,.65);}50%{box-shadow:0 0 0 5px rgba(194,59,59,.8),0 0 24px rgba(194,59,59,.85);}}
+@keyframes pulseFrost{0%,100%{box-shadow:0 0 0 3px rgba(79,179,217,.5),0 0 16px rgba(79,179,217,.6);}50%{box-shadow:0 0 0 5px rgba(79,179,217,.75),0 0 24px rgba(79,179,217,.8);}}
+
+/* -------- Bouton fin de tour -------- */
+#end-turn-btn{position:absolute;right:24px;bottom:150px;background:var(--bg-panel-2);border:2px solid rgba(212,175,55,.4);color:var(--parchment-dim);font-family:'Cinzel',serif;font-weight:700;font-size:13px;padding:12px 18px;border-radius:10px;cursor:default;opacity:.4;pointer-events:none;transition:all .15s ease;z-index:8;}
+#end-turn-btn.active{opacity:1;pointer-events:auto;color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,.6), 0 0 18px rgba(212,175,55,.7);animation:pulseGold 1.1s ease-in-out infinite;}
+#end-turn-btn:hover.active{background:var(--gold);color:#221a08;}
+
+/* -------- Bouton confirmer l'attaque -------- */
+#confirm-attack-btn{position:absolute;right:24px;bottom:220px;background:var(--blood);border:2px solid #7a1f1f;color:#fff;font-family:'Cinzel',serif;font-weight:700;font-size:13px;padding:10px 16px;border-radius:10px;cursor:pointer;display:none;z-index:8;box-shadow:0 0 18px rgba(194,59,59,.7);}
+#confirm-attack-btn.show{display:block;}
+
+/* -------- Bulle de tutoriel -------- */
+#tut-overlay{position:fixed;inset:0;background:rgba(4,3,8,.45);z-index:30;pointer-events:none;}
+#tut-bubble{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);width:min(560px,92vw);background:var(--bg-panel);border:2px solid var(--gold);border-radius:14px;padding:16px 20px;z-index:31;box-shadow:0 10px 30px rgba(0,0,0,.6);pointer-events:auto;}
+#tut-bubble .tut-step{font-size:10px;color:var(--parchment-dim);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;}
+#tut-bubble .tut-title{font-family:'Cinzel',serif;font-weight:700;color:var(--gold);font-size:15px;margin-bottom:6px;}
+#tut-bubble .tut-text{font-size:13.5px;line-height:1.5;color:var(--parchment);}
+#tut-bubble .tut-hint{margin-top:8px;font-size:12px;color:var(--frost);font-style:italic;}
+#tut-actions{margin-top:12px;display:flex;justify-content:flex-end;gap:8px;}
+#tut-continue-btn{background:var(--gold);color:#221a08;border:none;font-family:'Cinzel',serif;font-weight:700;font-size:13px;padding:9px 18px;border-radius:8px;cursor:pointer;}
+#tut-continue-btn:hover{filter:brightness(1.1);}
+
+/* -------- Journal / message flash -------- */
+#flash-msg{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:var(--bg-panel-2);border:1px solid var(--gold);color:var(--parchment);font-size:13px;padding:8px 16px;border-radius:8px;z-index:35;opacity:0;transition:opacity .25s ease;pointer-events:none;}
+#flash-msg.show{opacity:1;}
+
+/* -------- Écran de fin -------- */
+#end-screen{position:fixed;inset:0;background:rgba(4,3,8,.85);z-index:50;display:none;align-items:center;justify-content:center;}
+#end-screen.show{display:flex;}
+#end-card{background:var(--bg-panel);border:2px solid var(--gold);border-radius:16px;padding:34px 40px;max-width:460px;text-align:center;}
+#end-card h2{font-family:'Cinzel',serif;color:var(--gold);margin:0 0 12px;}
+#end-card p{color:var(--parchment-dim);font-size:14px;line-height:1.6;}
+#end-card button{margin-top:16px;background:var(--gold);color:#221a08;border:none;font-family:'Cinzel',serif;font-weight:700;font-size:14px;padding:11px 22px;border-radius:9px;cursor:pointer;}
+
+@media (max-width:760px){
+  .mcard{width:88px;height:120px;}
+  .hero-portrait{width:44px;height:44px;font-size:15px;}
+  #end-turn-btn,#confirm-attack-btn{right:10px;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <h1>📖 Tutoriel — Les interactions de base</h1>
+    <button id="skip-btn" onclick="skipTutorial()">Passer le tutoriel</button>
+  </div>
+
+  <div id="board">
+    <div class="hero-row enemy">
+      <div class="hero-portrait" id="ai-portrait">IA</div>
+      <div>
+        <div class="hero-name" id="ai-name">Sentinelle des cendres</div>
+        <div class="hero-hp" id="ai-hp">30</div>
+      </div>
+      <div class="mana-bar" id="ai-mana-bar" style="visibility:hidden;"></div>
+    </div>
+
+    <div class="board-zone" id="ai-board"></div>
+    <div class="board-zone" id="my-board"></div>
+
+    <div class="hero-row me">
+      <div class="hero-portrait" id="my-portrait">Moi</div>
+      <div>
+        <div class="hero-name" id="my-name">Apprenti aventurier</div>
+        <div class="hero-hp" id="my-hp">30</div>
+      </div>
+      <button class="hero-power-btn" id="hero-power-btn" onclick="onHeroPowerClick()">
+        Frappe rapide<br><span style="font-size:9px;opacity:.8;">1 mana · 1 dégât</span>
+      </button>
+      <div class="mana-bar" id="mana-bar"></div>
+    </div>
+
+    <div class="hand-row" id="hand-row"></div>
+  </div>
+
+  <button id="end-turn-btn" onclick="onEndTurnClick()">Terminer le tour ▶</button>
+  <button id="confirm-attack-btn" onclick="onConfirmAttackClick()">Confirmer l'attaque ⚔</button>
+</div>
+
+<div id="flash-msg"></div>
+
+<div id="tut-overlay"></div>
+<div id="tut-bubble">
+  <div class="tut-step" id="tut-step-label">Étape 1 / 14</div>
+  <div class="tut-title" id="tut-title">Bienvenue</div>
+  <div class="tut-text" id="tut-text"></div>
+  <div class="tut-hint" id="tut-hint" style="display:none;"></div>
+  <div id="tut-actions">
+    <button id="tut-continue-btn" onclick="onContinueClick()">Continuer</button>
+  </div>
+</div>
+
+<div id="end-screen">
+  <div id="end-card">
+    <h2>Vous connaissez les bases !</h2>
+    <p>Vous savez maintenant jouer une créature, un sortilège, un artefact, poser un piège, attaquer, bloquer et utiliser votre pouvoir de héros.<br><br>
+    Pour le détail complet d'un tour, de chaque mot-clé et du fonctionnement précis des cartes, consultez <strong>le Grimoire</strong> — il reste accessible à tout moment depuis le hub.</p>
+    <div style="display:flex;gap:10px;justify-content:center;margin-top:4px;">
+      <button onclick="markCompletedAndLeave()">Retourner au hub</button>
+      <button onclick="openGrimoire()" style="background:transparent;border:2px solid var(--gold);color:var(--gold);">Ouvrir le Grimoire</button>
+    </div>
+  </div>
+</div>
+
+<script src="spellcraft-shared.js"></script>
+<script src="spellcraft-auth.js"></script>
+<script src="spellcraft-server-client.js"></script>
+<script>
+/* ============================================================
+   TUTORIEL GUIDÉ — moteur volontairement séparé et simplifié
+   ============================================================
+   Ce n'est PAS le moteur du vrai jeu (spellcraft-prototype.html /
+   game-action). C'est une partie entièrement scriptée, jouée en local
+   dans le navigateur : chaque pioche, chaque action de l'IA et chaque
+   quantité de mana disponible est fixée à l'avance par le script
+   ci-dessous, pour garantir que le déroulé pédagogique est toujours
+   identique. Les règles reproduites (mana, dégâts, attaque, blocage,
+   pouvoir de héros, piège) sont fidèles au vrai jeu, mais simplifiées
+   à l'essentiel — le Grimoire (tutoriel écrit) couvre le reste.
+   ============================================================ */
+
+let ME = { hp: 30, mana: 1, manaMax: 1, board: [], hand: [], heroPowerUsed: false };
+let AI = { hp: 30, board: [] };
+let STEP = 0;
+let SELECTED_ATTACKERS = [];
+let PENDING_ACTION = null; // {type:'spellTarget', handIndex} etc — en attente d'un clic de cible
+let TUTORIAL_ENDED = false;
+
+// ------------------------------------------------------------
+// Cartes de démonstration (fixes, ne viennent d'aucun catalogue)
+// ------------------------------------------------------------
+function makeCreature(id, name, cost, atk, hp, sick){
+  return { id, kind:'creature', name, cost, atk, curAtk:atk, hp, curHp:hp, sick: !!sick, canAttack:false };
+}
+const CARD_SPELL = { id:'c_spell', kind:'spell', name:"Éclair de Rimd'Orël", cost:1, txt:'Inflige 2 dégâts à une cible.', dmg:2 };
+const CARD_CREATURE = { id:'c_creature', kind:'creature-card', name:'Éclaireur des sentiers', cost:2, atk:2, hp:3, txt:'Aucun effet particulier.' };
+const CARD_ARTIFACT = { id:'c_artifact', kind:'artifact', name:'Bouclier ancestral', cost:2, txt:'Activer (1 mana) : votre héros regagne 2 PV.', charges:99 };
+const CARD_TRAP = { id:'c_trap', kind:'trap', name:'Fosse cachée', cost:2, txt:"Piège — quand une créature ennemie attaque, elle subit 2 dégâts." };
+
+function flash(msg){
+  const el = document.getElementById('flash-msg');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(flash._t);
+  flash._t = setTimeout(()=>el.classList.remove('show'), 1900);
+}
+
+// ------------------------------------------------------------
+// Script du tutoriel — une entrée par étape.
+// enter(): appelée une fois à l'arrivée sur l'étape (prépare l'état/UI)
+// action: type d'interaction attendue ('continue' = juste le bouton Continuer)
+// ------------------------------------------------------------
+const SCRIPT = [
+  {
+    title: "Bienvenue à Rimd'Orël",
+    text: "Voici votre plateau. En bas : votre héros, votre mana et votre main. En haut : votre adversaire. Au centre : les zones de jeu, où vos créatures et celles de l'ennemi se font face.",
+    action: 'continue',
+    enter(){ renderAll(); }
+  },
+  {
+    title: "Le mana",
+    text: "Chaque tour, votre mana maximum augmente d'un point (jusqu'à 20). Vous ne disposez que de 1 mana ce premier tour — juste assez pour un premier sortilège.",
+    hint: "Regardez la réserve de mana, en bas à droite de votre héros.",
+    action: 'continue'
+  },
+  {
+    title: "Jouer un sortilège",
+    text: "Votre main contient \"Éclair de Rimd'Orël\" (1 mana, inflige 2 dégâts à une cible). Cliquez sur cette carte pour la jouer.",
+    hint: "Cliquez sur la carte en surbrillance dorée dans votre main.",
+    action: 'playCard',
+    handCardId: 'c_spell',
+    enter(){ ME.hand = [CARD_SPELL]; renderAll(); }
+  },
+  {
+    title: "Choisir une cible",
+    text: "\"Éclair de Rimd'Orël\" a besoin d'une cible. Cliquez sur le héros adverse pour lui infliger 2 dégâts.",
+    hint: "Le portrait de l'adversaire est entouré de rouge : c'est une cible valide.",
+    action: 'spellTarget'
+  },
+  {
+    title: "Terminer votre tour",
+    text: "Il n'y a plus rien à faire ce tour-ci. Cliquez sur \"Terminer le tour\" pour passer la main à l'adversaire — et regagner du mana au tour suivant.",
+    hint: "Le bouton est en bas à droite de l'écran.",
+    action: 'endTurn',
+    enter(){ SELECTED_ATTACKERS=[]; }
+  },
+  {
+    title: "Jouer une créature",
+    text: "Nouveau tour : vous avez maintenant 5 mana, et une nouvelle main. Cliquez sur \"Éclaireur des sentiers\" (2 mana, 2/3) pour la faire entrer en jeu.",
+    hint: "Une créature sans cible particulière entre directement sur le plateau.",
+    action: 'playCard',
+    handCardId: 'c_creature',
+    enter(){
+      ME.manaMax = 5; ME.mana = 5;
+      ME.hand = [CARD_CREATURE, CARD_ARTIFACT];
+      renderAll();
+    }
+  },
+  {
+    title: "Fatigue d'invocation",
+    text: "Votre créature vient d'arriver : elle ne peut pas attaquer ce tour-ci (sauf si elle a le mot-clé Charge). Elle sera prête au prochain tour.",
+    action: 'continue'
+  },
+  {
+    title: "Jouer un artefact",
+    text: "Cliquez sur \"Bouclier ancestral\" (2 mana) pour le poser. Les artefacts restent en jeu et offrent souvent une capacité à activer.",
+    hint: "Il vous reste 3 mana : de quoi le jouer.",
+    action: 'playCard',
+    handCardId: 'c_artifact'
+  },
+  {
+    title: "Activer une capacité",
+    text: "\"Bouclier ancestral\" a une capacité activable pour 1 mana : votre héros regagne 2 PV. Cliquez dessus sur le plateau pour l'activer.",
+    hint: "Cliquez sur l'artefact posé, au centre du plateau.",
+    action: 'activateArtifact'
+  },
+  {
+    title: "Fin de votre tour",
+    text: "Terminons ce tour. L'adversaire va jouer automatiquement — observez ce qu'il fait.",
+    action: 'endTurn'
+  },
+  {
+    title: "Le tour de l'adversaire",
+    text: "L'IA a posé \"Gobelin pillard\" (2/2) et terminé son tour. C'est maintenant à vous : votre \"Éclaireur des sentiers\" n'a plus de fatigue d'invocation, elle peut attaquer.",
+    action: 'continue',
+    enter(){
+      ME.manaMax = 6; ME.mana = 6;
+      ME.board.forEach(c=>{ c.sick=false; c.canAttack=true; });
+      AI.board = [makeCreature('ai_1','Gobelin pillard',2,2,2,false)];
+      ME.hand = [CARD_TRAP];
+      renderAll();
+    }
+  },
+  {
+    title: "Attaquer",
+    text: "Cliquez sur votre \"Éclaireur des sentiers\" pour la sélectionner comme attaquante, puis sur \"Confirmer l'attaque\".",
+    hint: "Une créature sélectionnée se soulève légèrement.",
+    action: 'declareAttack'
+  },
+  {
+    title: "L'adversaire bloque",
+    text: "L'IA a désigné son \"Gobelin pillard\" pour bloquer votre attaque. Les deux créatures s'affrontent : votre 2/3 survit, le Gobelin (2/2) est détruit.",
+    action: 'continue',
+    enter(){ resolveAttackWithBlock(); }
+  },
+  {
+    title: "Le pouvoir de héros",
+    text: "Chaque héros a un pouvoir unique, utilisable une fois par tour. Le vôtre, \"Frappe rapide\", coûte 1 mana et inflige 1 dégât. Cliquez dessus, en bas à côté de votre portrait.",
+    hint: "Le bouton du pouvoir de héros est entouré de bleu quand il est utilisable.",
+    action: 'heroPower'
+  },
+  {
+    title: "Poser un piège",
+    text: "Votre main contient \"Fosse cachée\" (2 mana) : un piège se pose face cachée et se déclenche automatiquement dans la bonne situation — ici, dès qu'une créature ennemie attaque. Cliquez dessus pour le poser.",
+    hint: "Un piège ne demande pas de cible : il se pose simplement.",
+    action: 'playCard',
+    handCardId: 'c_trap',
+    enter(){ ME.mana = Math.min(ME.mana, 6); }
+  },
+  {
+    title: "Terminer le tour",
+    text: "Votre piège est en place. Terminez votre tour pour voir l'adversaire s'y heurter.",
+    action: 'endTurn'
+  },
+  {
+    title: "Le piège se déclenche",
+    text: "L'adversaire a attaqué avec une nouvelle créature — votre \"Fosse cachée\" s'est activée automatiquement et lui a infligé 2 dégâts avant même le combat. Les pièges agissent sans que vous ayez à intervenir, tant que la condition inscrite dessus se réalise.",
+    action: 'continue',
+    enter(){
+      AI.board = [makeCreature('ai_2','Maraudeur',3,3,3,false)];
+      renderAll();
+      setTimeout(()=>{ flash('Piège déclenché : Maraudeur subit 2 dégâts !'); AI.board[0].curHp -= 2; renderAll(); }, 350);
+    }
+  },
+  {
+    title: "C'est à vous de jouer, maintenant",
+    text: "Vous avez vu l'essentiel : mana, sortilège, créature, artefact, attaque, blocage, pouvoir de héros et piège. Le reste — chaque mot-clé, chaque type de carte, le déroulé précis d'un tour — est détaillé dans le Grimoire, accessible à tout moment depuis le hub.",
+    action: 'finish'
+  }
+];
+
+function currentStep(){ return SCRIPT[STEP]; }
+
+function goToStep(i){
+  STEP = i;
+  const step = currentStep();
+  document.getElementById('tut-step-label').textContent = `Étape ${STEP+1} / ${SCRIPT.length}`;
+  document.getElementById('tut-title').textContent = step.title;
+  document.getElementById('tut-text').textContent = step.text;
+  const hintEl = document.getElementById('tut-hint');
+  if (step.hint) { hintEl.textContent = step.hint; hintEl.style.display='block'; }
+  else hintEl.style.display='none';
+  document.getElementById('tut-continue-btn').style.display = (step.action==='continue') ? 'inline-block' : 'none';
+  if (step.enter) step.enter();
+  renderAll();
+}
+
+function onContinueClick(){
+  if (currentStep().action !== 'continue') return;
+  goToStep(STEP+1);
+}
+
+// ------------------------------------------------------------
+// Rendu
+// ------------------------------------------------------------
+function manaDots(cur, max){
+  let html='';
+  for(let i=0;i<max;i++) html += `<div class="drop ${i<cur?'':'empty'}"></div>`;
+  return html || '<span style="opacity:.5;font-size:11px;">—</span>';
+}
+
+function creatureCardHtml(c, opts){
+  opts = opts || {};
+  let cls = 'mcard';
+  if (opts.playable) cls += ' playable';
+  if (opts.selected) cls += ' selected';
+  if (opts.attackReady) cls += ' attack-ready';
+  if (opts.sick) cls += ' sick';
+  if (opts.targetable) cls += ' targetable';
+  return `<div class="${cls}" data-inst="${c.id}" onclick="onBoardCardClick('${c.id}')">
+    <div class="name">${escapeHtml(c.name)}</div>
+    <div class="type">Créature</div>
+    <div class="stats"><span class="atk">${c.curAtk}</span><span class="hp">${c.curHp}</span></div>
+  </div>`;
+}
+
+function handCardHtml(card, playable, targetable){
+  let cls='mcard hand-card';
+  if (playable) cls+=' playable';
+  if (targetable) cls+=' targetable';
+  if (card.kind==='trap') cls+=' trap-face';
+  const typeLabel = card.kind==='spell' ? 'Sortilège' : card.kind==='artifact' ? 'Artefact' : card.kind==='trap' ? 'Piège' : 'Créature';
+  const statsHtml = card.kind==='creature-card' ? `<div class="stats"><span class="atk">${card.atk}</span><span class="hp">${card.hp}</span></div>` : '';
+  return `<div class="${cls}" data-hand="${card.id}" onclick="onHandCardClick('${card.id}')">
+    <div class="cost">${card.cost}</div>
+    <div class="name">${escapeHtml(card.name)}</div>
+    <div class="type">${typeLabel}</div>
+    <div class="txt">${escapeHtml(card.txt||'')}</div>
+    ${statsHtml}
+  </div>`;
+}
+
+function renderAll(){
+  document.getElementById('my-hp').textContent = ME.hp;
+  document.getElementById('ai-hp').textContent = AI.hp;
+  document.getElementById('mana-bar').innerHTML = manaDots(ME.mana, ME.manaMax);
+
+  const step = currentStep();
+
+  // Portrait cible (sort ou attaque directe)
+  const aiPortrait = document.getElementById('ai-portrait');
+  aiPortrait.classList.toggle('targetable', step.action==='spellTarget');
+  aiPortrait.onclick = (step.action==='spellTarget') ? onAiPortraitClick : null;
+
+  // Pouvoir de héros
+  const hp = document.getElementById('hero-power-btn');
+  hp.classList.toggle('active', step.action==='heroPower');
+
+  // Plateaux
+  document.getElementById('my-board').innerHTML = ME.board.map(c=>{
+    const attackReady = (step.action==='declareAttack') && c.canAttack && !c.sick;
+    return creatureCardHtml(c, {
+      selected: SELECTED_ATTACKERS.includes(c.id),
+      attackReady,
+      sick: c.sick
+    });
+  }).join('');
+  document.getElementById('ai-board').innerHTML = AI.board.map(c=>creatureCardHtml(c, {})).join('');
+
+  // Main
+  document.getElementById('hand-row').innerHTML = ME.hand.map(card=>{
+    const playable = (step.action==='playCard' && step.handCardId===card.id);
+    return handCardHtml(card, playable, false);
+  }).join('');
+
+  // Bouton fin de tour
+  document.getElementById('end-turn-btn').classList.toggle('active', step.action==='endTurn');
+  // Bouton confirmer attaque
+  const cab = document.getElementById('confirm-attack-btn');
+  cab.classList.toggle('show', step.action==='declareAttack' && SELECTED_ATTACKERS.length>0);
+}
+
+// ------------------------------------------------------------
+// Interactions
+// ------------------------------------------------------------
+function onHandCardClick(cardId){
+  const step = currentStep();
+  if (step.action!=='playCard' || step.handCardId!==cardId) return;
+  const card = ME.hand.find(c=>c.id===cardId);
+  if (!card) return;
+  ME.mana -= card.cost;
+  ME.hand = ME.hand.filter(c=>c.id!==cardId);
+
+  if (card.kind==='spell'){
+    flash(`"${card.name}" jouée — choisissez une cible.`);
+    renderAll();
+    goToStep(STEP+1); // étape suivante = spellTarget
+    return;
+  }
+  if (card.kind==='creature-card'){
+    const c = makeCreature('my_1', card.name, card.cost, card.atk, card.hp, true);
+    ME.board.push(c);
+    flash(`"${card.name}" entre en jeu.`);
+    goToStep(STEP+1);
+    return;
+  }
+  if (card.kind==='artifact'){
+    ME.board.push({ id:'my_artifact', kind:'artifact-onboard', name:card.name, txt:card.txt });
+    flash(`"${card.name}" est posé.`);
+    goToStep(STEP+1);
+    return;
+  }
+  if (card.kind==='trap'){
+    flash(`"${card.name}" est posé, face cachée.`);
+    ME._trapArmedNextOpponentTurn = true;
+    goToStep(STEP+1);
+    return;
+  }
+}
+
+function onAiPortraitClick(){
+  const step = currentStep();
+  if (step.action!=='spellTarget') return;
+  AI.hp -= CARD_SPELL.dmg;
+  flash(`L'adversaire subit ${CARD_SPELL.dmg} dégâts !`);
+  renderAll();
+  setTimeout(()=>goToStep(STEP+1), 500);
+}
+
+function onHeroPowerClick(){
+  const step = currentStep();
+  if (step.action!=='heroPower') return;
+  ME.mana -= 1;
+  AI.hp -= 1;
+  ME.heroPowerUsed = true;
+  flash('Frappe rapide : 1 dégât infligé.');
+  renderAll();
+  setTimeout(()=>goToStep(STEP+1), 500);
+}
+
+function onBoardCardClick(instId){
+  const step = currentStep();
+  if (step.action==='declareAttack'){
+    const c = ME.board.find(x=>x.id===instId);
+    if (!c || c.sick || !c.canAttack) return;
+    if (SELECTED_ATTACKERS.includes(instId)) SELECTED_ATTACKERS = SELECTED_ATTACKERS.filter(i=>i!==instId);
+    else SELECTED_ATTACKERS.push(instId);
+    renderAll();
+    return;
+  }
+  if (step.action==='activateArtifact'){
+    const c = ME.board.find(x=>x.id===instId && x.kind==='artifact-onboard');
+    if (!c) return;
+    if (ME.mana < 1) { flash('Pas assez de mana.'); return; }
+    ME.mana -= 1;
+    ME.hp = Math.min(30, ME.hp + 2);
+    flash('Bouclier ancestral activé : +2 PV.');
+    renderAll();
+    setTimeout(()=>goToStep(STEP+1), 500);
+    return;
+  }
+}
+
+function onConfirmAttackClick(){
+  const step = currentStep();
+  if (step.action!=='declareAttack' || SELECTED_ATTACKERS.length===0) return;
+  goToStep(STEP+1); // l'étape suivante résout le combat (scriptée)
+}
+
+function resolveAttackWithBlock(){
+  // Combat scripté : votre Éclaireur (2/3) attaque, le Gobelin pillard (2/2) bloque.
+  const mine = ME.board.find(c=>SELECTED_ATTACKERS.includes(c.id)) || ME.board[0];
+  const blocker = AI.board[0];
+  if (mine && blocker){
+    blocker.curHp -= mine.curAtk;
+    mine.curHp -= blocker.curAtk;
+    if (blocker.curHp <= 0) AI.board = AI.board.filter(c=>c.id!==blocker.id);
+  }
+  SELECTED_ATTACKERS = [];
+  renderAll();
+}
+
+function onEndTurnClick(){
+  const step = currentStep();
+  if (step.action!=='endTurn') return;
+  goToStep(STEP+1);
+}
+
+async function skipTutorial(){
+  if (!confirm("Passer le tutoriel ? Vous pourrez toujours le relancer plus tard depuis le hub.")) return;
+  await markCompletedAndLeave();
+}
+
+async function markCompletedAndLeave(){
+  if (TUTORIAL_ENDED) return;
+  TUTORIAL_ENDED = true;
+  try { await gsMarkTutorialCompleted(); } catch(e) { /* best-effort */ }
+  window.location.href = 'spellcraft-hub.html';
+}
+
+async function openGrimoire(){
+  // Le Grimoire ne doit pas redemander le tutoriel juste parce qu'on le
+  // consulte depuis cet écran — on marque la fin ici aussi, sans rediriger
+  // vers le hub, avant d'ouvrir la page de règles.
+  if (!TUTORIAL_ENDED){
+    TUTORIAL_ENDED = true;
+    try { await gsMarkTutorialCompleted(); } catch(e) { /* best-effort */ }
+  }
+  window.location.href = 'spellcraft-grimoire.html';
+}
+
+// L'étape 'finish' affiche l'écran de fin plutôt que d'attendre un clic sur le plateau.
+const _origGoToStep = goToStep;
+goToStep = function(i){
+  _origGoToStep(i);
+  if (SCRIPT[i].action === 'finish'){
+    document.getElementById('end-screen').classList.add('show');
+  }
+};
+
+// ------------------------------------------------------------
+// Démarrage
+// ------------------------------------------------------------
+(async function init(){
+  try { if (typeof initSpellcraftAuth === 'function') await initSpellcraftAuth(); } catch(e) {}
+  goToStep(0);
+})();
+</script>
+</body>
+</html>
