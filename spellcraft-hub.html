@@ -72,6 +72,8 @@ html,body{margin:0;height:100%;overflow:hidden;background:var(--bg-void);color:v
 /* Sur le mur, au-dessus de la Boutique : Cartomancer (même taille que Succès/Quête) */
 .poster-wall-left{left:7%;top:6%;width:14%;height:19%;transform:rotate(-4deg);}
 .poster-wall-left:hover{transform:rotate(0deg) scale(1.08) translateY(-4px);}
+.poster-wall-right{left:79%;top:6%;width:14%;height:19%;transform:rotate(4deg);}
+.poster-wall-right:hover{transform:rotate(0deg) scale(1.08) translateY(-4px);}
 
 /* Sous Recherche de partie, plus petites : Quête et Succès */
 .poster-below-1{left:29%;top:50%;width:14%;height:19%;transform:rotate(-4deg);}
@@ -107,6 +109,7 @@ footer strong{color:var(--parchment);}
   .poster-left{left:2%;top:38%;width:22%;height:24%;}
   .poster-right{left:76%;top:38%;width:22%;height:24%;}
   .poster-wall-left{left:1%;top:3%;width:22%;height:24%;}
+  .poster-wall-right{left:77%;top:3%;width:22%;height:24%;}
   .poster-below-1{left:29%;top:58%;width:19%;height:17%;}
   .poster-below-2{left:52%;top:58%;width:19%;height:17%;}
   .poster-label{font-size:9px;}
@@ -143,6 +146,11 @@ footer strong{color:var(--parchment);}
       <span id="patchnote-badge" style="display:none;position:absolute;top:-6px;right:6px;width:26px;height:26px;border-radius:50%;background:#ffd23f;color:#231d33;font-weight:900;font-size:17px;align-items:center;justify-content:center;box-shadow:0 0 12px rgba(255,210,63,.9);">!</span>
     </button>
 
+    <a class="poster poster-wall-right" href="spellcraft-grimoire.html" title="Règles complètes du jeu">
+      <img src="images/hub-poster-grimoire.png" alt="Le Grimoire">
+      <span class="poster-label">Le Grimoire</span>
+    </a>
+
     <a class="poster poster-right" href="spellcraft-deckbuilder.html" title="Ta collection et tes decks">
       <img src="images/hub-poster-collection.png" alt="Collection et Deck">
       <span class="poster-label">Collection &amp; Deck</span>
@@ -165,9 +173,6 @@ footer strong{color:var(--parchment);}
     </a>
     <a href="spellcraft-tutorial.html" style="color:var(--parchment-dim,#d9cfae);font-size:12px;text-decoration:none;border:1px solid #3a3260;border-radius:8px;padding:6px 14px;">
       📖 Revoir le tutoriel
-    </a>
-    <a href="spellcraft-grimoire.html" style="color:var(--parchment-dim,#d9cfae);font-size:12px;text-decoration:none;border:1px solid #3a3260;border-radius:8px;padding:6px 14px;">
-      📜 Le Grimoire (règles complètes)
     </a>
   </div>
 </div>
