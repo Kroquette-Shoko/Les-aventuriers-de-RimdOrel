@@ -267,6 +267,17 @@ header .spacer{flex:1;}
 
 <div id="app">
 
+  <!-- Bandeau affiché une seule fois en arrivant depuis le tutoriel
+       (spellcraft-tutorial.html → ici, ?fromTutorial=1). Les 3 boosters
+       offerts sont accordés côté serveur au chargement de la page
+       (voir maybeGrantTutorialBoosters()), pas ici. -->
+  <div id="tutorial-shop-banner" style="display:none;background:linear-gradient(180deg,#221b3d,#171325);border:1px solid var(--gold);border-radius:10px;padding:12px 16px;margin-bottom:14px;font-family:'Inter',sans-serif;font-size:12.5px;color:var(--parchment);display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+    <div>🎁 <strong>3 « Booster classique » offerts</strong> t'attendent dans « 📦 Mes boosters » — ouvre-les, puis direction ta collection pour construire ton premier deck.</div>
+    <div style="display:flex;gap:8px;flex-shrink:0;">
+      <button class="buy-btn" onclick="showMyBoostersModal()">Ouvrir mes boosters</button>
+      <button class="buy-btn" style="background:var(--bg-panel-2);" onclick="window.location.href='spellcraft-deckbuilder.html?fromTutorial=1'">Aller à ma collection →</button>
+    </div>
+  </div>
 
   <div id="currency-bar">
     <div class="currency-chip gold"><span class="money-icon"></span><span id="cur-gold">–</span> Or</div>
@@ -1236,6 +1247,24 @@ async function initShop(){
   await renderCardBackShelf();
   await renderHeroShelf();
   await refreshCurrency();
+  await flashBoosterInventoryBadge();
+  await maybeGrantTutorialBoosters();
+}
+
+// Arrivée depuis le tutoriel (?fromTutorial=1) : offre les 3 boosters et
+// affiche le bandeau. grant_tutorial_boosters() est idempotente côté
+// serveur (colonne profiles.tutorial_boosters_granted) — un rechargement
+// de cette page ne redonne donc jamais les boosters une seconde fois.
+async function maybeGrantTutorialBoosters(){
+  const params = new URLSearchParams(window.location.search);
+  if(params.get('fromTutorial')!=='1') return;
+  const banner = document.getElementById('tutorial-shop-banner');
+  if(banner) banner.style.display = 'flex';
+  const user = await scGetCurrentUser();
+  if(!user) return;
+  const { data, error } = await sb.rpc('grant_tutorial_boosters');
+  if(error){ console.error('grant_tutorial_boosters', error); return; }
+  if(data && data.error){ console.error('grant_tutorial_boosters', data.error); return; }
   await flashBoosterInventoryBadge();
 }
 initSpellcraftAuth();

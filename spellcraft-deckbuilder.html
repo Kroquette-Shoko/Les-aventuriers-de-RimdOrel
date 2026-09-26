@@ -541,6 +541,26 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
   </div>
 </div>
 
+<!-- Petit guide affiché une seule fois en arrivant depuis le tutoriel
+     (spellcraft-tutorial.html → spellcraft-shop.html → ici, ?fromTutorial=1). -->
+<div class="modal-overlay" id="tutorial-welcome-modal">
+  <div class="modal-box">
+    <h2>Construis ton premier deck</h2>
+    <p style="font-size:12px;color:var(--parchment-dim);line-height:1.6;margin:0 0 12px;">
+      Voici ta collection : toutes les cartes que tu possèdes (dont celles de tes boosters offerts, si tu les as déjà ouverts).<br><br>
+      Un deck se construit en 3 étapes, avec le petit guide doré en haut de l'écran :<br>
+      1. Choisis ton <strong>Héros</strong> — il fixe la classe de ton deck.<br>
+      2. Choisis ta <strong>Région</strong> (de ta classe, ou Neutre).<br>
+      3. Ajoute des cartes jusqu'à 30, en respectant la classe de ton Héros (+ Neutre) et le nombre d'exemplaires autorisé par rareté.<br><br>
+      Clique sur « Créer mon deck » pour démarrer — le guide te prend par la main.
+    </p>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('tutorial-welcome-modal'); newDeck();">Créer mon deck</button>
+      <button class="btn small" onclick="closeModal('tutorial-welcome-modal')">Plus tard</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>window.APP_TOPBAR_DISABLED = true;</script>
 <script src="spellcraft-shared.js"></script>
@@ -592,6 +612,16 @@ async function loadAll(){
   buildFilterDropdowns();
   renderAll();
   renderFragmentsBar();
+  maybeShowTutorialWelcome();
+}
+
+// Arrivée depuis le tutoriel (via la boutique) : ?fromTutorial=1 dans l'URL.
+// On affiche une seule fois le petit guide de création de deck.
+function maybeShowTutorialWelcome(){
+  const params = new URLSearchParams(window.location.search);
+  if(params.get('fromTutorial')==='1'){
+    openModal('tutorial-welcome-modal');
+  }
 }
 
 sb.auth.onAuthStateChange(async (event)=>{
@@ -1212,11 +1242,11 @@ function fitCardText(cardRootEl){
 }
 
 /* ============================================================
-   APERÇU AGRANDI AU SURVOL (1 seconde)
+   APERÇU AGRANDI AU SURVOL (0,5 seconde)
    ============================================================ */
 let lastMouse = {x:0,y:0};
 let hoverTimer = null;
-const HOVER_DELAY = 1000;
+const HOVER_DELAY = 500;
 
 document.addEventListener('mousemove', (e)=>{ lastMouse = {x:e.clientX, y:e.clientY}; });
 

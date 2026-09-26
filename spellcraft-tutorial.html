@@ -497,10 +497,12 @@ body.targeting *{cursor:crosshair !important;}
 <div id="tut-end-screen">
   <div id="tut-end-card">
     <h2>Vous connaissez les bases !</h2>
-    <p>Vous savez maintenant jouer une créature, un sortilège, un artefact, poser un piège, attaquer, bloquer et utiliser votre pouvoir de héros.<br><br>
+    <p>Vous savez maintenant jouer une créature, un sortilège, un artefact et poser un piège.<br><br>
+    Direction la <strong>boutique</strong> : 3 boosters « Booster classique » vous y attendent, offerts. Ouvrez-les, puis rendez-vous dans votre <strong>collection</strong> pour construire votre tout premier deck — un guide rapide vous accompagnera pas à pas.<br><br>
     Pour le détail complet d'un tour, de chaque mot-clé et du fonctionnement précis des cartes, consultez <strong>le Grimoire</strong> — il reste accessible à tout moment depuis le hub.</p>
     <div class="tut-end-btns">
-      <button onclick="tutFinish()">Retourner au hub</button>
+      <button onclick="tutGoToShop()">🎁 Aller à la boutique (3 boosters offerts)</button>
+      <button class="secondary" onclick="tutFinish()">Retourner au hub</button>
       <button class="secondary" onclick="tutOpenGrimoire()">Ouvrir le Grimoire</button>
     </div>
   </div>
@@ -2993,7 +2995,590 @@ async function initFromUrl(){
   });
   afterConnected(null);
 }
-initSpellcraftAuth().then(initFromUrl);
+/* ============================================================
+   MOTEUR DU TUTORIEL SCRIPTÉ
+   ============================================================
+   Rejoue le scénario fixe décrit par Kroquette, en réutilisant
+   100% du rendu et des interactions du vrai plateau ci-dessus.
+   Aucune requête réseau : toutes les fonctions gs*() utilisées
+   par l'interface sont réécrites ici (simple réaffectation d'une
+   fonction globale — les appels existants plus haut dans le
+   fichier pointent déjà vers ces nouvelles versions au moment où
+   ils s'exécutent, puisque JS résout un nom de fonction libre au
+   moment de l'appel, pas au moment de sa définition).
+   ============================================================ */
+
+// ---------------- Petit style additionnel (flèche animée) ----------------
+(function(){
+  const st = document.createElement('style');
+  st.textContent = `
+    .tut-arrow{position:fixed;z-index:99997;font-size:30px;line-height:1;color:var(--gold);text-shadow:0 0 10px rgba(0,0,0,.85);pointer-events:none;animation:tutArrowBounce 1s ease-in-out infinite;}
+    @keyframes tutArrowBounce{0%,100%{transform:translate(-50%,0);}50%{transform:translate(-50%,-12px);}}
+  `;
+  document.head.appendChild(st);
+})();
+
+// ---------------- Cartes du tutoriel ----------------
+// Vraies cartes de la base Supabase (table public.cards), choisies par
+// Kroquette pour que le déroulé soit le plus simple à comprendre possible.
+function mkTutCard(o){ return Object.assign({ class:'Neutre', keywords:[], subtypes:[] }, o); }
+
+const T_P1_HERO   = { name:'Kyzïre', type:'Héros', class:'Volonté' };
+const T_P2_HERO   = { name:'Sandroska', type:'Héros', class:'Crépuscule' };
+// Terrain basique, sans mécanique spéciale, des deux côtés.
+const T_REGION_P1 = { name:"Côte de Rimd'Orël", type:'Région' };
+const T_REGION_P2 = { name:'Terres Cendrées', type:'Région' };
+
+// Toutes les cartes ci-dessous sont de vraies cartes de la base Supabase.
+// Contraintes respectées : Kyzïre ne joue que des cartes Volonté, Sandroska
+// que des cartes Arcane/Crépuscule ; aucune carte du set "Conjuration" ;
+// aucune carte liée à un autre héros ; sets "Édition de base" sauf Frappe
+// preventive (seul Piège Volonté non lié à un héros disponible).
+
+// 1) Gobelin inconscient — Créature Volonté 1 mana, 2/1, Charge
+const T_P1_C1 = mkTutCard({
+  instId:'t-p1-c1', name:'Gobelin inconscient', type:'Créature', class:'Volonté',
+  cost:1, atk:2, hp:1, curAtk:2, curHp:1, keywords:['charge'],
+  image:'https://i.pinimg.com/1200x/7d/38/df/7d38df7947c57ba5a16a9c9ee073d3de.jpg',
+  imagePosX:50, imagePosY:50, imageZoom:100
+});
+// 2) Chevaucheuse de requin des sables — Créature Volonté 3 mana, 4/3, Charge
+const T_P1_C2 = mkTutCard({
+  instId:'t-p1-c2', name:'Chevaucheuse de requin des sables', type:'Créature', class:'Volonté',
+  cost:3, atk:4, hp:3, curAtk:4, curHp:3, keywords:['charge'],
+  image:'https://i.pinimg.com/1200x/0f/fb/01/0ffb01d6a1791d88e2e7459127c522c7.jpg',
+  imagePosX:50, imagePosY:50, imageZoom:100
+});
+// 3) Frappe preventive — Piège Volonté 1 mana : 3 dégâts au bloqueur, avant le combat
+const T_P1_TRAP = mkTutCard({
+  instId:'t-p1-trap', name:'Frappe preventive', type:'Piège', class:'Volonté',
+  cost:1, text:"Avant qu'une créature alliée ne combatte, infligez 3 dégâts à la créature qu'elle va affronter.",
+  image:'https://i.pinimg.com/736x/4e/4c/8e/4e4c8eaad6100d2fdd4ebf08d0a5753e.jpg',
+  imagePosX:50, imagePosY:45, imageZoom:131
+});
+// 4) Hache de guerre naine — Artefact Volonté 6 mana, 3 charges. Activation
+//    gratuite (1 fois par tour) : une créature alliée désignée gagne +4/+0,
+//    Perçant et Initiative. "abilities" est copié tel quel depuis la vraie
+//    carte, afin de réutiliser l'interface réelle de ciblage (clic sur une
+//    créature alliée) déjà présente dans le code du plateau ci-dessus.
+const T_P1_ARTIFACT = mkTutCard({
+  instId:'t-p1-artifact', name:'Hache de guerre naine', type:'Artefact', class:'Volonté',
+  cost:6, charges:3,
+  text:'Activez (gratuit) : une créature alliée désignée gagne +4/+0, Perçant et Initiative.',
+  image:'https://i.pinimg.com/1200x/a1/60/e9/a160e90602996d31136c8edc037ec311.jpg',
+  imagePosX:50, imagePosY:50, imageZoom:100,
+  abilities:[
+    {
+      "id":"row_1785368646230_65618", "kind":"triggered", "chainMode":"sequential",
+      "effects":[
+        {"id":"row_1785368646230_15972","effectType":"buff","usesTarget":"row_1785368663311_537","valueFixed":4,"setStatsAtk":1,"setStatsHp":1},
+        {"id":"row_1785368675479_51846","effectType":"grantKeyword","usesTarget":"row_1785368663311_537","grantKeywordKey":"pierce","grantKeywordDuration":"permanent"},
+        {"id":"row_1785368693428_64340","effectType":"grantKeyword","usesTarget":"row_1785368663311_537","grantKeywordKey":"initiative","grantKeywordDuration":"permanent"}
+      ],
+      "targets":[
+        {"id":"row_1785368663311_537","countMode":"fixed","countFixed":1,"targetOwner":"ally","selectionMode":"chosen","targetCategory":"creature"}
+      ],
+      "triggers":[
+        {"id":"row_1785368646230_83889","trigger":"activated","useCount":3,"activationCost":0,"activationCooldown":1}
+      ]
+    }
+  ]
+});
+// 5) Découper — Sortilège Volonté 1 mana : 2 dégâts à un héros/créature ennemi désigné
+const T_P1_SPELL = mkTutCard({
+  instId:'t-p1-spell', name:'Découper', type:'Sortilège', class:'Volonté',
+  cost:1, text:'Infligez 2 dégâts à un héros ou une créature ennemie désignée.',
+  effect:{ type:'damage', targetOwner:'enemy', amount:2, valueFixed:2 },
+  image:'https://i.pinimg.com/1200x/13/6f/f0/136ff0c88f888f7ed8c71d300682e9aa.jpg',
+  imagePosX:50, imagePosY:50, imageZoom:100
+});
+
+// 6) Forge-sort — Créature Arcane 2 mana, 1/1 (bot)
+const T_P2_FORGE = mkTutCard({
+  instId:'t-p2-c1', name:'Forge-sort', type:'Créature', class:'Arcane',
+  cost:2, atk:1, hp:1, curAtk:1, curHp:1, keywords:[],
+  image:'https://i.pinimg.com/1200x/9b/f0/45/9bf045ecf28f0bc6a68d99e4cc98a617.jpg',
+  imagePosX:50, imagePosY:24, imageZoom:100
+});
+// 7) Traqueur infatigable — Créature Crépuscule 3 mana, 3/5 (bot)
+const T_P2_TRAQUEUR = mkTutCard({
+  instId:'t-p2-c2', name:'Traqueur infatigable', type:'Créature', class:'Crépuscule',
+  cost:3, atk:3, hp:5, curAtk:3, curHp:5, keywords:[],
+  image:'https://i.pinimg.com/1200x/7f/fc/2d/7ffc2d4203cfb12bf770411ffc08e3a4.jpg',
+  imagePosX:50, imagePosY:50, imageZoom:100
+});
+
+function tutBuildInitialState(){
+  return {
+    phase:'main', active:'p1', turn:1, gameOver:false, winnerKey:null, matchSummary:null,
+    pendingSacrifice:null, pendingDiscover:null, pendingKeywordChoice:null,
+    p1:{
+      // Kyzïre et Sandroska sont scriptés à 10 PV chacun (au lieu de leurs
+      // PV réels de match, 24 et 22) : c'est la consigne du tutoriel.
+      hero:T_P1_HERO, region:T_REGION_P1, hp:10,
+      // Assez de mana pour jouer Gobelin inconscient (1) + Frappe preventive (1) au tour 1.
+      manaNormal:2, manaNormalMax:2, manaFragile:0,
+      hand:[ Object.assign({}, T_P1_C1), Object.assign({}, T_P1_TRAP) ],
+      deck: Array.from({length:12}, (_,i)=>({ instId:'t-p1-deck-'+i })),
+      board:[], relics:[], discard:[], attackers:[],
+      cardBackUrl:null, isAI:false, attackPhaseDone:false, mulliganDone:true, showHandToSpectators:false
+    },
+    p2:{
+      // 10 PV de départ, ramenés à 6 dès la première étape par le pouvoir
+      // passif de Kyzïre (4 dégâts automatiques au héros ennemi en début de
+      // partie) — voir l'étape "heroPower" et tutOnContinueClick().
+      hero:T_P2_HERO, region:T_REGION_P2, hp:10,
+      manaNormal:0, manaNormalMax:0, manaFragile:0,
+      hand:[ Object.assign({}, T_P2_FORGE), Object.assign({}, T_P2_TRAQUEUR) ],
+      deck: Array.from({length:12}, (_,i)=>({ instId:'t-p2-deck-'+i })),
+      board:[], relics:[], discard:[], attackers:[],
+      cardBackUrl:null, isAI:true, attackPhaseDone:false, mulliganDone:true, showHandToSpectators:false
+    }
+  };
+}
+
+// ---------------- Script des étapes ----------------
+// Chaque étape décrit son texte de narration (affiché dans la barre du
+// haut) et les éléments à mettre en surbrillance dorée (sélecteurs CSS —
+// soit un id réel du plateau, soit [data-instid="..."] pour une carte
+// précise, posé par cardEl() sur chaque carte rendue).
+const TUT_STEPS_INFO = {
+  heroPower: { title:'Le pouvoir de Kyzïre', text:"Kyzïre a un pouvoir passif : dès le début du combat, il inflige automatiquement 4 dégâts au héros ennemi. Sandroska commence donc la partie à 6 points de vie au lieu de 10. Cliquez sur « Continuer ».", continueBtn:true, highlight:['#hero-frame-p1','#hero-frame-p2'] },
+  intro1: { title:'Bienvenue !', text:"En bas de l'écran, c'est vous : Kyzïre, votre main et votre plateau. En haut, c'est Sandroska, votre adversaire. Suivez les instructions affichées ici, en haut, tout au long de la partie.", continueBtn:true, highlight:['#hero-frame-p1','#hero-frame-p2'] },
+  intro2: { title:'Le mana', text:"À côté de votre héros : votre réserve de mana. Chaque carte coûte du mana pour être jouée, et vous en gagnez un peu plus à chaque tour.", continueBtn:true, highlight:['#mana-box-p1'] },
+  intro3: { title:'Votre main', text:"En bas de l'écran : votre main. Survolez une carte pour l'agrandir, glissez-la sur le plateau pour la jouer.", continueBtn:true, highlight:['#hand-p1'] },
+  playC1: { title:'Jouez votre première créature', text:"Vous avez en main Gobelin inconscient, une créature Volonté à 1 mana (2 attaque / 1 point de vie) avec le mot-clé Charge : elle peut attaquer dès qu'elle est posée. Glissez-la depuis votre main jusqu'au plateau pour la jouer.", continueBtn:false, highlight:['[data-instid="t-p1-c1"]'] },
+  goToAttack1: { title:"Passez à l'attaque", text:"Le plateau adverse est vide : votre Gobelin inconscient peut attaquer sans être bloqué. Cliquez sur « ⚔ Passer au combat », en bas de l'écran.", continueBtn:false, highlight:['#phase-bar button'] },
+  selectAttackers1: { title:'Choisissez votre attaquant', text:"Cliquez sur le Gobelin inconscient pour le désigner comme attaquant, puis cliquez sur « Valider » pour lancer l'attaque.", continueBtn:false, highlight:['[data-instid="t-p1-c1"]'] },
+  playTrap: { title:'Posez un piège', text:"Vous avez aussi en main Frappe preventive, un Piège Volonté à 1 mana : « Avant qu'une créature alliée ne combatte, infligez 3 dégâts à la créature qu'elle va affronter. » Glissez-le sur le plateau pour l'activer — il restera caché et se déclenchera tout seul lors d'un futur combat.", continueBtn:false, highlight:['[data-instid="t-p1-trap"]'] },
+  endTurn1: { title:'Terminez votre tour', text:"Le Gobelin inconscient, non bloqué, a infligé 2 dégâts à Sandroska. Cliquez sur « Fin de tour », en bas de l'écran.", continueBtn:false, highlight:['#phase-bar button'] },
+  aiTurn1: { title:"Tour de l'adversaire", text:"Sandroska joue Forge-sort, une créature Arcane à 2 mana (1 attaque / 1 point de vie)...", continueBtn:false, highlight:[] },
+  playC2: { title:'Une deuxième créature', text:"Nouveau tour : vous avez pioché Chevaucheuse de requin des sables, une créature Volonté à 3 mana (4 attaque / 3 points de vie), elle aussi avec Charge. Glissez-la sur le plateau.", continueBtn:false, highlight:['[data-instid="t-p1-c2"]'] },
+  goToAttack2: { title:"Passez à l'attaque", text:"Attaquez avec votre Chevaucheuse de requin des sables. Cliquez sur « ⚔ Passer au combat ».", continueBtn:false, highlight:['#phase-bar button'] },
+  selectAttackers2: { title:'Choisissez votre attaquant', text:"Cliquez sur la Chevaucheuse de requin des sables, puis validez l'attaque. Sandroska va bloquer avec son Forge-sort — observez ce qu'il se passe.", continueBtn:false, highlight:['[data-instid="t-p1-c2"]'] },
+  endTurn2: { title:'Le piège s\'est déclenché', text:"Juste avant l'échange de coups, Frappe preventive a infligé 3 dégâts au Forge-sort qui bloquait : il est mort avant même de pouvoir se battre. Votre Chevaucheuse n'a subi aucune riposte. Cliquez sur « Fin de tour ».", continueBtn:false, highlight:['#phase-bar button'] },
+  aiTurn2: { title:"Tour de l'adversaire", text:"Sandroska joue Traqueur infatigable, une créature Crépuscule à 3 mana (3 attaque / 5 points de vie)...", continueBtn:false, highlight:[] },
+  playArtifact: { title:'Un artefact puissant', text:"Nouveau tour : vous avez pioché Hache de guerre naine, un Artefact Volonté à 6 mana. Glissez-le sur le plateau pour le poser, puis activez sa capacité (gratuite) en ciblant votre Chevaucheuse de requin des sables : elle gagnera +4 attaque, Perçant (les dégâts en trop après avoir tué le bloqueur passent au héros) et Initiative (elle frappe en premier, sans subir de riposte si elle tue son adversaire).", continueBtn:false, highlight:['[data-instid="t-p1-artifact"]','[data-instid="t-p1-c2"]'] },
+  goToAttack3: { title:"Passez à l'attaque", text:"Votre Chevaucheuse, maintenant à 8 attaque, est prête. Cliquez sur « ⚔ Passer au combat ».", continueBtn:false, highlight:['#phase-bar button'] },
+  selectAttackers3: { title:'Portez le coup décisif', text:"Cliquez sur la Chevaucheuse de requin des sables, puis validez. Face au Traqueur infatigable (5 points de vie), Initiative et Perçant vont faire toute la différence.", continueBtn:false, highlight:['[data-instid="t-p1-c2"]'] },
+  endTurn3: { title:'Combo réussi !', text:"Initiative a permis à votre Chevaucheuse de frapper la première et de tuer le Traqueur sans subir de riposte ; Perçant a envoyé les 3 dégâts en trop directement sur Sandroska. Cliquez sur « Fin de tour ».", continueBtn:false, highlight:['#phase-bar button'] },
+  aiTurn3: { title:"Tour de l'adversaire", text:"Sandroska, à 1 point de vie et sans rien à jouer, ne peut plus rien tenter...", continueBtn:false, highlight:[] },
+  finalSpell: { title:'Portez le coup fatal', text:"Vous avez pioché Découper, un Sortilège Volonté à 1 mana : « Infligez 2 dégâts à un héros ou une créature ennemie désignée. » Glissez-le sur le plateau puis désignez le héros de Sandroska pour l'achever.", continueBtn:false, highlight:['[data-instid="t-p1-spell"]','#hero-frame-p2'] },
+  done: { title:'Tutoriel terminé', text:'Vous connaissez maintenant les créatures, les pièges, les sortilèges et les artefacts !', continueBtn:false, highlight:[] }
+};
+const TUT_STEP_ORDER = Object.keys(TUT_STEPS_INFO);
+
+let TUT = { step:'heroPower' };
+
+function tutSetStep(id){
+  TUT.step = id;
+  const info = TUT_STEPS_INFO[id];
+  if(!info) return;
+  const idx = TUT_STEP_ORDER.indexOf(id);
+  const badge = document.getElementById('tut-step-badge');
+  if(badge) badge.textContent = `Étape ${idx+1}/${TUT_STEP_ORDER.length}`;
+  const titleEl = document.getElementById('tut-title');
+  if(titleEl) titleEl.textContent = info.title;
+  const textEl = document.getElementById('tut-text');
+  if(textEl) textEl.textContent = info.text;
+  const hintEl = document.getElementById('tut-hint');
+  if(hintEl){ hintEl.style.display = 'none'; hintEl.textContent = ''; }
+  const contBtn = document.getElementById('tut-continue-btn');
+  if(contBtn) contBtn.style.display = info.continueBtn ? 'inline-block' : 'none';
+}
+
+function tutApplyHighlight(){
+  document.querySelectorAll('.tut-glow').forEach(el=>el.classList.remove('tut-glow'));
+  document.querySelectorAll('.tut-arrow').forEach(el=>el.remove());
+  const info = TUT_STEPS_INFO[TUT.step];
+  if(!info) return;
+  let firstEl = null;
+  (info.highlight||[]).forEach(sel=>{
+    try{
+      const el = document.querySelector(sel);
+      if(el){ el.classList.add('tut-glow'); if(!firstEl) firstEl = el; }
+    }catch(e){ /* sélecteur invalide, on ignore */ }
+  });
+  if(firstEl) tutPointTo(firstEl);
+}
+function tutPointTo(el){
+  const rect = el.getBoundingClientRect();
+  if(rect.width===0 && rect.height===0) return;
+  const arrow = document.createElement('div');
+  arrow.className = 'tut-arrow';
+  arrow.textContent = '▼';
+  arrow.style.left = (rect.left + rect.width/2) + 'px';
+  arrow.style.top = Math.max(96, rect.top - 34) + 'px';
+  document.body.appendChild(arrow);
+}
+
+let __tutFlashTimer = null;
+function tutFlash(msg){
+  const el = document.getElementById('tut-flash');
+  if(!el) return;
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(__tutFlashTimer);
+  __tutFlashTimer = setTimeout(()=>el.classList.remove('show'), 2600);
+}
+
+function tutResolveDeaths(key){
+  const p = S[key];
+  const dead = p.board.filter(c=>c.curHp<=0);
+  if(dead.length){
+    p.board = p.board.filter(c=>c.curHp>0);
+    dead.forEach(c=>p.discard.push(c));
+  }
+}
+
+function tutRewireGameOverButton(){
+  const btn = document.querySelector('#overlay button');
+  if(!btn) return;
+  btn.textContent = 'Continuer';
+  btn.onclick = function(){
+    document.getElementById('overlay').classList.remove('show');
+    tutShowEndScreen();
+  };
+}
+function tutShowEndScreen(){
+  const el = document.getElementById('tut-end-screen');
+  if(el) el.classList.add('show');
+}
+
+// ---------------- Boutons de la barre du tutoriel ----------------
+function tutOnContinueClick(){
+  const idx = TUT_STEP_ORDER.indexOf(TUT.step);
+  if(TUT.step==='heroPower'){
+    // Pouvoir passif de Kyzïre : 4 dégâts automatiques au héros ennemi.
+    S.p2.hp = Math.max(0, S.p2.hp - 4);
+    render();
+  }
+  if(idx>=0 && idx<TUT_STEP_ORDER.length-1){
+    tutSetStep(TUT_STEP_ORDER[idx+1]);
+    tutApplyHighlight();
+  }
+}
+function tutSkip(){
+  if(!confirm('Passer le tutoriel et retourner au menu ?')) return;
+  gsMarkTutorialCompleted().catch(()=>{});
+  window.location.href = 'spellcraft-hub.html';
+}
+function tutFinish(){
+  gsMarkTutorialCompleted().catch(()=>{});
+  window.location.href = 'spellcraft-hub.html';
+}
+function tutGoToShop(){
+  gsMarkTutorialCompleted().catch(()=>{});
+  // L'octroi des 3 boosters (grant_tutorial_boosters, idempotent) se fait
+  // côté boutique elle-même, au chargement de spellcraft-shop.html — voir
+  // maybeGrantTutorialBoosters() dans ce fichier.
+  window.location.href = 'spellcraft-shop.html?fromTutorial=1';
+}
+function tutOpenGrimoire(){
+  window.location.href = 'spellcraft-grimoire.html';
+}
+
+// ---------------- render() : on réutilise 100% le rendu réel ----------------
+// Réaffectation d'une fonction globale simple (function render(){...} plus
+// haut) — technique déjà utilisée ailleurs dans ce fichier pour les gs*() :
+// tout le code existant qui appelle render() (par son nom) obtiendra bien
+// cette nouvelle version à l'exécution.
+const __tutRealRender = render;
+render = function(){
+  __tutRealRender();
+  // Transition purement cliente (aucun appel réseau) : passer en mode
+  // "sélection des attaquants" ne déclenche aucune fonction gs*(), on la
+  // détecte donc ici, à chaque rendu.
+  // Trois attaques scriptées ce tutoriel-ci, donc trois paires
+  // goToAttackN → selectAttackersN à détecter au fil du rendu.
+  const ATTACK_STEP_PAIRS = { goToAttack1:'selectAttackers1', goToAttack2:'selectAttackers2', goToAttack3:'selectAttackers3' };
+  if(ATTACK_STEP_PAIRS[TUT.step] && UI.selectingAttackers){
+    tutSetStep(ATTACK_STEP_PAIRS[TUT.step]);
+  }
+  tutApplyHighlight();
+};
+
+// ---------------- Actions réseau → simulées localement ----------------
+gsConnect = function(){ /* pas de connexion réseau dans le tutoriel */ };
+gsFetchState = async function(){ return { state:S }; };
+gsRecordPresence = async function(){ return { ok:true }; };
+gsDisconnect = function(){ /* rien à faire */ };
+gsSendEmote = async function(){ return { ok:true }; };
+gsSetShowHandToSpectators = async function(){ return { ok:true }; };
+gsReportBug = async function(){ return { ok:true }; };
+gsResolveDiscoverChoice = async function(){ return { state:S }; };
+gsResolveKeywordChoice = async function(){ return { state:S }; };
+gsMulligan = async function(){ return { state:S }; };
+// Ni Kyzïre ni Sandroska n'ont de pouvoir de héros activable manuellement
+// (leurs seules capacités sont passives), donc ce bouton reste désactivé.
+gsUseHeroPower = async function(){
+  tutFlash("Kyzïre n'a pas de pouvoir de héros à activer : le sien est passif (déclenché automatiquement en début de partie).");
+  return { error:'tutorial-disabled' };
+};
+
+// Activation de Hache de guerre naine : le plateau réel gère déjà le clic
+// sur la carte (Activer), l'affichage du bouton et le ciblage d'une
+// créature alliée grâce au vrai champ "abilities" copié sur la carte
+// (mêmes fonctions clientes que le plateau normal) — on n'a ici qu'à
+// appliquer l'effet une fois la cible reçue.
+gsActivatePermanent = async function(permanentType, permanentInstId, targetInfo, chosenTargets){
+  if(TUT.step!=='playArtifact'){
+    tutFlash("Ce n'est pas le moment d'activer cette capacité.");
+    return { error:'tutorial-wrong-step' };
+  }
+  const me = S.p1;
+  const art = me.relics.find(r=>r.instId===T_P1_ARTIFACT.instId);
+  if(!art || permanentInstId!==T_P1_ARTIFACT.instId){
+    tutFlash("Ce n'est pas la bonne capacité à activer.");
+    return { error:'tutorial-wrong-target' };
+  }
+  let targetInstId = null;
+  if(chosenTargets && chosenTargets.length) targetInstId = chosenTargets[0].instId || chosenTargets[0];
+  else if(targetInfo && targetInfo.instId) targetInstId = targetInfo.instId;
+  const target = me.board.find(c=>c.instId===targetInstId);
+  if(!target){
+    tutFlash('Désignez une créature alliée pour recevoir le bonus.');
+    return { error:'tutorial-no-target' };
+  }
+  if(target.instId!==T_P1_C2.instId){
+    tutFlash('Pour cette démonstration, ciblez plutôt votre Chevaucheuse de requin des sables.');
+    return { error:'tutorial-wrong-target' };
+  }
+  target.atk += 4; target.curAtk += 4;
+  if(!target.keywords.includes('pierce')) target.keywords.push('pierce');
+  if(!target.keywords.includes('initiative')) target.keywords.push('initiative');
+  art.charges = Math.max(0, (art.charges||1) - 1);
+  tutSetStep('goToAttack3');
+  return { state:S };
+};
+
+gsPlayCardSimple = async function(i, targetInfo, chosenTargets, choiceKey, sacrificeInstId){
+  const me = S.p1;
+  const card = me.hand[i];
+  if(!card){ return { error:'Carte introuvable.' }; }
+
+  if(TUT.step==='playC1' && card.instId===T_P1_C1.instId){
+    me.hand.splice(i,1);
+    me.board.push(Object.assign({}, card, { summonSick:true }));
+    me.manaNormal -= card.cost;
+    tutSetStep('goToAttack1');
+    return { state:S };
+  }
+  if(TUT.step==='playC2' && card.instId===T_P1_C2.instId){
+    me.hand.splice(i,1);
+    me.board.push(Object.assign({}, card, { summonSick:true }));
+    me.manaNormal -= card.cost;
+    tutSetStep('goToAttack2');
+    return { state:S };
+  }
+  if(TUT.step==='playArtifact' && card.instId===T_P1_ARTIFACT.instId){
+    me.hand.splice(i,1);
+    me.relics.push(Object.assign({}, card));
+    me.manaNormal -= card.cost;
+    // On reste à la même étape : il reste à activer la capacité (bouton
+    // "Activer" affiché par le vrai rendu du plateau, grâce à "abilities").
+    return { state:S };
+  }
+  if(TUT.step==='finalSpell' && card.instId===T_P1_SPELL.instId){
+    // Le plateau adverse est vide à ce stade : le héros de Sandroska est la
+    // seule cible valide proposée par l'interface de ciblage réelle.
+    me.hand.splice(i,1);
+    S.p2.hp = Math.max(0, S.p2.hp - 2);
+    tutResolveDeaths('p1');
+    tutResolveDeaths('p2');
+    if(S.p2.hp<=0){
+      S.gameOver = true;
+      S.winnerKey = 'p1';
+      setTimeout(tutRewireGameOverButton, 50);
+    }
+    tutSetStep('done');
+    return { state:S };
+  }
+  tutFlash("Ce n'est pas ce qu'il faut faire pour l'instant — suivez les instructions en haut de l'écran.");
+  return { error:'tutorial-wrong-step' };
+};
+
+gsSetTrap = async function(handIndex){
+  const me = S.p1;
+  const card = me.hand[handIndex];
+  if(TUT.step==='playTrap' && card && card.instId===T_P1_TRAP.instId){
+    card.activeTrap = true;
+    me.manaNormal -= card.cost;
+    tutSetStep('endTurn1');
+    return { state:S };
+  }
+  tutFlash("Ce n'est pas le moment de poser ce piège.");
+  return { error:'tutorial-wrong-step' };
+};
+
+gsDeclareAttackers = async function(attackerIds){
+  const got = attackerIds || [];
+
+  // ---- Tour 1 : le Gobelin inconscient attaque seul, plateau adverse vide ----
+  if(TUT.step==='selectAttackers1'){
+    if(got.length!==1 || got[0]!==T_P1_C1.instId){
+      tutFlash('Sélectionnez le Gobelin inconscient, puis validez.');
+      return { error:'tutorial-wrong-attackers' };
+    }
+    const gobelin = S.p1.board.find(c=>c.instId===T_P1_C1.instId);
+    if(gobelin) S.p2.hp = Math.max(0, S.p2.hp - gobelin.curAtk);
+    S.p1.attackPhaseDone = true;
+    S.p1.attackers = [];
+    tutSetStep('playTrap');
+    return { state:S };
+  }
+
+  // ---- Tour 2 : la Chevaucheuse attaque seule, bloquée par Forge-sort ----
+  if(TUT.step==='selectAttackers2'){
+    if(got.length!==1 || got[0]!==T_P1_C2.instId){
+      tutFlash('Sélectionnez la Chevaucheuse de requin des sables, puis validez.');
+      return { error:'tutorial-wrong-attackers' };
+    }
+    const blocker = S.p2.board.find(c=>c.instId===T_P2_FORGE.instId);
+    const trapCard = S.p1.hand.find(c=>c.activeTrap);
+    if(blocker && trapCard){
+      // Frappe preventive se déclenche avant l'échange de coups : 3 dégâts
+      // au bloqueur désigné, avant même que le combat ne commence.
+      blocker.curHp -= 3;
+      const idx = S.p1.hand.indexOf(trapCard);
+      S.p1.hand.splice(idx,1);
+      S.p1.discard.push(trapCard);
+      tutFlash('Frappe preventive se déclenche ! 3 dégâts au bloqueur, avant le combat.');
+    }
+    // Le bloqueur meurt avant l'échange de coups : le combat s'arrête là,
+    // aucun dégât supplémentaire des deux côtés (ni au héros, ni en retour).
+    tutResolveDeaths('p1');
+    tutResolveDeaths('p2');
+    S.p1.attackPhaseDone = true;
+    S.p1.attackers = [];
+    tutSetStep('endTurn2');
+    return { state:S };
+  }
+
+  // ---- Tour 3 : Chevaucheuse buffée (Hache de guerre naine), combo Initiative + Perçant ----
+  if(TUT.step==='selectAttackers3'){
+    if(got.length!==1 || got[0]!==T_P1_C2.instId){
+      tutFlash('Sélectionnez la Chevaucheuse de requin des sables, puis validez.');
+      return { error:'tutorial-wrong-attackers' };
+    }
+    const chevaucheuse = S.p1.board.find(c=>c.instId===T_P1_C2.instId);
+    const traqueur = S.p2.board.find(c=>c.instId===T_P2_TRAQUEUR.instId);
+    if(chevaucheuse && traqueur){
+      // Initiative : la Chevaucheuse frappe en premier.
+      const excess = chevaucheuse.curAtk - traqueur.curHp;
+      traqueur.curHp -= chevaucheuse.curAtk;
+      if(excess > 0){
+        // Le coup fatal tue le bloqueur avant qu'il ne puisse riposter :
+        // Initiative annule donc toute contre-attaque sur la Chevaucheuse.
+        // Perçant : les dégâts en trop passent au travers, jusqu'au héros.
+        S.p2.hp = Math.max(0, S.p2.hp - excess);
+      } else {
+        // (Cas non atteint dans ce script : sans coup fatal, la riposte
+        // normale se serait appliquée à la Chevaucheuse.)
+        chevaucheuse.curHp -= traqueur.curAtk;
+      }
+    }
+    tutResolveDeaths('p1');
+    tutResolveDeaths('p2');
+    S.p1.attackPhaseDone = true;
+    S.p1.attackers = [];
+    tutSetStep('endTurn3');
+    return { state:S };
+  }
+
+  tutFlash("Ce n'est pas le moment d'attaquer.");
+  return { error:'tutorial-wrong-step' };
+};
+
+gsEndTurn = async function(){
+  if(TUT.step==='endTurn1'){
+    S.p1.attackPhaseDone = false;
+    S.active = 'p2';
+    tutSetStep('aiTurn1');
+    return { state:S };
+  }
+  if(TUT.step==='endTurn2'){
+    S.p1.attackPhaseDone = false;
+    S.active = 'p2';
+    tutSetStep('aiTurn2');
+    return { state:S };
+  }
+  if(TUT.step==='endTurn3'){
+    S.p1.attackPhaseDone = false;
+    S.active = 'p2';
+    tutSetStep('aiTurn3');
+    return { state:S };
+  }
+  tutFlash("Pas encore : suivez les instructions en haut de l'écran.");
+  return { error:'tutorial-wrong-step' };
+};
+
+// Enchaîne automatiquement plusieurs actions IA en réutilisant le
+// déclenchement déjà existant plus haut (onStateUpdate relance
+// uiProcessAi() toutes les 700ms tant que c'est le tour de l'IA et que la
+// phase reste 'main') — chaque étape ci-dessous ne fait donc qu'UNE seule
+// action avant de rendre la main, ce qui donne naturellement le rythme
+// "une carte à la fois, avec une pause" demandé.
+gsProcessAiTurn = async function(){
+  // Sandroska ne passe jamais à l'attaque dans ce tutoriel (pour rester
+  // pédagogique et laisser le joueur mener le jeu) : chaque tour de l'IA se
+  // limite à poser une créature, puis rendre la main.
+  if(TUT.step==='aiTurn1'){
+    S.p2.manaNormalMax = 2; S.p2.manaNormal = 2;
+    S.p2.hand.pop();
+    S.p2.board.push(Object.assign({}, T_P2_FORGE, { summonSick:true }));
+    S.p2.manaNormal -= T_P2_FORGE.cost;
+    S.active = 'p1';
+    S.p1.board.forEach(c=>{ c.summonSick = false; });
+    S.p1.manaNormalMax = 3; S.p1.manaNormal = 3;
+    S.p1.hand.push(Object.assign({}, T_P1_C2));
+    tutSetStep('playC2');
+    return { state:S };
+  }
+  if(TUT.step==='aiTurn2'){
+    S.p2.board.forEach(c=>{ c.summonSick = false; });
+    S.p2.manaNormalMax = 3; S.p2.manaNormal = 3;
+    S.p2.hand.pop();
+    S.p2.board.push(Object.assign({}, T_P2_TRAQUEUR, { summonSick:true }));
+    S.p2.manaNormal -= T_P2_TRAQUEUR.cost;
+    S.active = 'p1';
+    S.p1.board.forEach(c=>{ c.summonSick = false; });
+    // Bond de mana jusqu'à 6 pour pouvoir poser Hache de guerre naine :
+    // ce tutoriel est scripté, la progression du mana n'a pas à suivre la
+    // courbe normale d'une vraie partie.
+    S.p1.manaNormalMax = 6; S.p1.manaNormal = 6;
+    S.p1.hand.push(Object.assign({}, T_P1_ARTIFACT));
+    tutSetStep('playArtifact');
+    return { state:S };
+  }
+  if(TUT.step==='aiTurn3'){
+    // Sandroska, déjà réduite à 1 point de vie et sans board, ne tente
+    // plus rien : son tour se termine sans la moindre action.
+    S.active = 'p1';
+    S.p1.manaNormalMax = 7; S.p1.manaNormal = 7;
+    S.p1.hand.push(Object.assign({}, T_P1_SPELL));
+    tutSetStep('finalSpell');
+    return { state:S };
+  }
+  return { state:S };
+};
+
+// ---------------- Démarrage ----------------
+async function initTutorial(){
+  MY_KEY = 'p1'; OPP_KEY = 'p2';
+  GS_ROLE = 'p1'; GS_VS_AI = true;
+  JOURNAL_CARD_LOOKUP = JOURNAL_CARD_LOOKUP || {};
+  const appOuter = document.getElementById('app-outer');
+  if(appOuter) appOuter.classList.add('show');
+  const aiBtn = document.getElementById('ai-debug-btn');
+  if(aiBtn) aiBtn.style.display = 'none';
+  S = tutBuildInitialState();
+  UI = { selectingAttackers:false, selectedAttackers:[], pendingBlocker:null };
+  TUT.step = 'heroPower';
+  tutSetStep('heroPower');
+  render();
+}
+initSpellcraftAuth().then(initTutorial);
 </script>
 </body>
 </html>
