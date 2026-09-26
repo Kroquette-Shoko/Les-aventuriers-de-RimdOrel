@@ -3405,9 +3405,22 @@ gsActivatePermanent = async function(permanentType, permanentInstId, targetInfo,
     tutFlash("Ce n'est pas la bonne capacité à activer.");
     return { error:'tutorial-wrong-target' };
   }
+  // IMPORTANT : le vrai plateau (pickNewFormatTarget, dans le code copié
+  // plus haut) envoie chosenTargets sous la forme d'un OBJET indexé par
+  // l'id de la cible de la capacité — { "<targetId>": ["<instId>", ...] }
+  // — et non d'un tableau comme on aurait pu s'y attendre. L'ancienne
+  // version de ce code testait chosenTargets.length (toujours undefined
+  // sur un objet), donc targetInstId restait toujours null et le clic sur
+  // la créature ne faisait jamais rien de visible : c'était le bug.
   let targetInstId = null;
-  if(chosenTargets && chosenTargets.length) targetInstId = chosenTargets[0].instId || chosenTargets[0];
-  else if(targetInfo && targetInfo.instId) targetInstId = targetInfo.instId;
+  if(chosenTargets){
+    const arr = Array.isArray(chosenTargets) ? chosenTargets : Object.values(chosenTargets)[0];
+    if(arr && arr.length){
+      const first = arr[0];
+      targetInstId = (typeof first === 'string') ? first : (first && first.instId);
+    }
+  }
+  if(!targetInstId && targetInfo && targetInfo.instId) targetInstId = targetInfo.instId;
   const target = me.board.find(c=>c.instId===targetInstId);
   if(!target){
     tutFlash('Désignez une créature alliée pour recevoir le bonus.');
