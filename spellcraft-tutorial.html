@@ -3023,11 +3023,51 @@ async function initFromUrl(){
 // Kroquette pour que le déroulé soit le plus simple à comprendre possible.
 function mkTutCard(o){ return Object.assign({ class:'Neutre', keywords:[], subtypes:[] }, o); }
 
-const T_P1_HERO   = { name:'Kyzïre', type:'Héros', class:'Volonté' };
-const T_P2_HERO   = { name:'Sandroska', type:'Héros', class:'Crépuscule' };
-// Terrain basique, sans mécanique spéciale, des deux côtés.
-const T_REGION_P1 = { name:"Côte de Rimd'Orël", type:'Région' };
-const T_REGION_P2 = { name:'Terres Cendrées', type:'Région' };
+// Héros et régions : données réelles copiées depuis Supabase (image,
+// cadrage, émotes...) — un objet minimal {name,type,class} suffisait pour
+// la logique du tutoriel, mais le rendu réel du plateau (cadre du héros,
+// vignette de région dans le bloc de mana, panneau d'émotes) a besoin de
+// ces champs pour afficher autre chose qu'un cadre vide.
+const T_P1_HERO = {
+  name:'Kyzïre', type:'Héros', class:'Volonté',
+  image:'https://wa-cdn.nyc3.cdn.digitaloceanspaces.com/user-data/production/207996a7-0a7c-4e56-8ad6-619774f27628/uploads/images/d6d300e776d0c9b3086795a4514f3466.jpeg',
+  imagePosX:60, imagePosY:3, imageZoom:125,
+  emotes:[
+    {"id":"em_1786540705955_175","image":"images/Emote/kyzire-hi.png","label":"Salut"},
+    {"id":"em_1786540706541_813","image":"images/Emote/kyzire-chill.png","label":"Chill"},
+    {"id":"em_1786540706991_55","image":"images/Emote/kyzire-sleep.png","label":"Sleep"},
+    {"id":"em_1786540707527_732","image":"images/Emote/kyzire-what.png","label":"Quoi?"},
+    {"id":"em_1786540708011_619","image":"images/Emote/kyzire-angry.png","label":"Colère"},
+    {"id":"em_1786540708543_689","image":"images/Emote/kyzire-cry.png","label":"Tristesse"}
+  ]
+};
+const T_P2_HERO = {
+  name:'Sandroska', type:'Héros', class:'Crépuscule',
+  image:'https://i.postimg.cc/fR5B7Yjd/609d3219-ab66-4e24-aebf-590c6babaf9e.jpg',
+  imagePosX:50, imagePosY:23, imageZoom:225,
+  emotes:[
+    {"id":"em_1786491147823_181","image":"images/Emote/sandroska-hi.png","label":"Salut"},
+    {"id":"em_1786493527387_6","image":"images/Emote/sandroska-chill.png","label":"Chill"},
+    {"id":"em_1786493534209_814","image":"images/Emote/sandroska-what.png","label":"Question"},
+    {"id":"em_1786493535353_954","image":"images/Emote/sandroska-angry.png","label":"Colère"},
+    {"id":"em_1786493536617_528","image":"images/Emote/sandroska-cry.png","label":"Tristesse"},
+    {"id":"em_1786493538169_433","image":"images/Emote/sandroska-sleep.png","label":"Dormir"}
+  ]
+};
+// Terrain basique des deux côtés (aucune capacité codée qui se déclenche
+// réellement en jeu — voir la colonne n_abilities vérifiée en base).
+const T_REGION_P1 = {
+  name:'Sentier de la gloire', type:'Région', class:'Volonté',
+  image:'https://i.pinimg.com/736x/d2/ca/8f/d2ca8f184d4b0c9225975142a4c9ebb7.jpg',
+  imagePosX:50, imagePosY:50, imageZoom:100
+};
+const T_REGION_P2 = {
+  name:'Cimetière oublié', type:'Région', class:'Crépuscule',
+  image:'https://i.pinimg.com/1200x/e5/ad/bc/e5adbce20d8557ed3a53cd178dc4855c.jpg',
+  imagePosX:50, imagePosY:50, imageZoom:100
+};
+// Dos de carte par défaut (celui que tout nouveau compte possède).
+const T_CARDBACK_URL = 'images/card/back/dos-de-carte-base.png';
 
 // Toutes les cartes ci-dessous sont de vraies cartes de la base Supabase.
 // Contraintes respectées : Kyzïre ne joue que des cartes Volonté, Sandroska
@@ -3112,6 +3152,7 @@ function tutBuildInitialState(){
   return {
     phase:'main', active:'p1', turn:1, gameOver:false, winnerKey:null, matchSummary:null,
     pendingSacrifice:null, pendingDiscover:null, pendingKeywordChoice:null,
+    __gameLog:[],
     p1:{
       // Kyzïre et Sandroska sont scriptés à 10 PV chacun (au lieu de leurs
       // PV réels de match, 24 et 22) : c'est la consigne du tutoriel.
@@ -3121,7 +3162,7 @@ function tutBuildInitialState(){
       hand:[ Object.assign({}, T_P1_C1), Object.assign({}, T_P1_TRAP) ],
       deck: Array.from({length:12}, (_,i)=>({ instId:'t-p1-deck-'+i })),
       board:[], relics:[], discard:[], attackers:[],
-      cardBackUrl:null, isAI:false, attackPhaseDone:false, mulliganDone:true, showHandToSpectators:false
+      cardBackUrl:T_CARDBACK_URL, isAI:false, attackPhaseDone:false, mulliganDone:true, showHandToSpectators:false
     },
     p2:{
       // 10 PV de départ, ramenés à 6 dès la première étape par le pouvoir
@@ -3132,7 +3173,7 @@ function tutBuildInitialState(){
       hand:[ Object.assign({}, T_P2_FORGE), Object.assign({}, T_P2_TRAQUEUR) ],
       deck: Array.from({length:12}, (_,i)=>({ instId:'t-p2-deck-'+i })),
       board:[], relics:[], discard:[], attackers:[],
-      cardBackUrl:null, isAI:true, attackPhaseDone:false, mulliganDone:true, showHandToSpectators:false
+      cardBackUrl:T_CARDBACK_URL, isAI:true, attackPhaseDone:false, mulliganDone:true, showHandToSpectators:false
     }
   };
 }
@@ -3231,6 +3272,20 @@ function tutResolveDeaths(key){
   }
 }
 
+// ---------------- Journal ----------------
+// Le panneau "Journal" du vrai plateau lit S.__gameLog (rempli côté
+// serveur en match réel, via pushLogEntry()/logRaw() — voir
+// spellcraft-edge-function-game-action.ts). Le tutoriel ne passe jamais
+// par le serveur, donc chaque action scriptée alimente ce journal à la
+// main, avec exactement la même forme, pour que le panneau ne reste pas
+// vide. Deux formes possibles :
+// - carte jouée/déclenchée : {ownerKey, cardName, cardId, kind, effects:[{text, targetInstIds}]}
+// - texte libre (combat)   : {ownerKey, raw:"{who} ...", highlightIds:[...]}
+function tutLog(entry){
+  if(!S.__gameLog) S.__gameLog = [];
+  S.__gameLog.push(Object.assign({ turn: S.turn||1 }, entry));
+}
+
 function tutRewireGameOverButton(){
   const btn = document.querySelector('#overlay button');
   if(!btn) return;
@@ -3251,6 +3306,8 @@ function tutOnContinueClick(){
   if(TUT.step==='heroPower'){
     // Pouvoir passif de Kyzïre : 4 dégâts automatiques au héros ennemi.
     S.p2.hp = Math.max(0, S.p2.hp - 4);
+    tutLog({ ownerKey:'p1', cardName:T_P1_HERO.name, cardId:'tut-hero-p1', kind:'hero_trigger',
+      effects:[{ text:'infligez 4 dégâts au héros ennemi', targetInstIds:[] }] });
     render();
   }
   if(idx>=0 && idx<TUT_STEP_ORDER.length-1){
@@ -3284,6 +3341,10 @@ function tutOpenGrimoire(){
 // tout le code existant qui appelle render() (par son nom) obtiendra bien
 // cette nouvelle version à l'exécution.
 const __tutRealRender = render;
+// Garde-fou : évite de déclencher deux fois le tour de l'IA pour la même
+// étape (une fois via le setTimeout posé dans gsEndTurn, une fois via ce
+// filet de sécurité déclenché au rendu — voir plus bas).
+const AI_TURN_AUTOFIRED = {};
 render = function(){
   __tutRealRender();
   // Transition purement cliente (aucun appel réseau) : passer en mode
@@ -3294,6 +3355,18 @@ render = function(){
   const ATTACK_STEP_PAIRS = { goToAttack1:'selectAttackers1', goToAttack2:'selectAttackers2', goToAttack3:'selectAttackers3' };
   if(ATTACK_STEP_PAIRS[TUT.step] && UI.selectingAttackers){
     tutSetStep(ATTACK_STEP_PAIRS[TUT.step]);
+  }
+  // Filet de sécurité pour le tour de l'IA : gsEndTurn() pose déjà un
+  // setTimeout(uiProcessAi, 700) en entrant dans aiTurn1/2/3, mais un
+  // setTimeout peut être retardé (onglet en arrière-plan, navigateur
+  // occupé) ou, en cas d'erreur JS imprévue ailleurs, ne jamais se
+  // déclencher. On revérifie donc à chaque rendu si on est bien entré
+  // dans une étape aiTurnN sans que l'IA n'ait encore joué, et on relance
+  // uiProcessAi() nous-mêmes si besoin — au plus une fois par étape.
+  if(/^aiTurn[123]$/.test(TUT.step) && !AI_TURN_AUTOFIRED[TUT.step] && !ACTION_IN_FLIGHT){
+    const stepAtSchedule = TUT.step;
+    AI_TURN_AUTOFIRED[stepAtSchedule] = true;
+    setTimeout(()=>{ if(TUT.step===stepAtSchedule) uiProcessAi(); }, 700);
   }
   tutApplyHighlight();
 };
@@ -3348,6 +3421,8 @@ gsActivatePermanent = async function(permanentType, permanentInstId, targetInfo,
   if(!target.keywords.includes('pierce')) target.keywords.push('pierce');
   if(!target.keywords.includes('initiative')) target.keywords.push('initiative');
   art.charges = Math.max(0, (art.charges||1) - 1);
+  tutLog({ ownerKey:'p1', cardName:T_P1_ARTIFACT.name, cardId:art.instId, kind:'artifact_activate',
+    effects:[{ text:`donne +4/+0, Perçant et Initiative à ${target.name}`, targetInstIds:[target.instId] }] });
   tutSetStep('goToAttack3');
   return { state:S };
 };
@@ -3361,6 +3436,7 @@ gsPlayCardSimple = async function(i, targetInfo, chosenTargets, choiceKey, sacri
     me.hand.splice(i,1);
     me.board.push(Object.assign({}, card, { summonSick:true }));
     me.manaNormal -= card.cost;
+    tutLog({ ownerKey:'p1', cardName:card.name, cardId:card.instId, kind:'play', effects:[] });
     tutSetStep('goToAttack1');
     return { state:S };
   }
@@ -3368,6 +3444,7 @@ gsPlayCardSimple = async function(i, targetInfo, chosenTargets, choiceKey, sacri
     me.hand.splice(i,1);
     me.board.push(Object.assign({}, card, { summonSick:true }));
     me.manaNormal -= card.cost;
+    tutLog({ ownerKey:'p1', cardName:card.name, cardId:card.instId, kind:'play', effects:[] });
     tutSetStep('goToAttack2');
     return { state:S };
   }
@@ -3375,6 +3452,7 @@ gsPlayCardSimple = async function(i, targetInfo, chosenTargets, choiceKey, sacri
     me.hand.splice(i,1);
     me.relics.push(Object.assign({}, card));
     me.manaNormal -= card.cost;
+    tutLog({ ownerKey:'p1', cardName:card.name, cardId:card.instId, kind:'play', effects:[] });
     // On reste à la même étape : il reste à activer la capacité (bouton
     // "Activer" affiché par le vrai rendu du plateau, grâce à "abilities").
     return { state:S };
@@ -3384,6 +3462,8 @@ gsPlayCardSimple = async function(i, targetInfo, chosenTargets, choiceKey, sacri
     // seule cible valide proposée par l'interface de ciblage réelle.
     me.hand.splice(i,1);
     S.p2.hp = Math.max(0, S.p2.hp - 2);
+    tutLog({ ownerKey:'p1', cardName:card.name, cardId:card.instId, kind:'play',
+      effects:[{ text:'infligez 2 dégâts au héros ennemi', targetInstIds:[] }] });
     tutResolveDeaths('p1');
     tutResolveDeaths('p2');
     if(S.p2.hp<=0){
@@ -3404,6 +3484,7 @@ gsSetTrap = async function(handIndex){
   if(TUT.step==='playTrap' && card && card.instId===T_P1_TRAP.instId){
     card.activeTrap = true;
     me.manaNormal -= card.cost;
+    tutLog({ ownerKey:'p1', cardName:card.name, cardId:card.instId, kind:'play', effects:[] });
     tutSetStep('endTurn1');
     return { state:S };
   }
@@ -3421,7 +3502,11 @@ gsDeclareAttackers = async function(attackerIds){
       return { error:'tutorial-wrong-attackers' };
     }
     const gobelin = S.p1.board.find(c=>c.instId===T_P1_C1.instId);
-    if(gobelin) S.p2.hp = Math.max(0, S.p2.hp - gobelin.curAtk);
+    if(gobelin){
+      S.p2.hp = Math.max(0, S.p2.hp - gobelin.curAtk);
+      tutLog({ ownerKey:'p1', raw:`{who} attaque avec ${gobelin.name}`, highlightIds:[gobelin.instId] });
+      tutLog({ ownerKey:'p2', raw:`{who} a perdu ${gobelin.curAtk} points de vie dans cette attaque`, highlightIds:[gobelin.instId] });
+    }
     S.p1.attackPhaseDone = true;
     S.p1.attackers = [];
     tutSetStep('playTrap');
@@ -3434,6 +3519,8 @@ gsDeclareAttackers = async function(attackerIds){
       tutFlash('Sélectionnez la Chevaucheuse de requin des sables, puis validez.');
       return { error:'tutorial-wrong-attackers' };
     }
+    const chevaucheuseAtt = S.p1.board.find(c=>c.instId===T_P1_C2.instId);
+    if(chevaucheuseAtt) tutLog({ ownerKey:'p1', raw:`{who} attaque avec ${chevaucheuseAtt.name}`, highlightIds:[chevaucheuseAtt.instId] });
     const blocker = S.p2.board.find(c=>c.instId===T_P2_FORGE.instId);
     const trapCard = S.p1.hand.find(c=>c.activeTrap);
     if(blocker && trapCard){
@@ -3443,6 +3530,8 @@ gsDeclareAttackers = async function(attackerIds){
       const idx = S.p1.hand.indexOf(trapCard);
       S.p1.hand.splice(idx,1);
       S.p1.discard.push(trapCard);
+      tutLog({ ownerKey:'p1', cardName:trapCard.name, cardId:trapCard.instId, kind:'trap',
+        effects:[{ text:`infligez 3 dégâts à ${blocker.name}`, targetInstIds:[blocker.instId] }] });
       tutFlash('Frappe preventive se déclenche ! 3 dégâts au bloqueur, avant le combat.');
     }
     // Le bloqueur meurt avant l'échange de coups : le combat s'arrête là,
@@ -3463,6 +3552,7 @@ gsDeclareAttackers = async function(attackerIds){
     }
     const chevaucheuse = S.p1.board.find(c=>c.instId===T_P1_C2.instId);
     const traqueur = S.p2.board.find(c=>c.instId===T_P2_TRAQUEUR.instId);
+    if(chevaucheuse) tutLog({ ownerKey:'p1', raw:`{who} attaque avec ${chevaucheuse.name}`, highlightIds:[chevaucheuse.instId] });
     if(chevaucheuse && traqueur){
       // Initiative : la Chevaucheuse frappe en premier.
       const excess = chevaucheuse.curAtk - traqueur.curHp;
@@ -3472,6 +3562,7 @@ gsDeclareAttackers = async function(attackerIds){
         // Initiative annule donc toute contre-attaque sur la Chevaucheuse.
         // Perçant : les dégâts en trop passent au travers, jusqu'au héros.
         S.p2.hp = Math.max(0, S.p2.hp - excess);
+        tutLog({ ownerKey:'p2', raw:`{who} a perdu ${excess} points de vie dans cette attaque`, highlightIds:[chevaucheuse.instId] });
       } else {
         // (Cas non atteint dans ce script : sans coup fatal, la riposte
         // normale se serait appliquée à la Chevaucheuse.)
@@ -3490,35 +3581,40 @@ gsDeclareAttackers = async function(attackerIds){
   return { error:'tutorial-wrong-step' };
 };
 
+// IMPORTANT : en match réel, onStateUpdate() se relance automatiquement
+// après un tour (diffusion temps réel du serveur), et C'EST ce second
+// appel — arrivant après coup, une fois ACTION_IN_FLIGHT repassé à false
+// — qui déclenche uiProcessAi(). Le tutoriel n'a aucune diffusion
+// réseau : le SEUL appel à onStateUpdate() est celui, synchrone, fait par
+// runAction() DANS son propre bloc try, donc AVANT que son "finally" ne
+// remette ACTION_IN_FLIGHT à false — la condition "!ACTION_IN_FLIGHT" dans
+// onStateUpdate() y échoue donc toujours, et l'IA ne joue jamais. On
+// déclenche donc ici, explicitement, le tour de l'IA nous-mêmes.
 gsEndTurn = async function(){
   if(TUT.step==='endTurn1'){
     S.p1.attackPhaseDone = false;
     S.active = 'p2';
     tutSetStep('aiTurn1');
+    setTimeout(()=>{ uiProcessAi(); }, 700);
     return { state:S };
   }
   if(TUT.step==='endTurn2'){
     S.p1.attackPhaseDone = false;
     S.active = 'p2';
     tutSetStep('aiTurn2');
+    setTimeout(()=>{ uiProcessAi(); }, 700);
     return { state:S };
   }
   if(TUT.step==='endTurn3'){
     S.p1.attackPhaseDone = false;
     S.active = 'p2';
     tutSetStep('aiTurn3');
+    setTimeout(()=>{ uiProcessAi(); }, 700);
     return { state:S };
   }
   tutFlash("Pas encore : suivez les instructions en haut de l'écran.");
   return { error:'tutorial-wrong-step' };
 };
-
-// Enchaîne automatiquement plusieurs actions IA en réutilisant le
-// déclenchement déjà existant plus haut (onStateUpdate relance
-// uiProcessAi() toutes les 700ms tant que c'est le tour de l'IA et que la
-// phase reste 'main') — chaque étape ci-dessous ne fait donc qu'UNE seule
-// action avant de rendre la main, ce qui donne naturellement le rythme
-// "une carte à la fois, avec une pause" demandé.
 gsProcessAiTurn = async function(){
   // Sandroska ne passe jamais à l'attaque dans ce tutoriel (pour rester
   // pédagogique et laisser le joueur mener le jeu) : chaque tour de l'IA se
@@ -3528,6 +3624,7 @@ gsProcessAiTurn = async function(){
     S.p2.hand.pop();
     S.p2.board.push(Object.assign({}, T_P2_FORGE, { summonSick:true }));
     S.p2.manaNormal -= T_P2_FORGE.cost;
+    tutLog({ ownerKey:'p2', cardName:T_P2_FORGE.name, cardId:T_P2_FORGE.instId, kind:'play', effects:[] });
     S.active = 'p1';
     S.p1.board.forEach(c=>{ c.summonSick = false; });
     S.p1.manaNormalMax = 3; S.p1.manaNormal = 3;
@@ -3541,6 +3638,7 @@ gsProcessAiTurn = async function(){
     S.p2.hand.pop();
     S.p2.board.push(Object.assign({}, T_P2_TRAQUEUR, { summonSick:true }));
     S.p2.manaNormal -= T_P2_TRAQUEUR.cost;
+    tutLog({ ownerKey:'p2', cardName:T_P2_TRAQUEUR.name, cardId:T_P2_TRAQUEUR.instId, kind:'play', effects:[] });
     S.active = 'p1';
     S.p1.board.forEach(c=>{ c.summonSick = false; });
     // Bond de mana jusqu'à 6 pour pouvoir poser Hache de guerre naine :
@@ -3567,7 +3665,13 @@ gsProcessAiTurn = async function(){
 async function initTutorial(){
   MY_KEY = 'p1'; OPP_KEY = 'p2';
   GS_ROLE = 'p1'; GS_VS_AI = true;
+  // Alimente le lookup utilisé par le journal (survol du nom d'une carte
+  // dans une ligne du journal → aperçu de la carte, et détection du bon
+  // son de pose selon le type) avec nos cartes scriptées.
   JOURNAL_CARD_LOOKUP = JOURNAL_CARD_LOOKUP || {};
+  [T_P1_C1, T_P1_C2, T_P1_TRAP, T_P1_ARTIFACT, T_P1_SPELL, T_P2_FORGE, T_P2_TRAQUEUR].forEach(c=>{
+    JOURNAL_CARD_LOOKUP[c.instId] = c;
+  });
   const appOuter = document.getElementById('app-outer');
   if(appOuter) appOuter.classList.add('show');
   const aiBtn = document.getElementById('ai-debug-btn');
