@@ -34,23 +34,32 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .title-font{font-family:'Cinzel',serif;}
 
 #board-scale-outer{position:fixed;inset:0;background:var(--bg-void,#0b0a12);overflow:hidden;display:flex;align-items:center;justify-content:center;z-index:1;}
-#app-outer{width:1920px;height:1080px;transform-origin:center center;flex-shrink:0;}
-#app{display:flex;height:100%;width:100%;min-height:0;}
+#app-outer{width:1920px;height:1080px;transform-origin:center center;flex-shrink:0;display:flex;flex-direction:column;}
+#app{display:flex;flex:1;width:100%;min-height:0;}
 
 /* ---------- Barre du haut ---------- */
-/* Remplace l'ancienne barre partagée (flottante, désactivée via
-   APP_TOPBAR_DISABLED car elle recouvrait la zone adverse). Celle-ci
-   réserve un vrai espace de 56px en haut du plateau (padding-top de
-   #board augmenté d'autant) au lieu de flotter par-dessus le contenu. */
-#board-topbar{position:absolute;left:0;top:0;width:1920px;height:56px;box-sizing:border-box;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:linear-gradient(180deg,var(--bg-void,#0b0a12) 0%,var(--bg-void,#0b0a12) 60%,transparent 100%);}
-#board-back-btn{width:190px;height:36px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--parchment-dim,#b9ae8e);text-decoration:none;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;border:1px solid var(--line,#332a54);border-radius:999px;background:var(--bg-panel,#171325);cursor:pointer;flex-shrink:0;}
-#board-back-btn:hover{border-color:var(--gold,#d4af37);color:var(--gold,#d4af37);}
+/* Même style que la barre partagée #app-topbar (spellcraft-shared.js,
+   utilisée sur le hub/lobby/boutique/etc.) — mêmes classes, mêmes
+   couleurs, même bouton "☰ Menu". La différence avec les autres pages :
+   ici elle est injectée directement dans le HTML du plateau (au lieu
+   d'être ajoutée par injectAppTopbar()) et réserve un vrai espace de
+   56px (padding-top de #board) au lieu de flotter en position:fixed —
+   #board-scale-outer occupe tout l'écran en position:fixed, la barre
+   partagée flottante passerait donc SOUS lui et resterait invisible,
+   ou par-dessus et recouvrirait la zone adverse (c'est justement pour
+   ça qu'elle était désactivée ici via APP_TOPBAR_DISABLED). */
+#board-topbar{width:1920px;height:56px;box-sizing:border-box;flex-shrink:0;display:flex;align-items:center;gap:16px;padding:10px 20px;background:var(--bg-panel, rgba(15,12,20,.92));border-bottom:1.5px solid var(--line, rgba(212,175,55,.4));font-family:'Inter',sans-serif;}
+#board-topbar-title{font-family:'Cinzel',serif;font-weight:700;color:var(--gold, #d4af37);font-size:16px;letter-spacing:.5px;flex:1;}
+#board-topbar-right{display:flex;align-items:center;gap:14px;}
+#board-back-btn{font-family:'Cinzel',serif;font-weight:700;font-size:12.5px;color:var(--parchment, #f2ead2);background:none;text-decoration:none;border:1.5px solid var(--line, #3a3260);border-radius:8px;padding:7px 14px;white-space:nowrap;cursor:pointer;}
+#board-back-btn:hover{border-color:var(--gold, #d4af37);color:var(--gold, #d4af37);}
 /* #sc-options-slot : quand présent, spellcraft-shared.js y ancre
    automatiquement l'engrenage en version compacte (38px, statique) au
-   lieu de la grosse pastille flottante 80px par défaut. */
+   lieu de la grosse pastille flottante 80px par défaut — exactement
+   comme sur les autres pages. */
 
 /* ---------- Board ---------- */
-#board{flex:1;position:relative;display:flex;flex-direction:column;padding:68px 16px 100px;gap:6px;min-width:0;min-height:0;background:none;}
+#board{flex:1;position:relative;display:flex;flex-direction:column;padding:12px 16px 100px;gap:6px;min-width:0;min-height:0;background:none;}
 #board-scroll-area{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;gap:4px;overflow-y:auto;overflow-x:hidden;padding-right:2px;scrollbar-width:none;}
 #board-scroll-area::-webkit-scrollbar{width:0;height:0;background:transparent;}
 
@@ -647,13 +656,15 @@ body.targeting *{cursor:crosshair !important;}
   .journal-effect-line.hl-ref{text-decoration:underline dotted;}
 </style>
 
-<div id="sc-auth-slot" style="text-align:center;margin-bottom:8px;"></div>
-
 <div id="board-scale-outer">
 <div id="app-outer">
   <div id="board-topbar">
-    <button id="board-back-btn" title="Quitter la partie" onclick="uiLeaveGame()">← Menu principal</button>
-    <div id="sc-options-slot"></div>
+    <span id="board-topbar-title"></span>
+    <div id="board-topbar-right">
+      <div id="sc-auth-slot"></div>
+      <div id="sc-options-slot"></div>
+      <button id="board-back-btn" title="Quitter la partie" onclick="uiLeaveGame()">☰ Menu</button>
+    </div>
   </div>
   <div class="enemy-hand-row" id="enemy-hand-row"></div>
   <div id="app">
