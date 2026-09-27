@@ -404,27 +404,64 @@ const MENU_MUSIC_POOL = ['menu_1','menu_2'];
 let lastMenuTrack = null;
 function playMenuMusicRotation(volume=0.35){
   if(sfxMuted) return;
+
+  // Reprise en douceur : si la même rotation de musique de menu jouait déjà
+  // sur la page précédente (piste sauvegardée = une des pistes du pool), on
+  // reprend CETTE piste à la position estimée (temps sauvegardé + temps
+  // écoulé depuis) au lieu de tirer une piste au hasard depuis le début à
+  // chaque changement de page — sinon la musique semble "redémarrer" en
+  // permanence en naviguant entre les pages de menu.
+  let resumeTrack = null, resumeAt = 0;
+  try{
+    const savedTrack = sessionStorage.getItem('sc_music_track');
+    if(MENU_MUSIC_POOL.includes(savedTrack)){
+      const savedTime = parseFloat(sessionStorage.getItem('sc_music_time') || '0');
+      const savedAt = parseFloat(sessionStorage.getItem('sc_music_savedAt') || '0');
+      const elapsed = savedAt ? (Date.now() - savedAt) / 1000 : 0;
+      resumeTrack = savedTrack;
+      resumeAt = savedTime + elapsed;
+    }
+  }catch(e){}
+
   stopMusic();
   currentMusicBaseVolume = volume;
   const myGen = ++musicGeneration;
-  const playNext = ()=>{
+  const playNext = (forcedTrack, resumeSeconds)=>{
     if(myGen !== musicGeneration) return; // une autre musique a pris le relais depuis
-    let choices = MENU_MUSIC_POOL.filter(t=>t!==lastMenuTrack);
-    if(choices.length===0) choices = MENU_MUSIC_POOL;
-    const track = choices[Math.floor(Math.random()*choices.length)];
+    let track = forcedTrack;
+    if(!track){
+      let choices = MENU_MUSIC_POOL.filter(t=>t!==lastMenuTrack);
+      if(choices.length===0) choices = MENU_MUSIC_POOL;
+      track = choices[Math.floor(Math.random()*choices.length)];
+    }
     lastMenuTrack = track;
     try{
       const audio = new Audio(`music/${track}.mp3`);
       audio.loop = false;
       audio.volume = volume * musicVolumeLevel;
-      audio.addEventListener('ended', playNext);
+      if(resumeSeconds && resumeSeconds>0){
+        audio.addEventListener('loadedmetadata', ()=>{
+          const dur = audio.duration;
+          if(dur && isFinite(dur) && resumeSeconds<dur) audio.currentTime = resumeSeconds;
+        }, {once:true});
+      }
+      audio.addEventListener('ended', ()=>playNext());
+      try{
+        sessionStorage.setItem('sc_music_track', track);
+        audio.addEventListener('timeupdate', ()=>{
+          try{
+            sessionStorage.setItem('sc_music_time', String(audio.currentTime));
+            sessionStorage.setItem('sc_music_savedAt', String(Date.now()));
+          }catch(e){}
+        });
+      }catch(e){}
       audio.play().catch(()=>{
-        pendingMusicRetry = playNext;
+        pendingMusicRetry = ()=>playNext(track, resumeSeconds);
       });
       currentMusicAudio = audio;
     }catch(e){}
   };
-  playNext();
+  playNext(resumeTrack, resumeAt);
 }
 
 function stopMusic(){
