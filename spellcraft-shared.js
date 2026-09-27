@@ -408,6 +408,35 @@ function playFinalSfx(key, volume=0.8){
   playSfx(key, volume);
 }
 
+/* ---------- Thèmes de couleur ----------
+   5 variantes définies dans spellcraft-ui-kit.css via [data-theme="..."]
+   sur <html>. Ce bloc lit/écrit la préférence (localStorage, partagée
+   par toutes les pages) et construit le petit sélecteur de pastilles
+   affiché dans le menu Options. Les pages qui n'incluent pas encore
+   spellcraft-ui-kit.css ignorent simplement l'attribut data-theme (leurs
+   propres couleurs, codées en dur, restent inchangées) — rien ne casse. */
+const SC_THEMES = [
+  { id:'actuel',   label:'Actuel',           swatch:['#0b0a12','#d4af37','#7c5cff'] },
+  { id:'emeraude', label:'Émeraude & bronze', swatch:['#0a1210','#c98a3e','#3f9d6b'] },
+  { id:'sangor',   label:'Sang & or',         swatch:['#120a0a','#d9a63c','#a4293f'] },
+  { id:'givre',    label:'Givre & argent',    swatch:['#090c12','#9fb8c9','#4fb3d9'] },
+  { id:'aube',     label:"L'Aube",            swatch:['#f6ecd9','#b8790f','#8a4fd6'] },
+];
+function scGetTheme(){
+  try{ return localStorage.getItem('sc-theme') || 'actuel'; }catch(e){ return 'actuel'; }
+}
+function scApplyTheme(id, opts={}){
+  if(!SC_THEMES.some(t=>t.id===id)) id = 'actuel';
+  document.documentElement.setAttribute('data-theme', id);
+  try{ localStorage.setItem('sc-theme', id); }catch(e){}
+  if(!opts.silent) document.querySelectorAll('.sc-theme-swatch').forEach(el=>{
+    el.classList.toggle('active', el.dataset.theme===id);
+  });
+}
+// Applique tout de suite le thème déjà choisi (au cas où la page n'a
+// pas encore le petit script anti-flash dans son <head>).
+scApplyTheme(scGetTheme(), {silent:true});
+
 /* ---------- Menu d'options (icône engrenage) — flottant par défaut, ou
    ancré dans #sc-options-slot si une page fournit cet emplacement (barre
    du haut unifiée). ---------- */
@@ -417,24 +446,34 @@ function injectOptionsMenu(){
   const style = document.createElement('style');
   style.textContent = `
     #sc-options-gear{position:fixed;top:10px;right:10px;z-index:99999;width:80px;height:80px;border-radius:50%;
-      background:rgba(23,19,37,.85);border:1px solid rgba(212,175,55,.45);cursor:pointer;padding:0;
+      background:var(--bg-panel, #171325);border:1px solid var(--gold, #d4af37);opacity:.92;cursor:pointer;padding:0;
       display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,.4);transition:transform .15s;}
-    #sc-options-gear:hover{transform:rotate(25deg);border-color:#d4af37;}
+    #sc-options-gear:hover{transform:rotate(25deg);}
     #sc-options-gear img{width:65px;height:65px;pointer-events:none;}
-    #sc-options-gear .sc-gear-icon{width:65px;height:65px;background-color:#fff;-webkit-mask-image:url('images/gear.png');mask-image:url('images/gear.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;pointer-events:none;}
+    #sc-options-gear .sc-gear-icon{width:65px;height:65px;background-color:var(--parchment, #fff);-webkit-mask-image:url('images/gear.png');mask-image:url('images/gear.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;pointer-events:none;}
     #sc-options-modal{display:none;position:fixed;top:96px;right:10px;z-index:99999;
-      background:rgba(15,12,20,.97);border:1px solid #d4af37;border-radius:12px;padding:16px 18px;width:230px;
-      box-shadow:0 12px 34px rgba(0,0,0,.6);font-family:'Inter',sans-serif;color:#f2ead2;}
+      background:var(--bg-panel, #0f0c14);border:1px solid var(--gold, #d4af37);border-radius:12px;padding:16px 18px;width:230px;
+      box-shadow:0 12px 34px rgba(0,0,0,.6);font-family:'Inter',sans-serif;color:var(--parchment, #f2ead2);}
     #sc-options-modal.show{display:block;}
-    #sc-options-modal .sc-opt-title{font-family:'Cinzel',serif;font-weight:700;color:#d4af37;margin-bottom:12px;font-size:14px;}
-    #sc-options-modal label.sc-opt-label{display:block;font-size:11.5px;color:#c8beb0;margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px;}
-    #sc-options-modal input[type=range]{width:100%;margin-bottom:14px;accent-color:#d4af37;}
+    #sc-options-modal .sc-opt-title{font-family:'Cinzel',serif;font-weight:700;color:var(--gold, #d4af37);margin-bottom:12px;font-size:14px;}
+    #sc-options-modal label.sc-opt-label{display:block;font-size:11.5px;color:var(--parchment-dim, #c8beb0);margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px;}
+    #sc-options-modal input[type=range]{width:100%;margin-bottom:14px;accent-color:var(--gold, #d4af37);}
     #sc-options-modal .sc-opt-mute{display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer;padding-top:2px;border-top:1px solid rgba(212,175,55,.2);padding-top:10px;}
-    #sc-options-modal .sc-opt-hub{display:block;margin-top:10px;padding-top:10px;border-top:1px solid rgba(212,175,55,.2);font-size:12.5px;font-weight:700;color:#d4af37;text-decoration:none;text-align:center;}
+    #sc-options-modal .sc-opt-hub{display:block;margin-top:10px;padding-top:10px;border-top:1px solid rgba(212,175,55,.2);font-size:12.5px;font-weight:700;color:var(--gold, #d4af37);text-decoration:none;text-align:center;}
     #sc-options-modal .sc-opt-hub:hover{text-decoration:underline;}
     #sc-options-gear.sc-options-inline{position:static;width:38px;height:38px;box-shadow:none;}
     #sc-options-gear.sc-options-inline .sc-gear-icon{width:22px;height:22px;}
     #sc-options-modal.sc-options-inline-modal{top:56px;right:16px;}
+    #sc-options-modal .sc-opt-theme-row{display:flex;gap:8px;margin-bottom:4px;flex-wrap:wrap;}
+    .sc-theme-swatch{width:30px;height:30px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;
+      position:relative;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.4);flex:none;}
+    .sc-theme-swatch span{position:absolute;inset:0;}
+    .sc-theme-swatch span:nth-child(1){clip-path:polygon(0 0,100% 0,100% 100%,0 100%);}
+    .sc-theme-swatch span:nth-child(2){clip-path:polygon(0 100%,100% 0,100% 100%);}
+    .sc-theme-swatch span:nth-child(3){clip-path:polygon(0 100%,45% 40%,100% 100%);}
+    .sc-theme-swatch:hover{transform:scale(1.08);}
+    .sc-theme-swatch.active{border-color:var(--gold, #d4af37);}
+    .sc-opt-theme-label{font-size:11px;color:var(--parchment-dim, #a89b76);margin-top:2px;min-height:14px;}
   `;
   document.head.appendChild(style);
 
@@ -444,10 +483,23 @@ function injectOptionsMenu(){
   gear.innerHTML = `<span class="sc-gear-icon"></span>`;
 
   const onHubPage = window.location.pathname.endsWith('spellcraft-hub.html');
+  const currentTheme = scGetTheme();
   const modal = document.createElement('div');
   modal.id = 'sc-options-modal';
   modal.innerHTML = `
-    <div class="sc-opt-title">Options audio</div>
+    <div class="sc-opt-title">Thème</div>
+    <div class="sc-opt-theme-row">
+      ${SC_THEMES.map(t=>`
+        <button type="button" class="sc-theme-swatch${t.id===currentTheme?' active':''}" data-theme="${t.id}" title="${t.label}">
+          <span style="background:${t.swatch[0]}"></span>
+          <span style="background:${t.swatch[1]}"></span>
+          <span style="background:${t.swatch[2]}"></span>
+        </button>
+      `).join('')}
+    </div>
+    <div class="sc-opt-theme-label" id="sc-opt-theme-label">${(SC_THEMES.find(t=>t.id===currentTheme)||SC_THEMES[0]).label}</div>
+
+    <div class="sc-opt-title" style="margin-top:14px;">Options audio</div>
     <label class="sc-opt-label">Musique</label>
     <input type="range" id="sc-music-vol-slider" min="0" max="100" value="${Math.round(musicVolumeLevel*100)}">
     <label class="sc-opt-label">Effets sonores</label>
@@ -497,6 +549,15 @@ function injectOptionsMenu(){
   document.getElementById('sc-music-vol-slider').oninput = (e)=>setMusicVolumeLevel(e.target.value/100);
   document.getElementById('sc-sfx-vol-slider').oninput = (e)=>setSfxVolumeLevel(e.target.value/100);
   document.getElementById('sc-mute-checkbox').onchange = (e)=>setSfxMuted(e.target.checked);
+  modal.querySelectorAll('.sc-theme-swatch').forEach(btn=>{
+    btn.onclick = ()=>{
+      const id = btn.dataset.theme;
+      scApplyTheme(id);
+      const t = SC_THEMES.find(t=>t.id===id);
+      const label = document.getElementById('sc-opt-theme-label');
+      if(label && t) label.textContent = t.label;
+    };
+  });
 }
 
 /* ---------- Bouton de retour testeur (bug / suggestion), en bas à gauche de chaque page ---------- */
@@ -511,14 +572,14 @@ function injectAppTopbar(){
   if(document.getElementById('app-topbar') || !document.body || window.APP_TOPBAR_DISABLED) return;
   const style = document.createElement('style');
   style.textContent = `
-    #app-topbar{display:flex;align-items:center;gap:16px;padding:10px 20px;background:rgba(15,12,20,.92);
-      border-bottom:1.5px solid rgba(212,175,55,.4);font-family:'Inter',sans-serif;position:relative;z-index:150;
+    #app-topbar{display:flex;align-items:center;gap:16px;padding:10px 20px;background:var(--bg-panel, rgba(15,12,20,.92));
+      border-bottom:1.5px solid var(--line, rgba(212,175,55,.4));font-family:'Inter',sans-serif;position:relative;z-index:150;
       width:100%;box-sizing:border-box;flex-shrink:0;}
-    #app-topbar-title{font-family:'Cinzel',serif;font-weight:700;color:#d4af37;font-size:16px;letter-spacing:.5px;flex:1;}
+    #app-topbar-title{font-family:'Cinzel',serif;font-weight:700;color:var(--gold, #d4af37);font-size:16px;letter-spacing:.5px;flex:1;}
     #app-topbar-right{display:flex;align-items:center;gap:14px;}
-    #app-topbar-menu{font-family:'Cinzel',serif;font-weight:700;font-size:12.5px;color:#f2ead2;text-decoration:none;
-      border:1.5px solid #3a3260;border-radius:8px;padding:7px 14px;white-space:nowrap;}
-    #app-topbar-menu:hover{border-color:#d4af37;color:#d4af37;}
+    #app-topbar-menu{font-family:'Cinzel',serif;font-weight:700;font-size:12.5px;color:var(--parchment, #f2ead2);text-decoration:none;
+      border:1.5px solid var(--line, #3a3260);border-radius:8px;padding:7px 14px;white-space:nowrap;}
+    #app-topbar-menu:hover{border-color:var(--gold, #d4af37);color:var(--gold, #d4af37);}
   `;
   document.head.appendChild(style);
 

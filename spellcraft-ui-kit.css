@@ -1,0 +1,373 @@
+/* ============================================================
+   Les Aventuriers de Rimd'Orël — Charte graphique commune
+   ============================================================
+   Feuille de style partagée par toutes les pages de menu du jeu
+   (hub, collection, succès, boutique, quêtes, recherche de
+   partie, grimoire). Le plateau de jeu et l'éditeur de cartes
+   gardent leur propre feuille de style, plus spécifique.
+
+   Principe : plus aucune image "posée" à la main (les anciennes
+   affiches hub-poster-*.png) — uniquement de la couleur, de la
+   typographie et des icônes vectorielles (SVG en ligne), pour que
+   toutes les pages se ressemblent et restent cohérentes même
+   quand le contenu change.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;900&family=Inter:wght@400;500;600;700;800&display=swap');
+
+/* ============================================================
+   Thèmes — 5 variantes de couleur, choisies dans le menu Options.
+   Un seul jeu de composants (plus haut... enfin plus bas dans ce
+   fichier) ; seuls ces jetons changent d'un thème à l'autre.
+   Le thème actif est posé sur <html data-theme="...">. "actuel"
+   (le violet/or d'origine) est la valeur par défaut, sans attribut.
+   ============================================================ */
+:root, [data-theme="actuel"]{
+  --bg-void:#0b0a12;
+  --bg-panel:#171325;
+  --bg-panel-2:#1f1a30;
+  --bg-panel-3:#241f38;
+  --bg-glow:radial-gradient(ellipse 90% 60% at 50% -10%, #201a38 0%, transparent 60%);
+
+  --parchment:#efe6c8;
+  --parchment-dim:#b9ae8e;
+  --ink:#1c1830;
+
+  --arcane:#7c5cff;
+  --arcane-dim:#5a41c4;
+  --gold:#d4af37;
+  --gold-bright:#f2cf5a;
+  --blood:#c23b3b;
+  --frost:#4fb3d9;
+  --green:#4a9d6b;
+
+  --line:#332a54;
+  --line-soft:#241f38;
+
+  --shadow-panel:0 14px 32px rgba(0,0,0,.45);
+  --shadow-lift:0 18px 40px rgba(0,0,0,.55), 0 0 0 1px rgba(212,175,55,.18);
+}
+
+[data-theme="emeraude"]{
+  --bg-void:#0a1210;
+  --bg-panel:#121f1a;
+  --bg-panel-2:#182a23;
+  --bg-panel-3:#1e352c;
+  --bg-glow:radial-gradient(ellipse 90% 60% at 50% -10%, #1c3327 0%, transparent 60%);
+
+  --parchment:#e9e6d4;
+  --parchment-dim:#a9b39f;
+  --ink:#0f1a15;
+
+  --arcane:#3f9d6b;
+  --arcane-dim:#2c7650;
+  --gold:#c98a3e;
+  --gold-bright:#e3ab5f;
+  --blood:#c23b3b;
+  --frost:#4fb3d9;
+  --green:#5cb37f;
+
+  --line:#2c4a3d;
+  --line-soft:#1e352c;
+
+  --shadow-panel:0 14px 32px rgba(0,0,0,.45);
+  --shadow-lift:0 18px 40px rgba(0,0,0,.55), 0 0 0 1px rgba(201,138,62,.2);
+}
+
+[data-theme="sangor"]{
+  --bg-void:#120a0a;
+  --bg-panel:#1f1315;
+  --bg-panel-2:#2a181b;
+  --bg-panel-3:#331d21;
+  --bg-glow:radial-gradient(ellipse 90% 60% at 50% -10%, #35171a 0%, transparent 60%);
+
+  --parchment:#f0e4d8;
+  --parchment-dim:#bfa89c;
+  --ink:#1e1112;
+
+  --arcane:#a4293f;
+  --arcane-dim:#7a1d2e;
+  --gold:#d9a63c;
+  --gold-bright:#f0c15a;
+  --blood:#e04b4b;
+  --frost:#4fb3d9;
+  --green:#4a9d6b;
+
+  --line:#4a2530;
+  --line-soft:#331d21;
+
+  --shadow-panel:0 14px 32px rgba(0,0,0,.5);
+  --shadow-lift:0 18px 40px rgba(0,0,0,.6), 0 0 0 1px rgba(217,166,60,.2);
+}
+
+[data-theme="givre"]{
+  --bg-void:#090c12;
+  --bg-panel:#131b28;
+  --bg-panel-2:#182535;
+  --bg-panel-3:#1e2f42;
+  --bg-glow:radial-gradient(ellipse 90% 60% at 50% -10%, #1a2c40 0%, transparent 60%);
+
+  --parchment:#e6eef5;
+  --parchment-dim:#9db0c2;
+  --ink:#0e1620;
+
+  --arcane:#4fb3d9;
+  --arcane-dim:#3488a8;
+  --gold:#9fb8c9;
+  --gold-bright:#c3d7e3;
+  --blood:#c23b3b;
+  --frost:#6fd0f0;
+  --green:#4a9d6b;
+
+  --line:#2e4058;
+  --line-soft:#1e2f42;
+
+  --shadow-panel:0 14px 32px rgba(0,0,0,.45);
+  --shadow-lift:0 18px 40px rgba(0,0,0,.55), 0 0 0 1px rgba(159,184,201,.25);
+}
+
+/* L'Aube — seul thème clair : lumière chaude du levant sur fond
+   parchemin, plutôt que les 4 autres, tous sombres. Les mêmes jetons,
+   juste inversés (texte sombre sur fond clair) pour rester lisible. */
+[data-theme="aube"]{
+  --bg-void:#f6ecd9;
+  --bg-panel:#fbf5e7;
+  --bg-panel-2:#f3e6c9;
+  --bg-panel-3:#ecd9ac;
+  --bg-glow:radial-gradient(ellipse 90% 60% at 50% -10%, #ffd9a0 0%, transparent 65%);
+
+  --parchment:#3c2f1c;
+  --parchment-dim:#7d6c4c;
+  --ink:#fffaf0;
+
+  --arcane:#8a4fd6;
+  --arcane-dim:#6a3bb0;
+  --gold:#b8790f;
+  --gold-bright:#d99a2b;
+  --blood:#b23b3b;
+  --frost:#2f8fae;
+  --green:#3d8a5c;
+
+  --line:#dcc696;
+  --line-soft:#ecdcb2;
+
+  --shadow-panel:0 14px 32px rgba(120,88,30,.18);
+  --shadow-lift:0 18px 40px rgba(120,88,30,.25), 0 0 0 1px rgba(184,121,15,.3);
+}
+
+/* Rayons communs (identiques quel que soit le thème) */
+:root{
+  --radius-lg:18px;
+  --radius-md:12px;
+  --radius-sm:8px;
+}
+
+*{box-sizing:border-box;}
+html,body{
+  margin:0;min-height:100%;
+  background:var(--bg-glow), var(--bg-void);
+  color:var(--parchment);
+  font-family:'Inter',sans-serif;
+  transition:background-color .25s ease, color .25s ease;
+}
+
+::selection{background:var(--arcane);color:#fff;}
+
+/* ---------------- Typographie ---------------- */
+.sc-h1, .sc-h2, .sc-h3{
+  font-family:'Cinzel',serif;color:var(--gold);margin:0;letter-spacing:.3px;
+}
+.sc-h1{font-weight:900;font-size:clamp(20px,2.6vw,32px);text-shadow:0 2px 10px rgba(0,0,0,.6);}
+.sc-h2{font-weight:700;font-size:clamp(15px,1.5vw,19px);}
+.sc-h3{font-weight:700;font-size:14px;}
+.sc-sub{color:var(--parchment-dim);font-size:13px;line-height:1.55;}
+
+/* ---------------- Structure de page commune ---------------- */
+.sc-page{
+  min-height:100vh;width:100%;
+  display:flex;flex-direction:column;align-items:center;
+  padding:0 0 40px;
+}
+
+.sc-topbar{
+  position:sticky;top:0;left:0;width:100%;z-index:30;
+  display:flex;align-items:center;gap:14px;
+  padding:12px 20px;
+  background:linear-gradient(180deg, var(--bg-void) 0%, var(--bg-void) 60%, transparent 100%);
+  backdrop-filter:blur(6px);
+}
+.sc-topbar-back{
+  display:inline-flex;align-items:center;gap:6px;
+  color:var(--parchment-dim);text-decoration:none;font-size:13px;font-weight:600;
+  border:1px solid var(--line);border-radius:999px;padding:7px 14px 7px 10px;
+  transition:border-color .15s ease, color .15s ease, background .15s ease;
+  background:var(--bg-panel);
+}
+.sc-topbar-back:hover{border-color:var(--gold);color:var(--gold);}
+.sc-topbar-back svg{width:15px;height:15px;flex:none;}
+.sc-topbar-title{
+  font-family:'Cinzel',serif;font-weight:700;color:var(--gold);font-size:15px;letter-spacing:.4px;flex:1;
+}
+.sc-topbar-right{display:flex;align-items:center;gap:10px;}
+
+.sc-container{
+  width:100%;max-width:1180px;padding:26px 20px 0;
+  display:flex;flex-direction:column;gap:22px;
+}
+
+.sc-header{
+  display:flex;flex-direction:column;gap:4px;align-items:center;text-align:center;
+  margin-bottom:4px;
+}
+.sc-header .sc-h1{margin-bottom:2px;}
+
+/* ---------------- Panneaux ---------------- */
+.sc-panel{
+  background:linear-gradient(180deg, var(--bg-panel-2) 0%, var(--bg-panel) 100%);
+  border:1px solid var(--line);
+  border-radius:var(--radius-lg);
+  box-shadow:var(--shadow-panel);
+  padding:20px;
+}
+.sc-panel-soft{
+  background:var(--bg-panel);
+  border:1px solid var(--line-soft);
+  border-radius:var(--radius-md);
+  padding:16px;
+}
+
+/* ---------------- Boutons ---------------- */
+.sc-btn{
+  --btn-fg:var(--parchment);--btn-bg:var(--bg-panel-3);--btn-border:var(--line);
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  font-family:'Inter',sans-serif;font-weight:600;font-size:13.5px;
+  color:var(--btn-fg);background:var(--btn-bg);border:1.5px solid var(--btn-border);
+  border-radius:var(--radius-sm);padding:10px 18px;cursor:pointer;
+  text-decoration:none;transition:transform .12s ease, border-color .15s ease, background .15s ease, box-shadow .15s ease;
+  user-select:none;
+}
+.sc-btn:hover{border-color:var(--gold);transform:translateY(-1px);}
+.sc-btn:active{transform:translateY(0);}
+.sc-btn:disabled, .sc-btn.disabled{opacity:.45;cursor:default;pointer-events:none;}
+
+.sc-btn-primary{--btn-bg:linear-gradient(180deg, #8f6bff 0%, var(--arcane) 100%);--btn-border:#9a7dff;--btn-fg:#fff;background:var(--btn-bg);box-shadow:0 8px 20px rgba(124,92,255,.35);}
+.sc-btn-primary:hover{box-shadow:0 10px 26px rgba(124,92,255,.5);}
+
+.sc-btn-gold{--btn-bg:linear-gradient(180deg, var(--gold-bright) 0%, var(--gold) 100%);--btn-border:var(--gold-bright);--btn-fg:#241d0e;font-weight:700;}
+.sc-btn-gold:hover{box-shadow:0 10px 24px rgba(212,175,55,.35);}
+
+.sc-btn-ghost{--btn-bg:transparent;--btn-border:var(--line);}
+.sc-btn-ghost:hover{background:var(--bg-panel-3);}
+
+.sc-btn-sm{padding:6px 12px;font-size:12px;border-radius:7px;}
+.sc-btn-icon{padding:9px;border-radius:999px;width:36px;height:36px;}
+
+/* ---------------- Grille de navigation (tuiles du hub) ---------------- */
+.sc-nav-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(190px, 1fr));
+  gap:16px;
+  width:100%;
+}
+/* La tuile "mise en avant" (ex : Jouer) prend toute la largeur, en
+   bandeau horizontal ; les autres tuiles suivent en dessous dans une
+   grille classique, sans case vide ni ligne bancale. */
+.sc-nav-grid.sc-nav-grid-feature{
+  grid-template-columns:repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.sc-tile{
+  position:relative;display:flex;flex-direction:column;gap:10px;
+  background:linear-gradient(165deg, var(--bg-panel-2) 0%, var(--bg-panel) 65%);
+  border:1px solid var(--line);border-radius:var(--radius-lg);
+  padding:20px;text-decoration:none;color:inherit;cursor:pointer;
+  overflow:hidden;
+  transition:transform .18s cubic-bezier(.2,.8,.3,1), border-color .18s ease, box-shadow .18s ease;
+}
+.sc-tile::before{
+  content:'';position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(140px 90px at 85% -10%, rgba(212,175,55,.16), transparent 70%);
+  opacity:0;transition:opacity .2s ease;
+}
+.sc-tile:hover{transform:translateY(-4px);border-color:var(--gold);box-shadow:var(--shadow-lift);}
+.sc-tile:hover::before{opacity:1;}
+.sc-tile-icon{
+  width:44px;height:44px;border-radius:var(--radius-sm);
+  display:flex;align-items:center;justify-content:center;flex:none;
+  background:var(--bg-panel-3);border:1px solid var(--line);
+  color:var(--gold);
+}
+.sc-tile-icon svg{width:24px;height:24px;}
+.sc-tile-title{font-family:'Cinzel',serif;font-weight:700;color:var(--parchment);font-size:16px;letter-spacing:.3px;}
+.sc-tile-sub{color:var(--parchment-dim);font-size:12.5px;line-height:1.5;}
+.sc-tile-badge{
+  position:absolute;top:14px;right:14px;min-width:22px;height:22px;padding:0 6px;
+  border-radius:999px;background:var(--gold-bright);color:#241d0e;
+  font-weight:900;font-size:12px;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 12px rgba(242,207,90,.7);
+}
+.sc-tile-soon{cursor:default;}
+.sc-tile-soon:hover{transform:none;border-color:var(--line);box-shadow:var(--shadow-panel);}
+.sc-tile-soon .sc-tile-icon{opacity:.5;}
+.sc-tile-soon .sc-tile-title, .sc-tile-soon .sc-tile-sub{opacity:.55;}
+.sc-ribbon{
+  position:absolute;top:14px;right:-30px;transform:rotate(35deg);
+  background:var(--blood);color:#fff;font-family:'Cinzel',serif;font-size:10px;font-weight:700;
+  padding:3px 34px;letter-spacing:.5px;box-shadow:0 3px 8px rgba(0,0,0,.5);
+}
+
+/* Grande tuile "mise en avant" (ex : Jouer) : bandeau plein largeur,
+   icône et texte côte à côte plutôt qu'empilés. */
+.sc-tile-feature{
+  grid-column:1 / -1;
+  flex-direction:row;align-items:center;gap:20px;
+  padding:24px 28px;
+  background:
+    radial-gradient(320px 160px at 88% 0%, rgba(124,92,255,.25), transparent 70%),
+    linear-gradient(165deg, var(--bg-panel-2) 0%, var(--bg-panel) 70%);
+}
+.sc-tile-feature .sc-tile-icon{width:56px;height:56px;flex:none;}
+.sc-tile-feature .sc-tile-icon svg{width:30px;height:30px;}
+.sc-tile-feature .sc-tile-body{display:flex;flex-direction:column;gap:6px;}
+.sc-tile-feature .sc-tile-title{font-size:20px;}
+.sc-tile-feature .sc-tile-sub{font-size:13.5px;max-width:460px;}
+
+@media (max-width:640px){
+  .sc-tile-feature{flex-direction:column;align-items:flex-start;}
+}
+
+/* ---------------- Badges / pastilles d'état ---------------- */
+.sc-pill{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--bg-panel-3);border:1px solid var(--line);border-radius:999px;
+  padding:5px 12px;font-size:12px;color:var(--parchment-dim);font-weight:600;
+}
+.sc-pill-gold{color:var(--gold);border-color:rgba(212,175,55,.4);}
+
+/* ---------------- Barre de progression ---------------- */
+.sc-progress{width:100%;height:8px;border-radius:999px;background:var(--bg-panel-3);overflow:hidden;border:1px solid var(--line);}
+.sc-progress-fill{height:100%;background:linear-gradient(90deg, var(--arcane-dim), var(--arcane));border-radius:999px;transition:width .3s ease;}
+
+/* ---------------- Overlay / modale communs ---------------- */
+.sc-overlay{
+  display:none;position:fixed;inset:0;z-index:200;
+  background:rgba(6,5,10,.88);backdrop-filter:blur(3px);
+  align-items:center;justify-content:center;padding:20px;
+}
+.sc-overlay.show{display:flex;}
+.sc-modal{
+  background:var(--bg-panel);border:1.5px solid var(--line);border-radius:var(--radius-lg);
+  padding:24px 26px;max-width:640px;width:100%;max-height:86vh;overflow-y:auto;position:relative;
+  box-shadow:var(--shadow-lift);
+}
+.sc-modal-close{
+  position:absolute;top:14px;right:16px;background:none;border:none;color:var(--parchment-dim);
+  font-size:20px;cursor:pointer;line-height:1;
+}
+.sc-modal-close:hover{color:var(--gold);}
+
+/* ---------------- Scrollbars (cohérence visuelle) ---------------- */
+*::-webkit-scrollbar{width:9px;height:9px;}
+*::-webkit-scrollbar-track{background:transparent;}
+*::-webkit-scrollbar-thumb{background:var(--bg-panel-3);border-radius:999px;border:1px solid var(--line);}
+*::-webkit-scrollbar-thumb:hover{background:var(--line);}
