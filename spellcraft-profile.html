@@ -152,6 +152,7 @@ let OWNED_HEROES = [];
 let ALL_ACHIEVEMENTS = [];
 let UNLOCKED_ACHIEVEMENT_IDS = [];
 let SELECTED_AVATAR = null;
+let LAST_PROFILE = null; // dernière réponse de gsGetProfile, réutilisée par openEditPanel
 let SELECTED_ACHIEVEMENTS = [];
 
 function escapeHtmlProfile(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -170,16 +171,25 @@ async function initProfile(){
 async function loadAndRenderProfile(){
   const res = await gsGetProfile(VIEWED_USER_ID);
   if(res.error){ document.getElementById('profile-username').textContent = 'Erreur : ' + res.error; return; }
+  LAST_PROFILE = res;
 
   document.getElementById('profile-username').textContent = res.username;
   document.getElementById('profile-since').textContent =
     `Membre depuis le ${new Date(res.createdAt).toLocaleDateString('fr-FR', {day:'numeric', month:'long', year:'numeric'})}`;
 
   const avatarEl = document.getElementById('avatar-circle');
+  avatarEl.style.backgroundImage = '';
+  avatarEl.textContent = '👤';
   if(res.avatarHeroName){
     const collection = await loadAllCardsAcrossSets();
     const hero = collection.find(c=>c.name===res.avatarHeroName && c.type==='Héros');
     if(hero && hero.image){ avatarEl.style.backgroundImage = `url('${hero.image.replace(/'/g,"")}')`; avatarEl.textContent=''; }
+  }
+  // Pas de héros choisi (ou héros introuvable) : avatar Discord par défaut,
+  // s'il existe (voir spellcraft-auth.js → scSyncDiscordAvatarIfNeeded).
+  if(!avatarEl.style.backgroundImage && res.discordAvatarUrl){
+    avatarEl.style.backgroundImage = `url('${res.discordAvatarUrl.replace(/'/g,"")}')`;
+    avatarEl.textContent = '';
   }
 
   const featuredRow = document.getElementById('featured-row');
@@ -224,14 +234,29 @@ async function openEditPanel(){
   OWNED_HEROES = collection.filter(c=>c.type==='Héros' && owned[c.id]);
 
   const avatarWrap = document.getElementById('avatar-choices');
-  avatarWrap.innerHTML = OWNED_HEROES.map(h=>`
-    <div class="avatar-choice" data-hero="${escapeHtmlProfile(h.name)}"
+  // On initialise sur le choix ACTUEL (et non null) : si le joueur ouvre ce
+  // panneau juste pour changer ses succès mis en avant et enregistre sans
+  // toucher à l'avatar, on ne veut pas écraser silencieusement son avatar
+  // existant avec "aucun".
+  const currentAvatarHero = LAST_PROFILE && LAST_PROFILE.avatarHeroName || null;
+  SELECTED_AVATAR = currentAvatarHero;
+
+  let avatarTilesHtml = '';
+  if(LAST_PROFILE && LAST_PROFILE.discordAvatarUrl){
+    avatarTilesHtml += `
+      <div class="avatar-choice${currentAvatarHero ? '' : ' selected'}" data-hero=""
+           style="background-image:url('${LAST_PROFILE.discordAvatarUrl.replace(/'/g,"")}')"
+           title="Avatar Discord (par défaut)"></div>`;
+  }
+  avatarTilesHtml += OWNED_HEROES.map(h=>`
+    <div class="avatar-choice${h.name===currentAvatarHero ? ' selected' : ''}" data-hero="${escapeHtmlProfile(h.name)}"
          style="${h.image?`background-image:url('${h.image.replace(/'/g,"")}')`:''}"
          title="${escapeHtmlProfile(h.name)}"></div>
-  `).join('') || "<p style=\"font-size:12px;color:var(--parchment-dim);\">Aucun héros possédé pour l'instant.</p>";
+  `).join('');
+  avatarWrap.innerHTML = avatarTilesHtml || "<p style=\"font-size:12px;color:var(--parchment-dim);\">Aucun héros possédé pour l'instant.</p>";
   avatarWrap.querySelectorAll('.avatar-choice').forEach(el=>{
     el.onclick = ()=>{
-      SELECTED_AVATAR = el.dataset.hero;
+      SELECTED_AVATAR = el.dataset.hero || null;
       avatarWrap.querySelectorAll('.avatar-choice').forEach(e=>e.classList.remove('selected'));
       el.classList.add('selected');
     };

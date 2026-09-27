@@ -184,9 +184,41 @@ async function renderAuthWidget(){
         <a class="sc-auth-name" href="spellcraft-profile.html" style="text-decoration:none;color:inherit;">👤 ${escapeHtml(username || user.email)}</a>
         <button class="sc-auth-btn" onclick="scSignOut()">Déconnexion</button>
       </div>`;
+    scSyncDiscordAvatarIfNeeded(user);
   } else {
     widget.innerHTML = `<button class="sc-auth-btn primary" onclick="scOpenAuthModal()">Se connecter</button>`;
   }
+}
+
+/* ============================================================
+   AVATAR DISCORD — synchronisation vers le profil
+   ============================================================
+   Quand un joueur se connecte via Discord, Supabase place son avatar
+   Discord dans user_metadata.avatar_url (lisible uniquement par le
+   propriétaire du compte, côté client). On le recopie dans la table
+   profiles (colonne discord_avatar_url, addendum 62) pour qu'il serve
+   d'avatar par défaut sur la page de profil — y compris quand ce profil
+   est consulté par un AUTRE joueur, ce que user_metadata seul ne permet
+   pas. Appelé à chaque rendu du widget de compte, mais ne fait réellement
+   un appel réseau qu'une fois par session (sessionStorage) ou si l'avatar
+   Discord a changé depuis.
+   ============================================================ */
+async function scSyncDiscordAvatarIfNeeded(user){
+  if(!user) return;
+  const providers = (user.app_metadata && user.app_metadata.providers) || [];
+  const avatarUrl = user.user_metadata && user.user_metadata.avatar_url;
+  if(!providers.includes('discord') || !avatarUrl) return;
+  try{
+    if(sessionStorage.getItem('sc_discord_avatar_synced') === avatarUrl) return;
+  }catch(e){}
+  try{
+    const { error } = await sb.functions.invoke('game-action', {
+      body: { action: 'syncDiscordAvatar', avatarUrl }
+    });
+    if(!error){
+      try{ sessionStorage.setItem('sc_discord_avatar_synced', avatarUrl); }catch(e){}
+    }
+  }catch(e){}
 }
 
 async function initSpellcraftAuth(){

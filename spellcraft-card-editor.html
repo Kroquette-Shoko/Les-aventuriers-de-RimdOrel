@@ -681,9 +681,33 @@ header .spacer{flex:1;}
                 <img id="cf-image-preview" style="width:34px;height:34px;object-fit:cover;border-radius:6px;border:1px solid #3a3260;display:none;">
               </div>
             </div>
+            <div class="field">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:normal;">
+                <input type="checkbox" id="cf-shop-visible" checked style="width:auto;">
+                Visible dans la boutique (vendable contre de l'or)
+              </label>
+              <div class="hint" style="margin-top:4px;">
+                Décoche pour un dos "récompense" : il n'apparaît jamais dans la boutique et ne peut être obtenu que via la distribution ci-dessous (événement, condition spéciale...). Le prix reste utile pour référence interne mais n'est affiché à personne.
+              </div>
+            </div>
             <div style="display:flex;gap:8px;margin-top:10px;">
               <button class="btn primary small" onclick="saveCardBackForm()">💾 Enregistrer</button>
               <button class="btn small" onclick="closeCardBackForm()">Annuler</button>
+            </div>
+          </div>
+
+          <h3 style="font-family:'Cinzel',serif;font-size:13px;color:var(--gold);margin:20px 0 10px;">🎁 Distribuer un dos à un joueur</h3>
+          <div class="hint" style="margin-bottom:8px;">
+            Donne directement un dos de carte à un joueur précis, sans passer par la boutique — utile pour une récompense d'événement. Fonctionne pour n'importe quel dos (vendable ou non), mais c'est surtout fait pour les dos "récompense" ci-dessus.
+          </div>
+          <div style="background:var(--bg-panel-2);border-radius:10px;padding:14px;">
+            <div class="grid2">
+              <div class="field"><label>Pseudo du joueur</label><input type="text" id="grant-username" placeholder="Ex : Kroquette"></div>
+              <div class="field"><label>Dos de carte</label><select id="grant-cardback"></select></div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;margin-top:10px;">
+              <button class="btn primary small" onclick="grantCardBackToPlayer()">🎁 Donner</button>
+              <span id="grant-status" style="font-size:12px;color:var(--parchment-dim);"></span>
             </div>
           </div>
         </div>
@@ -4852,13 +4876,30 @@ async function deleteBoosterEntry(id){
 function renderCardBackList(){
   const el = document.getElementById('cardback-list');
   if(cardBacksCache.length===0){ el.innerHTML = `<div class="empty-state">Aucun dos de carte créé.</div>`; return; }
-  el.innerHTML = cardBacksCache.map(cb=>`
+  el.innerHTML = cardBacksCache.map(cb=>{
+    const isReward = cb.shop_visible === false;
+    const priceOrBadge = isReward
+      ? `<span style="color:var(--gold);">— 🎁 récompense (hors boutique)</span>`
+      : `<span style="color:var(--parchment-dim);">— ${cb.price} or</span>`;
+    return `
     <div style="display:flex;align-items:center;gap:8px;background:var(--bg-panel-2);border-radius:8px;padding:8px 10px;font-size:12px;">
-      <span style="flex:1;">${escapeHtml(cb.name)} <span style="color:var(--parchment-dim);">— ${cb.price} or</span></span>
+      <span style="flex:1;">${escapeHtml(cb.name)} ${priceOrBadge}</span>
       <button class="mini-btn" onclick="editCardBackForm('${cb.id}')" title="Modifier">✎</button>
       <button class="mini-btn" onclick="deleteCardBackEntry('${cb.id}')" title="Supprimer">🗑</button>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
+  populateGrantCardBackSelect();
+}
+
+function populateGrantCardBackSelect(){
+  const sel = document.getElementById('grant-cardback');
+  if(!sel) return;
+  const prevValue = sel.value;
+  sel.innerHTML = cardBacksCache.map(cb=>{
+    const tag = cb.shop_visible === false ? ' (récompense)' : '';
+    return `<option value="${escapeHtml(cb.id)}">${escapeHtml(cb.name)}${tag}</option>`;
+  }).join('');
+  if(prevValue && cardBacksCache.some(cb=>cb.id===prevValue)) sel.value = prevValue;
 }
 
 function newCardBackForm(){
@@ -4866,6 +4907,7 @@ function newCardBackForm(){
   document.getElementById('cf-name').value = '';
   document.getElementById('cf-price').value = 150;
   document.getElementById('cf-image').value = '';
+  document.getElementById('cf-shop-visible').checked = true;
   updateImgPreview('cf-image','cf-image-preview');
   document.getElementById('cardback-form').style.display = 'block';
 }
@@ -4877,6 +4919,7 @@ function editCardBackForm(id){
   document.getElementById('cf-name').value = cb.name;
   document.getElementById('cf-price').value = cb.price;
   document.getElementById('cf-image').value = cb.image_url || '';
+  document.getElementById('cf-shop-visible').checked = cb.shop_visible !== false;
   updateImgPreview('cf-image','cf-image-preview');
   document.getElementById('cardback-form').style.display = 'block';
 }
@@ -4890,7 +4933,8 @@ async function saveCardBackForm(){
     id: editingCardBackId || ('back_' + Date.now()),
     name,
     price: parseInt(document.getElementById('cf-price').value) || 150,
-    image_url: document.getElementById('cf-image').value.trim() || null
+    image_url: document.getElementById('cf-image').value.trim() || null,
+    shop_visible: document.getElementById('cf-shop-visible').checked
   };
   const { error } = await sb.from('card_backs').upsert(row);
   if(error){ alert('Erreur : ' + error.message); return; }
@@ -4904,6 +4948,35 @@ async function deleteCardBackEntry(id){
   const { error } = await sb.from('card_backs').delete().eq('id', id);
   if(error){ alert('Erreur : ' + error.message); return; }
   await loadShopAdmin();
+}
+
+async function grantCardBackToPlayer(){
+  const statusEl = document.getElementById('grant-status');
+  const username = document.getElementById('grant-username').value.trim();
+  const cardBackId = document.getElementById('grant-cardback').value;
+  if(!username){ statusEl.textContent = 'Indique le pseudo du joueur.'; statusEl.style.color = 'var(--blood)'; return; }
+  if(!cardBackId){ statusEl.textContent = 'Crée d\'abord au moins un dos de carte.'; statusEl.style.color = 'var(--blood)'; return; }
+  statusEl.textContent = 'Envoi...';
+  statusEl.style.color = 'var(--parchment-dim)';
+  const { data, error } = await sb.functions.invoke('game-action', {
+    body: { action: 'grantCardBack', username, cardBackId }
+  });
+  if(error || (data && data.error)){
+    const code = (data && data.error) || (error && error.message) || 'erreur inconnue';
+    const messages = {
+      'not-authorized': "Seul le compte Kroquette peut distribuer des dos de carte.",
+      'not-logged-in': "Tu dois être connecté.",
+      'player-not-found': `Aucun joueur avec le pseudo "${username}".`,
+      'unknown-card-back': "Ce dos de carte n'existe plus (rafraîchis la page).",
+      'already-owned': `${username} possède déjà ce dos de carte.`
+    };
+    statusEl.textContent = messages[code] || ('Erreur : ' + code);
+    statusEl.style.color = 'var(--blood)';
+    return;
+  }
+  statusEl.textContent = `✓ "${data.card_back_name}" donné à ${data.username} !`;
+  statusEl.style.color = 'var(--green)';
+  document.getElementById('grant-username').value = '';
 }
 
 /* ============================================================

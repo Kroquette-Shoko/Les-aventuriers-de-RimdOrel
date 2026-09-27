@@ -546,8 +546,8 @@ async function fetchTodaysSinglePurchases(userId){
 
 async function renderCardBackShelf(){
   const el = document.getElementById('shelf-backs');
-  const { data, error } = await sb.from('card_backs').select('*').order('price');
-  if(error || !data || data.length===0){
+  const { data: allBacks, error } = await sb.from('card_backs').select('*').order('price');
+  if(error || !allBacks || allBacks.length===0){
     el.innerHTML = `<div class="empty-shelf">Aucun dos de carte disponible pour l'instant — reviens plus tard !</div>`;
     return;
   }
@@ -560,9 +560,19 @@ async function renderCardBackShelf(){
     const profile = await loadUserProfile();
     equippedId = profile ? profile.equipped_card_back_id : null;
   }
+  // shop_visible=false : dos "récompense", distribués via l'éditeur (voir
+  // grant_card_back) pour un événement ou une condition spéciale — jamais
+  // proposés à l'achat, mais toujours affichés ici (avec un badge) une fois
+  // possédés, sinon le joueur qui en reçoit un ne pourrait jamais l'équiper.
+  const data = allBacks.filter(cb => cb.shop_visible !== false || owned.has(cb.id));
+  if(data.length===0){
+    el.innerHTML = `<div class="empty-shelf">Aucun dos de carte disponible pour l'instant — reviens plus tard !</div>`;
+    return;
+  }
   el.innerHTML = data.map(cb=>{
     const isOwned = owned.has(cb.id);
     const isEquipped = equippedId === cb.id;
+    const isReward = cb.shop_visible === false;
     let btnHtml;
     if(isEquipped){
       btnHtml = `<button class="buy-btn owned" disabled>Équipé ✓</button>`;
@@ -574,8 +584,8 @@ async function renderCardBackShelf(){
     return `
       <div class="shop-item">
         <div class="shop-item-art" style="${cb.image_url?`background-image:url('${cb.image_url}');background-size:cover;`:''}">${cb.image_url?'':'🎴'}</div>
-        <div class="shop-item-name">${escapeHtmlShop(cb.name)}</div>
-        <div class="shop-item-price"><span class="money-icon"></span> ${cb.price}</div>
+        <div class="shop-item-name">${escapeHtmlShop(cb.name)}${isReward?' <span style="font-size:10px;color:var(--gold);">🎁 Récompense</span>':''}</div>
+        <div class="shop-item-price">${isReward?'':`<span class="money-icon"></span> ${cb.price}`}</div>
         ${btnHtml}
       </div>
     `;
