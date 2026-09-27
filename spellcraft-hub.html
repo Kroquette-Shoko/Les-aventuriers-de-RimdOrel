@@ -27,6 +27,11 @@
 .hub-crest svg{width:34px;height:34px;}
 .hub-footer{margin-top:10px;text-align:center;color:var(--parchment-dim);font-size:11.5px;max-width:600px;line-height:1.6;}
 .hub-footer strong{color:var(--parchment);}
+
+@media (max-width:600px){
+  #patchnote-btn-label{display:none;}
+  #patchnote-btn{padding:9px;}
+}
 </style>
 </head>
 <body>
@@ -35,9 +40,10 @@
   <div class="sc-topbar">
     <span class="sc-topbar-title">Menu principal</span>
     <div class="sc-topbar-right">
-      <button class="sc-btn sc-btn-ghost sc-btn-icon" id="patchnote-btn" onclick="openPatchNotes()" title="Notes de version" style="position:relative;">
+      <button class="sc-btn sc-btn-gold" id="patchnote-btn" onclick="openPatchNotes()" title="Notes de version & feuille de route" style="position:relative;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M15 3v5h5"/><path d="M8 13h8M8 17h5"/></svg>
-        <span id="patchnote-badge" style="display:none;position:absolute;top:-4px;right:-4px;width:16px;height:16px;border-radius:50%;background:var(--gold-bright);color:#241d0e;font-weight:900;font-size:10px;align-items:center;justify-content:center;box-shadow:0 0 8px rgba(242,207,90,.85);"></span>
+        <span id="patchnote-btn-label">Notes de version</span>
+        <span id="patchnote-badge" style="display:none;position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:var(--blood);color:#fff;font-weight:900;font-size:10px;align-items:center;justify-content:center;box-shadow:0 0 8px rgba(194,59,59,.7);"></span>
       </button>
       <div id="sc-auth-slot"></div>
       <div id="sc-options-slot"></div>
@@ -113,42 +119,78 @@
   </div>
 </div>
 
-<!-- ---------------- Notes de version ---------------- -->
+<!-- ---------------- Notes de version & feuille de route ---------------- -->
 <div id="patchnote-overlay" class="sc-overlay">
-  <div id="patchnote-panel" class="sc-modal">
-    <button onclick="closePatchNotes()" class="sc-modal-close">✕</button>
-    <h2 class="sc-h2" style="margin-bottom:4px;">Notes de version</h2>
-    <button id="patchnote-gear-btn" onclick="openPatchNoteEditor()" title="Modifier (Kroquette uniquement)" style="display:none;position:absolute;top:14px;right:44px;background:none;border:none;font-size:18px;cursor:pointer;">⚙️</button>
+  <div class="pn-modal-wrap">
+    <button onclick="closePatchNotes()" class="pn-modal-close-outside" title="Fermer">✕</button>
+    <div id="patchnote-panel" class="sc-modal">
+      <button id="patchnote-gear-btn" onclick="openPatchNoteEditor()" title="Modifier (Kroquette uniquement)" style="display:none;position:absolute;top:14px;right:16px;background:none;border:none;font-size:18px;cursor:pointer;">⚙️</button>
 
-    <div id="patchnote-view-mode">
-      <div id="patchnote-content" style="font-size:13.5px;line-height:1.6;color:var(--parchment);margin-top:14px;"></div>
-      <p id="patchnote-empty" style="display:none;color:var(--parchment-dim);font-size:13px;text-align:center;padding:20px 0;">Aucune note de version pour l'instant.</p>
-    </div>
+      <div class="pn-tabs">
+        <button type="button" class="pn-tab active" id="pn-tab-btn-notes" onclick="switchPatchTab('notes')">📜 Notes de version</button>
+        <button type="button" class="pn-tab" id="pn-tab-btn-roadmap" onclick="switchPatchTab('roadmap')">🗺️ Feuille de route</button>
+      </div>
 
-    <div id="patchnote-edit-mode" style="display:none;margin-top:14px;">
-      <div id="patchnote-toolbar" style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
-        <button type="button" onclick="document.execCommand('bold')" style="font-weight:700;" class="pn-tb-btn">G</button>
-        <button type="button" onclick="document.execCommand('italic')" style="font-style:italic;" class="pn-tb-btn">I</button>
-        <button type="button" onclick="document.execCommand('underline')" style="text-decoration:underline;" class="pn-tb-btn">S</button>
-        <button type="button" onclick="document.execCommand('insertUnorderedList')" class="pn-tb-btn">• Liste</button>
-        <button type="button" onclick="document.execCommand('formatBlock', false, 'H3')" class="pn-tb-btn">Titre</button>
-        <button type="button" onclick="document.execCommand('formatBlock', false, 'P')" class="pn-tb-btn">Texte</button>
+      <div id="patchnote-view-mode">
+        <div id="pn-view-notes">
+          <div id="patchnote-content-notes" class="pn-rich" style="font-size:13.5px;line-height:1.6;color:var(--parchment);"></div>
+          <p id="patchnote-empty-notes" style="display:none;color:var(--parchment-dim);font-size:13px;text-align:center;padding:20px 0;">Aucune note de version pour l'instant.</p>
+        </div>
+        <div id="pn-view-roadmap" style="display:none;">
+          <div id="patchnote-content-roadmap" class="pn-rich" style="font-size:13.5px;line-height:1.6;color:var(--parchment);"></div>
+          <p id="patchnote-empty-roadmap" style="display:none;color:var(--parchment-dim);font-size:13px;text-align:center;padding:20px 0;">Aucune feuille de route pour l'instant.</p>
+        </div>
       </div>
-      <div id="patchnote-editable" contenteditable="true" style="background:var(--bg-panel-3);border:1.5px solid var(--line);border-radius:8px;padding:12px;min-height:220px;color:var(--parchment);font-size:13.5px;line-height:1.6;"></div>
-      <div style="display:flex;gap:10px;margin-top:12px;">
-        <button onclick="cancelPatchNoteEdit()" class="sc-btn sc-btn-ghost" style="flex:1;">Annuler</button>
-        <button onclick="savePatchNote()" class="sc-btn sc-btn-primary" style="flex:1;">Publier cette version</button>
+
+      <div id="patchnote-edit-mode" style="display:none;margin-top:14px;">
+        <h3 id="patchnote-edit-title" class="sc-h3" style="margin-bottom:10px;">Modifier</h3>
+        <div id="patchnote-toolbar" style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">
+          <button type="button" onclick="document.execCommand('bold')" style="font-weight:700;" class="pn-tb-btn">G</button>
+          <button type="button" onclick="document.execCommand('italic')" style="font-style:italic;" class="pn-tb-btn">I</button>
+          <button type="button" onclick="document.execCommand('underline')" style="text-decoration:underline;" class="pn-tb-btn">S</button>
+          <button type="button" onclick="document.execCommand('insertUnorderedList')" class="pn-tb-btn">• Liste</button>
+          <button type="button" onclick="document.execCommand('formatBlock', false, 'H3')" class="pn-tb-btn">Titre</button>
+          <button type="button" onclick="document.execCommand('formatBlock', false, 'P')" class="pn-tb-btn">Texte</button>
+        </div>
+        <div id="patchnote-editable" contenteditable="true" style="background:var(--bg-panel-3);border:1.5px solid var(--line);border-radius:8px;padding:12px;min-height:220px;color:var(--parchment);font-size:13.5px;line-height:1.6;"></div>
+        <div style="display:flex;gap:10px;margin-top:12px;">
+          <button onclick="cancelPatchNoteEdit()" class="sc-btn sc-btn-ghost" style="flex:1;">Annuler</button>
+          <button onclick="savePatchNote()" class="sc-btn sc-btn-primary" style="flex:1;">Publier</button>
+        </div>
+        <div id="patchnote-edit-status" style="font-size:11.5px;color:var(--parchment-dim);margin-top:8px;min-height:14px;"></div>
       </div>
-      <div id="patchnote-edit-status" style="font-size:11.5px;color:var(--parchment-dim);margin-top:8px;min-height:14px;"></div>
     </div>
   </div>
 </div>
 
 <style>
+  .pn-modal-wrap{position:relative;width:100%;max-width:640px;}
+  .pn-modal-wrap .sc-modal{width:100%;}
+  .pn-modal-close-outside{
+    position:absolute;top:-16px;right:-16px;width:38px;height:38px;border-radius:50%;z-index:5;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--bg-panel-3);border:1.5px solid var(--line);color:var(--parchment);
+    font-size:16px;line-height:1;cursor:pointer;box-shadow:0 6px 16px rgba(0,0,0,.45);
+    transition:border-color .15s ease, color .15s ease, transform .15s ease;
+  }
+  .pn-modal-close-outside:hover{border-color:var(--gold);color:var(--gold);transform:scale(1.07);}
+  @media (max-width:640px){
+    .pn-modal-close-outside{top:-14px;right:2px;}
+  }
+
+  .pn-tabs{display:flex;gap:8px;margin:0 36px 14px 0;border-bottom:1px solid var(--line);}
+  .pn-tab{
+    background:none;border:none;border-bottom:2.5px solid transparent;color:var(--parchment-dim);
+    font-family:'Cinzel',serif;font-weight:700;font-size:13px;padding:8px 4px 10px;cursor:pointer;
+    transition:color .15s ease, border-color .15s ease;
+  }
+  .pn-tab:hover{color:var(--parchment);}
+  .pn-tab.active{color:var(--gold);border-bottom-color:var(--gold);}
+
   .pn-tb-btn{background:var(--bg-panel-3);border:1px solid var(--line);color:var(--parchment);border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer;}
   .pn-tb-btn:hover{border-color:var(--gold);}
-  #patchnote-content h3{font-family:'Cinzel',serif;color:var(--gold);font-size:14px;margin:14px 0 6px;}
-  #patchnote-content ul{padding-left:20px;}
+  .pn-rich h3{font-family:'Cinzel',serif;color:var(--gold);font-size:14px;margin:14px 0 6px;}
+  .pn-rich ul{padding-left:20px;}
 </style>
 
 <script>
@@ -167,6 +209,7 @@ playMusic('menu', {loop:true, volume:0.35});
 
 let PATCHNOTE_CAN_EDIT = false;
 let MY_USER_ID_HUB = null;
+let PN_ACTIVE_TAB = 'notes'; // 'notes' | 'roadmap'
 
 async function initPatchNotesBadge(){
   const { data: { user } } = await sb.auth.getUser();
@@ -192,20 +235,7 @@ async function openPatchNotes(){
   overlay.classList.add('show');
   document.getElementById('patchnote-edit-mode').style.display = 'none';
   document.getElementById('patchnote-view-mode').style.display = 'block';
-
-  const res = await gsGetLatestPatchNote(MY_USER_ID_HUB);
-  if(res.error) return;
-  PATCHNOTE_CAN_EDIT = !!res.canEdit;
-  document.getElementById('patchnote-gear-btn').style.display = PATCHNOTE_CAN_EDIT ? 'block' : 'none';
-
-  if(res.content){
-    document.getElementById('patchnote-content').innerHTML = res.content;
-    document.getElementById('patchnote-content').style.display = 'block';
-    document.getElementById('patchnote-empty').style.display = 'none';
-  } else {
-    document.getElementById('patchnote-content').style.display = 'none';
-    document.getElementById('patchnote-empty').style.display = 'block';
-  }
+  switchPatchTab('notes');
 
   if(MY_USER_ID_HUB){
     await gsMarkPatchNotesSeen();
@@ -215,11 +245,45 @@ async function openPatchNotes(){
 function closePatchNotes(){
   document.getElementById('patchnote-overlay').classList.remove('show');
 }
+
+function switchPatchTab(tab){
+  PN_ACTIVE_TAB = tab;
+  document.getElementById('pn-tab-btn-notes').classList.toggle('active', tab==='notes');
+  document.getElementById('pn-tab-btn-roadmap').classList.toggle('active', tab==='roadmap');
+  document.getElementById('pn-view-notes').style.display = tab==='notes' ? 'block' : 'none';
+  document.getElementById('pn-view-roadmap').style.display = tab==='roadmap' ? 'block' : 'none';
+  document.getElementById('patchnote-edit-mode').style.display = 'none';
+  document.getElementById('patchnote-view-mode').style.display = 'block';
+  loadPatchTabContent(tab);
+}
+
+async function loadPatchTabContent(tab){
+  const contentEl = document.getElementById(tab==='notes' ? 'patchnote-content-notes' : 'patchnote-content-roadmap');
+  const emptyEl = document.getElementById(tab==='notes' ? 'patchnote-empty-notes' : 'patchnote-empty-roadmap');
+  const res = tab==='notes' ? await gsGetLatestPatchNote(MY_USER_ID_HUB) : await gsGetRoadmap();
+  if(res.error) return;
+  if(PN_ACTIVE_TAB !== tab) return; // l'utilisateur a changé d'onglet entre-temps
+
+  PATCHNOTE_CAN_EDIT = !!res.canEdit;
+  document.getElementById('patchnote-gear-btn').style.display = PATCHNOTE_CAN_EDIT ? 'block' : 'none';
+
+  if(res.content){
+    contentEl.innerHTML = res.content;
+    contentEl.style.display = 'block';
+    emptyEl.style.display = 'none';
+  } else {
+    contentEl.style.display = 'none';
+    emptyEl.style.display = 'block';
+  }
+}
+
 function openPatchNoteEditor(){
   document.getElementById('patchnote-view-mode').style.display = 'none';
   document.getElementById('patchnote-edit-mode').style.display = 'block';
-  document.getElementById('patchnote-editable').innerHTML = document.getElementById('patchnote-content').innerHTML || '';
+  const sourceEl = document.getElementById(PN_ACTIVE_TAB==='notes' ? 'patchnote-content-notes' : 'patchnote-content-roadmap');
+  document.getElementById('patchnote-editable').innerHTML = sourceEl.innerHTML || '';
   document.getElementById('patchnote-edit-status').textContent = '';
+  document.getElementById('patchnote-edit-title').textContent = PN_ACTIVE_TAB==='notes' ? 'Modifier les notes de version' : 'Modifier la feuille de route';
 }
 function cancelPatchNoteEdit(){
   document.getElementById('patchnote-edit-mode').style.display = 'none';
@@ -230,10 +294,13 @@ async function savePatchNote(){
   const content = document.getElementById('patchnote-editable').innerHTML.trim();
   if(!content){ statusEl.textContent = 'Écris quelque chose avant de publier.'; return; }
   statusEl.textContent = 'Publication en cours...';
-  const res = await gsPublishPatchNote(content);
+  const res = PN_ACTIVE_TAB==='notes' ? await gsPublishPatchNote(content) : await gsPublishRoadmap(content);
   if(res.error){ statusEl.textContent = 'Erreur : ' + res.error; return; }
   statusEl.textContent = 'Publié !';
-  setTimeout(()=>{ openPatchNotes(); }, 600);
+  setTimeout(()=>{
+    cancelPatchNoteEdit();
+    loadPatchTabContent(PN_ACTIVE_TAB);
+  }, 600);
 }
 </script>
 

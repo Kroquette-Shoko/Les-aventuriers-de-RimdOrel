@@ -135,6 +135,20 @@ async function gsPublishPatchNote(content) {
   if (error) return { error: error.message || String(error) };
   return data;
 }
+async function gsGetRoadmap() {
+  const { data, error } = await sb.functions.invoke('game-action', {
+    body: { action: 'getRoadmap' }
+  });
+  if (error) return { error: error.message || String(error) };
+  return data;
+}
+async function gsPublishRoadmap(content) {
+  const { data, error } = await sb.functions.invoke('game-action', {
+    body: { action: 'publishRoadmap', content }
+  });
+  if (error) return { error: error.message || String(error) };
+  return data;
+}
 async function gsGetTutorialStatus() {
   const { data, error } = await sb.functions.invoke('game-action', {
     body: { action: 'getTutorialStatus' }
