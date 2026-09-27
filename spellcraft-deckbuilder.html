@@ -128,20 +128,23 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, #3a
   display:grid;grid-template-columns:repeat(2,200px);grid-template-rows:repeat(2,1fr);gap:12px;
 }
 .binder-spine{width:1px;align-self:stretch;background:var(--line, #3a3260);}
-.binder-slot{width:200px;aspect-ratio:300/423.2;display:flex;align-items:center;justify-content:center;position:relative;}
+.binder-slot{width:200px;aspect-ratio:300/423.2;overflow:hidden;position:relative;}
 .binder-slot-empty{width:100%;height:100%;}
 
-.binder-slot .ncard{cursor:pointer;transition:transform .12s;transform-origin:center center;width:100% !important;height:100% !important;}
-.binder-slot .ncard:hover{transform:scale(1.03);}
-.binder-slot .nstat-wrap .nstat-txt{font-size:22px !important;}
-/* Le nom et le texte de capacité NE sont PAS forcés à une taille fixe ici :
-   comme dans l'aperçu agrandi, fitNewCard()/fitBoxFont() (appelés par
-   buildCardEl) réduisent dynamiquement leur police via un style inline
-   jusqu'à ce que ça tienne dans le cadre — un !important sur ces deux-là
-   écraserait ce style inline et casserait l'auto-ajustement (c'était le
-   bug : les noms longs débordaient). */
-.binder-slot .nname-wrap .nname-text{transform:translateY(-8.7px) !important;}
-.binder-slot .ntypeline{font-size:10px !important;}
+/* La carte est construite à sa taille NATIVE (300×423.2, comme dans
+   l'aperçu agrandi) puis réduite en bloc avec transform:scale — texte,
+   chiffres et polices inclus. C'est ce qui garantit un rendu identique à
+   l'aperçu, juste plus petit : contrairement à un simple width/height:100%
+   (qui étire la carte sans jamais réduire la taille de police, d'où les
+   noms qui débordaient), un transform met tout à l'échelle uniformément,
+   y compris la taille de police déjà calculée par fitNewCard()/fitBoxFont()
+   pour la taille native. 200/300 = 0.66667. */
+.binder-slot .ncard{
+  cursor:pointer;position:absolute;top:0;left:0;transform-origin:top left;
+  width:300px !important;height:423.2px !important;
+  transform:scale(0.66667);transition:transform .12s;
+}
+.binder-slot .ncard:hover{transform:scale(0.68667);}
 .binder-slot.bulk-selected{outline:3px solid var(--gold, #d4af37);outline-offset:-3px;border-radius:8px;}
 .binder-slot.bulk-selectable{cursor:pointer;}
 .binder-slot .bulk-select-badge{position:absolute;top:4px;left:4px;width:22px;height:22px;border-radius:50%;
