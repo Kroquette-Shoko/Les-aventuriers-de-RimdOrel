@@ -101,11 +101,11 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .mana-dot.reserved{outline:2px dashed var(--gold);outline-offset:1.5px;}
 
 .zone-badges{display:flex;gap:8px;margin-left:auto;flex-shrink:0;}
-.badge{display:flex;flex-direction:column;align-items:center;justify-content:center;width:62px;height:70px;border-radius:8px;background:var(--bg-panel-2);border:1px solid var(--line, #3a3260);cursor:pointer;user-select:none;}
-.badge-label{font-size:8px;text-transform:uppercase;letter-spacing:.3px;color:var(--parchment-dim);margin-top:1px;}
+.badge{display:flex;flex-direction:column;align-items:center;justify-content:center;width:76px;height:86px;border-radius:8px;background:var(--bg-panel-2);border:1px solid var(--line, #3a3260);cursor:pointer;user-select:none;}
+.badge-label{font-size:9px;text-transform:uppercase;letter-spacing:.3px;color:var(--parchment-dim);margin-top:1px;}
 .badge:hover{border-color:var(--gold);}
-.badge .badge-icon{font-size:17px;line-height:1;}
-.badge .badge-count{font-size:12px;font-weight:700;color:var(--parchment);}
+.badge .badge-icon{font-size:20px;line-height:1;}
+.badge .badge-count{font-size:14px;font-weight:700;color:var(--parchment);}
 .badge.deck .badge-icon{color:var(--gold);}
 .badge.discard .badge-icon{color:#8a7fb0;}
 .badge.discard:not(.has-cards){opacity:.4;cursor:default;}
@@ -149,15 +149,15 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
    la lane elle-même. C'est un height fixe (pas min-height) : la lane ne
    grandit donc plus avec la taille des cartes, ce qui évite qu'elle ne
    pousse le reste du plateau hors de l'écran. */
-.lane{display:flex;gap:10px;justify-content:center;align-items:center;height:216px;overflow:visible;padding:6px;background:radial-gradient(ellipse at center, #1c1730 0%, transparent 75%);border-radius:10px;flex-wrap:wrap;margin:0 220px;flex-shrink:0;}
+.lane{display:flex;gap:10px;justify-content:center;align-items:center;height:266px;overflow:visible;padding:6px;background:radial-gradient(ellipse at center, #1c1730 0%, transparent 75%);border-radius:10px;flex-wrap:wrap;margin:0 130px;flex-shrink:0;}
 .lane.enemy{transform:scaleY(-1);}
 .lane.enemy .card-slot{transform:scaleY(-1);}
-.slot-empty{width:195px;height:265px;border:1.5px dashed #332c50;border-radius:11px;}
+.slot-empty{width:240px;height:326px;border:1.5px dashed #332c50;border-radius:11px;}
 /* Cartes posées sur le plateau agrandies (195×265 au lieu de 150×204) —
    scopé aux lanes uniquement : la main (.hand-row), les reliques
    (.relic-slot) et les previews gardent la taille de base de .card,
    donc rien d'autre n'est affecté par ce changement. */
-.lane .card{width:195px;height:265px;}
+.lane .card{width:240px;height:326px;}
 
 /* ---------- Cards ---------- */
 .card{
@@ -554,45 +554,45 @@ body.targeting *{cursor:crosshair !important;}
      poussent pas la hauteur de la rangée — 265px ne servait qu'à réserver
      un espace jamais entièrement utilisé, et empêchait tout de tenir sur
      l'écran une fois la barre du haut et les cartes agrandies. */
-  .board-row{display:flex;align-items:center;gap:14px;padding:8px 16px;position:relative;min-height:190px;flex-shrink:0;}
+  .board-row{display:flex;align-items:center;gap:14px;padding:8px 16px;position:relative;min-height:230px;flex-shrink:0;}
 
   .mana-box{position:absolute;bottom:8px;width:auto;min-width:44px;height:auto;max-height:280px;border-radius:12px;background:var(--bg-void, #0b0a12);border:2px solid var(--line, #3a3260);overflow-x:visible;overflow-y:hidden;display:flex;flex-direction:column-reverse;align-items:center;padding-bottom:4px;z-index:6;}
   .board-row.self{margin-top:auto;}
   .board-row.self .mana-box{left:16px;bottom:27px;}
   .board-row.enemy .mana-box{right:14px;top:14px;bottom:auto;flex-direction:column;padding-bottom:0;padding-top:4px;}
-  .board-row.self .hero-frame{left:77px;bottom:27px;}
-  .board-row.enemy .hero-frame{right:75px;top:14px;bottom:auto;}
-  .mana-box-region-thumb{width:36px;height:36px;border-radius:8px;background-size:cover;background-position:center;background-color:var(--bg-panel-3, #241f38);border:1px solid var(--gold);flex-shrink:0;}
-  .mana-box-count{flex-shrink:0;width:100%;text-align:center;font-family:'Cinzel',serif;font-weight:700;font-size:10px;color:var(--gold);}
-  .mana-box-fill{display:flex;flex-direction:column-reverse;flex-wrap:wrap;align-content:center;justify-content:center;gap:3px;padding:5px 8px;max-height:233px;}
+  .board-row.self .hero-frame{left:92px;bottom:27px;}
+  .board-row.enemy .hero-frame{right:90px;top:14px;bottom:auto;}
+  .mana-box-region-thumb{width:44px;height:44px;border-radius:8px;background-size:cover;background-position:center;background-color:var(--bg-panel-3, #241f38);border:1px solid var(--gold);flex-shrink:0;}
+  .mana-box-count{flex-shrink:0;width:100%;text-align:center;font-family:'Cinzel',serif;font-weight:700;font-size:12px;color:var(--gold);}
+  .mana-box-fill{display:flex;flex-direction:column-reverse;flex-wrap:wrap;align-content:center;justify-content:center;gap:4px;padding:5px 8px;max-height:280px;}
   .board-row.enemy .mana-box-fill{flex-direction:column;flex-wrap:wrap;}
-  .mana-box-dot{width:20px;height:20px;border-radius:50%;flex-shrink:0;background-size:contain;background-repeat:no-repeat;background-position:center;}
+  .mana-box-dot{width:24px;height:24px;border-radius:50%;flex-shrink:0;background-size:contain;background-repeat:no-repeat;background-position:center;}
   .mana-box-dot.filled{background-image:url('images/mana-plein.png');}
   .mana-box-dot:not(.filled):not(.fragile):not(.bonus){background-image:url('images/mana-vide.png');}
   .mana-box-dot.fragile{background-image:url('images/mana-fragile.png');}
   .mana-box-dot.bonus{background:radial-gradient(circle at 35% 30%,#fff3d0,var(--gold));box-shadow:0 0 6px rgba(212,175,55,.8);border-radius:50%;}
 
   .hero-frame{position:absolute;bottom:8px;z-index:7;}
-  .hero-portrait-big{width:145px;height:145px;border-radius:50%;background:radial-gradient(circle at 35% 30%, var(--arcane), #2a1f55);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:700;font-size:45px;color:#fff;flex-shrink:0;border:4px solid var(--gold);position:relative;cursor:pointer;padding:0;}
+  .hero-portrait-big{width:178px;height:178px;border-radius:50%;background:radial-gradient(circle at 35% 30%, var(--arcane), #2a1f55);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:700;font-size:55px;color:#fff;flex-shrink:0;border:4px solid var(--gold);position:relative;cursor:pointer;padding:0;}
   .hero-portrait-big:hover{border-color:#fff;}
   .hero-portrait-big.can-activate{border-color:var(--green, #4a9d6b);box-shadow:0 0 14px rgba(74,157,107,.6);}
   .hero-portrait-big.targetable{border-color:var(--gold);box-shadow:0 0 16px rgba(212,175,55,.75);cursor:crosshair;}
   .card.targetable{outline:3px solid var(--gold);outline-offset:2px;cursor:crosshair;}
-  .hp-badge-big{position:absolute;bottom:-10px;right:-14px;min-width:50px;height:50px;padding:0 8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#e85858,#8a1f1f);border:3px solid #4a0f0f;color:#fff;font-family:'Cinzel',serif;font-weight:700;font-size:23px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,.65);z-index:2;pointer-events:none;}
+  .hp-badge-big{position:absolute;bottom:-12px;right:-17px;min-width:62px;height:62px;padding:0 8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#e85858,#8a1f1f);border:3px solid #4a0f0f;color:#fff;font-family:'Cinzel',serif;font-weight:700;font-size:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,.65);z-index:2;pointer-events:none;}
 
   .deck-zone{position:absolute;bottom:27px;display:flex;align-items:center;gap:12px;z-index:6;}
   .board-row.self .deck-zone{right:27px;}
   .board-row.enemy .deck-zone{left:16px;top:14px;bottom:auto;flex-direction:row-reverse;}
-  .deck-back-visual{width:118px;height:165px;border-radius:12px;background:linear-gradient(135deg, var(--bg-panel-3, #241f38), var(--bg-panel, #171325));border:3px solid var(--gold);box-shadow:0 6px 16px rgba(0,0,0,.55);flex-shrink:0;}
+  .deck-back-visual{width:145px;height:203px;border-radius:12px;background:linear-gradient(135deg, var(--bg-panel-3, #241f38), var(--bg-panel, #171325));border:3px solid var(--gold);box-shadow:0 6px 16px rgba(0,0,0,.55);flex-shrink:0;}
   .deck-counts{display:flex;flex-direction:column;gap:8px;}
 
   .artifact-stack{position:absolute;display:flex;gap:6px;align-items:center;}
-  .board-row.self .artifact-stack{right:236px;bottom:27px;flex-direction:row;}
-  .board-row.enemy .artifact-stack{left:226px;top:14px;bottom:auto;flex-direction:row;}
-  .artifact-stack .relic-slot{width:120px;height:120px;}
+  .board-row.self .artifact-stack{right:280px;bottom:27px;flex-direction:row;}
+  .board-row.enemy .artifact-stack{left:265px;top:14px;bottom:auto;flex-direction:row;}
+  .artifact-stack .relic-slot{width:148px;height:148px;}
   .relic-slot-empty{border:2px dashed #4a4270;border-radius:8px;background:rgba(11,10,18,.4);}
   .relic-slot-empty.drop-target{border-color:var(--gold);background:rgba(212,175,55,.12);}
-  .artifact-stack .relic-slot .card{transform:scale(.4);transform-origin:top left;}
+  .artifact-stack .relic-slot .card{transform:scale(.5);transform-origin:top left;}
 
   /* ---------- Menus repliables (journal / chat) ---------- */
   .phase-bar-wrap{position:relative;}
