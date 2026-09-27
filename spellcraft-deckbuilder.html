@@ -2,58 +2,37 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Spellcraft — Collection &amp; Deckbuilder</title>
+<script>
+  // Applique le thème mémorisé AVANT que la page ne s'affiche, pour
+  // éviter un flash (thème sombre par défaut, puis bascule visible
+  // vers le thème choisi une fois le reste des scripts chargés).
+  try{
+    const t = localStorage.getItem('sc-theme');
+    if(t) document.documentElement.setAttribute('data-theme', t);
+  }catch(e){}
+</script>
+<link rel="stylesheet" href="spellcraft-ui-kit.css">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@400;500;600;700&display=swap');
 
+/* Le reste des jetons de couleur (--bg-void, --bg-panel, --gold, --arcane,
+   --parchment, --blood, --frost, --green, --line, etc.) vient de
+   spellcraft-ui-kit.css et suit le thème actif (5 thèmes, dont "aube").
+   On ne garde ici que ce qui est propre à cette page. */
 :root{
-  --bg-void:#0b0a12;
-  --bg-panel:#171325;
-  --bg-panel-2:#1f1a30;
-  --bg-panel-3:#241f38;
-  --parchment:#efe6c8;
-  --parchment-dim:#d9cfae;
-  --ink:#1c1830;
-  --arcane:#7c5cff;
-  --gold:#d4af37;
-  --blood:#c23b3b;
-  --frost:#4fb3d9;
-  --green:#4a9d6b;
   --grey:#8a7f6a;
-  --leather:#3b2a1e;
-  --leather-2:#4d3826;
 }
 *{box-sizing:border-box;}
-html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);font-family:'Inter',sans-serif;overflow:hidden;display:flex;align-items:center;justify-content:center;}
 .title-font{font-family:'Cinzel',serif;}
 
-#app{
-  position:relative;
-  width:100vw;
-  height:calc(100vw * 992 / 1586);
-  background:url('images/binder-open.png') center/100% 100% no-repeat;
-}
+#app{min-height:100vh;width:100%;display:flex;flex-direction:column;align-items:center;padding:0 0 50px;}
 
-/* ---------- Bande de cuir du haut : tous les contrôles ---------- */
-#top-strap{position:absolute;top:0;left:0;width:100%;height:8%;display:flex;align-items:center;gap:8px;padding:0 2.5%;z-index:20;}
-#hub-link-above-deck{position:absolute;top:16%;left:83.5%;width:15%;z-index:20;}
-#hub-link-above-deck .btn{width:100%;text-align:center;padding:16px 12px;font-size:18px;font-weight:800;}
-#top-strap h1{display:none;}
-#top-strap .spacer{flex:1;}
-#left-toolbar{position:absolute;top:19%;left:2.5%;width:14%;display:flex;flex-direction:column;align-items:stretch;gap:8px;z-index:20;}
-#left-toolbar .btn{padding:9px 12px;font-size:12px;text-align:left;border-radius:8px;}
-#left-toolbar .select-mini{padding:8px 10px;font-size:11px;border-radius:8px;width:100%;}
-#left-toolbar .results-count{text-align:center;font-size:11px;}
-.save-indicator{font-size:10.5px;color:var(--green);opacity:0;transition:opacity .4s;white-space:nowrap;}
+/* ---------- Barre du haut (custom, comme le hub) ---------- */
+.save-indicator{font-size:11.5px;color:var(--green);opacity:0;transition:opacity .4s;white-space:nowrap;}
 .save-indicator.show{opacity:1;}
-.btn{background:rgba(23,19,37,.75);border:1px solid rgba(212,175,55,.35);color:var(--parchment);border-radius:7px;padding:6px 11px;font-family:'Inter';font-size:11.5px;font-weight:600;cursor:pointer;white-space:nowrap;}
-.btn:hover{border-color:var(--gold);background:rgba(23,19,37,.92);}
-.btn.primary{background:linear-gradient(180deg,var(--arcane),#5537c2);border:none;color:#fff;}
-.btn.primary:hover{filter:brightness(1.12);}
-.btn.small{padding:4px 9px;font-size:10.5px;}
-.deck-name-input{background:var(--bg-panel-2);border:1px solid #3a3260;color:var(--parchment);border-radius:8px;padding:7px 12px;font-family:'Cinzel',serif;font-size:13px;width:180px;}
-.save-indicator{font-size:11px;color:var(--green);opacity:0;transition:opacity .4s;}
-.save-indicator.show{opacity:1;}
+
 #deck-saved-popup{position:fixed;top:40%;left:50%;transform:translate(-50%,-50%) scale(.9);z-index:99998;
   display:flex;align-items:center;gap:12px;background:rgba(18,15,28,.96);border:2px solid var(--green);
   border-radius:14px;padding:18px 30px;box-shadow:0 14px 38px rgba(0,0,0,.65);opacity:0;pointer-events:none;
@@ -64,58 +43,48 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 #deck-saved-popup #deck-saved-popup-text{font-family:'Cinzel',serif;font-weight:700;font-size:15px;color:var(--parchment);white-space:nowrap;}
 #deck-saved-popup.error{border-color:var(--blood);}
 #deck-saved-popup.error .dsp-icon{background:var(--blood);color:#2a0b0b;}
-select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:var(--parchment);border-radius:8px;padding:7px 10px;font-size:12px;}
 
-/* ---------- Filter bar ---------- */
-#filter-bar{display:flex;align-items:center;gap:10px;padding:10px 18px;background:var(--bg-panel-2);border-bottom:1px solid #2b2440;flex-shrink:0;flex-wrap:wrap;}
+/* ---------- Boutons / contrôles génériques de cette page ---------- */
+.btn{background:var(--bg-panel-3);border:1.5px solid var(--line, #3a3260);color:var(--parchment);border-radius:7px;padding:8px 14px;font-family:'Inter';font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;}
+.btn:hover{border-color:var(--gold);}
+.btn.primary{background:linear-gradient(180deg,var(--arcane),#5537c2);border:none;color:#fff;}
+.btn.primary:hover{filter:brightness(1.12);}
+.btn.small{padding:5px 10px;font-size:11px;}
+.deck-name-input{background:var(--bg-panel-2);border:1px solid var(--line, #3a3260);color:var(--parchment);border-radius:8px;padding:7px 12px;font-family:'Cinzel',serif;font-size:13px;width:180px;}
+select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, #3a3260);color:var(--parchment);border-radius:8px;padding:7px 10px;font-size:12px;}
+
+/* ---------- Barre d'outils / filtres (remplace l'ancienne colonne
+   #left-toolbar plaquée sur le classeur : même contenu, en ligne) ---------- */
+#left-toolbar{
+  display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+  background:linear-gradient(180deg, var(--bg-panel-2) 0%, var(--bg-panel) 100%);
+  border:1px solid var(--line, #3a3260);border-radius:var(--radius-md, 12px);
+  padding:12px 16px;width:100%;box-shadow:var(--shadow-panel, 0 14px 32px rgba(0,0,0,.45));
+}
+#fragments-bar{display:flex;flex-wrap:wrap;gap:6px;}
 .dropdown-wrap{position:relative;}
-.dropdown-panel{position:absolute;top:34px;left:0;background:var(--bg-panel);border:1px solid #3a3260;border-radius:8px;padding:10px;z-index:40;display:none;min-width:180px;box-shadow:0 8px 20px rgba(0,0,0,.5);max-height:240px;overflow-y:auto;}
+.dropdown-panel{position:absolute;top:calc(100% + 6px);left:0;background:var(--bg-panel);border:1px solid var(--line, #3a3260);border-radius:8px;padding:10px;z-index:40;display:none;min-width:180px;box-shadow:0 8px 20px rgba(0,0,0,.5);max-height:240px;overflow-y:auto;}
 #filter-panel{min-width:300px;max-width:340px;max-height:80vh;padding:16px;}
 #filter-panel .ff-group{margin-bottom:14px;}
 #filter-panel label{display:block;font-size:11px;color:var(--parchment-dim);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px;}
-#filter-panel input[type=text], #filter-panel select{width:100%;background:var(--bg-void);border:1px solid #3a3260;color:var(--parchment);border-radius:6px;padding:7px 9px;font-size:12.5px;}
+#filter-panel input[type=text], #filter-panel select{width:100%;background:var(--bg-void);border:1px solid var(--line, #3a3260);color:var(--parchment);border-radius:6px;padding:7px 9px;font-size:12.5px;}
 #filter-panel .ff-row{display:flex;gap:8px;}
 #filter-panel .ff-row select{flex:0 0 118px;}
 #filter-panel .ff-checks{display:flex;flex-wrap:wrap;gap:6px;}
-#filter-panel .ff-check{display:flex;align-items:center;gap:5px;font-size:11.5px;background:var(--bg-void);border:1px solid #3a3260;border-radius:14px;padding:4px 9px;cursor:pointer;}
+#filter-panel .ff-check{display:flex;align-items:center;gap:5px;font-size:11.5px;background:var(--bg-void);border:1px solid var(--line, #3a3260);border-radius:14px;padding:4px 9px;cursor:pointer;}
 #filter-panel .ff-check input{margin:0;}
 #filter-panel .ff-toggle{display:flex;align-items:center;justify-content:space-between;font-size:12px;padding:6px 0;}
 #filter-panel .ff-actions{display:flex;gap:8px;margin-top:6px;position:sticky;bottom:0;background:var(--bg-panel);padding-top:8px;}
 .dropdown-panel.show{display:block;}
 .dropdown-panel label{display:flex;align-items:center;gap:6px;font-size:12px;padding:4px 2px;cursor:pointer;}
-.results-count{font-size:10.5px;color:var(--parchment-dim);white-space:nowrap;}
-.select-mini{background:rgba(23,19,37,.75);border:1px solid rgba(212,175,55,.35);color:var(--parchment);border-radius:7px;padding:6px 9px;font-size:11px;}
+.results-count{font-size:11px;color:var(--parchment-dim);white-space:nowrap;}
 
-/* ---------- Zone du classeur (posée directement sur l'illustration) ---------- */
-#wizard-hint{position:absolute;top:11%;left:50%;transform:translateX(-50%);align-items:center;gap:14px;background:rgba(23,19,37,.85);border:1px solid var(--gold);border-radius:10px;padding:7px 16px;font-family:'Cinzel',serif;font-size:12.5px;color:var(--gold);z-index:15;white-space:nowrap;}
-#binder-nav{position:absolute;top:84.5%;left:49%;transform:translateX(-50%);display:flex;align-items:center;justify-content:center;gap:16px;z-index:17;background:rgba(15,12,20,.75);border:1px solid rgba(212,175,55,.4);border-radius:20px;padding:6px 18px;}
-
-/* ---------- Binder ---------- */
-#binder-frame{
-  position:absolute;inset:0;
-}
-#binder-pages{
-  position:absolute;inset:0;
-  transition:transform .18s ease;
-  transform-style:preserve-3d;
-}
-.binder-page-half{
-  position:absolute;top:19.7%;height:62.5%;
-  display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:2.5%;
-  padding:1.5%;
-}
-.binder-page-half.left{left:18%;width:29%;}
-.binder-page-half.right{left:52%;width:29%;}
-.binder-spine{display:none;}
-.binder-slot{width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
 #bulk-disenchant-bar{display:flex;align-items:center;gap:12px;background:var(--bg-panel-2);border:1.5px solid #6b3030;
-  border-radius:10px;padding:10px 14px;margin:8px 0;}
+  border-radius:10px;padding:10px 14px;width:100%;}
 #bulk-disenchant-bar #bulk-disenchant-summary{font-family:'Cinzel',serif;font-weight:700;font-size:13px;flex:1;}
 #bulk-disenchant-toggle.active{border-color:#e88;color:#e88;}
-#craftable-toggle.active{border-color:var(--gold,#d4af37);color:var(--gold,#d4af37);}
-#fragments-bar{display:flex;flex-direction:column;gap:5px;background:var(--bg-panel-2);border:1.5px solid #3a3260;
-  border-radius:8px;padding:8px;}
-.currency-chip{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:4px 8px;border-radius:14px;background:var(--bg-panel-3,#241f38);color:var(--parchment,#efe6c8);width:100%;}
+#craftable-toggle.active{border-color:var(--gold, #d4af37);color:var(--gold, #d4af37);}
+.currency-chip{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:4px 8px;border-radius:14px;background:var(--bg-panel-3,#241f38);color:var(--parchment,#efe6c8);}
 .currency-chip .gem-icon{width:16px;height:16px;flex-shrink:0;background-size:contain;background-repeat:no-repeat;background-position:center;}
 .currency-chip.aube .gem-icon{background-color:#d4af37;-webkit-mask-image:url('images/gem-aub.png');mask-image:url('images/gem-aub.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;}
 .currency-chip.crepuscule .gem-icon{background-color:#8a5cf0;-webkit-mask-image:url('images/gem-crep.png');mask-image:url('images/gem-crep.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;}
@@ -123,37 +92,61 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 .currency-chip.prima .gem-icon{background-color:#3fae5c;-webkit-mask-image:url('images/gem-prim.png');mask-image:url('images/gem-prim.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;}
 .currency-chip.arcane .gem-icon{background-color:#5b9bd5;-webkit-mask-image:url('images/gem-arc.png');mask-image:url('images/gem-arc.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;}
 .currency-chip.opale .gem-icon{background-image:url('images/gem-multi.png');background-size:contain;background-repeat:no-repeat;background-position:center;}
-.binder-slot.bulk-selected{outline:3px solid var(--gold);outline-offset:-3px;border-radius:8px;}
-.binder-slot.bulk-selectable{cursor:pointer;}
-.binder-slot .bulk-select-badge{position:absolute;top:4px;left:4px;width:22px;height:22px;border-radius:50%;
-  background:var(--gold);color:#1c1830;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;z-index:10;}
+
+/* ---------- Zone de la collection (grille normale — remplace le
+   classeur illustré ; le CONCEPT de pagination par page de 9 cartes
+   est conservé, piloté par le même JS, #binder-frame/#binder-pages et
+   .binder-page-half gardent leurs id/classes) ---------- */
+.db-shell{max-width:1560px !important;}
+.db-main{display:flex;gap:22px;align-items:flex-start;width:100%;max-width:1320px;flex-wrap:wrap;}
+.db-collection-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:16px;}
+.db-deck-col{flex:none;width:340px;}
+
+#wizard-hint{display:flex;align-items:center;gap:14px;background:var(--bg-panel);border:1px solid var(--gold, #d4af37);border-radius:10px;padding:9px 16px;font-family:'Cinzel',serif;font-size:12.5px;color:var(--gold, #d4af37);}
+#binder-nav{display:flex;align-items:center;justify-content:center;gap:16px;background:var(--bg-panel);border:1px solid var(--line, #3a3260);border-radius:20px;padding:8px 18px;align-self:center;}
+
+#binder-frame{
+  width:100%;
+  background:linear-gradient(180deg, var(--bg-panel-2) 0%, var(--bg-panel) 100%);
+  border:1px solid var(--line, #3a3260);border-radius:var(--radius-lg, 18px);
+  box-shadow:var(--shadow-panel, 0 14px 32px rgba(0,0,0,.45));padding:22px;min-height:360px;
+  display:flex;align-items:center;justify-content:center;
+}
+#binder-pages{
+  width:100%;
+  display:flex;flex-wrap:wrap;justify-content:center;gap:30px;
+}
+.binder-page-half{
+  flex:none;width:420px;
+  display:grid;grid-template-columns:repeat(3,132px);grid-template-rows:repeat(3,1fr);gap:12px;
+}
+.binder-spine{width:1px;align-self:stretch;background:var(--line, #3a3260);}
+.binder-slot{width:132px;aspect-ratio:300/423.2;display:flex;align-items:center;justify-content:center;position:relative;}
+.binder-slot-empty{width:100%;height:100%;}
+
 .binder-slot .ncard{cursor:pointer;transition:transform .12s;transform-origin:center center;width:100% !important;height:100% !important;}
 .binder-slot .ncard:hover{transform:scale(1.03);}
-.binder-slot-empty{width:100%;height:100%;}
 .binder-slot .nstat-wrap .nstat-txt{font-size:15px !important;}
 .binder-slot .nname-wrap .nname-text{font-size:11px !important;transform:translateY(-8.4px) !important;}
 .binder-slot .ncard-text{font-size:9px !important;}
 .binder-slot .ntypeline{font-size:7px !important;}
+.binder-slot.bulk-selected{outline:3px solid var(--gold, #d4af37);outline-offset:-3px;border-radius:8px;}
+.binder-slot.bulk-selectable{cursor:pointer;}
+.binder-slot .bulk-select-badge{position:absolute;top:4px;left:4px;width:22px;height:22px;border-radius:50%;
+  background:var(--gold, #d4af37);color:#1c1830;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;z-index:10;}
 .card-add-badge{position:absolute;top:2px;right:2px;background:var(--green);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 5px;z-index:5;box-shadow:0 2px 4px rgba(0,0,0,.5);}
-.card-owned-badge{position:absolute;bottom:2px;left:2px;background:rgba(15,12,20,.75);border:1px solid var(--gold);color:var(--gold);font-size:8.5px;font-weight:700;border-radius:8px;padding:1px 5px;z-index:5;}
+.card-owned-badge{position:absolute;bottom:2px;left:2px;background:rgba(15,12,20,.75);border:1px solid var(--gold, #d4af37);color:var(--gold, #d4af37);font-size:8.5px;font-weight:700;border-radius:8px;padding:1px 5px;z-index:5;}
 
-.nav-arrow{background:var(--bg-panel-2);border:1.5px solid var(--gold);color:var(--gold);width:34px;height:34px;border-radius:50%;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
-.nav-arrow:hover{border-color:var(--gold);}
+.nav-arrow{background:var(--bg-panel-2);border:1.5px solid var(--gold, #d4af37);color:var(--gold, #d4af37);width:34px;height:34px;border-radius:50%;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.nav-arrow:hover{border-color:var(--gold, #d4af37);}
 .nav-arrow:disabled{opacity:.3;cursor:not-allowed;}
 .page-indicator{font-family:'Cinzel',serif;font-size:13px;color:var(--parchment-dim);min-width:90px;text-align:center;}
 
-/* zones cliquables sur les bords des pages pour tourner les pages */
-.binder-edge{position:absolute;top:19%;height:64%;cursor:pointer;z-index:16;}
-.binder-edge-left{left:10%;width:7%;}
-.binder-edge-right{left:81%;width:4%;}
-
 #binder-pages.hero-grid-area{
-  position:absolute;inset:auto;top:22%;left:28%;width:44%;height:55%;
-  display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:1fr;gap:3%;
-  padding:1%;justify-content:center;justify-items:center;
+  display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:1fr;gap:20px;width:100%;max-width:960px;
 }
 .cardback-select-tile{width:100%;height:100%;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;}
-.cardback-select-tile .cardback-visual{width:100%;aspect-ratio:300/423.2;border-radius:11px;border:4px solid var(--gold);box-shadow:0 4px 10px rgba(0,0,0,.5);background-color:var(--bg-panel-3);background-size:contain;background-repeat:no-repeat;background-position:center;transition:transform .15s, box-shadow .15s;}
+.cardback-select-tile .cardback-visual{width:100%;aspect-ratio:300/423.2;border-radius:11px;border:4px solid var(--gold, #d4af37);box-shadow:0 4px 10px rgba(0,0,0,.5);background-color:var(--bg-panel-3);background-size:contain;background-repeat:no-repeat;background-position:center;transition:transform .15s, box-shadow .15s;}
 .cardback-select-tile:hover .cardback-visual{transform:translateY(-4%);box-shadow:0 8px 18px rgba(0,0,0,.6);}
 .cardback-select-tile.equipped .cardback-visual{border-color:var(--green);}
 .cardback-select-tile .cardback-status{font-size:10px;color:var(--green);font-weight:700;}
@@ -270,30 +263,31 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 .card-rarity-gem.rarity-Épique{background:var(--arcane);color:var(--arcane);}
 .card-rarity-gem.rarity-Mythique{background:var(--gold);color:var(--gold);}
 
-/* ---------- Deck panel ---------- */
-#deck-header{padding:14px 16px;border-bottom:1px solid #2b2440;flex-shrink:0;}
+/* ---------- Deck panel (colonne latérale fixe) ---------- */
+#deck-header{padding:14px 16px;border-bottom:1px solid var(--line-soft, #2b2440);flex-shrink:0;}
 #deck-header .deck-title-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
-#deck-header input{flex:1;background:var(--bg-panel-2);border:1px solid #3a3260;color:var(--parchment);border-radius:6px;padding:6px 10px;font-family:'Cinzel',serif;font-size:13px;}
+#deck-header input{flex:1;background:var(--bg-panel-2);border:1px solid var(--line, #3a3260);color:var(--parchment);border-radius:6px;padding:6px 10px;font-family:'Cinzel',serif;font-size:13px;}
 .deck-count{font-size:12px;color:var(--parchment-dim);}
 .deck-count.full{color:var(--green);}
-#hero-slot{display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg-panel-2);border-radius:8px;border:1px dashed #3a3260;margin-top:8px;font-size:11.5px;color:var(--parchment-dim);}
-#hero-slot.set{border-style:solid;border-color:var(--gold);color:var(--parchment);}
-#region-slot{display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg-panel-2);border-radius:8px;border:1px dashed #3a3260;margin-top:6px;font-size:11.5px;color:var(--parchment-dim);}
+#hero-slot{display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg-panel-2);border-radius:8px;border:1px dashed var(--line, #3a3260);margin-top:8px;font-size:11.5px;color:var(--parchment-dim);}
+#hero-slot.set{border-style:solid;border-color:var(--gold, #d4af37);color:var(--parchment);}
+#region-slot{display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg-panel-2);border-radius:8px;border:1px dashed var(--line, #3a3260);margin-top:6px;font-size:11.5px;color:var(--parchment-dim);}
 #region-slot.set{border-style:solid;border-color:var(--green);color:var(--parchment);}
 #deck-col{
-  position:absolute;top:22%;left:83.5%;width:15%;height:61%;
   display:flex;flex-direction:column;
-  background:rgba(15,12,20,.82);border:1px solid rgba(212,175,55,.3);border-radius:10px;
-  overflow:hidden;z-index:10;
+  background:linear-gradient(180deg, var(--bg-panel-2) 0%, var(--bg-panel) 100%);
+  border:1px solid var(--line, #3a3260);border-radius:var(--radius-lg, 18px);
+  box-shadow:var(--shadow-panel, 0 14px 32px rgba(0,0,0,.45));
+  overflow:hidden;max-height:calc(100vh - 150px);position:sticky;top:86px;
 }
 
 #deck-empty-state{flex:1;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:20px;text-align:center;color:var(--parchment-dim);font-size:13px;}
 #deck-empty-state.show{display:flex;}
 #deck-editor{flex:1;display:flex;flex-direction:column;min-height:0;}
 #deck-editor.hide{display:none;}
-#hero-mini{width:26px;height:26px;border-radius:50%;background:var(--bg-panel-3);display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-size:11px;color:var(--gold);flex-shrink:0;}
+#hero-mini{width:26px;height:26px;border-radius:50%;background:var(--bg-panel-3);display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-size:11px;color:var(--gold, #d4af37);flex-shrink:0;}
 
-#mana-curve{display:flex;align-items:flex-end;gap:3px;height:50px;padding:10px 16px;border-bottom:1px solid #2b2440;flex-shrink:0;}
+#mana-curve{display:flex;align-items:flex-end;gap:3px;height:50px;padding:10px 16px;border-bottom:1px solid var(--line-soft, #2b2440);flex-shrink:0;}
 .curve-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:2px;}
 .curve-bar{width:100%;background:var(--arcane);border-radius:2px 2px 0 0;min-height:2px;}
 .curve-label{font-size:8.5px;color:var(--parchment-dim);}
@@ -301,24 +295,24 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 #deck-list{flex:1;overflow-y:auto;padding:8px 10px;}
 .deck-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;font-size:12px;cursor:default;}
 .deck-row:hover{background:var(--bg-panel-2);}
-.deck-row .drow-cost{width:20px;height:20px;border-radius:50%;background:var(--bg-panel-3);color:var(--gold);font-weight:700;font-size:10.5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.deck-row .drow-cost{width:20px;height:20px;border-radius:50%;background:var(--bg-panel-3);color:var(--gold, #d4af37);font-weight:700;font-size:10.5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .deck-row .drow-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .deck-row .drow-count{color:var(--parchment-dim);font-size:11px;}
 .deck-row .drow-btns{display:flex;gap:2px;}
-.drow-btn{width:18px;height:18px;border-radius:4px;background:var(--bg-panel-3);border:1px solid #3a3260;color:var(--parchment);cursor:pointer;font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center;}
-.drow-btn:hover{border-color:var(--gold);}
+.drow-btn{width:18px;height:18px;border-radius:4px;background:var(--bg-panel-3);border:1px solid var(--line, #3a3260);color:var(--parchment);cursor:pointer;font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center;}
+.drow-btn:hover{border-color:var(--gold, #d4af37);}
 
-#deck-footer{padding:10px 14px;border-top:1px solid #2b2440;display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;}
+#deck-footer{padding:10px 14px;border-top:1px solid var(--line-soft, #2b2440);display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;}
 #deck-footer .btn{flex:1;}
 .empty-deck-msg{color:var(--parchment-dim);font-size:12px;font-style:italic;text-align:center;padding:20px 10px;}
 
 .modal-overlay{position:fixed;inset:0;background:rgba(5,4,10,.88);display:none;align-items:center;justify-content:center;z-index:60;}
 .modal-overlay.show{display:flex;}
-.modal-box{background:var(--bg-panel);border:1px solid #3a3260;border-radius:12px;padding:22px;width:420px;max-width:90vw;max-height:80vh;display:flex;flex-direction:column;gap:10px;}
-.modal-box h2{font-family:'Cinzel',serif;font-size:15px;margin:0;color:var(--gold);}
-.modal-box textarea{width:100%;min-height:180px;background:var(--bg-panel-2);border:1px solid #3a3260;color:var(--parchment);border-radius:8px;padding:10px;font-family:'Menlo',monospace;font-size:11.5px;}
+.modal-box{background:var(--bg-panel);border:1px solid var(--line, #3a3260);border-radius:12px;padding:22px;width:420px;max-width:90vw;max-height:80vh;display:flex;flex-direction:column;gap:10px;}
+.modal-box h2{font-family:'Cinzel',serif;font-size:15px;margin:0;color:var(--gold, #d4af37);}
+.modal-box textarea{width:100%;min-height:180px;background:var(--bg-panel-2);border:1px solid var(--line, #3a3260);color:var(--parchment);border-radius:8px;padding:10px;font-family:'Menlo',monospace;font-size:11.5px;}
 .deck-list-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;background:var(--bg-panel-2);cursor:pointer;font-size:12.5px;margin-bottom:6px;}
-.deck-list-item:hover{border:1px solid var(--gold);}
+.deck-list-item:hover{border:1px solid var(--gold, #d4af37);}
 .deck-list-item .spacer{flex:1;}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;}
 .empty-state{color:var(--parchment-dim);font-size:13px;font-style:italic;padding:12px 0;text-align:center;}
@@ -334,7 +328,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 #craft-modal-close:hover{color:var(--gold,#d4af37);}
 #craft-modal-visual{flex-shrink:0;display:flex;justify-content:center;}
 #craft-modal-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:14px;}
-.craft-kw-box{background:var(--bg-panel-2,#1f1a30);border:1.5px solid #3a3260;border-radius:10px;padding:10px 12px;margin-bottom:8px;}
+.craft-kw-box{background:var(--bg-panel-2,#1f1a30);border:1.5px solid var(--line, #3a3260);border-radius:10px;padding:10px 12px;margin-bottom:8px;}
 .craft-kw-box .craft-kw-name{font-family:'Cinzel',serif;font-weight:700;color:var(--gold,#d4af37);font-size:13px;margin-bottom:3px;}
 .craft-kw-box .craft-kw-desc{font-size:12px;color:var(--parchment-dim,#d9cfae);line-height:1.4;}
 #craft-modal-linked{display:flex;flex-direction:column;gap:6px;}
@@ -357,7 +351,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 
 #hero-profile{position:fixed;z-index:200;pointer-events:none;display:none;opacity:0;transition:opacity .15s ease;width:480px;background:linear-gradient(160deg,var(--bg-panel),#141021);border:1px solid var(--gold);border-radius:16px;padding:20px 24px;box-shadow:0 20px 50px rgba(0,0,0,.7);}
 
-.hero-select-tile{width:100%;height:100%;box-sizing:border-box;background:linear-gradient(160deg,var(--bg-panel),#141021);border:1px solid #3a3260;border-radius:12px;padding:10px 12px;cursor:pointer;transition:border-color .15s, transform .15s, box-shadow .15s;overflow-y:auto;display:flex;flex-direction:column;}
+.hero-select-tile{width:100%;height:100%;box-sizing:border-box;background:linear-gradient(160deg,var(--bg-panel),#141021);border:1px solid var(--line, #3a3260);border-radius:12px;padding:10px 12px;cursor:pointer;transition:border-color .15s, transform .15s, box-shadow .15s;overflow-y:auto;display:flex;flex-direction:column;}
 .hero-select-tile:hover{border-color:var(--gold);transform:translateY(-4px);box-shadow:0 14px 30px rgba(0,0,0,.55);}
 .hero-select-tile .hp-portrait{width:64px;height:64px;}
 .hero-select-tile .hp-name{font-size:15px;}
@@ -378,10 +372,10 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 .hp-profile-block{margin-top:8px;}
 .hp-profile-title{font-family:'Cinzel',serif;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:2px;}
 .hp-health{font-size:14px;color:var(--parchment);}
-.hp-section{margin-top:14px;padding-top:12px;border-top:1px solid #2b2440;}
+.hp-section{margin-top:14px;padding-top:12px;border-top:1px solid var(--line-soft, #2b2440);}
 .hp-section-title{font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:var(--gold);margin-bottom:5px;}
 .hp-section-text{font-size:12.5px;line-height:1.5;color:var(--parchment-dim);white-space:pre-wrap;}
-.hp-linked{margin-top:16px;padding-top:12px;border-top:1px solid #2b2440;}
+.hp-linked{margin-top:16px;padding-top:12px;border-top:1px solid var(--line-soft, #2b2440);}
 .hp-linked-title{font-family:'Cinzel',serif;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--parchment-dim);margin-bottom:8px;}
 .hp-linked-cards{display:flex;gap:14px;flex-wrap:wrap;}
 .hp-linked-slot{width:104px;height:145px;position:relative;border-radius:8px;overflow:hidden;background:#f7f2e2;box-shadow:0 4px 10px rgba(0,0,0,.5);pointer-events:auto;cursor:pointer;transition:transform .15s;}
@@ -402,96 +396,110 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid #3a3260;color:v
 .mlc-rarity-gem.rarity-Épique{background:var(--arcane);color:var(--arcane);}
 .mlc-rarity-gem.rarity-Mythique{background:var(--gold);color:var(--gold);}
 .hp-linked-empty{font-size:12px;color:var(--parchment-dim);font-style:italic;}
+
+@media (max-width:900px){
+  .db-main{flex-direction:column;}
+  .db-deck-col{width:100%;}
+  #deck-col{position:static;max-height:none;}
+}
 </style>
 </head>
 <body>
 
-<div id="app">
-  <div id="top-strap">
-    <span class="save-indicator" id="save-indicator">✓ Sauvegardé</span>
-    <div class="spacer"></div>
-    <div id="sc-auth-slot"></div>
-  </div>
-
-  <div id="hub-link-above-deck">
-    <a href="spellcraft-hub.html" class="btn small" title="Retour à l'accueil" style="text-decoration:none;">🏠 Menu principal</a>
+<div id="app" class="sc-page">
+  <div class="sc-topbar">
+    <a href="spellcraft-hub.html" class="sc-topbar-back" id="hub-link-above-deck" title="Retour à l'accueil">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Menu principal
+    </a>
+    <span class="sc-topbar-title">Collection &amp; Deckbuilder</span>
+    <div class="sc-topbar-right">
+      <span class="save-indicator" id="save-indicator">✓ Sauvegardé</span>
+      <div id="sc-auth-slot"></div>
+      <div id="sc-options-slot"></div>
+    </div>
   </div>
 
   <div id="deck-saved-popup"><span class="dsp-icon">✓</span><span id="deck-saved-popup-text">Deck sauvegardé</span></div>
 
-  <div id="left-toolbar">
-    <div class="dropdown-wrap">
-      <button class="btn" onclick="toggleFilterPanel()" style="width:100%;">🔎 Filtre de recherche</button>
-      <div class="dropdown-panel" id="filter-panel"></div>
+  <div class="sc-container db-shell" style="padding-top:20px;">
+    <div id="left-toolbar">
+      <div class="dropdown-wrap">
+        <button class="btn" onclick="toggleFilterPanel()">🔎 Filtre de recherche</button>
+        <div class="dropdown-panel" id="filter-panel"></div>
+      </div>
+      <button class="btn" onclick="jumpToBinderStart()">📖 Voir les cartes</button>
+      <button class="btn" onclick="jumpToHeroPage()">🦸 Voir les héros</button>
+      <button class="btn" onclick="jumpToCardBackPage()">🎴 Voir les dos de carte</button>
+      <select class="select-mini" id="sort-select" onchange="onFilterChange()">
+        <option value="class-cost-name">Tri : Classe → Coût → Alphabétique</option>
+        <option value="name-asc">Nom (A → Z)</option>
+        <option value="name-desc">Nom (Z → A)</option>
+        <option value="cost-asc">Coût (croissant)</option>
+        <option value="cost-desc">Coût (décroissant)</option>
+        <option value="class">Classe</option>
+        <option value="rarity">Rareté</option>
+      </select>
+      <span class="results-count" id="results-count"></span>
+      <div id="fragments-bar"></div>
+      <button class="btn small" id="craftable-toggle" onclick="toggleCraftableOnly()">🔨 Fabriquer des cartes</button>
+      <button class="btn small" id="bulk-disenchant-toggle" onclick="toggleBulkDisenchantMode()">♻️ Désassembler en masse</button>
     </div>
-    <button class="btn" onclick="jumpToBinderStart()">📖 Voir les cartes</button>
-    <button class="btn" onclick="jumpToHeroPage()">🦸 Voir les héros</button>
-    <button class="btn" onclick="jumpToCardBackPage()">🎴 Voir les dos de carte</button>
-    <select class="select-mini" id="sort-select" onchange="onFilterChange()">
-      <option value="class-cost-name">Tri : Classe → Coût → Alphabétique</option>
-      <option value="name-asc">Nom (A → Z)</option>
-      <option value="name-desc">Nom (Z → A)</option>
-      <option value="cost-asc">Coût (croissant)</option>
-      <option value="cost-desc">Coût (décroissant)</option>
-      <option value="class">Classe</option>
-      <option value="rarity">Rareté</option>
-    </select>
-    <span class="results-count" id="results-count"></span>
-    <div id="fragments-bar"></div>
-    <button class="btn small" id="craftable-toggle" onclick="toggleCraftableOnly()">🔨 Fabriquer des cartes</button>
-    <button class="btn small" id="bulk-disenchant-toggle" onclick="toggleBulkDisenchantMode()">♻️ Désassembler en masse</button>
-  </div>
 
-  <div id="bulk-disenchant-bar" style="display:none;">
-    <span id="bulk-disenchant-summary">0 carte sélectionnée</span>
-    <button class="btn small" onclick="toggleBulkDisenchantMode()">Annuler</button>
-    <button class="btn small primary" id="bulk-disenchant-confirm" onclick="confirmBulkDisenchant()" disabled>Désassembler la sélection</button>
-  </div>
-
-  <div id="wizard-hint" style="display:none;"></div>
-  <div class="binder-edge binder-edge-left" onclick="changePage(-1)" title="Page précédente"></div>
-  <div class="binder-edge binder-edge-right" onclick="changePage(1)" title="Page suivante"></div>
-  <div id="binder-frame">
-    <div id="binder-pages"></div>
-  </div>
-  <div id="binder-nav">
-    <button class="nav-arrow" id="prev-page" onclick="changePage(-1)">‹</button>
-    <span class="page-indicator" id="page-indicator">Page 1 / 1</span>
-    <button class="nav-arrow" id="next-page" onclick="changePage(1)">›</button>
-  </div>
-
-  <div id="deck-col">
-    <div id="deck-empty-state">
-      <p>Aucun deck actif.</p>
-      <button class="btn primary" onclick="newDeck()">➕ Nouveau deck</button>
-      <button class="btn" onclick="openDeckListModal()">📚 Charger un deck existant</button>
+    <div id="bulk-disenchant-bar" style="display:none;">
+      <span id="bulk-disenchant-summary">0 carte sélectionnée</span>
+      <button class="btn small" onclick="toggleBulkDisenchantMode()">Annuler</button>
+      <button class="btn small primary" id="bulk-disenchant-confirm" onclick="confirmBulkDisenchant()" disabled>Désassembler la sélection</button>
     </div>
-    <div id="deck-editor">
-      <div id="deck-header">
-        <div class="deck-title-row">
-          <input type="text" id="deck-name-input" value="Deck sans nom" oninput="onDeckNameChange()">
+
+    <div class="db-main">
+      <div class="db-collection-col">
+        <div id="wizard-hint" style="display:none;"></div>
+        <div id="binder-frame">
+          <div id="binder-pages"></div>
         </div>
-        <div class="deck-count" id="deck-count">0 / 30 cartes</div>
-        <div id="hero-slot">Clique une carte Héros dans le classeur pour la définir</div>
-        <div id="region-slot">Clique une carte Région dans le classeur pour la définir</div>
-        <div class="field" style="margin-top:8px;">
-          <label style="font-size:10.5px;color:var(--parchment-dim);display:block;margin-bottom:4px;">Dos de carte pour ce deck</label>
-          <select id="deck-cardback-select" onchange="onDeckCardBackChange()" style="width:100%;background:var(--bg-panel-2);border:1px solid #3a3260;color:var(--parchment);border-radius:6px;padding:6px 8px;font-size:12px;">
-            <option value="">Utiliser mon dos équipé par défaut</option>
-          </select>
+        <div id="binder-nav">
+          <button class="nav-arrow" id="prev-page" onclick="changePage(-1)">‹</button>
+          <span class="page-indicator" id="page-indicator">Page 1 / 1</span>
+          <button class="nav-arrow" id="next-page" onclick="changePage(1)">›</button>
         </div>
       </div>
-      <div id="mana-curve"></div>
-      <div id="deck-list"></div>
-      <div id="deck-footer">
-        <button class="btn" onclick="exitDeckBuilding()">✕ Quitter le deck</button>
-        <button class="btn" onclick="clearDeck()">Vider</button>
-        <button class="btn primary" onclick="saveDeck()">💾 Sauvegarder le deck</button>
+
+      <div class="db-deck-col">
+        <div id="deck-col">
+          <div id="deck-empty-state">
+            <p>Aucun deck actif.</p>
+            <button class="btn primary" onclick="newDeck()">➕ Nouveau deck</button>
+            <button class="btn" onclick="openDeckListModal()">📚 Charger un deck existant</button>
+          </div>
+          <div id="deck-editor">
+            <div id="deck-header">
+              <div class="deck-title-row">
+                <input type="text" id="deck-name-input" value="Deck sans nom" oninput="onDeckNameChange()">
+              </div>
+              <div class="deck-count" id="deck-count">0 / 30 cartes</div>
+              <div id="hero-slot">Clique une carte Héros dans le classeur pour la définir</div>
+              <div id="region-slot">Clique une carte Région dans le classeur pour la définir</div>
+              <div class="field" style="margin-top:8px;">
+                <label style="font-size:10.5px;color:var(--parchment-dim);display:block;margin-bottom:4px;">Dos de carte pour ce deck</label>
+                <select id="deck-cardback-select" onchange="onDeckCardBackChange()" style="width:100%;background:var(--bg-panel-2);border:1px solid var(--line, #3a3260);color:var(--parchment);border-radius:6px;padding:6px 8px;font-size:12px;">
+                  <option value="">Utiliser mon dos équipé par défaut</option>
+                </select>
+              </div>
+            </div>
+            <div id="mana-curve"></div>
+            <div id="deck-list"></div>
+            <div id="deck-footer">
+              <button class="btn" onclick="exitDeckBuilding()">✕ Quitter le deck</button>
+              <button class="btn" onclick="clearDeck()">Vider</button>
+              <button class="btn primary" onclick="saveDeck()">💾 Sauvegarder le deck</button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </div>
-
 <div id="card-preview"></div>
 
 <div id="craft-modal-overlay" onclick="if(event.target===this) closeCraftModal()">
