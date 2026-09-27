@@ -599,25 +599,37 @@ injectAppTopbar();
 
 function injectFeedbackButton(){
   if(document.getElementById('sc-feedback-btn')) return; // déjà injecté
+  // Les jetons var(--x, repli) suivent le thème actif sur les pages qui
+  // chargent spellcraft-ui-kit.css ; sur celles qui ne le chargent pas
+  // (plateau, éditeur de cartes — volontairement laissés hors de la
+  // charte commune), les valeurs de repli reproduisent le thème "actuel"
+  // d'origine, donc rien ne change visuellement là-bas.
   const style = document.createElement('style');
   style.textContent = `
-    #sc-feedback-btn{position:fixed;bottom:10px;left:10px;z-index:99999;
-      background:rgba(23,19,37,.85);border:1px solid rgba(212,175,55,.45);color:#f2ead2;
-      border-radius:22px;padding:9px 16px;font-family:'Inter',sans-serif;font-size:12.5px;font-weight:600;
-      cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.4);display:flex;align-items:center;gap:6px;}
-    #sc-feedback-btn:hover{border-color:#d4af37;}
-    #sc-feedback-modal{display:none;position:fixed;bottom:56px;left:10px;z-index:99999;
-      background:rgba(15,12,20,.97);border:1px solid #d4af37;border-radius:12px;padding:16px 18px;width:280px;
-      box-shadow:0 12px 34px rgba(0,0,0,.6);font-family:'Inter',sans-serif;color:#f2ead2;}
+    #sc-feedback-btn{position:fixed;bottom:14px;left:14px;z-index:99999;
+      display:flex;align-items:center;gap:7px;
+      font-family:'Inter',sans-serif;font-weight:600;font-size:12.5px;
+      color:var(--parchment, #f2ead2);background:var(--bg-panel, #171325);
+      border:1.5px solid var(--line, #3a3260);border-radius:999px;padding:9px 16px;
+      cursor:pointer;box-shadow:var(--shadow-panel, 0 4px 12px rgba(0,0,0,.4));
+      transition:border-color .15s ease, transform .12s ease;}
+    #sc-feedback-btn:hover{border-color:var(--gold, #d4af37);transform:translateY(-1px);}
+    #sc-feedback-modal{display:none;position:fixed;bottom:60px;left:14px;z-index:99999;
+      background:var(--bg-panel, #171325);border:1.5px solid var(--line, #3a3260);border-radius:var(--radius-md, 12px);
+      padding:16px 18px;width:280px;
+      box-shadow:var(--shadow-lift, 0 12px 34px rgba(0,0,0,.6));font-family:'Inter',sans-serif;color:var(--parchment, #f2ead2);}
     #sc-feedback-modal.show{display:block;}
-    #sc-feedback-modal .sc-fb-title{font-family:'Cinzel',serif;font-weight:700;color:#d4af37;margin-bottom:10px;font-size:14px;}
-    #sc-feedback-modal label{display:block;font-size:11px;color:#c8beb0;margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px;margin-top:10px;}
-    #sc-feedback-modal select, #sc-feedback-modal textarea{width:100%;box-sizing:border-box;background:#0b0a12;border:1px solid #3a3260;
-      color:#f2ead2;border-radius:6px;padding:8px;font-family:'Inter',sans-serif;font-size:12.5px;}
+    #sc-feedback-modal .sc-fb-title{font-family:'Cinzel',serif;font-weight:700;color:var(--gold, #d4af37);margin-bottom:10px;font-size:14px;}
+    #sc-feedback-modal label{display:block;font-size:11px;color:var(--parchment-dim, #c8beb0);margin-bottom:4px;text-transform:uppercase;letter-spacing:.3px;margin-top:10px;}
+    #sc-feedback-modal select, #sc-feedback-modal textarea{width:100%;box-sizing:border-box;background:var(--bg-void, #0b0a12);border:1px solid var(--line, #3a3260);
+      color:var(--parchment, #f2ead2);border-radius:var(--radius-sm, 6px);padding:8px;font-family:'Inter',sans-serif;font-size:12.5px;}
+    #sc-feedback-modal select:focus, #sc-feedback-modal textarea:focus{outline:none;border-color:var(--gold, #d4af37);}
     #sc-feedback-modal textarea{resize:vertical;min-height:80px;}
     #sc-feedback-modal .sc-fb-actions{display:flex;gap:8px;margin-top:12px;}
-    #sc-feedback-modal button.sc-fb-send{flex:1;background:linear-gradient(180deg,#7c5cff,#5537c2);color:#fff;border:none;border-radius:8px;padding:9px;font-weight:700;cursor:pointer;font-size:12.5px;}
-    #sc-feedback-modal button.sc-fb-cancel{background:none;border:1px solid #3a3260;color:#c8beb0;border-radius:8px;padding:9px 12px;cursor:pointer;font-size:12.5px;}
+    #sc-feedback-modal button.sc-fb-send{flex:1;background:linear-gradient(180deg, var(--arcane, #7c5cff), var(--arcane-dim, #5537c2));color:#fff;border:none;border-radius:var(--radius-sm, 8px);padding:9px;font-weight:700;cursor:pointer;font-size:12.5px;transition:filter .15s ease;}
+    #sc-feedback-modal button.sc-fb-send:hover{filter:brightness(1.1);}
+    #sc-feedback-modal button.sc-fb-cancel{background:none;border:1px solid var(--line, #3a3260);color:var(--parchment-dim, #c8beb0);border-radius:var(--radius-sm, 8px);padding:9px 12px;cursor:pointer;font-size:12.5px;transition:border-color .15s ease, color .15s ease;}
+    #sc-feedback-modal button.sc-fb-cancel:hover{border-color:var(--gold, #d4af37);color:var(--parchment, #f2ead2);}
     #sc-feedback-modal .sc-fb-status{font-size:11.5px;margin-top:8px;display:none;}
   `;
   document.head.appendChild(style);
@@ -661,7 +673,7 @@ function injectFeedbackButton(){
     const message = document.getElementById('sc-fb-message').value.trim();
     if(!message){
       statusEl.textContent = 'Écris un message avant d\'envoyer.';
-      statusEl.style.color = '#c23b3b';
+      statusEl.style.color = 'var(--blood, #c23b3b)';
       statusEl.style.display = 'block';
       return;
     }
@@ -670,7 +682,7 @@ function injectFeedbackButton(){
       const user = await scGetCurrentUser();
       if(!user){
         statusEl.textContent = 'Connecte-toi pour envoyer un retour.';
-        statusEl.style.color = '#c23b3b';
+        statusEl.style.color = 'var(--blood, #c23b3b)';
         statusEl.style.display = 'block';
         return;
       }
@@ -683,18 +695,18 @@ function injectFeedbackButton(){
       });
       if(error){
         statusEl.textContent = 'Erreur : ' + error.message;
-        statusEl.style.color = '#c23b3b';
+        statusEl.style.color = 'var(--blood, #c23b3b)';
         statusEl.style.display = 'block';
         return;
       }
       statusEl.textContent = 'Merci, ton retour a bien été envoyé !';
-      statusEl.style.color = '#4a9d6b';
+      statusEl.style.color = 'var(--green, #4a9d6b)';
       statusEl.style.display = 'block';
       document.getElementById('sc-fb-message').value = '';
       setTimeout(()=>{ modal.classList.remove('show'); statusEl.style.display='none'; }, 1800);
     }catch(e){
       statusEl.textContent = 'Erreur inattendue.';
-      statusEl.style.color = '#c23b3b';
+      statusEl.style.color = 'var(--blood, #c23b3b)';
       statusEl.style.display = 'block';
     }
   };
