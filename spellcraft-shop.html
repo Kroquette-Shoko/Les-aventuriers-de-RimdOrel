@@ -21,7 +21,8 @@
   --wood:#3b2a1e;
   --wood-2:#4d3826;
 }
-#app{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 20px 60px;}
+#app{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:0 20px 60px;}
+#app > .sc-topbar{margin:0 -20px 20px;width:calc(100% + 40px);}
 
 /* ---------- barre de monnaie ---------- */
 #currency-bar{display:flex;align-items:center;gap:10px;background:var(--bg-panel);border:1px solid var(--line, #3a3260);border-radius:12px;padding:8px 14px;flex-wrap:wrap;}
@@ -281,6 +282,18 @@
 
 <div id="app">
 
+  <div class="sc-topbar">
+    <a href="spellcraft-hub.html" class="sc-topbar-back" title="Retour à l'accueil">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Menu principal
+    </a>
+    <span class="sc-topbar-title">🛒 Boutique</span>
+    <div class="sc-topbar-right">
+      <div id="sc-auth-slot"></div>
+      <div id="sc-options-slot"></div>
+    </div>
+  </div>
+
   <!-- Bandeau affiché une seule fois en arrivant depuis le tutoriel
        (spellcraft-tutorial.html → ici, ?fromTutorial=1). Les 3 boosters
        offerts sont accordés côté serveur au chargement de la page
@@ -362,7 +375,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>window.APP_TOPBAR_TITLE = '🛒 Boutique';</script>
+<script>window.APP_TOPBAR_DISABLED = true;</script>
 <script src="spellcraft-shared.js"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>
