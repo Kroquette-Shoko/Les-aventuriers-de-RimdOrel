@@ -149,10 +149,10 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
    la lane elle-même. C'est un height fixe (pas min-height) : la lane ne
    grandit donc plus avec la taille des cartes, ce qui évite qu'elle ne
    pousse le reste du plateau hors de l'écran. */
-.lane{display:flex;gap:10px;justify-content:center;align-items:center;height:266px;overflow:visible;padding:6px;background:radial-gradient(ellipse at center, #1c1730 0%, transparent 75%);border-radius:10px;flex-wrap:wrap;margin:0 130px;flex-shrink:0;}
+.lane{display:flex;gap:10px;justify-content:center;align-items:center;height:200px;overflow:visible;padding:6px;background:radial-gradient(ellipse at center, #1c1730 0%, transparent 75%);border-radius:10px;flex-wrap:wrap;margin:0 130px;flex-shrink:0;}
 .lane.enemy{transform:scaleY(-1);}
 .lane.enemy .card-slot{transform:scaleY(-1);}
-.slot-empty{width:240px;height:326px;border:1.5px dashed #332c50;border-radius:11px;}
+.slot-empty{width:170px;height:170px;border:1.5px dashed #332c50;border-radius:11px;}
 /* Cartes posées sur le plateau agrandies (195×265 au lieu de 150×204) —
    scopé aux lanes uniquement : la main (.hand-row), les reliques
    (.relic-slot) et les previews gardent la taille de base de .card,
@@ -321,9 +321,9 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .hand-row{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:9px;justify-content:center;padding:55px 14px 6px;pointer-events:none;scrollbar-width:none;background:transparent !important;box-shadow:none;border:none;transform:translateY(136px);transition:transform .22s ease;}
 .hand-row .card{pointer-events:auto;}
 .hand-row::-webkit-scrollbar{height:0;width:0;background:transparent;}
-.hand-card-slot{pointer-events:auto;width:150px;height:211.6px;flex-shrink:0;transform-origin:bottom center;transition:transform .15s ease;}
+.hand-card-slot{pointer-events:auto;width:177px;height:250px;flex-shrink:0;transform-origin:bottom center;transition:transform .15s ease;}
 .hand-card-slot:hover{transform:translateY(-8px) scale(1.05);z-index:5;position:relative;}
-.hand-card-slot .ncard.hand-card{transform:scale(0.5);transform-origin:top left;}
+.hand-card-slot .ncard.hand-card{transform:scale(0.59);transform-origin:top left;}
 
 .enemy-hand-row{position:fixed;top:56px;left:0;right:0;z-index:39;display:flex;flex-wrap:nowrap;overflow:visible;gap:6px;justify-content:center;padding:6px 14px 30px;pointer-events:none;}
 .enemy-hand-card{width:92px;height:130px;border-radius:8px;background-size:cover;background-position:center;background-color:#2a2440;border:2px solid var(--line, #3a3260);box-shadow:0 4px 10px rgba(0,0,0,.5);transform:rotate(180deg);flex-shrink:0;}
@@ -466,21 +466,25 @@ body.targeting *{cursor:crosshair !important;}
 .ncard.n-big .nstat-wrap.n-art{right:6%;bottom:5%;width:15%;}
 .ncard.n-big .nstat-wrap.n-art .nstat-txt{font-size:15px;}
 
-.ncard.n-small{width:144px;height:144px;}
-.ncard.n-small.n-artifact-card{width:120px;height:120px;}
+/* .ncard.n-small est le VRAI format des cartes en jeu (lanes) — c'est ici
+   qu'il faut agrandir, pas sur .card/.lane .card/.slot-empty plus bas qui
+   ne sont pas utilisées par le rendu réel (voir cardEl()/buildNewCardEl()
+   dans le script : elles posent toujours la classe "ncard"). */
+.ncard.n-small{width:170px;height:170px;}
+.ncard.n-small.n-artifact-card{width:142px;height:142px;}
 .ncard.n-small .nart-layer{left:20.47%;top:16.28%;width:58.05%;height:44.63%;}
 .ncard.n-small .nstat-wrap.n-mana{left:-1%;top:-3.5%;width:22%;}
-.ncard.n-small .nstat-wrap.n-mana .nstat-txt{font-size:8px;}
+.ncard.n-small .nstat-wrap.n-mana .nstat-txt{font-size:9.5px;}
 .ncard.n-small .nname-wrap{left:50%;top:57%;width:92%;aspect-ratio:663/202;transform:translateX(-50%);}
-.ncard.n-small .nname-wrap .nname-text{font-size:7px;text-align:center;transform:translateY(-5px);}
+.ncard.n-small .nname-wrap .nname-text{font-size:8.5px;text-align:center;transform:translateY(-5px);}
 .ncard.n-small .ncard-text{display:none;}
 .ncard.n-small .nrarity-gem{left:50%;bottom:-0.5%;width:11%;transform:translateX(-50%);}
-.ncard.n-small .ntypeline{bottom:15%;width:64%;font-size:4.25px;}
+.ncard.n-small .ntypeline{bottom:15%;width:64%;font-size:5px;}
 .ncard.n-small .nlegendary-gem{left:50%;top:-1%;width:11%;transform:translateX(-50%);}
 .ncard.n-small .nkeyword-assault{left:38%;bottom:8%;width:9%;}
 .ncard.n-small .nkeyword-final{left:53%;bottom:8%;width:9%;}
 .ncard.n-small .nstat-wrap.n-atk{left:6%;bottom:5%;width:22%;}
-.ncard.n-small .nstat-wrap.n-atk .nstat-txt{font-size:9.75px;}
+.ncard.n-small .nstat-wrap.n-atk .nstat-txt{font-size:11.5px;}
 .ncard.n-small .nstat-wrap.n-end{right:6%;bottom:5%;width:22%;}
 
 /* Superpositions d'état de jeu (repères visuels de combat, appliqués
@@ -542,8 +546,16 @@ body.targeting *{cursor:crosshair !important;}
   .log-ok{color:var(--green, #4a9d6b);}
   .ai-debug-btn{position:fixed;top:10px;right:10px;z-index:60;}
   html,body{overflow:hidden !important;}
-  #board-scroll-area{overflow:hidden !important;}
-  html::-webkit-scrollbar, body::-webkit-scrollbar{width:0;height:0;background:transparent;}
+  /* IMPORTANT : #board-scroll-area doit pouvoir défiler (overflow-y:auto,
+     scrollbar masquée) plutôt que "overflow:hidden" — un "hidden" ici
+     ROGNE silencieusement tout contenu qui dépasse la hauteur disponible
+     (héros/deck/artefacts poussés hors de vue, invisibles, sans aucun
+     moyen de les voir), au lieu de laisser défiler jusqu'à eux. C'est ce
+     qui causait le plateau "à moitié caché" même une fois les cartes et
+     zones agrandies. */
+  #board-scroll-area{overflow-y:auto !important;overflow-x:hidden !important;}
+  html::-webkit-scrollbar, body::-webkit-scrollbar,
+  #board-scroll-area::-webkit-scrollbar{width:0;height:0;background:transparent;}
   .card.dragging{opacity:.4;}
   .lane.drop-target{outline:3px dashed var(--gold);outline-offset:-4px;background:rgba(212,175,55,.08);}
   body.action-busy #ai-debug-btn, body.action-busy .phase-btn{opacity:.6;pointer-events:none;cursor:wait;}
@@ -554,13 +566,13 @@ body.targeting *{cursor:crosshair !important;}
      poussent pas la hauteur de la rangée — 265px ne servait qu'à réserver
      un espace jamais entièrement utilisé, et empêchait tout de tenir sur
      l'écran une fois la barre du haut et les cartes agrandies. */
-  .board-row{display:flex;align-items:center;gap:14px;padding:8px 16px;position:relative;min-height:230px;flex-shrink:0;}
+  .board-row{display:flex;align-items:center;gap:14px;padding:8px 16px;position:relative;min-height:220px;flex-shrink:0;}
 
   .mana-box{position:absolute;bottom:8px;width:auto;min-width:44px;height:auto;max-height:280px;border-radius:12px;background:var(--bg-void, #0b0a12);border:2px solid var(--line, #3a3260);overflow-x:visible;overflow-y:hidden;display:flex;flex-direction:column-reverse;align-items:center;padding-bottom:4px;z-index:6;}
   .board-row.self{margin-top:auto;}
-  .board-row.self .mana-box{left:16px;bottom:27px;}
+  .board-row.self .mana-box{left:16px;bottom:16px;}
   .board-row.enemy .mana-box{right:14px;top:14px;bottom:auto;flex-direction:column;padding-bottom:0;padding-top:4px;}
-  .board-row.self .hero-frame{left:92px;bottom:27px;}
+  .board-row.self .hero-frame{left:92px;bottom:16px;}
   .board-row.enemy .hero-frame{right:90px;top:14px;bottom:auto;}
   .mana-box-region-thumb{width:44px;height:44px;border-radius:8px;background-size:cover;background-position:center;background-color:var(--bg-panel-3, #241f38);border:1px solid var(--gold);flex-shrink:0;}
   .mana-box-count{flex-shrink:0;width:100%;text-align:center;font-family:'Cinzel',serif;font-weight:700;font-size:12px;color:var(--gold);}
@@ -580,14 +592,14 @@ body.targeting *{cursor:crosshair !important;}
   .card.targetable{outline:3px solid var(--gold);outline-offset:2px;cursor:crosshair;}
   .hp-badge-big{position:absolute;bottom:-12px;right:-17px;min-width:62px;height:62px;padding:0 8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#e85858,#8a1f1f);border:3px solid #4a0f0f;color:#fff;font-family:'Cinzel',serif;font-weight:700;font-size:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,.65);z-index:2;pointer-events:none;}
 
-  .deck-zone{position:absolute;bottom:27px;display:flex;align-items:center;gap:12px;z-index:6;}
+  .deck-zone{position:absolute;bottom:16px;display:flex;align-items:center;gap:12px;z-index:6;}
   .board-row.self .deck-zone{right:27px;}
   .board-row.enemy .deck-zone{left:16px;top:14px;bottom:auto;flex-direction:row-reverse;}
-  .deck-back-visual{width:145px;height:203px;border-radius:12px;background:linear-gradient(135deg, var(--bg-panel-3, #241f38), var(--bg-panel, #171325));border:3px solid var(--gold);box-shadow:0 6px 16px rgba(0,0,0,.55);flex-shrink:0;}
+  .deck-back-visual{width:135px;height:189px;border-radius:12px;background:linear-gradient(135deg, var(--bg-panel-3, #241f38), var(--bg-panel, #171325));border:3px solid var(--gold);box-shadow:0 6px 16px rgba(0,0,0,.55);flex-shrink:0;}
   .deck-counts{display:flex;flex-direction:column;gap:8px;}
 
   .artifact-stack{position:absolute;display:flex;gap:6px;align-items:center;}
-  .board-row.self .artifact-stack{right:280px;bottom:27px;flex-direction:row;}
+  .board-row.self .artifact-stack{right:280px;bottom:16px;flex-direction:row;}
   .board-row.enemy .artifact-stack{left:265px;top:14px;bottom:auto;flex-direction:row;}
   .artifact-stack .relic-slot{width:148px;height:148px;}
   .relic-slot-empty{border:2px dashed #4a4270;border-radius:8px;background:rgba(11,10,18,.4);}
