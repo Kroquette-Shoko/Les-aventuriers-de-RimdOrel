@@ -3315,21 +3315,35 @@ function tutOnContinueClick(){
     tutApplyHighlight();
   }
 }
+// Attend l'écriture serveur du flag "tutoriel terminé" avant de naviguer
+// (avec un filet de sécurité côté client + un délai max, pour ne jamais
+// bloquer indéfiniment si le réseau traîne). Sans ce await, la navigation
+// partait avant la fin de la requête, le navigateur l'annulait, et le flag
+// restait à false en base -> le hub relançait le tutoriel à chaque retour.
+async function tutMarkCompletedThenGo(url){
+  try{ localStorage.setItem('sc-tutorial-completed', '1'); }catch(e){}
+  try{
+    await Promise.race([
+      gsMarkTutorialCompleted(),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 4000))
+    ]);
+  }catch(e){
+    console.warn('gsMarkTutorialCompleted a échoué ou a expiré, on navigue tout de même :', e);
+  }
+  window.location.href = url;
+}
 function tutSkip(){
   if(!confirm('Passer le tutoriel et retourner au menu ?')) return;
-  gsMarkTutorialCompleted().catch(()=>{});
-  window.location.href = 'spellcraft-hub.html';
+  tutMarkCompletedThenGo('spellcraft-hub.html');
 }
 function tutFinish(){
-  gsMarkTutorialCompleted().catch(()=>{});
-  window.location.href = 'spellcraft-hub.html';
+  tutMarkCompletedThenGo('spellcraft-hub.html');
 }
 function tutGoToShop(){
-  gsMarkTutorialCompleted().catch(()=>{});
   // L'octroi des 3 boosters (grant_tutorial_boosters, idempotent) se fait
   // côté boutique elle-même, au chargement de spellcraft-shop.html — voir
   // maybeGrantTutorialBoosters() dans ce fichier.
-  window.location.href = 'spellcraft-shop.html?fromTutorial=1';
+  tutMarkCompletedThenGo('spellcraft-shop.html?fromTutorial=1');
 }
 function tutOpenGrimoire(){
   window.location.href = 'spellcraft-grimoire.html';

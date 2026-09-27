@@ -3,22 +3,29 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tutoriel — Les aventuriers de Rimd'Orël</title>
+<title>Spellcraft — Plateau serveur</title>
+<script>
+// Anti-flash : applique le thème choisi AVANT le premier rendu (même
+// principe que les pages de menu — le plateau suit maintenant les 5
+// thèmes pour la cohérence, sans changer sa mise en page).
+(function(){
+  try{
+    var t = localStorage.getItem('sc-theme') || 'actuel';
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){}
+})();
+</script>
+<link rel="stylesheet" href="spellcraft-ui-kit.css">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Inter:wght@400;500;600;700&display=swap');
 
+/* Les jetons d'interface (--bg-void, --bg-panel, --parchment, --gold,
+   etc.) viennent maintenant de spellcraft-ui-kit.css et suivent le
+   thème actif. On ne garde ici que les couleurs propres au jeu — les
+   teintes des classes de magie — qui n'ont pas à changer avec le thème
+   (l'identité visuelle d'une carte reste la même quel que soit le thème
+   d'interface choisi). */
 :root{
-  --bg-void:#0b0a12;
-  --bg-panel:#171325;
-  --bg-panel-2:#1f1a30;
-  --parchment:#efe6c8;
-  --parchment-dim:#d9cfae;
-  --ink:#1c1830;
-  --arcane:#7c5cff;
-  --gold:#d4af37;
-  --blood:#c23b3b;
-  --frost:#4fb3d9;
-  --green:#4a9d6b;
   --aube:#d4af37; --crepuscule:#4b0082; --prima:#228b22; --volonte:#8b0000; --arcane-c:#4682b4; --neutre:#c0c0c0;
 }
 
@@ -26,7 +33,7 @@
 html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);font-family:'Inter',sans-serif;overflow:hidden;}
 .title-font{font-family:'Cinzel',serif;}
 
-#board-scale-outer{position:fixed;top:92px;left:0;right:0;bottom:0;background:var(--bg-void,#0b0a12);overflow:hidden;display:flex;align-items:center;justify-content:center;z-index:1;}
+#board-scale-outer{position:fixed;inset:0;background:var(--bg-void,#0b0a12);overflow:hidden;display:flex;align-items:center;justify-content:center;z-index:1;}
 #app-outer{width:1920px;height:1080px;transform-origin:center center;flex-shrink:0;}
 #app{display:flex;height:100%;width:100%;min-height:0;}
 
@@ -68,12 +75,12 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .mana-dots{display:flex;flex-wrap:wrap;gap:4px;align-content:center;}
 .mana-dot{width:12px;height:12px;border-radius:50%;border:1.5px solid rgba(0,0,0,.45);flex-shrink:0;}
 .mana-dot.filled{background:radial-gradient(circle at 35% 30%,#8fe0ff,#155a94);box-shadow:0 0 5px rgba(111,208,255,.7);}
-.mana-dot.empty{background:#241f38;}
+.mana-dot.empty{background:var(--bg-panel-3, #241f38);}
 .mana-dot.fragile{background:radial-gradient(circle at 35% 30%,#d8f4ff,var(--frost));box-shadow:0 0 5px rgba(79,179,217,.75);}
 .mana-dot.reserved{outline:2px dashed var(--gold);outline-offset:1.5px;}
 
 .zone-badges{display:flex;gap:8px;margin-left:auto;flex-shrink:0;}
-.badge{display:flex;flex-direction:column;align-items:center;justify-content:center;width:62px;height:70px;border-radius:8px;background:var(--bg-panel-2);border:1px solid #3a3260;cursor:pointer;user-select:none;}
+.badge{display:flex;flex-direction:column;align-items:center;justify-content:center;width:62px;height:70px;border-radius:8px;background:var(--bg-panel-2);border:1px solid var(--line, #3a3260);cursor:pointer;user-select:none;}
 .badge-label{font-size:8px;text-transform:uppercase;letter-spacing:.3px;color:var(--parchment-dim);margin-top:1px;}
 .badge:hover{border-color:var(--gold);}
 .badge .badge-icon{font-size:17px;line-height:1;}
@@ -89,21 +96,21 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 #discard-modal.show{display:flex;}
 .modal-overlay{position:fixed;inset:0;background:rgba(5,4,10,.88);display:none;align-items:center;justify-content:center;z-index:9999;}
 .modal-overlay.show{display:flex;}
-.modal-overlay .modal-box{background:var(--bg-panel);border:1px solid #3a3260;border-radius:12px;padding:20px 24px;max-width:90vw;max-height:80vh;overflow:auto;display:flex;flex-direction:column;gap:12px;}
+.modal-overlay .modal-box{background:var(--bg-panel);border:1px solid var(--line, #3a3260);border-radius:12px;padding:20px 24px;max-width:90vw;max-height:80vh;overflow:auto;display:flex;flex-direction:column;gap:12px;}
 .modal-overlay .modal-box h2{font-family:'Cinzel',serif;font-size:17px;color:var(--gold);margin:0;}
-#discard-modal .modal-box{background:var(--bg-panel);border:1px solid #3a3260;border-radius:12px;padding:20px 24px;max-width:520px;max-height:70vh;display:flex;flex-direction:column;gap:12px;}
+#discard-modal .modal-box{background:var(--bg-panel);border:1px solid var(--line, #3a3260);border-radius:12px;padding:20px 24px;max-width:520px;max-height:70vh;display:flex;flex-direction:column;gap:12px;}
 #discard-modal h2{font-family:'Cinzel',serif;font-size:17px;color:var(--gold);margin:0;}
 #discard-list{overflow-y:auto;display:flex;flex-wrap:wrap;gap:8px;padding-right:4px;}
 #discard-modal .close-btn{align-self:flex-end;background:var(--arcane);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-family:'Cinzel',serif;font-weight:700;cursor:pointer;}
 
 #card-preview{position:fixed;z-index:99999;pointer-events:none;display:none;opacity:0;transition:opacity .15s ease;}
-.hero-preview-linked{display:flex;flex-direction:column;gap:2px;max-height:420px;overflow:visible;min-width:140px;background:rgba(15,12,24,.9);border:1px solid #3a3260;border-radius:8px;padding:8px 10px;}
+.hero-preview-linked{display:flex;flex-direction:column;gap:2px;max-height:420px;overflow:visible;min-width:140px;background:rgba(15,12,24,.9);border:1px solid var(--line, #3a3260);border-radius:8px;padding:8px 10px;}
 .hero-preview-linked-title{font-family:'Cinzel',serif;font-size:11px;color:var(--gold);text-align:center;margin-bottom:2px;}
 .hero-preview-linked-item{font-size:12px;color:#f2ead2;text-align:center;padding:2px 4px;white-space:nowrap;}
 #card-preview .ncard{box-shadow:0 16px 34px rgba(0,0,0,.65);}
 #card-preview.show{display:flex;align-items:flex-start;gap:10px;opacity:1;}
 .kw-tooltip-col{display:flex;flex-direction:column;gap:6px;max-width:220px;}
-.kw-tooltip-item{display:flex;align-items:flex-start;gap:8px;background:rgba(15,12,24,.92);border:1px solid #3a3260;border-radius:8px;padding:7px 10px;box-shadow:0 6px 14px rgba(0,0,0,.5);}
+.kw-tooltip-item{display:flex;align-items:flex-start;gap:8px;background:rgba(15,12,24,.92);border:1px solid var(--line, #3a3260);border-radius:8px;padding:7px 10px;box-shadow:0 6px 14px rgba(0,0,0,.5);}
 .kw-tooltip-icon{width:20px;height:20px;flex-shrink:0;margin-top:1px;}
 .kw-tooltip-txt{font-size:11.5px;line-height:1.4;color:#f2ead2;}
 .kw-tooltip-txt strong{color:var(--gold);font-family:'Cinzel',serif;font-size:11.5px;}
@@ -287,7 +294,7 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .hand-card-slot .ncard.hand-card{transform:scale(0.5);transform-origin:top left;}
 
 .enemy-hand-row{position:fixed;top:0;left:0;right:0;z-index:39;display:flex;flex-wrap:nowrap;overflow:visible;gap:6px;justify-content:center;padding:6px 14px 30px;pointer-events:none;}
-.enemy-hand-card{width:92px;height:130px;border-radius:8px;background-size:cover;background-position:center;background-color:#2a2440;border:2px solid #3a3260;box-shadow:0 4px 10px rgba(0,0,0,.5);transform:rotate(180deg);flex-shrink:0;}
+.enemy-hand-card{width:92px;height:130px;border-radius:8px;background-size:cover;background-position:center;background-color:#2a2440;border:2px solid var(--line, #3a3260);box-shadow:0 4px 10px rgba(0,0,0,.5);transform:rotate(180deg);flex-shrink:0;}
 .enemy-hand-card-revealed{flex-shrink:0;transform:scale(.72);transform-origin:top center;margin:0 -18px;}
 
 .side-zone{position:absolute;display:flex;flex-direction:column;gap:8px;z-index:6;}
@@ -311,7 +318,7 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .phase-btn.small{padding:6px 14px;font-size:11px;box-shadow:none;}
 .phase-btn:hover{filter:brightness(1.15);}
 .phase-btn:disabled{opacity:.4;cursor:not-allowed;filter:none;}
-.phase-btn.secondary{background:var(--bg-panel-2);border:1px solid #3a3260;box-shadow:none;}
+.phase-btn.secondary{background:var(--bg-panel-2);border:1px solid var(--line, #3a3260);box-shadow:none;}
 .phase-label{font-family:'Cinzel',serif;font-size:12px;color:var(--parchment-dim);}
 
 /* ---------- Log panel ---------- */
@@ -322,10 +329,10 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 #sc-options-modal{top:160px !important;}
 #log-panel h3{font-family:'Cinzel',serif;font-size:13px;margin:0 0 10px;color:var(--gold);letter-spacing:1px;}
 #log{flex:1;overflow-y:auto;font-size:11px;line-height:1.5;color:var(--parchment-dim);display:flex;flex-direction:column-reverse;}
-#log div{padding:3px 0;border-bottom:1px solid #241f38;}
+#log div{padding:3px 0;border-bottom:1px solid var(--bg-panel-3, #241f38);}
 
 #overlay{position:fixed;inset:0;background:rgba(5,4,10,.88);display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;z-index:50;}
-#turn-timer{display:none;position:absolute;left:50%;top:-38px;transform:translateX(-50%);align-items:center;gap:6px;padding:5px 14px;border-radius:20px;background:rgba(23,19,37,.9);border:1.5px solid #3a3260;font-family:'Cinzel',serif;font-weight:700;font-size:13px;color:var(--parchment);z-index:30;white-space:nowrap;}
+#turn-timer{display:none;position:absolute;left:50%;top:-38px;transform:translateX(-50%);align-items:center;gap:6px;padding:5px 14px;border-radius:20px;background:rgba(23,19,37,.9);border:1.5px solid var(--line, #3a3260);font-family:'Cinzel',serif;font-weight:700;font-size:13px;color:var(--parchment);z-index:30;white-space:nowrap;}
 #turn-timer.timer-mine{border-color:var(--gold);}
 #turn-timer.timer-low{border-color:var(--blood);color:#ff8080;animation:timer-pulse 1s infinite;}
 #turn-timer.timer-block{border-color:var(--frost);}
@@ -376,7 +383,7 @@ body.targeting *{cursor:crosshair !important;}
 
 #deck-select-box h1{font-family:'Cinzel',serif;font-size:22px;color:var(--gold);margin:0 0 6px;}
 #deck-select-box p.sub{color:var(--parchment-dim);font-size:13px;margin:0 0 20px;line-height:1.5;}
-.deck-pick-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg-panel-2);border:1px solid #3a3260;border-radius:10px;cursor:pointer;margin-bottom:10px;transition:border-color .15s;}
+.deck-pick-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--bg-panel-2);border:1px solid var(--line, #3a3260);border-radius:10px;cursor:pointer;margin-bottom:10px;transition:border-color .15s;}
 .deck-pick-item:hover{border-color:var(--gold);}
 .deck-pick-item .dp-icon{width:38px;height:38px;border-radius:50%;background:radial-gradient(circle at 35% 30%,var(--arcane),#2a1f55);display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:700;color:#fff;flex-shrink:0;}
 .deck-pick-item .dp-info{flex:1;min-width:0;}
@@ -482,82 +489,28 @@ body.targeting *{cursor:crosshair !important;}
 </head>
 <body>
 
-<div id="tut-topbar">
-  <div class="tut-step-badge" id="tut-step-badge">Étape 1/17</div>
-  <div class="tut-body">
-    <div class="tut-title" id="tut-title">Bienvenue</div>
-    <div class="tut-text" id="tut-text"></div>
-    <div class="tut-hint" id="tut-hint" style="display:none;"></div>
-  </div>
-  <button id="tut-continue-btn" onclick="tutOnContinueClick()" style="display:none;">Continuer</button>
-  <button id="tut-skip-btn" onclick="tutSkip()">Passer le tutoriel</button>
-</div>
-<div id="tut-flash"></div>
-
-<div id="tut-end-screen">
-  <div id="tut-end-card">
-    <h2>Vous connaissez les bases !</h2>
-    <p>Vous savez maintenant jouer une créature, un sortilège, un artefact et poser un piège.<br><br>
-    Direction la <strong>boutique</strong> : 3 boosters « Booster classique » vous y attendent, offerts. Ouvrez-les, puis rendez-vous dans votre <strong>collection</strong> pour construire votre tout premier deck — un guide rapide vous accompagnera pas à pas.<br><br>
-    Pour le détail complet d'un tour, de chaque mot-clé et du fonctionnement précis des cartes, consultez <strong>le Grimoire</strong> — il reste accessible à tout moment depuis le hub.</p>
-    <div class="tut-end-btns">
-      <button onclick="tutGoToShop()">🎁 Aller à la boutique (3 boosters offerts)</button>
-      <button class="secondary" onclick="tutFinish()">Retourner au hub</button>
-      <button class="secondary" onclick="tutOpenGrimoire()">Ouvrir le Grimoire</button>
-    </div>
-  </div>
-</div>
-
 <style>
-  /* ---------------- Bande de narration du tutoriel ----------------
-     Fixe, hors du plateau mis à l'échelle (voir #board-scale-outer et
-     updateBoardScale) : ne recouvre donc jamais la main, le plateau ou un
-     bouton du vrai jeu, quelle que soit la résolution d'écran. */
-  #tut-topbar{position:fixed;top:0;left:0;right:0;height:92px;z-index:99999;background:linear-gradient(180deg,#171325,#12101c);border-bottom:2px solid var(--gold);display:flex;align-items:center;gap:16px;padding:0 20px;font-family:'Inter',sans-serif;}
-  #tut-topbar .tut-step-badge{font-family:'Cinzel',serif;font-weight:700;color:#08202b;background:var(--gold);border-radius:20px;padding:5px 12px;font-size:11.5px;white-space:nowrap;flex-shrink:0;}
-  #tut-topbar .tut-body{flex:1;min-width:0;}
-  #tut-topbar .tut-title{font-family:'Cinzel',serif;font-weight:700;color:var(--gold);font-size:14px;margin-bottom:2px;}
-  #tut-topbar .tut-text{font-size:12.5px;line-height:1.35;color:var(--parchment);max-width:900px;}
-  #tut-topbar .tut-hint{font-size:11px;color:var(--frost);font-style:italic;margin-top:2px;}
-  #tut-continue-btn{flex-shrink:0;background:var(--gold);color:#221a08;border:none;font-family:'Cinzel',serif;font-weight:700;font-size:12.5px;padding:9px 16px;border-radius:8px;cursor:pointer;}
-  #tut-continue-btn:hover{filter:brightness(1.1);}
-  #tut-skip-btn{flex-shrink:0;background:transparent;border:1px solid rgba(239,230,200,.35);color:var(--parchment-dim);font-family:'Inter',sans-serif;font-size:11.5px;padding:8px 12px;border-radius:8px;cursor:pointer;}
-  #tut-skip-btn:hover{border-color:var(--gold);color:var(--gold);}
-  #tut-flash{position:fixed;top:104px;left:50%;transform:translateX(-50%);background:var(--bg-panel-2,#1f1a30);border:1px solid var(--gold);color:var(--parchment);font-size:13px;padding:8px 16px;border-radius:8px;z-index:99998;opacity:0;transition:opacity .25s ease;pointer-events:none;}
-  #tut-flash.show{opacity:1;}
-  /* Halo doré discret sur l'élément que le joueur doit utiliser à l'étape en cours */
-  .tut-glow{outline:3px solid var(--gold) !important;outline-offset:3px;box-shadow:0 0 18px rgba(212,175,55,.85) !important;animation:tutPulse 1.1s ease-in-out infinite;border-radius:8px;}
-  @keyframes tutPulse{0%,100%{outline-color:rgba(212,175,55,.7);}50%{outline-color:rgba(212,175,55,1);}}
-  #tut-end-screen{position:fixed;inset:0;background:rgba(4,3,8,.88);z-index:999999;display:none;align-items:center;justify-content:center;}
-  #tut-end-screen.show{display:flex;}
-  #tut-end-card{background:var(--bg-panel);border:2px solid var(--gold);border-radius:16px;padding:34px 40px;max-width:460px;text-align:center;font-family:'Inter',sans-serif;}
-  #tut-end-card h2{font-family:'Cinzel',serif;color:var(--gold);margin:0 0 12px;}
-  #tut-end-card p{color:var(--parchment-dim);font-size:14px;line-height:1.6;}
-  #tut-end-card .tut-end-btns{display:flex;gap:10px;justify-content:center;margin-top:16px;}
-  #tut-end-card button{background:var(--gold);color:#221a08;border:none;font-family:'Cinzel',serif;font-weight:700;font-size:13.5px;padding:11px 20px;border-radius:9px;cursor:pointer;}
-  #tut-end-card button.secondary{background:transparent;border:2px solid var(--gold);color:var(--gold);}
-
-  #setup-panel{background:var(--panel,#171325);border:1px solid #3a3260;border-radius:10px;padding:14px;margin:14px auto;max-width:600px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-family:'Inter',sans-serif;}
-  #setup-panel input{background:#0b0a12;border:1px solid #3a3260;color:#efe6c8;border-radius:6px;padding:7px 10px;font-size:12.5px;}
-  #setup-panel button{background:#7c5cff;color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:12.5px;font-weight:700;cursor:pointer;}
-  #setup-panel button.secondary{background:#1f1a30;border:1px solid #3a3260;}
+  #setup-panel{background:var(--bg-panel, #171325);border:1px solid var(--line, #3a3260);border-radius:10px;padding:14px;margin:14px auto;max-width:600px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-family:'Inter',sans-serif;}
+  #setup-panel input{background:var(--bg-void, #0b0a12);border:1px solid var(--line, #3a3260);color:var(--parchment, #efe6c8);border-radius:6px;padding:7px 10px;font-size:12.5px;}
+  #setup-panel button{background:var(--arcane, #7c5cff);color:#fff;border:none;border-radius:6px;padding:8px 14px;font-size:12.5px;font-weight:700;cursor:pointer;}
+  #setup-panel button.secondary{background:var(--bg-panel-2, #1f1a30);border:1px solid var(--line, #3a3260);}
   #session-code-display{font-family:'Cinzel',serif;font-weight:700;color:var(--gold);font-size:18px;letter-spacing:3px;}
   #app-outer{display:none;}
   #app-outer.show{display:block;}
-  #emote-panel{position:absolute;bottom:100%;right:0;margin-bottom:50px;width:220px;background:var(--panel,#171325);border:1px solid #3a3260;border-radius:10px;padding:10px;font-family:'Inter',sans-serif;z-index:50;display:none;}
+  #emote-panel{position:absolute;bottom:100%;right:0;margin-bottom:50px;width:220px;background:var(--bg-panel, #171325);border:1px solid var(--line, #3a3260);border-radius:10px;padding:10px;font-family:'Inter',sans-serif;z-index:50;display:none;}
   #emote-panel.show{display:block;}
   #emote-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
   #emote-grid img{width:44px;height:44px;border-radius:8px;object-fit:cover;cursor:pointer;border:2px solid transparent;background:#0b0a12;}
-  #emote-grid img:hover{border-color:#d4af37;}
+  #emote-grid img:hover{border-color:var(--gold, #d4af37);}
   #emote-grid .emote-empty{grid-column:1/-1;font-size:11px;color:#8a7f6a;text-align:center;padding:8px 0;}
-  .emote-bubble{position:absolute;z-index:60;background:rgba(23,19,37,.95);border:3px solid #d4af37;border-radius:14px;padding:8px;
+  .emote-bubble{position:absolute;z-index:60;background:rgba(23,19,37,.95);border:3px solid var(--gold, #d4af37);border-radius:14px;padding:8px;
     box-shadow:0 6px 20px rgba(0,0,0,.6);
     animation:emote-pop .25s ease, emote-fade .4s ease 2.2s forwards;pointer-events:none;}
   .emote-bubble img{width:92px;height:92px;border-radius:10px;display:block;}
   @keyframes emote-pop{from{transform:scale(0.4);opacity:0;}to{transform:scale(1);opacity:1;}}
   @keyframes emote-fade{to{opacity:0;}}
-  .log-error{color:#c23b3b;}
-  .log-ok{color:#4a9d6b;}
+  .log-error{color:var(--blood, #c23b3b);}
+  .log-ok{color:var(--green, #4a9d6b);}
   .ai-debug-btn{position:fixed;top:10px;right:10px;z-index:60;}
   html,body{overflow:hidden !important;}
   #board-scroll-area{overflow:hidden !important;}
@@ -569,13 +522,13 @@ body.targeting *{cursor:crosshair !important;}
   /* ---------- Nouvelle disposition : mana / héros / deck en coins séparés ---------- */
   .board-row{display:flex;align-items:center;gap:14px;padding:8px 16px;position:relative;min-height:265px;}
 
-  .mana-box{position:absolute;bottom:8px;width:auto;min-width:44px;height:auto;max-height:280px;border-radius:12px;background:#0b0a12;border:2px solid #3a3260;overflow-x:visible;overflow-y:hidden;display:flex;flex-direction:column-reverse;align-items:center;padding-bottom:4px;z-index:6;}
+  .mana-box{position:absolute;bottom:8px;width:auto;min-width:44px;height:auto;max-height:280px;border-radius:12px;background:var(--bg-void, #0b0a12);border:2px solid var(--line, #3a3260);overflow-x:visible;overflow-y:hidden;display:flex;flex-direction:column-reverse;align-items:center;padding-bottom:4px;z-index:6;}
   .board-row.self{margin-top:auto;}
   .board-row.self .mana-box{left:16px;bottom:60px;}
   .board-row.enemy .mana-box{right:110px;top:16px;bottom:auto;flex-direction:column;padding-bottom:0;padding-top:4px;}
   .board-row.self .hero-frame{left:72px;bottom:60px;}
   .board-row.enemy .hero-frame{right:166px;top:16px;bottom:auto;}
-  .mana-box-region-thumb{width:36px;height:36px;border-radius:8px;background-size:cover;background-position:center;background-color:#241f38;border:1px solid var(--gold);flex-shrink:0;}
+  .mana-box-region-thumb{width:36px;height:36px;border-radius:8px;background-size:cover;background-position:center;background-color:var(--bg-panel-3, #241f38);border:1px solid var(--gold);flex-shrink:0;}
   .mana-box-count{flex-shrink:0;width:100%;text-align:center;font-family:'Cinzel',serif;font-weight:700;font-size:10px;color:var(--gold);}
   .mana-box-fill{display:flex;flex-direction:column-reverse;flex-wrap:wrap;align-content:center;justify-content:center;gap:3px;padding:5px 8px;max-height:233px;}
   .board-row.enemy .mana-box-fill{flex-direction:column;flex-wrap:wrap;}
@@ -588,7 +541,7 @@ body.targeting *{cursor:crosshair !important;}
   .hero-frame{position:absolute;bottom:8px;z-index:7;}
   .hero-portrait-big{width:130px;height:130px;border-radius:50%;background:radial-gradient(circle at 35% 30%, var(--arcane), #2a1f55);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:700;font-size:40px;color:#fff;flex-shrink:0;border:4px solid var(--gold);position:relative;cursor:pointer;padding:0;}
   .hero-portrait-big:hover{border-color:#fff;}
-  .hero-portrait-big.can-activate{border-color:#4a9d6b;box-shadow:0 0 14px rgba(74,157,107,.6);}
+  .hero-portrait-big.can-activate{border-color:var(--green, #4a9d6b);box-shadow:0 0 14px rgba(74,157,107,.6);}
   .hero-portrait-big.targetable{border-color:var(--gold);box-shadow:0 0 16px rgba(212,175,55,.75);cursor:crosshair;}
   .card.targetable{outline:3px solid var(--gold);outline-offset:2px;cursor:crosshair;}
   .hp-badge-big{position:absolute;bottom:-10px;right:-14px;min-width:44px;height:44px;padding:0 8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#e85858,#8a1f1f);border:3px solid #4a0f0f;color:#fff;font-family:'Cinzel',serif;font-weight:700;font-size:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,.65);z-index:2;pointer-events:none;}
@@ -596,7 +549,7 @@ body.targeting *{cursor:crosshair !important;}
   .deck-zone{position:absolute;bottom:22px;display:flex;align-items:center;gap:12px;z-index:6;}
   .board-row.self .deck-zone{right:16px;}
   .board-row.enemy .deck-zone{left:16px;top:16px;bottom:auto;flex-direction:row-reverse;}
-  .deck-back-visual{width:118px;height:165px;border-radius:12px;background:linear-gradient(135deg,#241f38,#171325);border:3px solid var(--gold);box-shadow:0 6px 16px rgba(0,0,0,.55);flex-shrink:0;}
+  .deck-back-visual{width:118px;height:165px;border-radius:12px;background:linear-gradient(135deg, var(--bg-panel-3, #241f38), var(--bg-panel, #171325));border:3px solid var(--gold);box-shadow:0 6px 16px rgba(0,0,0,.55);flex-shrink:0;}
   .deck-counts{display:flex;flex-direction:column;gap:8px;}
 
   .artifact-stack{position:absolute;display:flex;gap:6px;align-items:center;}
@@ -620,23 +573,23 @@ body.targeting *{cursor:crosshair !important;}
   #bug-report-panel.show{display:block;}
   #bug-report-panel h3{font-family:'Cinzel',serif;color:var(--gold);font-size:13px;margin:0 0 10px;}
   #bug-report-text{
-    width:100%;background:#1a1628;border:1.5px solid #3a3260;border-radius:8px;color:#f2ead2;
+    width:100%;background:#1a1628;border:1.5px solid var(--line, #3a3260);border-radius:8px;color:#f2ead2;
     font-size:12.5px;padding:8px;resize:vertical;font-family:'Inter',sans-serif;
   }
   #bug-report-status{font-size:11px;color:var(--parchment-dim);min-height:14px;margin:6px 0;}
   #bug-report-buttons{display:flex;gap:8px;}
   #bug-report-buttons button{flex:1;padding:7px;border-radius:8px;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;}
-  #bug-report-cancel{background:transparent;border:1.5px solid #3a3260;color:var(--parchment-dim);}
+  #bug-report-cancel{background:transparent;border:1.5px solid var(--line, #3a3260);color:var(--parchment-dim);}
   #bug-report-send{background:var(--arcane,#7c5cff);border:none;color:#fff;font-weight:600;}
-  #emote-toggle-btn:hover, #journal-toggle-btn:hover, #leave-game-btn:hover{border-color:#d4af37;}
+  #emote-toggle-btn:hover, #journal-toggle-btn:hover, #leave-game-btn:hover{border-color:var(--gold, #d4af37);}
   #leave-game-btn:hover{border-color:var(--blood);}
-  #journal-panel{position:fixed;bottom:20px;right:20px;width:320px;max-height:45vh;background:var(--bg-panel);border:1px solid #3a3260;border-radius:12px;padding:12px;z-index:99997;display:none;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,.6);}
+  #journal-panel{position:fixed;bottom:20px;right:20px;width:320px;max-height:45vh;background:var(--bg-panel);border:1px solid var(--line, #3a3260);border-radius:12px;padding:12px;z-index:99997;display:none;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,.6);}
   #journal-panel.show{display:flex;}
   #journal-panel h3{margin:0 0 8px;font-family:'Cinzel',serif;color:var(--gold);font-size:14px;display:flex;justify-content:space-between;align-items:center;}
   #journal-panel h3 .close-journal-btn{cursor:pointer;font-size:16px;color:var(--parchment-dim);}
   #journal-panel h3 .close-journal-btn:hover{color:var(--gold);}
   #journal-panel #log{flex:1;overflow-y:auto;font-size:11.5px;max-height:40vh;}
-  .journal-entry{padding:6px 0;border-bottom:1px dashed #3a3260;}
+  .journal-entry{padding:6px 0;border-bottom:1px dashed var(--line, #3a3260);}
   .journal-entry:last-child{border-bottom:none;}
   .journal-entry .who{color:var(--gold);font-weight:600;}
   .journal-entry .card-name-ref{color:var(--frost);text-decoration:underline dotted;cursor:default;font-weight:600;}
@@ -661,7 +614,7 @@ body.targeting *{cursor:crosshair !important;}
   body.combat-anim-lock #hand-p1{
     pointer-events:none;
   }
-  .journal-entry-effects{max-height:0;overflow:hidden;transition:max-height .18s ease;padding-left:14px;border-left:2px solid #3a3260;margin-left:4px;}
+  .journal-entry-effects{max-height:0;overflow:hidden;transition:max-height .18s ease;padding-left:14px;border-left:2px solid var(--line, #3a3260);margin-left:4px;}
   .journal-entry:hover .journal-entry-effects, .journal-entry-effects.force-open{max-height:200px;}
   .journal-effect-line{font-size:11px;color:var(--parchment-dim,#d9cfae);padding:2px 0;cursor:default;}
   .journal-effect-line.hl-ref{text-decoration:underline dotted;}
@@ -826,12 +779,10 @@ function escapeHtmlGS(s){ return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;',
 // pour s'adapter à l'écran réel du joueur, en conservant les proportions
 // (letterboxing si le ratio d'écran diffère de 16:9).
 const BOARD_REF_WIDTH = 1920, BOARD_REF_HEIGHT = 1080;
-const TUT_TOPBAR_HEIGHT = 92; // doit rester synchronisé avec #board-scale-outer{top:...} et #tut-topbar{height:...}
 function updateBoardScale(){
   const outer = document.getElementById('app-outer');
   if(!outer) return;
-  const availableHeight = window.innerHeight - TUT_TOPBAR_HEIGHT;
-  const scale = Math.min(window.innerWidth / BOARD_REF_WIDTH, availableHeight / BOARD_REF_HEIGHT);
+  const scale = Math.min(window.innerWidth / BOARD_REF_WIDTH, window.innerHeight / BOARD_REF_HEIGHT);
   outer.style.transform = `scale(${scale})`;
 }
 window.addEventListener('resize', updateBoardScale);
@@ -2995,694 +2946,7 @@ async function initFromUrl(){
   });
   afterConnected(null);
 }
-/* ============================================================
-   MOTEUR DU TUTORIEL SCRIPTÉ
-   ============================================================
-   Rejoue le scénario fixe décrit par Kroquette, en réutilisant
-   100% du rendu et des interactions du vrai plateau ci-dessus.
-   Aucune requête réseau : toutes les fonctions gs*() utilisées
-   par l'interface sont réécrites ici (simple réaffectation d'une
-   fonction globale — les appels existants plus haut dans le
-   fichier pointent déjà vers ces nouvelles versions au moment où
-   ils s'exécutent, puisque JS résout un nom de fonction libre au
-   moment de l'appel, pas au moment de sa définition).
-   ============================================================ */
-
-// ---------------- Petit style additionnel (flèche animée) ----------------
-(function(){
-  const st = document.createElement('style');
-  st.textContent = `
-    .tut-arrow{position:fixed;z-index:99997;font-size:30px;line-height:1;color:var(--gold);text-shadow:0 0 10px rgba(0,0,0,.85);pointer-events:none;animation:tutArrowBounce 1s ease-in-out infinite;}
-    @keyframes tutArrowBounce{0%,100%{transform:translate(-50%,0);}50%{transform:translate(-50%,-12px);}}
-  `;
-  document.head.appendChild(st);
-})();
-
-// ---------------- Cartes du tutoriel ----------------
-// Vraies cartes de la base Supabase (table public.cards), choisies par
-// Kroquette pour que le déroulé soit le plus simple à comprendre possible.
-function mkTutCard(o){ return Object.assign({ class:'Neutre', keywords:[], subtypes:[] }, o); }
-
-// Héros et régions : données réelles copiées depuis Supabase (image,
-// cadrage, émotes...) — un objet minimal {name,type,class} suffisait pour
-// la logique du tutoriel, mais le rendu réel du plateau (cadre du héros,
-// vignette de région dans le bloc de mana, panneau d'émotes) a besoin de
-// ces champs pour afficher autre chose qu'un cadre vide.
-const T_P1_HERO = {
-  name:'Kyzïre', type:'Héros', class:'Volonté',
-  image:'https://wa-cdn.nyc3.cdn.digitaloceanspaces.com/user-data/production/207996a7-0a7c-4e56-8ad6-619774f27628/uploads/images/d6d300e776d0c9b3086795a4514f3466.jpeg',
-  imagePosX:60, imagePosY:3, imageZoom:125,
-  emotes:[
-    {"id":"em_1786540705955_175","image":"images/Emote/kyzire-hi.png","label":"Salut"},
-    {"id":"em_1786540706541_813","image":"images/Emote/kyzire-chill.png","label":"Chill"},
-    {"id":"em_1786540706991_55","image":"images/Emote/kyzire-sleep.png","label":"Sleep"},
-    {"id":"em_1786540707527_732","image":"images/Emote/kyzire-what.png","label":"Quoi?"},
-    {"id":"em_1786540708011_619","image":"images/Emote/kyzire-angry.png","label":"Colère"},
-    {"id":"em_1786540708543_689","image":"images/Emote/kyzire-cry.png","label":"Tristesse"}
-  ]
-};
-const T_P2_HERO = {
-  name:'Sandroska', type:'Héros', class:'Crépuscule',
-  image:'https://i.postimg.cc/fR5B7Yjd/609d3219-ab66-4e24-aebf-590c6babaf9e.jpg',
-  imagePosX:50, imagePosY:23, imageZoom:225,
-  emotes:[
-    {"id":"em_1786491147823_181","image":"images/Emote/sandroska-hi.png","label":"Salut"},
-    {"id":"em_1786493527387_6","image":"images/Emote/sandroska-chill.png","label":"Chill"},
-    {"id":"em_1786493534209_814","image":"images/Emote/sandroska-what.png","label":"Question"},
-    {"id":"em_1786493535353_954","image":"images/Emote/sandroska-angry.png","label":"Colère"},
-    {"id":"em_1786493536617_528","image":"images/Emote/sandroska-cry.png","label":"Tristesse"},
-    {"id":"em_1786493538169_433","image":"images/Emote/sandroska-sleep.png","label":"Dormir"}
-  ]
-};
-// Terrain basique des deux côtés (aucune capacité codée qui se déclenche
-// réellement en jeu — voir la colonne n_abilities vérifiée en base).
-const T_REGION_P1 = {
-  name:'Sentier de la gloire', type:'Région', class:'Volonté',
-  image:'https://i.pinimg.com/736x/d2/ca/8f/d2ca8f184d4b0c9225975142a4c9ebb7.jpg',
-  imagePosX:50, imagePosY:50, imageZoom:100
-};
-const T_REGION_P2 = {
-  name:'Cimetière oublié', type:'Région', class:'Crépuscule',
-  image:'https://i.pinimg.com/1200x/e5/ad/bc/e5adbce20d8557ed3a53cd178dc4855c.jpg',
-  imagePosX:50, imagePosY:50, imageZoom:100
-};
-// Dos de carte par défaut (celui que tout nouveau compte possède).
-const T_CARDBACK_URL = 'images/card/back/dos-de-carte-base.png';
-
-// Toutes les cartes ci-dessous sont de vraies cartes de la base Supabase.
-// Contraintes respectées : Kyzïre ne joue que des cartes Volonté, Sandroska
-// que des cartes Arcane/Crépuscule ; aucune carte du set "Conjuration" ;
-// aucune carte liée à un autre héros ; sets "Édition de base" sauf Frappe
-// preventive (seul Piège Volonté non lié à un héros disponible).
-
-// 1) Gobelin inconscient — Créature Volonté 1 mana, 2/1, Charge
-const T_P1_C1 = mkTutCard({
-  instId:'t-p1-c1', name:'Gobelin inconscient', type:'Créature', class:'Volonté',
-  cost:1, atk:2, hp:1, curAtk:2, curHp:1, keywords:['charge'],
-  image:'https://i.pinimg.com/1200x/7d/38/df/7d38df7947c57ba5a16a9c9ee073d3de.jpg',
-  imagePosX:50, imagePosY:50, imageZoom:100
-});
-// 2) Chevaucheuse de requin des sables — Créature Volonté 3 mana, 4/3, Charge
-const T_P1_C2 = mkTutCard({
-  instId:'t-p1-c2', name:'Chevaucheuse de requin des sables', type:'Créature', class:'Volonté',
-  cost:3, atk:4, hp:3, curAtk:4, curHp:3, keywords:['charge'],
-  image:'https://i.pinimg.com/1200x/0f/fb/01/0ffb01d6a1791d88e2e7459127c522c7.jpg',
-  imagePosX:50, imagePosY:50, imageZoom:100
-});
-// 3) Frappe preventive — Piège Volonté 1 mana : 3 dégâts au bloqueur, avant le combat
-const T_P1_TRAP = mkTutCard({
-  instId:'t-p1-trap', name:'Frappe preventive', type:'Piège', class:'Volonté',
-  cost:1, text:"Avant qu'une créature alliée ne combatte, infligez 3 dégâts à la créature qu'elle va affronter.",
-  image:'https://i.pinimg.com/736x/4e/4c/8e/4e4c8eaad6100d2fdd4ebf08d0a5753e.jpg',
-  imagePosX:50, imagePosY:45, imageZoom:131
-});
-// 4) Hache de guerre naine — Artefact Volonté 6 mana, 3 charges. Activation
-//    gratuite (1 fois par tour) : une créature alliée désignée gagne +4/+0,
-//    Perçant et Initiative. "abilities" est copié tel quel depuis la vraie
-//    carte, afin de réutiliser l'interface réelle de ciblage (clic sur une
-//    créature alliée) déjà présente dans le code du plateau ci-dessus.
-const T_P1_ARTIFACT = mkTutCard({
-  instId:'t-p1-artifact', name:'Hache de guerre naine', type:'Artefact', class:'Volonté',
-  cost:6, charges:3,
-  text:'Activez (gratuit) : une créature alliée désignée gagne +4/+0, Perçant et Initiative.',
-  image:'https://i.pinimg.com/1200x/a1/60/e9/a160e90602996d31136c8edc037ec311.jpg',
-  imagePosX:50, imagePosY:50, imageZoom:100,
-  abilities:[
-    {
-      "id":"row_1785368646230_65618", "kind":"triggered", "chainMode":"sequential",
-      "effects":[
-        {"id":"row_1785368646230_15972","effectType":"buff","usesTarget":"row_1785368663311_537","valueFixed":4,"setStatsAtk":1,"setStatsHp":1},
-        {"id":"row_1785368675479_51846","effectType":"grantKeyword","usesTarget":"row_1785368663311_537","grantKeywordKey":"pierce","grantKeywordDuration":"permanent"},
-        {"id":"row_1785368693428_64340","effectType":"grantKeyword","usesTarget":"row_1785368663311_537","grantKeywordKey":"initiative","grantKeywordDuration":"permanent"}
-      ],
-      "targets":[
-        {"id":"row_1785368663311_537","countMode":"fixed","countFixed":1,"targetOwner":"ally","selectionMode":"chosen","targetCategory":"creature"}
-      ],
-      "triggers":[
-        {"id":"row_1785368646230_83889","trigger":"activated","useCount":3,"activationCost":0,"activationCooldown":1}
-      ]
-    }
-  ]
-});
-// 5) Découper — Sortilège Volonté 1 mana : 2 dégâts à un héros/créature ennemi désigné
-const T_P1_SPELL = mkTutCard({
-  instId:'t-p1-spell', name:'Découper', type:'Sortilège', class:'Volonté',
-  cost:1, text:'Infligez 2 dégâts à un héros ou une créature ennemie désignée.',
-  effect:{ type:'damage', targetOwner:'enemy', amount:2, valueFixed:2 },
-  image:'https://i.pinimg.com/1200x/13/6f/f0/136ff0c88f888f7ed8c71d300682e9aa.jpg',
-  imagePosX:50, imagePosY:50, imageZoom:100
-});
-
-// 6) Forge-sort — Créature Arcane 2 mana, 1/1 (bot)
-const T_P2_FORGE = mkTutCard({
-  instId:'t-p2-c1', name:'Forge-sort', type:'Créature', class:'Arcane',
-  cost:2, atk:1, hp:1, curAtk:1, curHp:1, keywords:[],
-  image:'https://i.pinimg.com/1200x/9b/f0/45/9bf045ecf28f0bc6a68d99e4cc98a617.jpg',
-  imagePosX:50, imagePosY:24, imageZoom:100
-});
-// 7) Traqueur infatigable — Créature Crépuscule 3 mana, 3/5 (bot)
-const T_P2_TRAQUEUR = mkTutCard({
-  instId:'t-p2-c2', name:'Traqueur infatigable', type:'Créature', class:'Crépuscule',
-  cost:3, atk:3, hp:5, curAtk:3, curHp:5, keywords:[],
-  image:'https://i.pinimg.com/1200x/7f/fc/2d/7ffc2d4203cfb12bf770411ffc08e3a4.jpg',
-  imagePosX:50, imagePosY:50, imageZoom:100
-});
-
-function tutBuildInitialState(){
-  return {
-    phase:'main', active:'p1', turn:1, gameOver:false, winnerKey:null, matchSummary:null,
-    pendingSacrifice:null, pendingDiscover:null, pendingKeywordChoice:null,
-    __gameLog:[],
-    p1:{
-      // Kyzïre et Sandroska sont scriptés à 10 PV chacun (au lieu de leurs
-      // PV réels de match, 24 et 22) : c'est la consigne du tutoriel.
-      hero:T_P1_HERO, region:T_REGION_P1, hp:10,
-      // Assez de mana pour jouer Gobelin inconscient (1) + Frappe preventive (1) au tour 1.
-      manaNormal:2, manaNormalMax:2, manaFragile:0,
-      hand:[ Object.assign({}, T_P1_C1), Object.assign({}, T_P1_TRAP) ],
-      deck: Array.from({length:12}, (_,i)=>({ instId:'t-p1-deck-'+i })),
-      board:[], relics:[], discard:[], attackers:[],
-      cardBackUrl:T_CARDBACK_URL, isAI:false, attackPhaseDone:false, mulliganDone:true, showHandToSpectators:false
-    },
-    p2:{
-      // 10 PV de départ, ramenés à 6 dès la première étape par le pouvoir
-      // passif de Kyzïre (4 dégâts automatiques au héros ennemi en début de
-      // partie) — voir l'étape "heroPower" et tutOnContinueClick().
-      hero:T_P2_HERO, region:T_REGION_P2, hp:10,
-      manaNormal:0, manaNormalMax:0, manaFragile:0,
-      hand:[ Object.assign({}, T_P2_FORGE), Object.assign({}, T_P2_TRAQUEUR) ],
-      deck: Array.from({length:12}, (_,i)=>({ instId:'t-p2-deck-'+i })),
-      board:[], relics:[], discard:[], attackers:[],
-      cardBackUrl:T_CARDBACK_URL, isAI:true, attackPhaseDone:false, mulliganDone:true, showHandToSpectators:false
-    }
-  };
-}
-
-// ---------------- Script des étapes ----------------
-// Chaque étape décrit son texte de narration (affiché dans la barre du
-// haut) et les éléments à mettre en surbrillance dorée (sélecteurs CSS —
-// soit un id réel du plateau, soit [data-instid="..."] pour une carte
-// précise, posé par cardEl() sur chaque carte rendue).
-const TUT_STEPS_INFO = {
-  heroPower: { title:'Le pouvoir de Kyzïre', text:"Kyzïre a un pouvoir passif : dès le début du combat, il inflige automatiquement 4 dégâts au héros ennemi. Sandroska commence donc la partie à 6 points de vie au lieu de 10. Cliquez sur « Continuer ».", continueBtn:true, highlight:['#hero-frame-p1','#hero-frame-p2'] },
-  intro1: { title:'Bienvenue !', text:"En bas de l'écran, c'est vous : Kyzïre, votre main et votre plateau. En haut, c'est Sandroska, votre adversaire. Suivez les instructions affichées ici, en haut, tout au long de la partie.", continueBtn:true, highlight:['#hero-frame-p1','#hero-frame-p2'] },
-  intro2: { title:'Le mana', text:"À côté de votre héros : votre réserve de mana. Chaque carte coûte du mana pour être jouée, et vous en gagnez un peu plus à chaque tour.", continueBtn:true, highlight:['#mana-box-p1'] },
-  intro3: { title:'Votre main', text:"En bas de l'écran : votre main. Survolez une carte pour l'agrandir, glissez-la sur le plateau pour la jouer.", continueBtn:true, highlight:['#hand-p1'] },
-  playC1: { title:'Jouez votre première créature', text:"Vous avez en main Gobelin inconscient, une créature Volonté à 1 mana (2 attaque / 1 point de vie) avec le mot-clé Charge : elle peut attaquer dès qu'elle est posée. Glissez-la depuis votre main jusqu'au plateau pour la jouer.", continueBtn:false, highlight:['[data-instid="t-p1-c1"]'] },
-  goToAttack1: { title:"Passez à l'attaque", text:"Le plateau adverse est vide : votre Gobelin inconscient peut attaquer sans être bloqué. Cliquez sur « ⚔ Passer au combat », en bas de l'écran.", continueBtn:false, highlight:['#phase-bar button'] },
-  selectAttackers1: { title:'Choisissez votre attaquant', text:"Cliquez sur le Gobelin inconscient pour le désigner comme attaquant, puis cliquez sur « Valider » pour lancer l'attaque.", continueBtn:false, highlight:['[data-instid="t-p1-c1"]'] },
-  playTrap: { title:'Posez un piège', text:"Vous avez aussi en main Frappe preventive, un Piège Volonté à 1 mana : « Avant qu'une créature alliée ne combatte, infligez 3 dégâts à la créature qu'elle va affronter. » Glissez-le sur le plateau pour l'activer — il restera caché et se déclenchera tout seul lors d'un futur combat.", continueBtn:false, highlight:['[data-instid="t-p1-trap"]'] },
-  endTurn1: { title:'Terminez votre tour', text:"Le Gobelin inconscient, non bloqué, a infligé 2 dégâts à Sandroska. Cliquez sur « Fin de tour », en bas de l'écran.", continueBtn:false, highlight:['#phase-bar button'] },
-  aiTurn1: { title:"Tour de l'adversaire", text:"Sandroska joue Forge-sort, une créature Arcane à 2 mana (1 attaque / 1 point de vie)...", continueBtn:false, highlight:[] },
-  playC2: { title:'Une deuxième créature', text:"Nouveau tour : vous avez pioché Chevaucheuse de requin des sables, une créature Volonté à 3 mana (4 attaque / 3 points de vie), elle aussi avec Charge. Glissez-la sur le plateau.", continueBtn:false, highlight:['[data-instid="t-p1-c2"]'] },
-  goToAttack2: { title:"Passez à l'attaque", text:"Attaquez avec votre Chevaucheuse de requin des sables. Cliquez sur « ⚔ Passer au combat ».", continueBtn:false, highlight:['#phase-bar button'] },
-  selectAttackers2: { title:'Choisissez votre attaquant', text:"Cliquez sur la Chevaucheuse de requin des sables, puis validez l'attaque. Sandroska va bloquer avec son Forge-sort — observez ce qu'il se passe.", continueBtn:false, highlight:['[data-instid="t-p1-c2"]'] },
-  endTurn2: { title:'Le piège s\'est déclenché', text:"Juste avant l'échange de coups, Frappe preventive a infligé 3 dégâts au Forge-sort qui bloquait : il est mort avant même de pouvoir se battre. Votre Chevaucheuse n'a subi aucune riposte. Cliquez sur « Fin de tour ».", continueBtn:false, highlight:['#phase-bar button'] },
-  aiTurn2: { title:"Tour de l'adversaire", text:"Sandroska joue Traqueur infatigable, une créature Crépuscule à 3 mana (3 attaque / 5 points de vie)...", continueBtn:false, highlight:[] },
-  playArtifact: { title:'Un artefact puissant', text:"Nouveau tour : vous avez pioché Hache de guerre naine, un Artefact Volonté à 6 mana. Glissez-le sur le plateau pour le poser, puis activez sa capacité (gratuite) en ciblant votre Chevaucheuse de requin des sables : elle gagnera +4 attaque, Perçant (les dégâts en trop après avoir tué le bloqueur passent au héros) et Initiative (elle frappe en premier, sans subir de riposte si elle tue son adversaire).", continueBtn:false, highlight:['[data-instid="t-p1-artifact"]','[data-instid="t-p1-c2"]'] },
-  goToAttack3: { title:"Passez à l'attaque", text:"Votre Chevaucheuse, maintenant à 8 attaque, est prête. Cliquez sur « ⚔ Passer au combat ».", continueBtn:false, highlight:['#phase-bar button'] },
-  selectAttackers3: { title:'Portez le coup décisif', text:"Cliquez sur la Chevaucheuse de requin des sables, puis validez. Face au Traqueur infatigable (5 points de vie), Initiative et Perçant vont faire toute la différence.", continueBtn:false, highlight:['[data-instid="t-p1-c2"]'] },
-  endTurn3: { title:'Combo réussi !', text:"Initiative a permis à votre Chevaucheuse de frapper la première et de tuer le Traqueur sans subir de riposte ; Perçant a envoyé les 3 dégâts en trop directement sur Sandroska. Cliquez sur « Fin de tour ».", continueBtn:false, highlight:['#phase-bar button'] },
-  aiTurn3: { title:"Tour de l'adversaire", text:"Sandroska, à 1 point de vie et sans rien à jouer, ne peut plus rien tenter...", continueBtn:false, highlight:[] },
-  finalSpell: { title:'Portez le coup fatal', text:"Vous avez pioché Découper, un Sortilège Volonté à 1 mana : « Infligez 2 dégâts à un héros ou une créature ennemie désignée. » Glissez-le sur le plateau puis désignez le héros de Sandroska pour l'achever.", continueBtn:false, highlight:['[data-instid="t-p1-spell"]','#hero-frame-p2'] },
-  done: { title:'Tutoriel terminé', text:'Vous connaissez maintenant les créatures, les pièges, les sortilèges et les artefacts !', continueBtn:false, highlight:[] }
-};
-const TUT_STEP_ORDER = Object.keys(TUT_STEPS_INFO);
-
-let TUT = { step:'heroPower' };
-
-function tutSetStep(id){
-  TUT.step = id;
-  const info = TUT_STEPS_INFO[id];
-  if(!info) return;
-  const idx = TUT_STEP_ORDER.indexOf(id);
-  const badge = document.getElementById('tut-step-badge');
-  if(badge) badge.textContent = `Étape ${idx+1}/${TUT_STEP_ORDER.length}`;
-  const titleEl = document.getElementById('tut-title');
-  if(titleEl) titleEl.textContent = info.title;
-  const textEl = document.getElementById('tut-text');
-  if(textEl) textEl.textContent = info.text;
-  const hintEl = document.getElementById('tut-hint');
-  if(hintEl){ hintEl.style.display = 'none'; hintEl.textContent = ''; }
-  const contBtn = document.getElementById('tut-continue-btn');
-  if(contBtn) contBtn.style.display = info.continueBtn ? 'inline-block' : 'none';
-}
-
-function tutApplyHighlight(){
-  document.querySelectorAll('.tut-glow').forEach(el=>el.classList.remove('tut-glow'));
-  document.querySelectorAll('.tut-arrow').forEach(el=>el.remove());
-  const info = TUT_STEPS_INFO[TUT.step];
-  if(!info) return;
-  let firstEl = null;
-  (info.highlight||[]).forEach(sel=>{
-    try{
-      const el = document.querySelector(sel);
-      if(el){ el.classList.add('tut-glow'); if(!firstEl) firstEl = el; }
-    }catch(e){ /* sélecteur invalide, on ignore */ }
-  });
-  if(firstEl) tutPointTo(firstEl);
-}
-function tutPointTo(el){
-  const rect = el.getBoundingClientRect();
-  if(rect.width===0 && rect.height===0) return;
-  const arrow = document.createElement('div');
-  arrow.className = 'tut-arrow';
-  arrow.textContent = '▼';
-  arrow.style.left = (rect.left + rect.width/2) + 'px';
-  arrow.style.top = Math.max(96, rect.top - 34) + 'px';
-  document.body.appendChild(arrow);
-}
-
-let __tutFlashTimer = null;
-function tutFlash(msg){
-  const el = document.getElementById('tut-flash');
-  if(!el) return;
-  el.textContent = msg;
-  el.classList.add('show');
-  clearTimeout(__tutFlashTimer);
-  __tutFlashTimer = setTimeout(()=>el.classList.remove('show'), 2600);
-}
-
-function tutResolveDeaths(key){
-  const p = S[key];
-  const dead = p.board.filter(c=>c.curHp<=0);
-  if(dead.length){
-    p.board = p.board.filter(c=>c.curHp>0);
-    dead.forEach(c=>p.discard.push(c));
-  }
-}
-
-// ---------------- Journal ----------------
-// Le panneau "Journal" du vrai plateau lit S.__gameLog (rempli côté
-// serveur en match réel, via pushLogEntry()/logRaw() — voir
-// spellcraft-edge-function-game-action.ts). Le tutoriel ne passe jamais
-// par le serveur, donc chaque action scriptée alimente ce journal à la
-// main, avec exactement la même forme, pour que le panneau ne reste pas
-// vide. Deux formes possibles :
-// - carte jouée/déclenchée : {ownerKey, cardName, cardId, kind, effects:[{text, targetInstIds}]}
-// - texte libre (combat)   : {ownerKey, raw:"{who} ...", highlightIds:[...]}
-function tutLog(entry){
-  if(!S.__gameLog) S.__gameLog = [];
-  S.__gameLog.push(Object.assign({ turn: S.turn||1 }, entry));
-}
-
-function tutRewireGameOverButton(){
-  const btn = document.querySelector('#overlay button');
-  if(!btn) return;
-  btn.textContent = 'Continuer';
-  btn.onclick = function(){
-    document.getElementById('overlay').classList.remove('show');
-    tutShowEndScreen();
-  };
-}
-function tutShowEndScreen(){
-  const el = document.getElementById('tut-end-screen');
-  if(el) el.classList.add('show');
-}
-
-// ---------------- Boutons de la barre du tutoriel ----------------
-function tutOnContinueClick(){
-  const idx = TUT_STEP_ORDER.indexOf(TUT.step);
-  if(TUT.step==='heroPower'){
-    // Pouvoir passif de Kyzïre : 4 dégâts automatiques au héros ennemi.
-    S.p2.hp = Math.max(0, S.p2.hp - 4);
-    tutLog({ ownerKey:'p1', cardName:T_P1_HERO.name, cardId:'tut-hero-p1', kind:'hero_trigger',
-      effects:[{ text:'infligez 4 dégâts au héros ennemi', targetInstIds:[] }] });
-    render();
-  }
-  if(idx>=0 && idx<TUT_STEP_ORDER.length-1){
-    tutSetStep(TUT_STEP_ORDER[idx+1]);
-    tutApplyHighlight();
-  }
-}
-function tutSkip(){
-  if(!confirm('Passer le tutoriel et retourner au menu ?')) return;
-  gsMarkTutorialCompleted().catch(()=>{});
-  window.location.href = 'spellcraft-hub.html';
-}
-function tutFinish(){
-  gsMarkTutorialCompleted().catch(()=>{});
-  window.location.href = 'spellcraft-hub.html';
-}
-function tutGoToShop(){
-  gsMarkTutorialCompleted().catch(()=>{});
-  // L'octroi des 3 boosters (grant_tutorial_boosters, idempotent) se fait
-  // côté boutique elle-même, au chargement de spellcraft-shop.html — voir
-  // maybeGrantTutorialBoosters() dans ce fichier.
-  window.location.href = 'spellcraft-shop.html?fromTutorial=1';
-}
-function tutOpenGrimoire(){
-  window.location.href = 'spellcraft-grimoire.html';
-}
-
-// ---------------- render() : on réutilise 100% le rendu réel ----------------
-// Réaffectation d'une fonction globale simple (function render(){...} plus
-// haut) — technique déjà utilisée ailleurs dans ce fichier pour les gs*() :
-// tout le code existant qui appelle render() (par son nom) obtiendra bien
-// cette nouvelle version à l'exécution.
-const __tutRealRender = render;
-// Garde-fou : évite de déclencher deux fois le tour de l'IA pour la même
-// étape (une fois via le setTimeout posé dans gsEndTurn, une fois via ce
-// filet de sécurité déclenché au rendu — voir plus bas).
-const AI_TURN_AUTOFIRED = {};
-render = function(){
-  __tutRealRender();
-  // Transition purement cliente (aucun appel réseau) : passer en mode
-  // "sélection des attaquants" ne déclenche aucune fonction gs*(), on la
-  // détecte donc ici, à chaque rendu.
-  // Trois attaques scriptées ce tutoriel-ci, donc trois paires
-  // goToAttackN → selectAttackersN à détecter au fil du rendu.
-  const ATTACK_STEP_PAIRS = { goToAttack1:'selectAttackers1', goToAttack2:'selectAttackers2', goToAttack3:'selectAttackers3' };
-  if(ATTACK_STEP_PAIRS[TUT.step] && UI.selectingAttackers){
-    tutSetStep(ATTACK_STEP_PAIRS[TUT.step]);
-  }
-  // Filet de sécurité pour le tour de l'IA : gsEndTurn() pose déjà un
-  // setTimeout(uiProcessAi, 700) en entrant dans aiTurn1/2/3, mais un
-  // setTimeout peut être retardé (onglet en arrière-plan, navigateur
-  // occupé) ou, en cas d'erreur JS imprévue ailleurs, ne jamais se
-  // déclencher. On revérifie donc à chaque rendu si on est bien entré
-  // dans une étape aiTurnN sans que l'IA n'ait encore joué, et on relance
-  // uiProcessAi() nous-mêmes si besoin — au plus une fois par étape.
-  if(/^aiTurn[123]$/.test(TUT.step) && !AI_TURN_AUTOFIRED[TUT.step] && !ACTION_IN_FLIGHT){
-    const stepAtSchedule = TUT.step;
-    AI_TURN_AUTOFIRED[stepAtSchedule] = true;
-    setTimeout(()=>{ if(TUT.step===stepAtSchedule) uiProcessAi(); }, 700);
-  }
-  tutApplyHighlight();
-};
-
-// ---------------- Actions réseau → simulées localement ----------------
-gsConnect = function(){ /* pas de connexion réseau dans le tutoriel */ };
-gsFetchState = async function(){ return { state:S }; };
-gsRecordPresence = async function(){ return { ok:true }; };
-gsDisconnect = function(){ /* rien à faire */ };
-gsSendEmote = async function(){ return { ok:true }; };
-gsSetShowHandToSpectators = async function(){ return { ok:true }; };
-gsReportBug = async function(){ return { ok:true }; };
-gsResolveDiscoverChoice = async function(){ return { state:S }; };
-gsResolveKeywordChoice = async function(){ return { state:S }; };
-gsMulligan = async function(){ return { state:S }; };
-// Ni Kyzïre ni Sandroska n'ont de pouvoir de héros activable manuellement
-// (leurs seules capacités sont passives), donc ce bouton reste désactivé.
-gsUseHeroPower = async function(){
-  tutFlash("Kyzïre n'a pas de pouvoir de héros à activer : le sien est passif (déclenché automatiquement en début de partie).");
-  return { error:'tutorial-disabled' };
-};
-
-// Activation de Hache de guerre naine : le plateau réel gère déjà le clic
-// sur la carte (Activer), l'affichage du bouton et le ciblage d'une
-// créature alliée grâce au vrai champ "abilities" copié sur la carte
-// (mêmes fonctions clientes que le plateau normal) — on n'a ici qu'à
-// appliquer l'effet une fois la cible reçue.
-gsActivatePermanent = async function(permanentType, permanentInstId, targetInfo, chosenTargets){
-  if(TUT.step!=='playArtifact'){
-    tutFlash("Ce n'est pas le moment d'activer cette capacité.");
-    return { error:'tutorial-wrong-step' };
-  }
-  const me = S.p1;
-  const art = me.relics.find(r=>r.instId===T_P1_ARTIFACT.instId);
-  if(!art || permanentInstId!==T_P1_ARTIFACT.instId){
-    tutFlash("Ce n'est pas la bonne capacité à activer.");
-    return { error:'tutorial-wrong-target' };
-  }
-  let targetInstId = null;
-  if(chosenTargets && chosenTargets.length) targetInstId = chosenTargets[0].instId || chosenTargets[0];
-  else if(targetInfo && targetInfo.instId) targetInstId = targetInfo.instId;
-  const target = me.board.find(c=>c.instId===targetInstId);
-  if(!target){
-    tutFlash('Désignez une créature alliée pour recevoir le bonus.');
-    return { error:'tutorial-no-target' };
-  }
-  if(target.instId!==T_P1_C2.instId){
-    tutFlash('Pour cette démonstration, ciblez plutôt votre Chevaucheuse de requin des sables.');
-    return { error:'tutorial-wrong-target' };
-  }
-  target.atk += 4; target.curAtk += 4;
-  if(!target.keywords.includes('pierce')) target.keywords.push('pierce');
-  if(!target.keywords.includes('initiative')) target.keywords.push('initiative');
-  art.charges = Math.max(0, (art.charges||1) - 1);
-  tutLog({ ownerKey:'p1', cardName:T_P1_ARTIFACT.name, cardId:art.instId, kind:'artifact_activate',
-    effects:[{ text:`donne +4/+0, Perçant et Initiative à ${target.name}`, targetInstIds:[target.instId] }] });
-  tutSetStep('goToAttack3');
-  return { state:S };
-};
-
-gsPlayCardSimple = async function(i, targetInfo, chosenTargets, choiceKey, sacrificeInstId){
-  const me = S.p1;
-  const card = me.hand[i];
-  if(!card){ return { error:'Carte introuvable.' }; }
-
-  if(TUT.step==='playC1' && card.instId===T_P1_C1.instId){
-    me.hand.splice(i,1);
-    me.board.push(Object.assign({}, card, { summonSick:true }));
-    me.manaNormal -= card.cost;
-    tutLog({ ownerKey:'p1', cardName:card.name, cardId:card.instId, kind:'play', effects:[] });
-    tutSetStep('goToAttack1');
-    return { state:S };
-  }
-  if(TUT.step==='playC2' && card.instId===T_P1_C2.instId){
-    me.hand.splice(i,1);
-    me.board.push(Object.assign({}, card, { summonSick:true }));
-    me.manaNormal -= card.cost;
-    tutLog({ ownerKey:'p1', cardName:card.name, cardId:card.instId, kind:'play', effects:[] });
-    tutSetStep('goToAttack2');
-    return { state:S };
-  }
-  if(TUT.step==='playArtifact' && card.instId===T_P1_ARTIFACT.instId){
-    me.hand.splice(i,1);
-    me.relics.push(Object.assign({}, card));
-    me.manaNormal -= card.cost;
-    tutLog({ ownerKey:'p1', cardName:card.name, cardId:card.instId, kind:'play', effects:[] });
-    // On reste à la même étape : il reste à activer la capacité (bouton
-    // "Activer" affiché par le vrai rendu du plateau, grâce à "abilities").
-    return { state:S };
-  }
-  if(TUT.step==='finalSpell' && card.instId===T_P1_SPELL.instId){
-    // Le plateau adverse est vide à ce stade : le héros de Sandroska est la
-    // seule cible valide proposée par l'interface de ciblage réelle.
-    me.hand.splice(i,1);
-    S.p2.hp = Math.max(0, S.p2.hp - 2);
-    tutLog({ ownerKey:'p1', cardName:card.name, cardId:card.instId, kind:'play',
-      effects:[{ text:'infligez 2 dégâts au héros ennemi', targetInstIds:[] }] });
-    tutResolveDeaths('p1');
-    tutResolveDeaths('p2');
-    if(S.p2.hp<=0){
-      S.gameOver = true;
-      S.winnerKey = 'p1';
-      setTimeout(tutRewireGameOverButton, 50);
-    }
-    tutSetStep('done');
-    return { state:S };
-  }
-  tutFlash("Ce n'est pas ce qu'il faut faire pour l'instant — suivez les instructions en haut de l'écran.");
-  return { error:'tutorial-wrong-step' };
-};
-
-gsSetTrap = async function(handIndex){
-  const me = S.p1;
-  const card = me.hand[handIndex];
-  if(TUT.step==='playTrap' && card && card.instId===T_P1_TRAP.instId){
-    card.activeTrap = true;
-    me.manaNormal -= card.cost;
-    tutLog({ ownerKey:'p1', cardName:card.name, cardId:card.instId, kind:'play', effects:[] });
-    tutSetStep('endTurn1');
-    return { state:S };
-  }
-  tutFlash("Ce n'est pas le moment de poser ce piège.");
-  return { error:'tutorial-wrong-step' };
-};
-
-gsDeclareAttackers = async function(attackerIds){
-  const got = attackerIds || [];
-
-  // ---- Tour 1 : le Gobelin inconscient attaque seul, plateau adverse vide ----
-  if(TUT.step==='selectAttackers1'){
-    if(got.length!==1 || got[0]!==T_P1_C1.instId){
-      tutFlash('Sélectionnez le Gobelin inconscient, puis validez.');
-      return { error:'tutorial-wrong-attackers' };
-    }
-    const gobelin = S.p1.board.find(c=>c.instId===T_P1_C1.instId);
-    if(gobelin){
-      S.p2.hp = Math.max(0, S.p2.hp - gobelin.curAtk);
-      tutLog({ ownerKey:'p1', raw:`{who} attaque avec ${gobelin.name}`, highlightIds:[gobelin.instId] });
-      tutLog({ ownerKey:'p2', raw:`{who} a perdu ${gobelin.curAtk} points de vie dans cette attaque`, highlightIds:[gobelin.instId] });
-    }
-    S.p1.attackPhaseDone = true;
-    S.p1.attackers = [];
-    tutSetStep('playTrap');
-    return { state:S };
-  }
-
-  // ---- Tour 2 : la Chevaucheuse attaque seule, bloquée par Forge-sort ----
-  if(TUT.step==='selectAttackers2'){
-    if(got.length!==1 || got[0]!==T_P1_C2.instId){
-      tutFlash('Sélectionnez la Chevaucheuse de requin des sables, puis validez.');
-      return { error:'tutorial-wrong-attackers' };
-    }
-    const chevaucheuseAtt = S.p1.board.find(c=>c.instId===T_P1_C2.instId);
-    if(chevaucheuseAtt) tutLog({ ownerKey:'p1', raw:`{who} attaque avec ${chevaucheuseAtt.name}`, highlightIds:[chevaucheuseAtt.instId] });
-    const blocker = S.p2.board.find(c=>c.instId===T_P2_FORGE.instId);
-    const trapCard = S.p1.hand.find(c=>c.activeTrap);
-    if(blocker && trapCard){
-      // Frappe preventive se déclenche avant l'échange de coups : 3 dégâts
-      // au bloqueur désigné, avant même que le combat ne commence.
-      blocker.curHp -= 3;
-      const idx = S.p1.hand.indexOf(trapCard);
-      S.p1.hand.splice(idx,1);
-      S.p1.discard.push(trapCard);
-      tutLog({ ownerKey:'p1', cardName:trapCard.name, cardId:trapCard.instId, kind:'trap',
-        effects:[{ text:`infligez 3 dégâts à ${blocker.name}`, targetInstIds:[blocker.instId] }] });
-      tutFlash('Frappe preventive se déclenche ! 3 dégâts au bloqueur, avant le combat.');
-    }
-    // Le bloqueur meurt avant l'échange de coups : le combat s'arrête là,
-    // aucun dégât supplémentaire des deux côtés (ni au héros, ni en retour).
-    tutResolveDeaths('p1');
-    tutResolveDeaths('p2');
-    S.p1.attackPhaseDone = true;
-    S.p1.attackers = [];
-    tutSetStep('endTurn2');
-    return { state:S };
-  }
-
-  // ---- Tour 3 : Chevaucheuse buffée (Hache de guerre naine), combo Initiative + Perçant ----
-  if(TUT.step==='selectAttackers3'){
-    if(got.length!==1 || got[0]!==T_P1_C2.instId){
-      tutFlash('Sélectionnez la Chevaucheuse de requin des sables, puis validez.');
-      return { error:'tutorial-wrong-attackers' };
-    }
-    const chevaucheuse = S.p1.board.find(c=>c.instId===T_P1_C2.instId);
-    const traqueur = S.p2.board.find(c=>c.instId===T_P2_TRAQUEUR.instId);
-    if(chevaucheuse) tutLog({ ownerKey:'p1', raw:`{who} attaque avec ${chevaucheuse.name}`, highlightIds:[chevaucheuse.instId] });
-    if(chevaucheuse && traqueur){
-      // Initiative : la Chevaucheuse frappe en premier.
-      const excess = chevaucheuse.curAtk - traqueur.curHp;
-      traqueur.curHp -= chevaucheuse.curAtk;
-      if(excess > 0){
-        // Le coup fatal tue le bloqueur avant qu'il ne puisse riposter :
-        // Initiative annule donc toute contre-attaque sur la Chevaucheuse.
-        // Perçant : les dégâts en trop passent au travers, jusqu'au héros.
-        S.p2.hp = Math.max(0, S.p2.hp - excess);
-        tutLog({ ownerKey:'p2', raw:`{who} a perdu ${excess} points de vie dans cette attaque`, highlightIds:[chevaucheuse.instId] });
-      } else {
-        // (Cas non atteint dans ce script : sans coup fatal, la riposte
-        // normale se serait appliquée à la Chevaucheuse.)
-        chevaucheuse.curHp -= traqueur.curAtk;
-      }
-    }
-    tutResolveDeaths('p1');
-    tutResolveDeaths('p2');
-    S.p1.attackPhaseDone = true;
-    S.p1.attackers = [];
-    tutSetStep('endTurn3');
-    return { state:S };
-  }
-
-  tutFlash("Ce n'est pas le moment d'attaquer.");
-  return { error:'tutorial-wrong-step' };
-};
-
-// IMPORTANT : en match réel, onStateUpdate() se relance automatiquement
-// après un tour (diffusion temps réel du serveur), et C'EST ce second
-// appel — arrivant après coup, une fois ACTION_IN_FLIGHT repassé à false
-// — qui déclenche uiProcessAi(). Le tutoriel n'a aucune diffusion
-// réseau : le SEUL appel à onStateUpdate() est celui, synchrone, fait par
-// runAction() DANS son propre bloc try, donc AVANT que son "finally" ne
-// remette ACTION_IN_FLIGHT à false — la condition "!ACTION_IN_FLIGHT" dans
-// onStateUpdate() y échoue donc toujours, et l'IA ne joue jamais. On
-// déclenche donc ici, explicitement, le tour de l'IA nous-mêmes.
-gsEndTurn = async function(){
-  if(TUT.step==='endTurn1'){
-    S.p1.attackPhaseDone = false;
-    S.active = 'p2';
-    tutSetStep('aiTurn1');
-    setTimeout(()=>{ uiProcessAi(); }, 700);
-    return { state:S };
-  }
-  if(TUT.step==='endTurn2'){
-    S.p1.attackPhaseDone = false;
-    S.active = 'p2';
-    tutSetStep('aiTurn2');
-    setTimeout(()=>{ uiProcessAi(); }, 700);
-    return { state:S };
-  }
-  if(TUT.step==='endTurn3'){
-    S.p1.attackPhaseDone = false;
-    S.active = 'p2';
-    tutSetStep('aiTurn3');
-    setTimeout(()=>{ uiProcessAi(); }, 700);
-    return { state:S };
-  }
-  tutFlash("Pas encore : suivez les instructions en haut de l'écran.");
-  return { error:'tutorial-wrong-step' };
-};
-gsProcessAiTurn = async function(){
-  // Sandroska ne passe jamais à l'attaque dans ce tutoriel (pour rester
-  // pédagogique et laisser le joueur mener le jeu) : chaque tour de l'IA se
-  // limite à poser une créature, puis rendre la main.
-  if(TUT.step==='aiTurn1'){
-    S.p2.manaNormalMax = 2; S.p2.manaNormal = 2;
-    S.p2.hand.pop();
-    S.p2.board.push(Object.assign({}, T_P2_FORGE, { summonSick:true }));
-    S.p2.manaNormal -= T_P2_FORGE.cost;
-    tutLog({ ownerKey:'p2', cardName:T_P2_FORGE.name, cardId:T_P2_FORGE.instId, kind:'play', effects:[] });
-    S.active = 'p1';
-    S.p1.board.forEach(c=>{ c.summonSick = false; });
-    S.p1.manaNormalMax = 3; S.p1.manaNormal = 3;
-    S.p1.hand.push(Object.assign({}, T_P1_C2));
-    tutSetStep('playC2');
-    return { state:S };
-  }
-  if(TUT.step==='aiTurn2'){
-    S.p2.board.forEach(c=>{ c.summonSick = false; });
-    S.p2.manaNormalMax = 3; S.p2.manaNormal = 3;
-    S.p2.hand.pop();
-    S.p2.board.push(Object.assign({}, T_P2_TRAQUEUR, { summonSick:true }));
-    S.p2.manaNormal -= T_P2_TRAQUEUR.cost;
-    tutLog({ ownerKey:'p2', cardName:T_P2_TRAQUEUR.name, cardId:T_P2_TRAQUEUR.instId, kind:'play', effects:[] });
-    S.active = 'p1';
-    S.p1.board.forEach(c=>{ c.summonSick = false; });
-    // Bond de mana jusqu'à 6 pour pouvoir poser Hache de guerre naine :
-    // ce tutoriel est scripté, la progression du mana n'a pas à suivre la
-    // courbe normale d'une vraie partie.
-    S.p1.manaNormalMax = 6; S.p1.manaNormal = 6;
-    S.p1.hand.push(Object.assign({}, T_P1_ARTIFACT));
-    tutSetStep('playArtifact');
-    return { state:S };
-  }
-  if(TUT.step==='aiTurn3'){
-    // Sandroska, déjà réduite à 1 point de vie et sans board, ne tente
-    // plus rien : son tour se termine sans la moindre action.
-    S.active = 'p1';
-    S.p1.manaNormalMax = 7; S.p1.manaNormal = 7;
-    S.p1.hand.push(Object.assign({}, T_P1_SPELL));
-    tutSetStep('finalSpell');
-    return { state:S };
-  }
-  return { state:S };
-};
-
-// ---------------- Démarrage ----------------
-async function initTutorial(){
-  MY_KEY = 'p1'; OPP_KEY = 'p2';
-  GS_ROLE = 'p1'; GS_VS_AI = true;
-  // Alimente le lookup utilisé par le journal (survol du nom d'une carte
-  // dans une ligne du journal → aperçu de la carte, et détection du bon
-  // son de pose selon le type) avec nos cartes scriptées.
-  JOURNAL_CARD_LOOKUP = JOURNAL_CARD_LOOKUP || {};
-  [T_P1_C1, T_P1_C2, T_P1_TRAP, T_P1_ARTIFACT, T_P1_SPELL, T_P2_FORGE, T_P2_TRAQUEUR].forEach(c=>{
-    JOURNAL_CARD_LOOKUP[c.instId] = c;
-  });
-  const appOuter = document.getElementById('app-outer');
-  if(appOuter) appOuter.classList.add('show');
-  const aiBtn = document.getElementById('ai-debug-btn');
-  if(aiBtn) aiBtn.style.display = 'none';
-  S = tutBuildInitialState();
-  UI = { selectingAttackers:false, selectedAttackers:[], pendingBlocker:null };
-  TUT.step = 'heroPower';
-  tutSetStep('heroPower');
-  render();
-}
-initSpellcraftAuth().then(initTutorial);
+initSpellcraftAuth().then(initFromUrl);
 </script>
 </body>
 </html>

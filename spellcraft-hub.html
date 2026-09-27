@@ -222,10 +222,17 @@ async function initPatchNotesBadge(){
 
 async function checkTutorialAutoLaunch(){
   if(!MY_USER_ID_HUB) return; // pas connecté : rien à vérifier
+  // Filet de sécurité côté client : si le navigateur a déjà vu le tutoriel
+  // se terminer sur cet appareil, on ne relance jamais, même si l'écriture
+  // du flag côté serveur a pu être en retard (latence réseau, requête
+  // annulée par une navigation trop rapide, etc.).
+  try{ if(localStorage.getItem('sc-tutorial-completed') === '1') return; }catch(e){}
   try {
     const res = await gsGetTutorialStatus();
     if(res && res.ok && res.completed === false){
       window.location.href = 'spellcraft-tutorial.html';
+    } else if(res && res.ok && res.completed === true){
+      try{ localStorage.setItem('sc-tutorial-completed', '1'); }catch(e){}
     }
   } catch(e) { /* si l'appel échoue, on ne bloque pas l'accès au hub */ }
 }
