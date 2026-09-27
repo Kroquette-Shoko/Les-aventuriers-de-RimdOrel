@@ -134,8 +134,13 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, #3a
 .binder-slot .ncard{cursor:pointer;transition:transform .12s;transform-origin:center center;width:100% !important;height:100% !important;}
 .binder-slot .ncard:hover{transform:scale(1.03);}
 .binder-slot .nstat-wrap .nstat-txt{font-size:22px !important;}
-.binder-slot .nname-wrap .nname-text{font-size:16px !important;transform:translateY(-12px) !important;}
-.binder-slot .ncard-text{font-size:12.5px !important;}
+/* Le nom et le texte de capacité NE sont PAS forcés à une taille fixe ici :
+   comme dans l'aperçu agrandi, fitNewCard()/fitBoxFont() (appelés par
+   buildCardEl) réduisent dynamiquement leur police via un style inline
+   jusqu'à ce que ça tienne dans le cadre — un !important sur ces deux-là
+   écraserait ce style inline et casserait l'auto-ajustement (c'était le
+   bug : les noms longs débordaient). */
+.binder-slot .nname-wrap .nname-text{transform:translateY(-8.7px) !important;}
 .binder-slot .ntypeline{font-size:10px !important;}
 .binder-slot.bulk-selected{outline:3px solid var(--gold, #d4af37);outline-offset:-3px;border-radius:8px;}
 .binder-slot.bulk-selectable{cursor:pointer;}
