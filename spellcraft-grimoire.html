@@ -4,31 +4,27 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Le Grimoire — Les aventuriers de Rimd'Orël</title>
+<script>
+// Anti-flash : applique le thème choisi AVANT le premier rendu.
+(function(){
+  try{
+    var t = localStorage.getItem('sc-theme') || 'actuel';
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){}
+})();
+</script>
+<link rel="stylesheet" href="spellcraft-ui-kit.css">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@400;500;600;700&display=swap');
-
-:root{
-  --bg-void:#0b0a12;
-  --bg-panel:#171325;
-  --bg-panel-2:#1f1a30;
-  --parchment:#efe6c8;
-  --parchment-dim:#d9cfae;
-  --ink:#1c1830;
-  --arcane:#7c5cff;
-  --gold:#d4af37;
-  --blood:#c23b3b;
-  --frost:#4fb3d9;
-  --green:#4a9d6b;
-  --border:#3a3260;
-}
-*{box-sizing:border-box;}
+/* Les jetons de couleur (--bg-void, --gold, --arcane, etc.) viennent de
+   spellcraft-ui-kit.css et suivent le thème actif choisi dans les options. */
+:root{ --border:var(--line, #3a3260); }
 html{scroll-behavior:smooth;}
-body{margin:0;background:var(--bg-void);color:var(--parchment);font-family:'Inter',sans-serif;}
 a{color:var(--frost);}
 
-#topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:var(--bg-panel);border-bottom:1px solid rgba(212,175,55,.3);}
+#topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 20px;background:var(--bg-panel);border-bottom:1px solid rgba(212,175,55,.3);}
 #topbar h1{font-family:'Cinzel',serif;font-size:16px;color:var(--gold);margin:0;}
-#topbar a.back{color:var(--parchment-dim);text-decoration:none;font-size:12.5px;border:1px solid var(--border);border-radius:8px;padding:7px 13px;}
+#topbar-right{display:flex;align-items:center;gap:12px;flex-shrink:0;}
+#topbar a.back{color:var(--parchment-dim);text-decoration:none;font-size:12.5px;border:1px solid var(--border);border-radius:8px;padding:7px 13px;white-space:nowrap;}
 #topbar a.back:hover{border-color:var(--gold);color:var(--gold);}
 
 #layout{display:flex;max-width:1180px;margin:0 auto;padding:24px 20px 80px;gap:32px;align-items:flex-start;}
@@ -81,7 +77,10 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
 
 <div id="topbar">
   <h1>📖 Le Grimoire — Règles complètes</h1>
-  <a class="back" href="spellcraft-hub.html">← Retour au hub</a>
+  <div id="topbar-right">
+    <div id="sc-options-slot"></div>
+    <a class="back" href="spellcraft-hub.html">← Retour au hub</a>
+  </div>
 </div>
 
 <div id="layout">
@@ -106,6 +105,7 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
     <section id="objectif">
       <h2>1. Objectif du jeu</h2>
       <p>Chaque joueur incarne un <strong>Héros</strong>, soutenu par une <strong>Région</strong>, et affronte son adversaire avec un deck de créatures, sortilèges, artefacts et pièges. Le but : ramener les points de vie (PV) du héros adverse à 0 avant que le vôtre ne tombe — ou faire en sorte que l'adversaire n'ait plus de carte à piocher.</p>
+      <p class="dim">Un héros démarre en général avec 30 PV (cette valeur dépend du héros choisi).</p>
     </section>
 
     <section id="mise-en-place">
@@ -271,6 +271,9 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
 
   </main>
 </div>
+
+<script>window.APP_TOPBAR_DISABLED = true;</script>
+<script src="spellcraft-shared.js"></script>
 
 </body>
 </html>
