@@ -525,7 +525,7 @@ body.targeting *{cursor:crosshair !important;}
   #setup-panel button.secondary{background:var(--bg-panel-2, #1f1a30);border:1px solid var(--line, #3a3260);}
   #session-code-display{font-family:'Cinzel',serif;font-weight:700;color:var(--gold);font-size:18px;letter-spacing:3px;}
   #app-outer{display:none;}
-  #app-outer.show{display:block;}
+  #app-outer.show{display:flex;}
   #emote-panel{position:absolute;bottom:100%;right:0;margin-bottom:50px;width:220px;background:var(--bg-panel, #171325);border:1px solid var(--line, #3a3260);border-radius:10px;padding:10px;font-family:'Inter',sans-serif;z-index:50;display:none;}
   #emote-panel.show{display:block;}
   #emote-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
@@ -1522,7 +1522,6 @@ function render(){
   renderGameOverOverlay();
   renderDiscoverChoiceModal();
   renderKeywordChoiceModal();
-  fitBoardToViewport();
   syncTargetingArrow();
   // renderTurnTimer(); — minuteur désactivé pour l'instant (voir afterConnected)
 }
@@ -1620,22 +1619,15 @@ function renderDiscoverChoiceModal(){
 // Le plateau a une hauteur "naturelle" fixe (calculée pour être lisible),
 // mais on la réduit (jamais on ne l'agrandit) pour qu'elle tienne toujours
 // entièrement dans la fenêtre — jamais de barre de défilement.
-function fitBoardToViewport(){
-  const scrollArea = document.getElementById('board-scroll-area');
-  const boardEl = document.getElementById('board');
-  if(!scrollArea || !boardEl) return;
-  scrollArea.style.transform = '';
-  scrollArea.style.transformOrigin = 'top center';
-  requestAnimationFrame(()=>{
-    const available = boardEl.clientHeight;
-    const needed = scrollArea.scrollHeight;
-    if(needed > available && available > 0){
-      const scale = Math.max(0.5, available / needed);
-      scrollArea.style.transform = `scale(${scale})`;
-    }
-  });
-}
-window.addEventListener('resize', ()=>{ if(S) fitBoardToViewport(); });
+// fitBoardToViewport() a été retirée : elle appliquait un DEUXIÈME
+// rétrécissement (jusqu'à moitié plus petit) par-dessus la mise à l'échelle
+// globale du plateau (updateBoardScale, cadre 1920×1080 → fenêtre réelle)
+// dès que le contenu semblait dépasser la hauteur disponible. Depuis la
+// refonte visuelle (lanes/cartes/portraits agrandis), ce cas se déclenchait
+// quasi systématiquement, ce qui rendait tout minuscule même sur grand
+// écran. #board-scroll-area a déjà overflow-y:auto (scrollbar masquée mais
+// fonctionnelle) : le débordement, s'il y en a, se gère par un défilement
+// normal plutôt que par un rétrécissement silencieux de tout le plateau.
 
 function renderGameOverOverlay(){
   const overlay = document.getElementById('overlay');
