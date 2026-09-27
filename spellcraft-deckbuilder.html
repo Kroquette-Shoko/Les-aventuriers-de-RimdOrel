@@ -53,15 +53,20 @@
 .deck-name-input{background:var(--bg-panel-2);border:1px solid var(--line, #3a3260);color:var(--parchment);border-radius:8px;padding:7px 12px;font-family:'Cinzel',serif;font-size:13px;width:180px;}
 select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, #3a3260);color:var(--parchment);border-radius:8px;padding:7px 10px;font-size:12px;}
 
-/* ---------- Barre d'outils / filtres (remplace l'ancienne colonne
-   #left-toolbar plaquée sur le classeur : même contenu, en ligne) ---------- */
+/* ---------- Barre d'outils / filtres — colonne verticale à gauche
+   du classeur (même contenu que l'ancienne barre du haut) ---------- */
 #left-toolbar{
-  display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+  display:flex;flex-direction:column;align-items:stretch;gap:10px;
   background:linear-gradient(180deg, var(--bg-panel-2) 0%, var(--bg-panel) 100%);
   border:1px solid var(--line, #3a3260);border-radius:var(--radius-md, 12px);
-  padding:12px 16px;width:100%;box-shadow:var(--shadow-panel, 0 14px 32px rgba(0,0,0,.45));
+  padding:16px;width:100%;box-shadow:var(--shadow-panel, 0 14px 32px rgba(0,0,0,.45));
 }
-#fragments-bar{display:flex;flex-wrap:wrap;gap:6px;}
+#left-toolbar .btn{width:100%;text-align:left;}
+#left-toolbar .dropdown-wrap{width:100%;}
+#left-toolbar .select-mini{width:100%;}
+#left-toolbar .results-count{text-align:center;}
+#fragments-bar{display:flex;flex-direction:column;gap:6px;}
+#fragments-bar .currency-chip{width:100%;}
 .dropdown-wrap{position:relative;}
 .dropdown-panel{position:absolute;top:calc(100% + 6px);left:0;background:var(--bg-panel);border:1px solid var(--line, #3a3260);border-radius:8px;padding:10px;z-index:40;display:none;min-width:180px;box-shadow:0 8px 20px rgba(0,0,0,.5);max-height:240px;overflow-y:auto;}
 #filter-panel{min-width:300px;max-width:340px;max-height:80vh;padding:16px;}
@@ -79,9 +84,10 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, #3a
 .dropdown-panel label{display:flex;align-items:center;gap:6px;font-size:12px;padding:4px 2px;cursor:pointer;}
 .results-count{font-size:11px;color:var(--parchment-dim);white-space:nowrap;}
 
-#bulk-disenchant-bar{display:flex;align-items:center;gap:12px;background:var(--bg-panel-2);border:1.5px solid #6b3030;
+#bulk-disenchant-bar{display:flex;flex-direction:column;align-items:stretch;gap:8px;background:var(--bg-panel-2);border:1.5px solid #6b3030;
   border-radius:10px;padding:10px 14px;width:100%;}
-#bulk-disenchant-bar #bulk-disenchant-summary{font-family:'Cinzel',serif;font-weight:700;font-size:13px;flex:1;}
+#bulk-disenchant-bar #bulk-disenchant-summary{font-family:'Cinzel',serif;font-weight:700;font-size:13px;text-align:center;}
+#bulk-disenchant-bar .btn{width:100%;}
 #bulk-disenchant-toggle.active{border-color:#e88;color:#e88;}
 #craftable-toggle.active{border-color:var(--gold, #d4af37);color:var(--gold, #d4af37);}
 .currency-chip{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:4px 8px;border-radius:14px;background:var(--bg-panel-3,#241f38);color:var(--parchment,#efe6c8);}
@@ -98,38 +104,39 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, #3a
    est conservé, piloté par le même JS, #binder-frame/#binder-pages et
    .binder-page-half gardent leurs id/classes) ---------- */
 .db-shell{max-width:1560px !important;}
-.db-main{display:flex;gap:22px;align-items:flex-start;width:100%;max-width:1320px;flex-wrap:wrap;}
-.db-collection-col{flex:1;min-width:0;display:flex;flex-direction:column;gap:16px;}
-.db-deck-col{flex:none;width:340px;}
+.db-main{display:flex;gap:18px;align-items:flex-start;width:100%;justify-content:center;flex-wrap:wrap;}
+.db-toolbar-col{flex:none;width:210px;display:flex;flex-direction:column;gap:14px;}
+.db-collection-col{flex:none;min-width:0;display:flex;flex-direction:column;align-items:center;gap:16px;}
+.db-deck-col{flex:none;width:320px;}
 
 #wizard-hint{display:flex;align-items:center;gap:14px;background:var(--bg-panel);border:1px solid var(--gold, #d4af37);border-radius:10px;padding:9px 16px;font-family:'Cinzel',serif;font-size:12.5px;color:var(--gold, #d4af37);}
 #binder-nav{display:flex;align-items:center;justify-content:center;gap:16px;background:var(--bg-panel);border:1px solid var(--line, #3a3260);border-radius:20px;padding:8px 18px;align-self:center;}
 
 #binder-frame{
-  width:100%;
   background:linear-gradient(180deg, var(--bg-panel-2) 0%, var(--bg-panel) 100%);
   border:1px solid var(--line, #3a3260);border-radius:var(--radius-lg, 18px);
-  box-shadow:var(--shadow-panel, 0 14px 32px rgba(0,0,0,.45));padding:22px;min-height:360px;
+  box-shadow:var(--shadow-panel, 0 14px 32px rgba(0,0,0,.45));padding:22px;min-height:400px;
   display:flex;align-items:center;justify-content:center;
 }
 #binder-pages{
-  width:100%;
-  display:flex;flex-wrap:wrap;justify-content:center;gap:30px;
+  display:flex;flex-wrap:wrap;justify-content:center;gap:24px;
 }
+/* Classeur en 4+4 (2×2 par demi-page) avec des cartes plus grandes,
+   plus lisibles que l'ancien 3×3 miniature. */
 .binder-page-half{
-  flex:none;width:420px;
-  display:grid;grid-template-columns:repeat(3,132px);grid-template-rows:repeat(3,1fr);gap:12px;
+  flex:none;width:412px;
+  display:grid;grid-template-columns:repeat(2,200px);grid-template-rows:repeat(2,1fr);gap:12px;
 }
 .binder-spine{width:1px;align-self:stretch;background:var(--line, #3a3260);}
-.binder-slot{width:132px;aspect-ratio:300/423.2;display:flex;align-items:center;justify-content:center;position:relative;}
+.binder-slot{width:200px;aspect-ratio:300/423.2;display:flex;align-items:center;justify-content:center;position:relative;}
 .binder-slot-empty{width:100%;height:100%;}
 
 .binder-slot .ncard{cursor:pointer;transition:transform .12s;transform-origin:center center;width:100% !important;height:100% !important;}
 .binder-slot .ncard:hover{transform:scale(1.03);}
-.binder-slot .nstat-wrap .nstat-txt{font-size:15px !important;}
-.binder-slot .nname-wrap .nname-text{font-size:11px !important;transform:translateY(-8.4px) !important;}
-.binder-slot .ncard-text{font-size:9px !important;}
-.binder-slot .ntypeline{font-size:7px !important;}
+.binder-slot .nstat-wrap .nstat-txt{font-size:22px !important;}
+.binder-slot .nname-wrap .nname-text{font-size:16px !important;transform:translateY(-12px) !important;}
+.binder-slot .ncard-text{font-size:12.5px !important;}
+.binder-slot .ntypeline{font-size:10px !important;}
 .binder-slot.bulk-selected{outline:3px solid var(--gold, #d4af37);outline-offset:-3px;border-radius:8px;}
 .binder-slot.bulk-selectable{cursor:pointer;}
 .binder-slot .bulk-select-badge{position:absolute;top:4px;left:4px;width:22px;height:22px;border-radius:50%;
@@ -399,6 +406,8 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, #3a
 
 @media (max-width:900px){
   .db-main{flex-direction:column;}
+  .db-toolbar-col{width:100%;}
+  .db-collection-col{width:100%;}
   .db-deck-col{width:100%;}
   #deck-col{position:static;max-height:none;}
 }
@@ -423,36 +432,38 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, #3a
   <div id="deck-saved-popup"><span class="dsp-icon">✓</span><span id="deck-saved-popup-text">Deck sauvegardé</span></div>
 
   <div class="sc-container db-shell" style="padding-top:20px;">
-    <div id="left-toolbar">
-      <div class="dropdown-wrap">
-        <button class="btn" onclick="toggleFilterPanel()">🔎 Filtre de recherche</button>
-        <div class="dropdown-panel" id="filter-panel"></div>
-      </div>
-      <button class="btn" onclick="jumpToBinderStart()">📖 Voir les cartes</button>
-      <button class="btn" onclick="jumpToHeroPage()">🦸 Voir les héros</button>
-      <button class="btn" onclick="jumpToCardBackPage()">🎴 Voir les dos de carte</button>
-      <select class="select-mini" id="sort-select" onchange="onFilterChange()">
-        <option value="class-cost-name">Tri : Classe → Coût → Alphabétique</option>
-        <option value="name-asc">Nom (A → Z)</option>
-        <option value="name-desc">Nom (Z → A)</option>
-        <option value="cost-asc">Coût (croissant)</option>
-        <option value="cost-desc">Coût (décroissant)</option>
-        <option value="class">Classe</option>
-        <option value="rarity">Rareté</option>
-      </select>
-      <span class="results-count" id="results-count"></span>
-      <div id="fragments-bar"></div>
-      <button class="btn small" id="craftable-toggle" onclick="toggleCraftableOnly()">🔨 Fabriquer des cartes</button>
-      <button class="btn small" id="bulk-disenchant-toggle" onclick="toggleBulkDisenchantMode()">♻️ Désassembler en masse</button>
-    </div>
-
-    <div id="bulk-disenchant-bar" style="display:none;">
-      <span id="bulk-disenchant-summary">0 carte sélectionnée</span>
-      <button class="btn small" onclick="toggleBulkDisenchantMode()">Annuler</button>
-      <button class="btn small primary" id="bulk-disenchant-confirm" onclick="confirmBulkDisenchant()" disabled>Désassembler la sélection</button>
-    </div>
-
     <div class="db-main">
+      <div class="db-toolbar-col">
+        <div id="left-toolbar">
+          <div class="dropdown-wrap">
+            <button class="btn" onclick="toggleFilterPanel()">🔎 Filtre de recherche</button>
+            <div class="dropdown-panel" id="filter-panel"></div>
+          </div>
+          <button class="btn" onclick="jumpToBinderStart()">📖 Voir les cartes</button>
+          <button class="btn" onclick="jumpToHeroPage()">🦸 Voir les héros</button>
+          <button class="btn" onclick="jumpToCardBackPage()">🎴 Voir les dos de carte</button>
+          <select class="select-mini" id="sort-select" onchange="onFilterChange()">
+            <option value="class-cost-name">Tri : Classe → Coût → Alphabétique</option>
+            <option value="name-asc">Nom (A → Z)</option>
+            <option value="name-desc">Nom (Z → A)</option>
+            <option value="cost-asc">Coût (croissant)</option>
+            <option value="cost-desc">Coût (décroissant)</option>
+            <option value="class">Classe</option>
+            <option value="rarity">Rareté</option>
+          </select>
+          <span class="results-count" id="results-count"></span>
+          <div id="fragments-bar"></div>
+          <button class="btn small" id="craftable-toggle" onclick="toggleCraftableOnly()">🔨 Fabriquer des cartes</button>
+          <button class="btn small" id="bulk-disenchant-toggle" onclick="toggleBulkDisenchantMode()">♻️ Désassembler en masse</button>
+        </div>
+
+        <div id="bulk-disenchant-bar" style="display:none;">
+          <span id="bulk-disenchant-summary">0 carte sélectionnée</span>
+          <button class="btn small" onclick="toggleBulkDisenchantMode()">Annuler</button>
+          <button class="btn small primary" id="bulk-disenchant-confirm" onclick="confirmBulkDisenchant()" disabled>Désassembler la sélection</button>
+        </div>
+      </div>
+
       <div class="db-collection-col">
         <div id="wizard-hint" style="display:none;"></div>
         <div id="binder-frame">
@@ -581,7 +592,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, #3a
 /* CLASSES, RARITIES, CARD_TYPES, KEYWORDS, escapeHtml, getClassColor et migrateCard
    viennent de spellcraft-shared.js (chargé juste avant ce script). */
 
-const PAGE_SIZE = 9;
+const PAGE_SIZE = 4;
 const SPREAD_SIZE = PAGE_SIZE * 2; // deux pages affichées côte à côte
 const DECK_SIZE = 30;
 const MAX_COPIES = 2;
