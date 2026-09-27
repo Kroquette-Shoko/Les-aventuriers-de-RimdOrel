@@ -966,6 +966,14 @@ async function flashBoosterInventoryBadge(){
   const { data } = await sb.rpc('get_user_boosters');
   const total = (data && data.boosters) ? data.boosters.reduce((sum,b)=>sum+b.quantity, 0) : 0;
   badge.textContent = total;
+  // Une fois tous les boosters ouverts (stock à 0), le bandeau "3 boosters
+  // offerts" n'a plus lieu d'être — on le masque, y compris si la page est
+  // rechargée plus tard avec ?fromTutorial=1 encore dans l'URL.
+  if(total===0){
+    const banner = document.getElementById('tutorial-shop-banner');
+    if(banner) banner.style.display = 'none';
+  }
+  return total;
 }
 
 async function showMyBoostersModal(){
@@ -1275,14 +1283,18 @@ async function initShop(){
 async function maybeGrantTutorialBoosters(){
   const params = new URLSearchParams(window.location.search);
   if(params.get('fromTutorial')!=='1') return;
-  const banner = document.getElementById('tutorial-shop-banner');
-  if(banner) banner.style.display = 'flex';
   const user = await scGetCurrentUser();
   if(!user) return;
   const { data, error } = await sb.rpc('grant_tutorial_boosters');
   if(error){ console.error('grant_tutorial_boosters', error); return; }
   if(data && data.error){ console.error('grant_tutorial_boosters', data.error); return; }
-  await flashBoosterInventoryBadge();
+  // N'affiche le bandeau que s'il reste effectivement des boosters à
+  // ouvrir : si le joueur revient sur cette page (ou la recharge) après
+  // les avoir déjà tous ouverts, ?fromTutorial=1 peut encore traîner dans
+  // l'URL mais le bandeau n'a plus de raison d'apparaître.
+  const total = await flashBoosterInventoryBadge();
+  const banner = document.getElementById('tutorial-shop-banner');
+  if(banner && total>0) banner.style.display = 'flex';
 }
 initSpellcraftAuth();
 initShop();
