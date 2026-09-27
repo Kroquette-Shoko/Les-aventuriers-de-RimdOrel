@@ -2,69 +2,68 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Les aventuriers de Rimd'Orël — Recherche de partie</title>
+<title>Spellcraft — Recherche de partie</title>
+<script>
+// Anti-flash : applique le thème choisi AVANT le premier rendu.
+(function(){
+  try{
+    var t = localStorage.getItem('sc-theme') || 'actuel';
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){}
+})();
+</script>
+<link rel="stylesheet" href="spellcraft-ui-kit.css">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@400;500;600;700&display=swap');
+/* Le reste des jetons de couleur (--bg-void, --gold, --arcane, etc.)
+   vient de spellcraft-ui-kit.css et suit le thème actif.
+   On ne garde ici que ce qui est propre à cette page. */
+#app{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:0 20px 60px;}
+#app > .sc-topbar{margin:0 -20px 20px;width:calc(100% + 40px);}
 
-:root{
-  --bg-void:#0b0a12;
-  --bg-panel:#171325;
-  --bg-panel-2:#1f1a30;
-  --bg-panel-3:#241f3a;
-  --parchment:#efe6c8;
-  --parchment-dim:#d9cfae;
-  --ink:#1c1830;
-  --arcane:#7c5cff;
-  --gold:#d4af37;
-  --blood:#c23b3b;
-  --frost:#4fb3d9;
-  --green:#4a9d6b;
-}
-*{box-sizing:border-box;}
-html,body{margin:0;min-height:100%;background:var(--bg-void);color:var(--parchment);font-family:'Inter',sans-serif;}
-body{padding:16px 24px 32px;}
-
-h1{font-family:'Cinzel',serif;font-weight:900;color:var(--gold);font-size:20px;text-align:center;margin:4px 0 2px;letter-spacing:1px;}
-.subtitle{text-align:center;color:var(--parchment-dim);font-size:12px;margin:0 0 16px;}
+.lobby-shell{width:100%;max-width:1180px;padding:10px 0 0;display:flex;flex-direction:column;gap:6px;align-items:center;}
+.lobby-shell .sc-h1{text-align:center;}
+.lobby-shell .sc-sub{text-align:center;margin-bottom:14px;}
 
 /* ---------- Mise en page paysage à deux colonnes ---------- */
 #lobby-columns{
   display:flex;
-  gap:72px;
-  max-width:1160px;
+  gap:28px;
+  width:100%;
+  max-width:1080px;
   margin:0 auto;
   align-items:flex-start;
 }
-.lobby-col{flex:1; min-width:0;}
+.lobby-col{flex:1; min-width:0;display:flex;flex-direction:column;}
 #deck-col{flex:1.05;}
 #menu-col{flex:1;}
 
-.panel-title{font-family:'Cinzel',serif;color:var(--gold);font-size:13px;margin:0 0 10px;text-align:center;letter-spacing:.5px;}
+.panel-title{font-family:'Cinzel',serif;color:var(--gold);font-size:13px;margin:0 0 12px;text-align:center;letter-spacing:.5px;}
 
 /* ---------- Colonne des decks ---------- */
 #btn-last-deck{
-  width:100%;background:var(--bg-panel-2);border:1.5px solid #3a3260;color:var(--parchment-dim);
-  border-radius:9px;padding:9px;font-family:'Inter';font-size:12.5px;cursor:pointer;margin-bottom:14px;
+  width:100%;background:var(--bg-panel-2);border:1.5px solid var(--line);color:var(--parchment-dim);
+  border-radius:9px;padding:9px;font-family:'Inter',sans-serif;font-size:12.5px;cursor:pointer;margin-bottom:14px;
+  transition:border-color .15s ease, color .15s ease;
 }
 #btn-last-deck:hover:not(:disabled){border-color:var(--gold);color:var(--parchment);}
 #btn-last-deck:disabled{opacity:.35;cursor:not-allowed;}
 
-#deck-grid-wrap{background:var(--bg-panel);border:1px solid #3a3260;border-radius:14px;padding:16px;}
+#deck-grid-wrap{flex:1;display:flex;flex-direction:column;}
 #deck-grid{
   display:grid;
   grid-template-columns:repeat(3, 1fr);
   grid-template-rows:repeat(2, auto);
   gap:12px 14px;
   margin:0 auto 12px;
-  max-width:84%; /* +40% par rapport à la taille réduite précédente */
+  max-width:84%;
 }
 .deck-tile-wrap{cursor:pointer;}
 .deck-tile{
   position:relative;
   border-radius:12px;
   padding-top:139%; /* format portrait, proche du ratio réel d'une carte, pour bien voir le dos choisi */
-  background:var(--bg-panel-2);
-  border:2px solid #3a3260;
+  background:var(--bg-panel-3);
+  border:2px solid var(--line);
   transition:transform .15s ease, border-color .15s ease, box-shadow .15s ease;
   overflow:visible;
 }
@@ -72,12 +71,12 @@ h1{font-family:'Cinzel',serif;font-weight:900;color:var(--gold);font-size:20px;t
 .deck-tile-wrap.selected .deck-tile{border-color:var(--gold);box-shadow:0 0 0 3px rgba(212,175,55,.35), 0 8px 18px rgba(0,0,0,.5);}
 .deck-tile .db-back{
   position:absolute;inset:0;border-radius:10px;overflow:hidden;
-  background-size:cover;background-position:center;background-color:#2a2440;
+  background-size:cover;background-position:center;background-color:var(--bg-panel-2);
 }
 .deck-tile .db-hero{
   position:absolute;top:-10%;left:50%;transform:translateX(-50%);
   width:76%;aspect-ratio:1/1;border-radius:50%;
-  background:radial-gradient(circle at 35% 30%, var(--arcane), #2a1f55);
+  background:radial-gradient(circle at 35% 30%, var(--arcane), var(--arcane-dim));
   background-size:cover;background-position:center;
   border:3px solid var(--gold);box-shadow:0 4px 10px rgba(0,0,0,.6);
   z-index:2;
@@ -88,8 +87,8 @@ h1{font-family:'Cinzel',serif;font-weight:900;color:var(--gold);font-size:20px;t
 }
 .deck-tile-wrap.selected .db-name-below{color:var(--gold);}
 
-#deck-pagination{display:flex;justify-content:center;align-items:center;gap:12px;}
-#deck-pagination button{background:var(--bg-panel-2);border:1.5px solid #3a3260;color:var(--parchment);border-radius:8px;padding:5px 12px;cursor:pointer;font-family:'Inter';font-size:12.5px;}
+#deck-pagination{display:flex;justify-content:center;align-items:center;gap:12px;margin-top:auto;padding-top:8px;}
+#deck-pagination button{background:var(--bg-panel-2);border:1.5px solid var(--line);color:var(--parchment);border-radius:8px;padding:5px 12px;cursor:pointer;font-family:'Inter',sans-serif;font-size:12.5px;}
 #deck-pagination button:disabled{opacity:.35;cursor:not-allowed;}
 #deck-pagination span{font-size:12px;color:var(--parchment-dim);}
 
@@ -99,63 +98,56 @@ h1{font-family:'Cinzel',serif;font-weight:900;color:var(--gold);font-size:20px;t
 #chosen-deck-label{text-align:center;font-size:11.5px;color:var(--parchment-dim);margin-top:10px;min-height:15px;}
 
 /* ---------- Colonne du menu de partie — tailles dégressives ---------- */
-#menu-col button{
-  width:100%;display:block;border:none;cursor:pointer;font-family:'Cinzel',serif;font-weight:700;
-  border-radius:10px;margin-bottom:10px;color:#fff;background:var(--arcane);
-  text-align:center;transition:transform .1s ease, filter .15s ease;
-}
-#menu-col button:hover:not(:disabled){filter:brightness(1.12);transform:translateY(-1px);}
-#menu-col button:disabled{opacity:.4;cursor:not-allowed;}
-#menu-col button .btn-sub{display:block;font-family:'Inter';font-weight:500;opacity:.85;margin-top:2px;}
+#menu-col .sc-btn{width:100%;font-family:'Cinzel',serif;margin-bottom:10px;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+#menu-col .sc-btn .btn-sub{display:block;font-family:'Inter',sans-serif;font-weight:500;opacity:.85;margin-top:2px;}
 
-#btn-matchmaking{padding:22px 14px;font-size:18px;background:linear-gradient(135deg, var(--arcane), #5a3fd6);box-shadow:0 6px 18px rgba(124,92,255,.35);}
+#btn-matchmaking{padding:22px 14px;font-size:18px;}
 #btn-matchmaking .btn-sub{font-size:11.5px;}
-#btn-create-private{padding:16px 14px;font-size:15px;background:var(--bg-panel-3);border:1.5px solid var(--gold);color:var(--parchment);}
-#btn-create-private .btn-sub{font-size:10.5px;color:var(--parchment-dim);}
-#btn-vs-ai{padding:14px 14px;font-size:14px;background:var(--bg-panel-2);border:1.5px solid #3a3260;color:var(--parchment);}
-#btn-join{padding:11px 14px;font-size:13px;background:var(--bg-panel-2);border:1.5px solid #3a3260;color:var(--parchment-dim);}
-#btn-spectate-list{padding:9px 14px;font-size:12px;background:transparent;border:1.5px solid #3a3260;color:var(--parchment-dim);}
+#btn-create-private{padding:16px 14px;font-size:15px;}
+#btn-create-private .btn-sub{font-size:10.5px;}
+#btn-vs-ai{padding:14px 14px;font-size:14px;}
+#btn-join{padding:11px 14px;font-size:13px;}
+#btn-spectate-list{padding:9px 14px;font-size:12px;color:var(--parchment-dim);}
 
 #lobby-error{color:var(--blood);font-size:12px;text-align:center;margin-top:10px;min-height:14px;}
 
 /* ---------- Saisie de code inline (Rejoindre une partie) ---------- */
-#join-inline{display:none;background:var(--bg-panel-3);border:1.5px solid #3a3260;border-radius:10px;padding:12px;margin-bottom:10px;}
+#join-inline{display:none;background:var(--bg-panel-3);border:1.5px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px;}
 #join-inline.show{display:block;}
 #join-inline input{
-  width:100%;padding:9px;border-radius:8px;border:1.5px solid #3a3260;background:var(--bg-panel-2);
+  width:100%;padding:9px;border-radius:8px;border:1.5px solid var(--line);background:var(--bg-panel-2);
   color:var(--parchment);font-size:14px;margin-bottom:8px;text-transform:uppercase;text-align:center;letter-spacing:3px;
+  font-family:'Inter',sans-serif;
 }
 #join-inline .row{display:flex;gap:8px;}
-#join-inline .row button{flex:1;margin-bottom:0;padding:9px;font-size:12.5px;}
-#join-inline .btn-confirm{background:var(--arcane);color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:'Cinzel',serif;font-weight:700;}
-#join-inline .btn-cancel-inline{background:transparent;border:1.5px solid #3a3260;color:var(--parchment-dim);border-radius:8px;cursor:pointer;font-family:'Inter';}
+#join-inline .row .sc-btn{flex:1;margin-bottom:0;padding:9px;font-size:12.5px;}
 
 /* ---------- Liste des parties à regarder ---------- */
-#spectate-list-panel{display:none;background:var(--bg-panel-3);border:1.5px solid #3a3260;border-radius:10px;padding:12px;margin-bottom:10px;max-height:260px;overflow-y:auto;}
+#spectate-list-panel{display:none;background:var(--bg-panel-3);border:1.5px solid var(--line);border-radius:10px;padding:12px;margin-bottom:10px;max-height:260px;overflow-y:auto;}
 #spectate-list-panel.show{display:block;}
 #spectate-list-panel .empty{color:var(--parchment-dim);font-size:12px;text-align:center;padding:14px 6px;}
 .spectate-row{
   display:flex;justify-content:space-between;align-items:center;gap:8px;
-  padding:8px 10px;border-radius:8px;background:var(--bg-panel-2);border:1px solid #3a3260;
+  padding:8px 10px;border-radius:8px;background:var(--bg-panel-2);border:1px solid var(--line);
   margin-bottom:6px;cursor:pointer;font-size:12px;
 }
 .spectate-row:hover{border-color:var(--gold);}
 .spectate-row .vs{color:var(--parchment-dim);font-size:10.5px;}
-.spectate-row button{width:auto;margin:0;padding:5px 10px;font-size:11px;background:var(--arcane);border-radius:6px;color:#fff;border:none;font-family:'Inter';font-weight:600;cursor:pointer;}
-#spectate-list-panel .btn-cancel-inline{width:100%;margin-top:4px;padding:7px;font-size:11.5px;background:transparent;border:1.5px solid #3a3260;color:var(--parchment-dim);border-radius:8px;cursor:pointer;font-family:'Inter';}
+.spectate-row .sc-btn{width:auto;margin:0;padding:5px 10px;font-size:11px;font-weight:600;}
+#spectate-list-panel .sc-btn-cancel{width:100%;margin-top:4px;padding:7px;font-size:11.5px;}
 
 /* ---------- Écran d'attente ---------- */
 #waiting-overlay{
-  position:fixed;inset:0;background:rgba(11,10,18,.94);z-index:50;
+  position:fixed;inset:0;background:rgba(6,5,10,.9);z-index:50;
   display:none;align-items:center;justify-content:center;flex-direction:column;text-align:center;
 }
 #waiting-overlay.show{display:flex;}
 #waiting-overlay h2{font-family:'Cinzel',serif;color:var(--gold);font-size:20px;margin-bottom:10px;}
 #waiting-overlay p{color:var(--parchment-dim);font-size:13.5px;margin:4px 0;}
 #waiting-code{font-family:'Cinzel',serif;font-size:34px;letter-spacing:8px;color:var(--gold);margin:16px 0;}
-.spinner{width:34px;height:34px;border:3px solid #3a3260;border-top-color:var(--gold);border-radius:50%;animation:spin 1s linear infinite;margin:14px auto;}
+.spinner{width:34px;height:34px;border:3px solid var(--line);border-top-color:var(--gold);border-radius:50%;animation:spin 1s linear infinite;margin:14px auto;}
 @keyframes spin{to{transform:rotate(360deg);}}
-#waiting-overlay button{margin-top:18px;background:var(--bg-panel-2);border:1.5px solid #3a3260;color:var(--parchment);border-radius:8px;padding:9px 18px;cursor:pointer;font-size:12.5px;}
+#waiting-overlay .sc-btn{margin-top:18px;}
 
 /* En dessous d'une certaine largeur, on repasse en une seule colonne
    plutôt que de forcer un mode paysage illisible. */
@@ -166,52 +158,68 @@ h1{font-family:'Cinzel',serif;font-weight:900;color:var(--gold);font-size:20px;t
 </head>
 <body>
 
-<h1>Recherche de partie</h1>
-<p class="subtitle">Choisis ton deck, puis lance-toi</p>
-
-<div id="lobby-columns">
-  <div class="lobby-col" id="deck-col">
-    <div class="panel-title">Ton deck</div>
-    <button id="btn-last-deck" disabled>Utiliser mon dernier deck</button>
-    <div id="deck-grid-wrap">
-      <div id="deck-grid"></div>
-      <div id="deck-pagination"></div>
-      <div id="no-decks-msg" style="display:none;">Aucun deck valide trouvé — <a href="spellcraft-deckbuilder.html">construis-en un dans le classeur</a> d'abord.</div>
+<div id="app">
+  <div class="sc-topbar">
+    <a href="spellcraft-hub.html" class="sc-topbar-back" title="Retour à l'accueil">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Menu principal
+    </a>
+    <span class="sc-topbar-title">⚔️ Recherche de partie</span>
+    <div class="sc-topbar-right">
+      <div id="sc-auth-slot"></div>
+      <div id="sc-options-slot"></div>
     </div>
-    <div id="chosen-deck-label">Sélectionne un deck ci-dessus</div>
   </div>
 
-  <div class="lobby-col" id="menu-col">
-    <div class="panel-title">Type de partie</div>
+  <div class="lobby-shell">
+    <h1 class="sc-h1">Recherche de partie</h1>
+    <p class="sc-sub">Choisis ton deck, puis lance-toi</p>
 
-    <button id="btn-matchmaking" disabled>
-      Recherche de partie
-      <span class="btn-sub">Trouve un adversaire au hasard</span>
-    </button>
+    <div id="lobby-columns">
+      <div class="lobby-col sc-panel" id="deck-col">
+        <div class="panel-title">Ton deck</div>
+        <button id="btn-last-deck" disabled>Utiliser mon dernier deck</button>
+        <div id="deck-grid-wrap">
+          <div id="deck-grid"></div>
+          <div id="no-decks-msg" style="display:none;">Aucun deck valide trouvé — <a href="spellcraft-deckbuilder.html">construis-en un dans le classeur</a> d'abord.</div>
+          <div id="deck-pagination"></div>
+        </div>
+        <div id="chosen-deck-label">Sélectionne un deck ci-dessus</div>
+      </div>
 
-    <button id="btn-create-private" disabled>
-      Créer une partie privée
-      <span class="btn-sub">Génère un code à partager</span>
-    </button>
+      <div class="lobby-col sc-panel" id="menu-col">
+        <div class="panel-title">Type de partie</div>
 
-    <button id="btn-vs-ai" disabled>Affronter l'IA</button>
+        <button id="btn-matchmaking" class="sc-btn sc-btn-primary" disabled>
+          Recherche de partie
+          <span class="btn-sub">Trouve un adversaire au hasard</span>
+        </button>
 
-    <button id="btn-join" disabled>Rejoindre une partie</button>
-    <div id="join-inline">
-      <input id="join-code-input" placeholder="Code à 6 caractères" maxlength="6">
-      <div class="row">
-        <button class="btn-confirm" id="btn-join-confirm">Rejoindre</button>
-        <button class="btn-cancel-inline" id="btn-join-cancel">Annuler</button>
+        <button id="btn-create-private" class="sc-btn sc-btn-gold" disabled>
+          Créer une partie privée
+          <span class="btn-sub">Génère un code à partager</span>
+        </button>
+
+        <button id="btn-vs-ai" class="sc-btn" disabled>Affronter l'IA</button>
+
+        <button id="btn-join" class="sc-btn sc-btn-ghost" disabled>Rejoindre une partie</button>
+        <div id="join-inline">
+          <input id="join-code-input" placeholder="Code à 6 caractères" maxlength="6">
+          <div class="row">
+            <button class="sc-btn sc-btn-primary" id="btn-join-confirm">Rejoindre</button>
+            <button class="sc-btn sc-btn-ghost" id="btn-join-cancel">Annuler</button>
+          </div>
+        </div>
+
+        <button id="btn-spectate-list" class="sc-btn sc-btn-ghost">Regarder une partie</button>
+        <div id="spectate-list-panel">
+          <div id="spectate-list-content"></div>
+          <button class="sc-btn sc-btn-ghost sc-btn-cancel" id="btn-spectate-cancel">Fermer</button>
+        </div>
+
+        <div id="lobby-error"></div>
       </div>
     </div>
-
-    <button id="btn-spectate-list">Regarder une partie</button>
-    <div id="spectate-list-panel">
-      <div id="spectate-list-content"></div>
-      <button class="btn-cancel-inline" id="btn-spectate-cancel">Fermer</button>
-    </div>
-
-    <div id="lobby-error"></div>
   </div>
 </div>
 
@@ -221,11 +229,11 @@ h1{font-family:'Cinzel',serif;font-weight:900;color:var(--gold);font-size:20px;t
   <p id="waiting-code-hint">Partage ce code avec ton ami pour qu'il puisse rejoindre.</p>
   <div class="spinner"></div>
   <p id="waiting-sub" style="font-size:11.5px;">La partie démarrera automatiquement dès qu'il aura rejoint.</p>
-  <button id="btn-cancel-wait">Annuler</button>
+  <button id="btn-cancel-wait" class="sc-btn sc-btn-ghost">Annuler</button>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>window.APP_TOPBAR_TITLE = '⚔️ Recherche de partie';</script>
+<script>window.APP_TOPBAR_DISABLED = true;</script>
 <script src="spellcraft-shared.js"></script>
 <script src="spellcraft-catalog.js"></script>
 <script src="spellcraft-server-client.js"></script>
