@@ -3,39 +3,33 @@
 <head>
 <meta charset="UTF-8">
 <title>Spellcraft — Quêtes</title>
+<script>
+// Anti-flash : applique le thème choisi AVANT le premier rendu.
+(function(){
+  try{
+    var t = localStorage.getItem('sc-theme') || 'actuel';
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){}
+})();
+</script>
+<link rel="stylesheet" href="spellcraft-ui-kit.css">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700;900&family=Inter:wght@400;500;600;700&display=swap');
+/* Le reste des jetons de couleur (--bg-void, --gold, --arcane, etc.)
+   vient de spellcraft-ui-kit.css et suit le thème actif.
+   On ne garde ici que ce qui est propre à cette page. */
+#app{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:0 20px 60px;}
+#app > .sc-topbar{margin:0 -20px 20px;width:calc(100% + 40px);}
 
-:root{
-  --bg-void:#0b0a12;
-  --bg-panel:#171325;
-  --bg-panel-2:#1f1a30;
-  --bg-panel-3:#241f38;
-  --parchment:#efe6c8;
-  --parchment-dim:#d9cfae;
-  --ink:#1c1830;
-  --arcane:#7c5cff;
-  --gold:#d4af37;
-  --blood:#c23b3b;
-  --green:#4a9d6b;
-}
-*{box-sizing:border-box;}
-html,body{margin:0;min-height:100%;background:var(--bg-void);color:var(--parchment);font-family:'Inter',sans-serif;}
+.quests-top-row{width:100%;max-width:1000px;display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:22px;}
+.quests-top-row .sc-h1{margin:0;}
 
-#app{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:20px 20px 60px;}
-
-header{width:100%;max-width:1000px;display:flex;align-items:center;gap:14px;margin-bottom:18px;}
-header a.back-link{font-size:11.5px;color:var(--parchment-dim);text-decoration:none;border:1px solid #3a3260;border-radius:8px;padding:6px 12px;}
-header a.back-link:hover{border-color:var(--gold);color:var(--parchment);}
-header h1{font-family:'Cinzel',serif;font-size:22px;color:var(--gold);margin:0;letter-spacing:1px;}
-header .spacer{flex:1;}
 .money-icon{width:22px;height:22px;display:inline-block;vertical-align:-6px;background-color:#f2c94c;-webkit-mask-image:url('images/money.png');mask-image:url('images/money.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;}
-#gold-chip{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;padding:6px 14px;border-radius:18px;background:var(--bg-panel-2);border:1px solid #3a3260;margin-bottom:14px;}
+#gold-chip{font-size:13.5px;padding:7px 16px;}
 
-main{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:26px;}
-.quest-section h2{font-family:'Cinzel',serif;font-size:16px;color:var(--gold);margin:0 0 10px;letter-spacing:.5px;border-bottom:1px solid #3a3260;padding-bottom:6px;}
+main{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:22px;}
+.quest-section h2{font-family:'Cinzel',serif;font-size:16px;color:var(--gold);margin:0 0 14px;letter-spacing:.5px;border-bottom:1px solid var(--line);padding-bottom:10px;}
 .quest-list{display:flex;flex-direction:column;gap:10px;}
-.quest-card{background:var(--bg-panel);border:1px solid #3a3260;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:16px;}
+.quest-card{background:var(--bg-panel-2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:16px;transition:border-color .15s ease;}
 .quest-card.completed{border-color:var(--green);}
 .quest-card.claimed{opacity:.5;}
 .quest-info{flex:1;min-width:0;}
@@ -46,7 +40,7 @@ main{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:26px;}
 .quest-progress-text{font-size:10.5px;color:var(--parchment-dim);margin-top:4px;}
 .quest-reward{display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:var(--gold);white-space:nowrap;}
 .quest-claim-btn{background:var(--arcane);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-family:'Cinzel',serif;font-weight:700;cursor:pointer;font-size:12px;white-space:nowrap;}
-.quest-claim-btn:disabled{background:#3a3260;cursor:not-allowed;opacity:.6;}
+.quest-claim-btn:disabled{background:var(--bg-panel-3);color:var(--parchment-dim);cursor:not-allowed;opacity:.6;}
 .quest-claim-btn.claimed-label{background:none;color:var(--green);border:1px solid var(--green);}
 .empty-note{font-size:12.5px;color:var(--parchment-dim);font-style:italic;}
 
@@ -116,18 +110,33 @@ main{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:26px;}
 <body>
 
 <div id="app">
-  <div id="gold-chip"><span class="money-icon"></span><span id="gold-amount">–</span></div>
+  <div class="sc-topbar">
+    <a href="spellcraft-hub.html" class="sc-topbar-back" title="Retour à l'accueil">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Menu principal
+    </a>
+    <span class="sc-topbar-title">📜 Quêtes</span>
+    <div class="sc-topbar-right">
+      <div id="sc-auth-slot"></div>
+      <div id="sc-options-slot"></div>
+    </div>
+  </div>
+
+  <div class="quests-top-row">
+    <h1 class="sc-h1">Quêtes</h1>
+    <div id="gold-chip" class="sc-pill sc-pill-gold"><span class="money-icon"></span><span id="gold-amount">–</span></div>
+  </div>
 
   <main>
-    <div class="quest-section">
+    <div class="quest-section sc-panel">
       <h2>Quêtes journalières</h2>
       <div class="quest-list" id="daily-list"><p class="empty-note">Chargement…</p></div>
     </div>
-    <div class="quest-section">
+    <div class="quest-section sc-panel">
       <h2>Quête hebdomadaire</h2>
       <div class="quest-list" id="weekly-list"></div>
     </div>
-    <div class="quest-section">
+    <div class="quest-section sc-panel">
       <h2>Quête de progression</h2>
       <div class="quest-list" id="progression-list"></div>
     </div>
@@ -137,7 +146,7 @@ main{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:26px;}
 <div id="reward-card-preview"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>window.APP_TOPBAR_TITLE = '📜 Quêtes';</script>
+<script>window.APP_TOPBAR_DISABLED = true;</script>
 <script src="spellcraft-shared.js"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>
