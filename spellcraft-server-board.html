@@ -37,8 +37,17 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 #app-outer{width:1920px;height:1080px;transform-origin:center center;flex-shrink:0;}
 #app{display:flex;height:100%;width:100%;min-height:0;}
 
+/* ---------- Barre du haut ---------- */
+/* Remplace l'ancienne barre partagée (flottante, désactivée via
+   APP_TOPBAR_DISABLED car elle recouvrait la zone adverse). Celle-ci
+   réserve un vrai espace de 56px en haut du plateau (padding-top de
+   #board augmenté d'autant) au lieu de flotter par-dessus le contenu. */
+#board-topbar{position:absolute;left:0;top:0;width:1920px;height:56px;box-sizing:border-box;z-index:20;background:linear-gradient(180deg,var(--bg-void,#0b0a12) 0%,var(--bg-void,#0b0a12) 60%,transparent 100%);pointer-events:none;}
+#board-back-btn{position:absolute;left:20px;top:10px;width:190px;height:36px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--parchment-dim,#b9ae8e);text-decoration:none;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;border:1px solid var(--line,#332a54);border-radius:999px;background:var(--bg-panel,#171325);cursor:pointer;pointer-events:auto;}
+#board-back-btn:hover{border-color:var(--gold,#d4af37);color:var(--gold,#d4af37);}
+
 /* ---------- Board ---------- */
-#board{flex:1;position:relative;display:flex;flex-direction:column;padding:12px 16px 100px;gap:6px;min-width:0;min-height:0;background:none;}
+#board{flex:1;position:relative;display:flex;flex-direction:column;padding:68px 16px 100px;gap:6px;min-width:0;min-height:0;background:none;}
 #board-scroll-area{flex:1;min-height:0;position:relative;display:flex;flex-direction:column;gap:4px;overflow-y:auto;overflow-x:hidden;padding-right:2px;scrollbar-width:none;}
 #board-scroll-area::-webkit-scrollbar{width:0;height:0;background:transparent;}
 
@@ -122,10 +131,20 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 @keyframes card-reveal-pop{0%{transform:scale(.7);opacity:0;}100%{transform:scale(1);opacity:1;}}
 
 /* ---------- Lanes ---------- */
-.lane{display:flex;gap:10px;justify-content:center;align-items:center;min-height:80px;padding:6px;background:radial-gradient(ellipse at center, #1c1730 0%, transparent 75%);border-radius:10px;flex-wrap:wrap;margin:0 220px;}
+/* min-height porté à 216px = la hauteur qu'une carte (204px) + le padding
+   (6px en haut/bas) occupent déjà quand la zone est pleine. La zone de
+   dépôt garde ainsi toujours sa taille maximale, même à 0 carte, au lieu
+   de se réduire à une simple bande de 80px — seule la taille de la ZONE
+   change ici, l'emplacement des cartes elles-mêmes (centrées) ne bouge pas. */
+.lane{display:flex;gap:10px;justify-content:center;align-items:center;min-height:277px;padding:6px;background:radial-gradient(ellipse at center, #1c1730 0%, transparent 75%);border-radius:10px;flex-wrap:wrap;margin:0 220px;}
 .lane.enemy{transform:scaleY(-1);}
 .lane.enemy .card-slot{transform:scaleY(-1);}
-.slot-empty{width:150px;height:204px;border:1.5px dashed #332c50;border-radius:11px;}
+.slot-empty{width:195px;height:265px;border:1.5px dashed #332c50;border-radius:11px;}
+/* Cartes posées sur le plateau agrandies (195×265 au lieu de 150×204) —
+   scopé aux lanes uniquement : la main (.hand-row), les reliques
+   (.relic-slot) et les previews gardent la taille de base de .card,
+   donc rien d'autre n'est affecté par ce changement. */
+.lane .card{width:195px;height:265px;}
 
 /* ---------- Cards ---------- */
 .card{
@@ -293,7 +312,7 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .hand-card-slot:hover{transform:translateY(-8px) scale(1.05);z-index:5;position:relative;}
 .hand-card-slot .ncard.hand-card{transform:scale(0.5);transform-origin:top left;}
 
-.enemy-hand-row{position:fixed;top:0;left:0;right:0;z-index:39;display:flex;flex-wrap:nowrap;overflow:visible;gap:6px;justify-content:center;padding:6px 14px 30px;pointer-events:none;}
+.enemy-hand-row{position:fixed;top:56px;left:0;right:0;z-index:39;display:flex;flex-wrap:nowrap;overflow:visible;gap:6px;justify-content:center;padding:6px 14px 30px;pointer-events:none;}
 .enemy-hand-card{width:92px;height:130px;border-radius:8px;background-size:cover;background-position:center;background-color:#2a2440;border:2px solid var(--line, #3a3260);box-shadow:0 4px 10px rgba(0,0,0,.5);transform:rotate(180deg);flex-shrink:0;}
 .enemy-hand-card-revealed{flex-shrink:0;transform:scale(.72);transform-origin:top center;margin:0 -18px;}
 
@@ -324,8 +343,9 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 /* ---------- Log panel ---------- */
 #log-panel{width:230px;background:var(--bg-panel);border-left:1px solid #2b2440;padding:14px 14px 40px;display:flex;flex-direction:column;min-height:0;}
 
-/* Bouton d'options : décalé sous le bouton Menu principal pour ne pas le chevaucher (taille déjà correcte par défaut) */
-#sc-options-gear{top:66px !important;right:14px !important;}
+/* Bouton d'options : intégré dans la vraie barre du haut (#board-topbar),
+   à droite du bouton Menu principal (taille déjà correcte par défaut) */
+#sc-options-gear{top:8px !important;right:76px !important;}
 #sc-options-modal{top:160px !important;}
 #log-panel h3{font-family:'Cinzel',serif;font-size:13px;margin:0 0 10px;color:var(--gold);letter-spacing:1px;}
 #log{flex:1;overflow-y:auto;font-size:11px;line-height:1.5;color:var(--parchment-dim);display:flex;flex-direction:column-reverse;}
@@ -539,12 +559,12 @@ body.targeting *{cursor:crosshair !important;}
   .mana-box-dot.bonus{background:radial-gradient(circle at 35% 30%,#fff3d0,var(--gold));box-shadow:0 0 6px rgba(212,175,55,.8);border-radius:50%;}
 
   .hero-frame{position:absolute;bottom:8px;z-index:7;}
-  .hero-portrait-big{width:130px;height:130px;border-radius:50%;background:radial-gradient(circle at 35% 30%, var(--arcane), #2a1f55);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:700;font-size:40px;color:#fff;flex-shrink:0;border:4px solid var(--gold);position:relative;cursor:pointer;padding:0;}
+  .hero-portrait-big{width:145px;height:145px;border-radius:50%;background:radial-gradient(circle at 35% 30%, var(--arcane), #2a1f55);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:700;font-size:45px;color:#fff;flex-shrink:0;border:4px solid var(--gold);position:relative;cursor:pointer;padding:0;}
   .hero-portrait-big:hover{border-color:#fff;}
   .hero-portrait-big.can-activate{border-color:var(--green, #4a9d6b);box-shadow:0 0 14px rgba(74,157,107,.6);}
   .hero-portrait-big.targetable{border-color:var(--gold);box-shadow:0 0 16px rgba(212,175,55,.75);cursor:crosshair;}
   .card.targetable{outline:3px solid var(--gold);outline-offset:2px;cursor:crosshair;}
-  .hp-badge-big{position:absolute;bottom:-10px;right:-14px;min-width:44px;height:44px;padding:0 8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#e85858,#8a1f1f);border:3px solid #4a0f0f;color:#fff;font-family:'Cinzel',serif;font-weight:700;font-size:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,.65);z-index:2;pointer-events:none;}
+  .hp-badge-big{position:absolute;bottom:-10px;right:-14px;min-width:50px;height:50px;padding:0 8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#e85858,#8a1f1f);border:3px solid #4a0f0f;color:#fff;font-family:'Cinzel',serif;font-weight:700;font-size:23px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,.65);z-index:2;pointer-events:none;}
 
   .deck-zone{position:absolute;bottom:22px;display:flex;align-items:center;gap:12px;z-index:6;}
   .board-row.self .deck-zone{right:16px;}
@@ -626,6 +646,9 @@ body.targeting *{cursor:crosshair !important;}
 
 <div id="board-scale-outer">
 <div id="app-outer">
+  <div id="board-topbar">
+    <button id="board-back-btn" title="Quitter la partie" onclick="uiLeaveGame()">← Menu principal</button>
+  </div>
   <div class="enemy-hand-row" id="enemy-hand-row"></div>
   <div id="app">
     <div id="board">
@@ -714,6 +737,14 @@ body.targeting *{cursor:crosshair !important;}
 
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // Le plateau n'a jamais eu de topbar générique (bouton retour / connexion /
+  // menu) — sans ce flag, spellcraft-shared.js en injecte une en haut de
+  // l'écran par-dessus le plateau (qui occupe déjà tout l'espace, coins
+  // compris), et elle recouvre visuellement le haut de la zone adverse
+  // (deck, héros). C'est la cause réelle du plateau adverse "coupé".
+  window.APP_TOPBAR_DISABLED = true;
+</script>
 <script src="spellcraft-shared.js"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>
