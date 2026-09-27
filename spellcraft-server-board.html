@@ -42,9 +42,12 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
    APP_TOPBAR_DISABLED car elle recouvrait la zone adverse). Celle-ci
    réserve un vrai espace de 56px en haut du plateau (padding-top de
    #board augmenté d'autant) au lieu de flotter par-dessus le contenu. */
-#board-topbar{position:absolute;left:0;top:0;width:1920px;height:56px;box-sizing:border-box;z-index:20;background:linear-gradient(180deg,var(--bg-void,#0b0a12) 0%,var(--bg-void,#0b0a12) 60%,transparent 100%);pointer-events:none;}
-#board-back-btn{position:absolute;left:20px;top:10px;width:190px;height:36px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--parchment-dim,#b9ae8e);text-decoration:none;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;border:1px solid var(--line,#332a54);border-radius:999px;background:var(--bg-panel,#171325);cursor:pointer;pointer-events:auto;}
+#board-topbar{position:absolute;left:0;top:0;width:1920px;height:56px;box-sizing:border-box;z-index:20;display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:linear-gradient(180deg,var(--bg-void,#0b0a12) 0%,var(--bg-void,#0b0a12) 60%,transparent 100%);}
+#board-back-btn{width:190px;height:36px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:6px;color:var(--parchment-dim,#b9ae8e);text-decoration:none;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;border:1px solid var(--line,#332a54);border-radius:999px;background:var(--bg-panel,#171325);cursor:pointer;flex-shrink:0;}
 #board-back-btn:hover{border-color:var(--gold,#d4af37);color:var(--gold,#d4af37);}
+/* #sc-options-slot : quand présent, spellcraft-shared.js y ancre
+   automatiquement l'engrenage en version compacte (38px, statique) au
+   lieu de la grosse pastille flottante 80px par défaut. */
 
 /* ---------- Board ---------- */
 #board{flex:1;position:relative;display:flex;flex-direction:column;padding:68px 16px 100px;gap:6px;min-width:0;min-height:0;background:none;}
@@ -131,12 +134,13 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 @keyframes card-reveal-pop{0%{transform:scale(.7);opacity:0;}100%{transform:scale(1);opacity:1;}}
 
 /* ---------- Lanes ---------- */
-/* min-height porté à 216px = la hauteur qu'une carte (204px) + le padding
-   (6px en haut/bas) occupent déjà quand la zone est pleine. La zone de
-   dépôt garde ainsi toujours sa taille maximale, même à 0 carte, au lieu
-   de se réduire à une simple bande de 80px — seule la taille de la ZONE
-   change ici, l'emplacement des cartes elles-mêmes (centrées) ne bouge pas. */
-.lane{display:flex;gap:10px;justify-content:center;align-items:center;min-height:277px;padding:6px;background:radial-gradient(ellipse at center, #1c1730 0%, transparent 75%);border-radius:10px;flex-wrap:wrap;margin:0 220px;}
+/* Hauteur de la ZONE fixée à 216px (comme sur la maquette) — plus petite
+   que la carte (265px) : les cartes débordent volontairement au-dessus
+   et en dessous du bandeau de la lane (effet de "bleed"), sans agrandir
+   la lane elle-même. C'est un height fixe (pas min-height) : la lane ne
+   grandit donc plus avec la taille des cartes, ce qui évite qu'elle ne
+   pousse le reste du plateau hors de l'écran. */
+.lane{display:flex;gap:10px;justify-content:center;align-items:center;height:216px;overflow:visible;padding:6px;background:radial-gradient(ellipse at center, #1c1730 0%, transparent 75%);border-radius:10px;flex-wrap:wrap;margin:0 220px;flex-shrink:0;}
 .lane.enemy{transform:scaleY(-1);}
 .lane.enemy .card-slot{transform:scaleY(-1);}
 .slot-empty{width:195px;height:265px;border:1.5px dashed #332c50;border-radius:11px;}
@@ -343,10 +347,6 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 /* ---------- Log panel ---------- */
 #log-panel{width:230px;background:var(--bg-panel);border-left:1px solid #2b2440;padding:14px 14px 40px;display:flex;flex-direction:column;min-height:0;}
 
-/* Bouton d'options : intégré dans la vraie barre du haut (#board-topbar),
-   à droite du bouton Menu principal (taille déjà correcte par défaut) */
-#sc-options-gear{top:8px !important;right:76px !important;}
-#sc-options-modal{top:160px !important;}
 #log-panel h3{font-family:'Cinzel',serif;font-size:13px;margin:0 0 10px;color:var(--gold);letter-spacing:1px;}
 #log{flex:1;overflow-y:auto;font-size:11px;line-height:1.5;color:var(--parchment-dim);display:flex;flex-direction:column-reverse;}
 #log div{padding:3px 0;border-bottom:1px solid var(--bg-panel-3, #241f38);}
@@ -540,14 +540,19 @@ body.targeting *{cursor:crosshair !important;}
   body.action-busy #ai-debug-btn, body.action-busy .phase-btn{opacity:.6;pointer-events:none;cursor:wait;}
 
   /* ---------- Nouvelle disposition : mana / héros / deck en coins séparés ---------- */
-  .board-row{display:flex;align-items:center;gap:14px;padding:8px 16px;position:relative;min-height:265px;}
+  /* min-height réduit (265→190) : les enfants (mana-box, hero-frame,
+     deck-zone, artifact-stack) sont tous en position:absolute, ils ne
+     poussent pas la hauteur de la rangée — 265px ne servait qu'à réserver
+     un espace jamais entièrement utilisé, et empêchait tout de tenir sur
+     l'écran une fois la barre du haut et les cartes agrandies. */
+  .board-row{display:flex;align-items:center;gap:14px;padding:8px 16px;position:relative;min-height:190px;flex-shrink:0;}
 
   .mana-box{position:absolute;bottom:8px;width:auto;min-width:44px;height:auto;max-height:280px;border-radius:12px;background:var(--bg-void, #0b0a12);border:2px solid var(--line, #3a3260);overflow-x:visible;overflow-y:hidden;display:flex;flex-direction:column-reverse;align-items:center;padding-bottom:4px;z-index:6;}
   .board-row.self{margin-top:auto;}
-  .board-row.self .mana-box{left:16px;bottom:60px;}
-  .board-row.enemy .mana-box{right:110px;top:16px;bottom:auto;flex-direction:column;padding-bottom:0;padding-top:4px;}
-  .board-row.self .hero-frame{left:72px;bottom:60px;}
-  .board-row.enemy .hero-frame{right:166px;top:16px;bottom:auto;}
+  .board-row.self .mana-box{left:16px;bottom:27px;}
+  .board-row.enemy .mana-box{right:14px;top:14px;bottom:auto;flex-direction:column;padding-bottom:0;padding-top:4px;}
+  .board-row.self .hero-frame{left:77px;bottom:27px;}
+  .board-row.enemy .hero-frame{right:75px;top:14px;bottom:auto;}
   .mana-box-region-thumb{width:36px;height:36px;border-radius:8px;background-size:cover;background-position:center;background-color:var(--bg-panel-3, #241f38);border:1px solid var(--gold);flex-shrink:0;}
   .mana-box-count{flex-shrink:0;width:100%;text-align:center;font-family:'Cinzel',serif;font-weight:700;font-size:10px;color:var(--gold);}
   .mana-box-fill{display:flex;flex-direction:column-reverse;flex-wrap:wrap;align-content:center;justify-content:center;gap:3px;padding:5px 8px;max-height:233px;}
@@ -566,15 +571,15 @@ body.targeting *{cursor:crosshair !important;}
   .card.targetable{outline:3px solid var(--gold);outline-offset:2px;cursor:crosshair;}
   .hp-badge-big{position:absolute;bottom:-10px;right:-14px;min-width:50px;height:50px;padding:0 8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#e85858,#8a1f1f);border:3px solid #4a0f0f;color:#fff;font-family:'Cinzel',serif;font-weight:700;font-size:23px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,.65);z-index:2;pointer-events:none;}
 
-  .deck-zone{position:absolute;bottom:22px;display:flex;align-items:center;gap:12px;z-index:6;}
-  .board-row.self .deck-zone{right:16px;}
-  .board-row.enemy .deck-zone{left:16px;top:16px;bottom:auto;flex-direction:row-reverse;}
+  .deck-zone{position:absolute;bottom:27px;display:flex;align-items:center;gap:12px;z-index:6;}
+  .board-row.self .deck-zone{right:27px;}
+  .board-row.enemy .deck-zone{left:16px;top:14px;bottom:auto;flex-direction:row-reverse;}
   .deck-back-visual{width:118px;height:165px;border-radius:12px;background:linear-gradient(135deg, var(--bg-panel-3, #241f38), var(--bg-panel, #171325));border:3px solid var(--gold);box-shadow:0 6px 16px rgba(0,0,0,.55);flex-shrink:0;}
   .deck-counts{display:flex;flex-direction:column;gap:8px;}
 
   .artifact-stack{position:absolute;display:flex;gap:6px;align-items:center;}
-  .board-row.self .artifact-stack{right:16px;bottom:195px;flex-direction:row;}
-  .board-row.enemy .artifact-stack{left:16px;top:195px;bottom:auto;flex-direction:row;}
+  .board-row.self .artifact-stack{right:236px;bottom:27px;flex-direction:row;}
+  .board-row.enemy .artifact-stack{left:226px;top:14px;bottom:auto;flex-direction:row;}
   .artifact-stack .relic-slot{width:120px;height:120px;}
   .relic-slot-empty{border:2px dashed #4a4270;border-radius:8px;background:rgba(11,10,18,.4);}
   .relic-slot-empty.drop-target{border-color:var(--gold);background:rgba(212,175,55,.12);}
@@ -583,7 +588,7 @@ body.targeting *{cursor:crosshair !important;}
   /* ---------- Menus repliables (journal / chat) ---------- */
   .phase-bar-wrap{position:relative;}
   .menu-toggles-row{position:absolute;bottom:100%;right:0;margin-bottom:6px;display:flex;gap:6px;}
-  #emote-toggle-btn, #journal-toggle-btn, #leave-game-btn, #report-bug-btn, #reveal-hand-toggle-btn{width:44px;height:36px;border-radius:10px;background:rgba(23,19,37,.85);border:2px solid rgba(212,175,55,.45);color:#f2ead2;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
+  #emote-toggle-btn, #journal-toggle-btn, #leave-game-btn, #report-bug-btn, #reveal-hand-toggle-btn{width:50px;height:50px;border-radius:10px;background:rgba(23,19,37,.85);border:2px solid rgba(212,175,55,.45);color:#f2ead2;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;}
   #reveal-hand-toggle-btn.active{border-color:var(--gold,#d4af37);background:rgba(212,175,55,.25);}
   #bug-report-panel{
     display:none;position:fixed;top:60px;right:20px;z-index:9990;width:280px;
@@ -648,6 +653,7 @@ body.targeting *{cursor:crosshair !important;}
 <div id="app-outer">
   <div id="board-topbar">
     <button id="board-back-btn" title="Quitter la partie" onclick="uiLeaveGame()">← Menu principal</button>
+    <div id="sc-options-slot"></div>
   </div>
   <div class="enemy-hand-row" id="enemy-hand-row"></div>
   <div id="app">
