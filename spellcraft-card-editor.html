@@ -309,6 +309,7 @@ header .spacer{flex:1;}
     <label style="font-size:11px;color:var(--parchment-dim);display:flex;align-items:center;gap:5px;cursor:pointer;" title="Les cartes de ce set sont automatiquement données à tous les comptes">
       <input type="checkbox" id="set-is-base-checkbox" onchange="onSetIsBaseChange()"> Set de base
     </label>
+    <button class="btn" onclick="openGoldModal()" title="Donner de l'or à un joueur précis ou à tous les joueurs">🪙 Donner de l'or</button>
     <button class="btn" onclick="openImportModal()">Importer</button>
     <button class="btn" onclick="openExportModal('backup')">Exporter (sauvegarde)</button>
     <button class="btn primary" onclick="openExportModal('code')">Exporter le code moteur</button>
@@ -730,6 +731,45 @@ booster-aube.png" oninput="saveImgPickerFileList()"></textarea>
     <div id="imgpicker-grid" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;max-height:320px;overflow-y:auto;"></div>
     <div class="modal-actions">
       <button class="btn" onclick="closeImagePicker()">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="gold-modal" onclick="if(event.target===this) closeModal('gold-modal')">
+  <div class="modal-box">
+    <h2>🪙 Donner de l'or</h2>
+    <div class="hint" style="margin-bottom:12px;">
+      Crédite directement le compte d'un joueur (ou de tous les joueurs), sans passer par une récompense de quête ou d'achat.
+    </div>
+
+    <div class="field">
+      <label>Cible</label>
+      <div style="display:flex;gap:16px;font-size:12.5px;">
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:normal;">
+          <input type="radio" name="gold-target-mode" id="gold-mode-single" value="single" checked onchange="onGoldTargetModeChange()" style="width:auto;">
+          Un joueur précis
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:normal;">
+          <input type="radio" name="gold-target-mode" id="gold-mode-all" value="all" onchange="onGoldTargetModeChange()" style="width:auto;">
+          Tous les joueurs
+        </label>
+      </div>
+    </div>
+
+    <div class="field" id="gold-username-field">
+      <label>Pseudo du joueur</label>
+      <input type="text" id="gold-username" placeholder="Ex : Kroquette">
+    </div>
+
+    <div class="field">
+      <label>Montant (or) <span class="hint" style="text-transform:none;letter-spacing:0;">— négatif pour retirer de l'or</span></label>
+      <input type="number" id="gold-amount" value="100" step="1">
+    </div>
+
+    <div style="display:flex;gap:8px;align-items:center;margin-top:14px;">
+      <button class="btn primary small" onclick="submitGoldGrant()">💰 Valider</button>
+      <button class="btn small" onclick="closeModal('gold-modal')">Annuler</button>
+      <span id="gold-status" style="font-size:12px;color:var(--parchment-dim);"></span>
     </div>
   </div>
 </div>
@@ -4977,6 +5017,58 @@ async function grantCardBackToPlayer(){
   statusEl.textContent = `✓ "${data.card_back_name}" donné à ${data.username} !`;
   statusEl.style.color = 'var(--green)';
   document.getElementById('grant-username').value = '';
+}
+
+function openGoldModal(){
+  document.getElementById('gold-status').textContent = '';
+  document.getElementById('gold-mode-single').checked = true;
+  onGoldTargetModeChange();
+  openModal('gold-modal');
+}
+function onGoldTargetModeChange(){
+  const isAll = document.getElementById('gold-mode-all').checked;
+  document.getElementById('gold-username-field').style.display = isAll ? 'none' : '';
+}
+async function submitGoldGrant(){
+  const statusEl = document.getElementById('gold-status');
+  const isAll = document.getElementById('gold-mode-all').checked;
+  const username = document.getElementById('gold-username').value.trim();
+  const amount = parseInt(document.getElementById('gold-amount').value, 10);
+
+  if(!amount || isNaN(amount)){ statusEl.textContent = 'Indique un montant non nul.'; statusEl.style.color = 'var(--blood)'; return; }
+  if(!isAll && !username){ statusEl.textContent = 'Indique le pseudo du joueur.'; statusEl.style.color = 'var(--blood)'; return; }
+  if(isAll && !confirm(`Confirmer : donner ${amount} or à TOUS les joueurs ?`)) return;
+
+  statusEl.textContent = 'Envoi...';
+  statusEl.style.color = 'var(--parchment-dim)';
+
+  const { data, error } = await sb.functions.invoke('game-action', {
+    body: isAll
+      ? { action: 'adminGrantGoldAll', amount }
+      : { action: 'adminGrantGold', username, amount }
+  });
+
+  if(error || (data && data.error)){
+    const code = (data && data.error) || (error && error.message) || 'erreur inconnue';
+    const messages = {
+      'not-authorized': "Seul le compte Kroquette peut donner de l'or.",
+      'not-logged-in': "Tu dois être connecté.",
+      'player-not-found': `Aucun joueur avec le pseudo "${username}".`,
+      'invalid-amount': "Montant invalide.",
+      'missing-params': "Champs manquants."
+    };
+    statusEl.textContent = messages[code] || ('Erreur : ' + code);
+    statusEl.style.color = 'var(--blood)';
+    return;
+  }
+
+  if(isAll){
+    statusEl.textContent = `✓ ${amount} or donné à ${data.player_count} joueur(s) !`;
+  } else {
+    statusEl.textContent = `✓ ${amount} or donné à ${data.username} (nouveau solde : ${data.new_balance}) !`;
+    document.getElementById('gold-username').value = '';
+  }
+  statusEl.style.color = 'var(--green)';
 }
 
 /* ============================================================
