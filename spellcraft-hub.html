@@ -191,6 +191,14 @@
   .pn-tb-btn:hover{border-color:var(--gold);}
   .pn-rich h3{font-family:'Cinzel',serif;color:var(--gold);font-size:14px;margin:14px 0 6px;}
   .pn-rich ul{padding-left:20px;}
+  /* Le contenu des notes de version / feuille de route est collé depuis
+     l'éditeur (contenteditable) et peut arriver avec une couleur de
+     texte figée en noir (héritée du copier-coller) — illisible sur les
+     thèmes à fond sombre (tout sauf "aube", qui a un fond clair). Le
+     !important force la couleur du thème actif quel que soit le style
+     en ligne du contenu collé. */
+  .pn-rich, .pn-rich *{color:var(--parchment) !important;}
+  .pn-rich h3{color:var(--gold) !important;}
 </style>
 
 <script>
@@ -205,7 +213,7 @@
 <script src="spellcraft-auth.js"></script>
 <script>
 initSpellcraftAuth().then(initPatchNotesBadge).then(checkTutorialAutoLaunch);
-playMusic('menu', {loop:true, volume:0.35});
+playMenuMusicRotation(0.35);
 
 let PATCHNOTE_CAN_EDIT = false;
 let MY_USER_ID_HUB = null;

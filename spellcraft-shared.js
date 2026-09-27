@@ -395,6 +395,38 @@ function playCombatMusicRotation(volume=0.35){
   playNext();
 }
 
+// Même principe que playCombatMusicRotation, pour la musique de menu :
+// alterne entre menu_1 et menu_2 (jamais deux fois de suite la même)
+// au lieu d'une seule piste 'menu.ogg' en boucle. Utilisée par toutes
+// les pages de menu (hub, lobby, deckbuilder, éditeur de cartes, quêtes,
+// boutique...) — jamais par le plateau de jeu (musique de combat séparée).
+const MENU_MUSIC_POOL = ['menu_1','menu_2'];
+let lastMenuTrack = null;
+function playMenuMusicRotation(volume=0.35){
+  if(sfxMuted) return;
+  stopMusic();
+  currentMusicBaseVolume = volume;
+  const myGen = ++musicGeneration;
+  const playNext = ()=>{
+    if(myGen !== musicGeneration) return; // une autre musique a pris le relais depuis
+    let choices = MENU_MUSIC_POOL.filter(t=>t!==lastMenuTrack);
+    if(choices.length===0) choices = MENU_MUSIC_POOL;
+    const track = choices[Math.floor(Math.random()*choices.length)];
+    lastMenuTrack = track;
+    try{
+      const audio = new Audio(`music/${track}.mp3`);
+      audio.loop = false;
+      audio.volume = volume * musicVolumeLevel;
+      audio.addEventListener('ended', playNext);
+      audio.play().catch(()=>{
+        pendingMusicRetry = playNext;
+      });
+      currentMusicAudio = audio;
+    }catch(e){}
+  };
+  playNext();
+}
+
 function stopMusic(){
   musicGeneration++; // invalide toute rotation de musique de combat en cours
   if(currentMusicAudio){

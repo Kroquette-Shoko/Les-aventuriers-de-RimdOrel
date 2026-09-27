@@ -1279,7 +1279,7 @@ function closeModal(id){ document.getElementById(id).classList.remove('show'); }
 
 async function initShop(){
   renderBrunoLine();
-  playMusic('bruno-shop', {loop:true, volume:0.3});
+  playMenuMusicRotation(0.3);
   await renderBoosterShelf();
   await renderSingleShelf();
   await renderCardBackShelf();
