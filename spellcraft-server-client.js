@@ -210,8 +210,16 @@ function gsConnect(onStateUpdate, onChatMessage) {
   GS_ON_STATE_UPDATE = onStateUpdate;
 
   GS_CHANNEL = sb.channel(`session-${GS_SESSION_ID}`, { config: { broadcast: { self: true } } });
-  GS_CHANNEL.on('broadcast', { event: 'state' }, ({ payload }) => {
-    if (GS_ON_STATE_UPDATE) GS_ON_STATE_UPDATE(payload.state);
+  // Le serveur ne diffuse plus l'état complet sur ce canal (il n'est pas
+  // authentifié : n'importe qui connaissant l'id de session pouvait s'y
+  // abonner et lire la main + le deck des deux joueurs). Il envoie juste
+  // un signal "quelque chose a changé" ; on va ensuite chercher notre
+  // propre état — déjà expurgé de la main adverse côté serveur — via
+  // gsFetchState(), qui passe par l'action "getState" authentifiée.
+  GS_CHANNEL.on('broadcast', { event: 'stateChanged' }, async () => {
+    const data = await gsFetchState();
+    if (!data || data.error) { console.error('gsFetchState a échoué après stateChanged :', data && data.error); return; }
+    if (GS_ON_STATE_UPDATE) GS_ON_STATE_UPDATE(data.state);
   });
   // Émotes — diffusées sur ce même canal (déjà confirmé fiable pour l'état
   // de partie), plutôt que via une écoute des insertions en base qui ne

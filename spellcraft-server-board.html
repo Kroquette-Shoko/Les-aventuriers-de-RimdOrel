@@ -2796,7 +2796,7 @@ function onEmoteMessage(payload){
     bubble.style.top = '50%';
     bubble.style.transform = 'translate(-50%,-50%)';
   }
-  bubble.innerHTML = `<img src="${payload.image}" title="${escapeHtmlBoard(payload.label||'')}">`;
+  bubble.innerHTML = `<img src="${escapeHtmlBoard(payload.image||'')}" title="${escapeHtmlBoard(payload.label||'')}">`;
   document.body.appendChild(bubble);
   setTimeout(()=>bubble.remove(), 2700);
 }
