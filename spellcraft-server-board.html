@@ -368,6 +368,13 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 
 .phase-bar{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-shrink:0;}
 .phase-btn{background:linear-gradient(180deg,var(--arcane),#5537c2);color:#fff;border:none;border-radius:10px;padding:10px 22px;font-family:'Cinzel',serif;font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 4px 12px rgba(124,92,255,.4);letter-spacing:.4px;white-space:nowrap;}
+/* Rappel clignotant — quand le bouton d'action (combat/fin de tour/fin de
+   blocage) reste cliquable sans que le joueur agisse, voir setupPhaseReminder. */
+@keyframes phase-btn-reminder{
+  0%,100%{transform:scale(1);box-shadow:0 4px 12px rgba(124,92,255,.4);}
+  50%{transform:scale(1.08);box-shadow:0 4px 12px rgba(124,92,255,.4), 0 0 26px 8px rgba(212,175,55,.9);}
+}
+.phase-btn.reminder-blink{animation:phase-btn-reminder 1s ease-in-out infinite;}
 .phase-btn.small{padding:6px 14px;font-size:11px;box-shadow:none;}
 .phase-btn:hover{filter:brightness(1.15);}
 .phase-btn:disabled{opacity:.4;cursor:not-allowed;filter:none;}
@@ -414,8 +421,8 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 
 #targeting-layer{position:fixed;inset:0;pointer-events:none;z-index:40;width:100%;height:100%;}
 #block-arrows-layer{position:fixed;inset:0;pointer-events:none;z-index:35;width:100%;height:100%;}
-.block-arrow-line{stroke:var(--blood);stroke-width:3;stroke-linecap:round;filter:drop-shadow(0 0 5px rgba(194,59,59,.75));stroke-dasharray:10 6;animation:block-arrow-dash .6s linear infinite;}
-.block-arrow-head{fill:var(--blood);filter:drop-shadow(0 0 5px rgba(194,59,59,.75));}
+.block-arrow-line{stroke:var(--blood);stroke-width:6;stroke-linecap:round;filter:drop-shadow(0 0 10px rgba(194,59,59,.85)) drop-shadow(0 0 20px rgba(194,59,59,.6));stroke-dasharray:13 7;animation:block-arrow-dash .6s linear infinite;}
+.block-arrow-head{fill:var(--blood);filter:drop-shadow(0 0 10px rgba(194,59,59,.85)) drop-shadow(0 0 20px rgba(194,59,59,.6));}
 @keyframes block-arrow-dash{to{stroke-dashoffset:-16;}}
 
 .dmg-popup{position:fixed;transform:translate(-50%,-50%);font-family:'Cinzel',serif;font-weight:700;font-size:24px;color:#ff5252;text-shadow:0 2px 5px rgba(0,0,0,.85);z-index:95;pointer-events:none;animation:dmg-float 1.4s ease-out forwards;}
@@ -424,9 +431,9 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
   15%{opacity:1;transform:translate(-50%,-62%) scale(1.2);}
   100%{opacity:0;transform:translate(-50%,-150%) scale(1);}
 }
-#target-line{stroke:var(--arcane);stroke-width:3;stroke-linecap:round;filter:drop-shadow(0 0 6px var(--arcane));stroke-dasharray:11 7;animation:dash .5s linear infinite;}
-#target-origin{fill:var(--arcane);opacity:.9;}
-#target-arrow{fill:var(--arcane);filter:drop-shadow(0 0 6px var(--arcane));}
+#target-line{stroke:var(--arcane);stroke-width:6;stroke-linecap:round;filter:drop-shadow(0 0 12px var(--arcane)) drop-shadow(0 0 22px var(--arcane));stroke-dasharray:14 8;animation:dash .5s linear infinite;}
+#target-origin{fill:var(--arcane);opacity:.95;filter:drop-shadow(0 0 10px var(--arcane));}
+#target-arrow{fill:var(--arcane);filter:drop-shadow(0 0 10px var(--arcane)) drop-shadow(0 0 20px var(--arcane));}
 @keyframes dash{to{stroke-dashoffset:-18;}}
 
 body.targeting *{cursor:crosshair !important;}
@@ -520,14 +527,14 @@ body.targeting *{cursor:crosshair !important;}
 .ncard .status-stack-tr .kw-icon{width:36px;height:36px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.8));}
 
 #targeting-layer{position:fixed;inset:0;pointer-events:none;z-index:9998;width:100%;height:100%;}
-#target-line{stroke:var(--arcane);stroke-width:3;stroke-linecap:round;filter:drop-shadow(0 0 6px var(--arcane));stroke-dasharray:11 7;animation:target-dash .5s linear infinite;}
-#target-origin{fill:var(--arcane);opacity:.9;}
-#target-arrow{fill:var(--arcane);filter:drop-shadow(0 0 6px var(--arcane));}
+#target-line{stroke:var(--arcane);stroke-width:6;stroke-linecap:round;filter:drop-shadow(0 0 12px var(--arcane)) drop-shadow(0 0 22px var(--arcane));stroke-dasharray:14 8;animation:target-dash .5s linear infinite;}
+#target-origin{fill:var(--arcane);opacity:.95;filter:drop-shadow(0 0 10px var(--arcane));}
+#target-arrow{fill:var(--arcane);filter:drop-shadow(0 0 10px var(--arcane)) drop-shadow(0 0 20px var(--arcane));}
 @keyframes target-dash{to{stroke-dashoffset:-18;}}
 body.targeting *{cursor:crosshair !important;}
 #block-arrows-layer{position:fixed;inset:0;pointer-events:none;z-index:9997;width:100%;height:100%;}
-.block-arrow-line{stroke:var(--blood);stroke-width:3;stroke-linecap:round;filter:drop-shadow(0 0 6px var(--blood));stroke-dasharray:9 6;animation:target-dash .4s linear infinite;}
-.block-arrow-head{fill:var(--blood);filter:drop-shadow(0 0 6px var(--blood));}
+.block-arrow-line{stroke:var(--blood);stroke-width:6;stroke-linecap:round;filter:drop-shadow(0 0 10px var(--blood)) drop-shadow(0 0 20px var(--blood));stroke-dasharray:13 7;animation:target-dash .4s linear infinite;}
+.block-arrow-head{fill:var(--blood);filter:drop-shadow(0 0 10px var(--blood)) drop-shadow(0 0 20px var(--blood));}
 .dmg-popup{position:fixed;transform:translate(-50%,-50%);font-family:'Cinzel',serif;font-weight:700;font-size:24px;color:#ff5252;text-shadow:0 2px 5px rgba(0,0,0,.85);z-index:9996;pointer-events:none;animation:dmg-float 1.4s ease-out forwards;}
 @keyframes dmg-float{
   0%{opacity:0;transform:translate(-50%,-50%) scale(.5);}
@@ -571,14 +578,14 @@ body.targeting *{cursor:crosshair !important;}
    ligne de visée du joueur (déjà en var(--arcane)) : même teinte,
    usage différent (résultat d'un effet, pas une sélection en cours).
    ============================================================ */
-.ability-bolt{position:fixed;z-index:9994;width:34px;height:8px;pointer-events:none;
-  background:linear-gradient(90deg, rgba(124,92,255,0) 0%, rgba(124,92,255,.55) 35%, var(--arcane) 100%);
-  border-radius:6px;filter:drop-shadow(0 0 8px var(--arcane));}
-.ability-bolt::after{content:'';position:absolute;right:-3px;top:50%;width:10px;height:10px;transform:translateY(-50%);
-  background:var(--arcane);border-radius:50%;box-shadow:0 0 12px 4px var(--arcane);}
-.ability-impact-ring{position:fixed;z-index:9994;left:0;top:0;width:64px;height:64px;margin:-32px;border-radius:50%;
-  border:3px solid var(--arcane);pointer-events:none;box-shadow:0 0 16px var(--arcane);
-  animation:ability-impact-pop .5s ease-out forwards;}
+.ability-bolt{position:fixed;z-index:9994;width:58px;height:14px;pointer-events:none;
+  background:linear-gradient(90deg, rgba(124,92,255,0) 0%, rgba(124,92,255,.65) 30%, var(--arcane) 100%);
+  border-radius:8px;filter:drop-shadow(0 0 10px var(--arcane)) drop-shadow(0 0 22px var(--arcane));}
+.ability-bolt::after{content:'';position:absolute;right:-5px;top:50%;width:18px;height:18px;transform:translateY(-50%);
+  background:var(--arcane);border-radius:50%;box-shadow:0 0 22px 8px var(--arcane);}
+.ability-impact-ring{position:fixed;z-index:9994;left:0;top:0;width:96px;height:96px;margin:-48px;border-radius:50%;
+  border:5px solid var(--arcane);pointer-events:none;box-shadow:0 0 28px var(--arcane);
+  animation:ability-impact-pop .55s ease-out forwards;}
 @keyframes ability-impact-pop{
   0%{opacity:.9;transform:scale(.2);}
   100%{opacity:0;transform:scale(1.6);}
@@ -827,7 +834,7 @@ body.targeting *{cursor:crosshair !important;}
 
 <svg id="targeting-layer">
   <line id="target-line" x1="0" y1="0" x2="0" y2="0" style="display:none"/>
-  <circle id="target-origin" cx="0" cy="0" r="7" style="display:none"/>
+  <circle id="target-origin" cx="0" cy="0" r="11" style="display:none"/>
   <polygon id="target-arrow" points="0,0 0,0 0,0" style="display:none"/>
 </svg>
 <svg id="block-arrows-layer"></svg>
@@ -1079,8 +1086,8 @@ function renderGameLog(){
       // ensuite : ça spammerait l'écran à chaque tour un peu chargé).
       if((entry.kind==='play' || entry.kind==='trap') && full){
         const ownerP = S[entry.ownerKey];
-        const trapBackUrl = entry.kind==='trap' && ownerP ? ownerP.cardBackUrl : null;
-        queueCombatAnim(()=>playCardFlipReveal(full, {isTrap: entry.kind==='trap', backUrl: trapBackUrl}));
+        const ownerBackUrl = ownerP ? ownerP.cardBackUrl : null;
+        queueCombatAnim(()=>playCardFlipReveal(full, {isTrap: entry.kind==='trap', backUrl: ownerBackUrl}));
       }
 
       // Flèche d'effet vers chaque cible touchée par une capacité — ou
@@ -1213,6 +1220,25 @@ function afterConnected(code){
 }
 
 let __pendingStateWhileAnimating = null;
+// Compare l'état mana avant/après pour jouer le bon son de gain — un même
+// son pour le mana normal ("plein") ET le mana fragile (comme demandé), un
+// son distinct pour le mana "vide" (le maximum augmente sans qu'aucun mana
+// utilisable ne soit gagné dans le même mouvement, ex: emptyManaEffect).
+function detectAndPlayManaGainSfx(oldS, newS){
+  if(!oldS) return; // pas d'état précédent (première connexion) : rien à comparer
+  ['p1','p2'].forEach(key=>{
+    const before = oldS[key], after = newS[key];
+    if(!before || !after) return;
+    const deltaNormal = (after.manaNormal||0) - (before.manaNormal||0);
+    const deltaFragile = (after.manaFragile||0) - (before.manaFragile||0);
+    const deltaMax = (after.manaNormalMax||0) - (before.manaNormalMax||0);
+    if(deltaNormal > 0 || deltaFragile > 0){
+      playSfx('mana-full');
+    } else if(deltaMax > 0){
+      playSfx('mana-empty');
+    }
+  });
+}
 function onStateUpdate(state){
   if(!state || !state.p1){
     debugLog("En attente d'un adversaire pour démarrer la partie...", 'log-ok');
@@ -1228,6 +1254,12 @@ function onStateUpdate(state){
     __pendingStateWhileAnimating = state;
     return;
   }
+  // Son de gain de mana — comparé à l'état précédent plutôt que lu dans le
+  // journal, car le gain automatique en début de tour n'y est jamais
+  // consigné (voir applyManaGain côté serveur, silencieux). Doit rester
+  // AVANT la réaffectation de S ci-dessous.
+  detectAndPlayManaGainSfx(S, state);
+
   // vue toujours du point de vue du joueur local : si je suis p2 côté
   // serveur, j'affiche quand même "moi" en bas et "adversaire" en haut,
   // en lisant simplement S[MY_KEY]/S[OPP_KEY] partout dans le rendu.
@@ -2385,15 +2417,15 @@ function drawTargetLine(){
   const origin = document.getElementById('target-origin');
   const arrow = document.getElementById('target-arrow');
   const angle = Math.atan2(y2-y1, x2-x1);
-  const shorten = 14;
+  const shorten = 22;
   const ex = x2 - Math.cos(angle)*shorten, ey = y2 - Math.sin(angle)*shorten;
   line.setAttribute('x1', x1); line.setAttribute('y1', y1);
   line.setAttribute('x2', ex); line.setAttribute('y2', ey);
   line.style.display='block';
   origin.setAttribute('cx', x1); origin.setAttribute('cy', y1);
   origin.style.display='block';
-  const backX = x2 - Math.cos(angle)*16, backY = y2 - Math.sin(angle)*16;
-  const perpX = Math.cos(angle+Math.PI/2)*7, perpY = Math.sin(angle+Math.PI/2)*7;
+  const backX = x2 - Math.cos(angle)*26, backY = y2 - Math.sin(angle)*26;
+  const perpX = Math.cos(angle+Math.PI/2)*12, perpY = Math.sin(angle+Math.PI/2)*12;
   arrow.setAttribute('points', `${x2},${y2} ${backX+perpX},${backY+perpY} ${backX-perpX},${backY-perpY}`);
   arrow.style.display='block';
 }
@@ -2444,10 +2476,10 @@ function drawBlockArrows(){
     line.setAttribute('class', 'block-arrow-line');
     svg.appendChild(line);
 
-    const backX = x2 - Math.cos(angle)*20, backY = y2 - Math.sin(angle)*20;
-    const perpX = Math.cos(angle+Math.PI/2)*8, perpY = Math.sin(angle+Math.PI/2)*8;
+    const backX = x2 - Math.cos(angle)*32, backY = y2 - Math.sin(angle)*32;
+    const perpX = Math.cos(angle+Math.PI/2)*13, perpY = Math.sin(angle+Math.PI/2)*13;
     const arrow = document.createElementNS('http://www.w3.org/2000/svg','polygon');
-    arrow.setAttribute('points', `${ex+Math.cos(angle)*20},${ey+Math.sin(angle)*20} ${backX+perpX},${backY+perpY} ${backX-perpX},${backY-perpY}`);
+    arrow.setAttribute('points', `${ex+Math.cos(angle)*32},${ey+Math.sin(angle)*32} ${backX+perpX},${backY+perpY} ${backX-perpX},${backY-perpY}`);
     arrow.setAttribute('class', 'block-arrow-head');
     svg.appendChild(arrow);
   });
@@ -2904,10 +2936,47 @@ function renderTurnTimer(){
   el.textContent = `${label} — ${mins}:${String(secs).padStart(2,'0')}${S.turnClockPaused?' (pause)':''}`;
 }
 
+// Rappel clignotant + sonore quand le bouton d'action (combat / fin de tour /
+// fin de blocage) reste cliquable trop longtemps sans que le joueur agisse.
+// __phaseReminder.key identifie l'état actionnable en cours (pas le texte du
+// bouton, qui peut changer sans que l'état change — ex: le nombre
+// d'attaquants sélectionnés) : tant que la clé ne change pas, le minuteur
+// n'est jamais réinitialisé, y compris à travers les re-rendus périodiques
+// (resynchronisation, voir onStateUpdate) qui reconstruisent le bouton.
+let __phaseReminder = { key:null, blinking:false, timeoutId:null, intervalId:null };
+function clearPhaseReminder(){
+  if(__phaseReminder.timeoutId) clearTimeout(__phaseReminder.timeoutId);
+  if(__phaseReminder.intervalId) clearInterval(__phaseReminder.intervalId);
+  __phaseReminder = { key:null, blinking:false, timeoutId:null, intervalId:null };
+}
+function startPhaseReminderBlink(phaseKey){
+  if(__phaseReminder.key !== phaseKey) return; // l'état a changé entre-temps (annulé plus haut normalement)
+  __phaseReminder.blinking = true;
+  const btn = document.querySelector('#phase-bar .phase-btn:not(.secondary)');
+  if(btn) btn.classList.add('reminder-blink');
+  playSfx('phase-reminder');
+  __phaseReminder.intervalId = setInterval(()=>{
+    if(__phaseReminder.key !== phaseKey){ clearPhaseReminder(); return; }
+    playSfx('phase-reminder');
+  }, 9000);
+}
+function setupPhaseReminder(btn, phaseKey){
+  if(!phaseKey){ clearPhaseReminder(); return; }
+  if(__phaseReminder.key !== phaseKey){
+    clearPhaseReminder();
+    __phaseReminder.key = phaseKey;
+    __phaseReminder.timeoutId = setTimeout(()=>startPhaseReminderBlink(phaseKey), 14000);
+  } else if(__phaseReminder.blinking){
+    // Même état déjà signalé — le bouton vient d'être recréé (re-rendu), on
+    // réapplique juste le clignotement plutôt que de repartir de zéro.
+    btn.classList.add('reminder-blink');
+  }
+}
+
 function renderPhaseBar(){
   const bar = document.getElementById('phase-bar');
   bar.innerHTML = '';
-  if(S.gameOver) return;
+  if(S.gameOver){ clearPhaseReminder(); return; }
 
   if(S.pendingSacrifice && S.pendingSacrifice.playerKey===MY_KEY){
     const btn = document.createElement('button');
@@ -2915,6 +2984,7 @@ function renderPhaseBar(){
     btn.textContent = 'Choisis une créature à sacrifier...';
     btn.disabled = true;
     bar.appendChild(btn);
+    clearPhaseReminder();
     return;
   }
 
@@ -2935,6 +3005,7 @@ function renderPhaseBar(){
     cancel.textContent = 'Annuler';
     cancel.onclick = UI.pendingNewTarget ? cancelPendingNewTarget : cancelPendingCard;
     bar.appendChild(cancel);
+    clearPhaseReminder();
     return;
   }
 
@@ -2948,6 +3019,7 @@ function renderPhaseBar(){
       btn.disabled = true;
       bar.appendChild(btn);
     }
+    clearPhaseReminder();
     return;
   }
 
@@ -2955,11 +3027,13 @@ function renderPhaseBar(){
   const me = S[MY_KEY];
   const btn = document.createElement('button');
   btn.className = 'phase-btn';
+  let phaseKey = null; // reste null tant qu'aucune action n'est vraiment attendue du joueur
 
   if(!myTurn){
     if(S.phase==='declareBlockersMe'){
       btn.textContent = 'Passer (fin du blocage)';
       btn.onclick = uiFinishBlocking;
+      phaseKey = 'block-pass';
     } else {
       btn.textContent = 'Tour adverse';
       btn.disabled = true;
@@ -2970,6 +3044,7 @@ function renderPhaseBar(){
   } else if(UI.selectingAttackers){
     btn.textContent = UI.selectedAttackers.length ? `Valider ${UI.selectedAttackers.length} attaquant(s)` : "Passer l'attaque";
     btn.onclick = uiConfirmAttackers;
+    phaseKey = 'attack-confirm';
     const cancel = document.createElement('button');
     cancel.className = 'phase-btn secondary small';
     cancel.textContent = 'Annuler';
@@ -2978,12 +3053,15 @@ function renderPhaseBar(){
   } else if(S.phase==='main' && !me.attackPhaseDone){
     btn.textContent = '⚔ Passer au combat';
     btn.onclick = ()=>{ UI.selectingAttackers = true; UI.selectedAttackers = []; render(); };
+    phaseKey = 'to-combat';
   } else if(S.phase==='main' && me.attackPhaseDone){
     btn.textContent = 'Fin de tour';
     btn.onclick = uiEndTurn;
+    phaseKey = 'end-turn';
   }
 
   bar.appendChild(btn);
+  setupPhaseReminder(btn, phaseKey);
 }
 
 // ---------------- Aperçu du héros au survol ----------------
