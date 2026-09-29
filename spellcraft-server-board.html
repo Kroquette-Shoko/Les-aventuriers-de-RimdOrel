@@ -1048,8 +1048,6 @@ function renderGameLog(){
         debugLog(`[anim] combat bloqué détecté : attaquant=${attackerInstId} bloqueur=${blockerInstId}`, 'log-ok');
         playCombatStrike(attackerInstId, blockerInstId);
         playSfx('hitMedium');
-      } else if(entry.raw.includes('meurt au combat')){
-        playSfx('card-death');
       } else if(entry.raw.includes('perdu') && entry.raw.includes('point')){
         // dégâts non bloqués au héros : popup + son selon l'ampleur, et
         // chaque attaquant se rue vers le héros (même animation que pour
@@ -1066,13 +1064,19 @@ function renderGameLog(){
         (entry.highlightIds||[]).forEach(attackerInstId=>{
           queueCombatAnim(()=>{
             const heroSlot = entry.ownerKey===MY_KEY ? 'p1' : 'p2';
-            const attEl = document.querySelector(`[data-instid="${attackerInstId}"]`);
+            const attRes = resolveCombatEl(attackerInstId);
+            const attEl = attRes.el;
             const heroEl = document.getElementById(`hero-frame-${heroSlot}`);
-            if(!attEl || !heroEl) return Promise.resolve();
-            return lungeToward(attEl, heroEl, 480);
+            if(!attEl || !heroEl){ if(attRes.temp) attEl.remove(); return Promise.resolve(); }
+            return lungeToward(attEl, heroEl, 480).then(()=>{ if(attRes.temp) attEl.remove(); });
           });
         });
       }
+    } else if(entry.deadInstId){
+      // Une créature vient de mourir au combat (voir logDirect côté
+      // serveur) — cas à part : ni son de carte jouée, ni flèche
+      // d'effet, juste l'animation de dissolution.
+      queueCombatAnim(()=>playCardDeathAnim(entry.deadInstId));
     } else if(entry.cardName){
       const full = entry.cardId ? JOURNAL_CARD_LOOKUP[entry.cardId] : null;
       if(entry.kind==='trap'){
@@ -1091,10 +1095,15 @@ function renderGameLog(){
       }
 
       // Flèche d'effet vers chaque cible touchée par une capacité — ou
-      // éclat doré distinct si la capacité s'est ciblée elle-même.
+      // éclat doré distinct si la capacité s'est ciblée elle-même. Si le
+      // texte de l'effet indique que la cible meurt (détruite, sacrifiée...),
+      // l'animation de dissolution remplace la flèche — une flèche vers une
+      // carte déjà retirée du plateau ne pouvait de toute façon rien viser.
       (entry.effects||[]).forEach(eff=>{
+        const isDeath = /meurt au combat|est détruite|^détruit "|^sacrifie "/i.test(eff.text||'');
         (eff.targetInstIds||[]).forEach(targetInstId=>{
           queueCombatAnim(()=>{
+            if(isDeath) return playCardDeathAnim(targetInstId);
             const sourceEl = resolveLogSourceEl(entry);
             if(entry.sourceInstId && targetInstId===entry.sourceInstId){
               return flashSelfTrigger(sourceEl);
@@ -1259,6 +1268,11 @@ function onStateUpdate(state){
   // consigné (voir applyManaGain côté serveur, silencieux). Doit rester
   // AVANT la réaffectation de S ci-dessous.
   detectAndPlayManaGainSfx(S, state);
+
+  // Instantané des cartes affichées AVANT que render() ne les remplace —
+  // voir playCardDeathAnim plus bas, seul moyen d'animer la disparition
+  // d'une carte qui vient de mourir (déjà absente du nouvel état).
+  __lastBoardSnapshot = snapshotBoardForDeathAnim();
 
   // vue toujours du point de vue du joueur local : si je suis p2 côté
   // serveur, j'affiche quand même "moi" en bas et "adversaire" en haut,
@@ -2486,6 +2500,87 @@ function drawBlockArrows(){
 }
 
 /* ============================================================
+   ANIMATION DE MORT — dissolution d'une carte qui quitte le plateau
+   (combat, destruction, sacrifice...)
+   ============================================================ */
+// Instantané de toutes les cartes actuellement affichées sur le plateau
+// (position + clone), repris juste avant que render() ne reconstruise le
+// DOM avec le nouvel état. Une carte qui vient de mourir n'existe déjà
+// plus dans le nouvel état : sans cet instantané pris à temps, elle serait
+// introuvable au moment de jouer son animation de mort (render() l'a déjà
+// fait disparaître d'un coup). Refait à chaque mise à jour d'état — peu
+// coûteux (quelques cartes tout au plus).
+let __lastBoardSnapshot = {};
+function snapshotBoardForDeathAnim(){
+  const snap = {};
+  document.querySelectorAll('[data-instid]').forEach(el=>{
+    const id = el.getAttribute('data-instid');
+    if(!id || snap[id]) return;
+    snap[id] = { rect: el.getBoundingClientRect(), clone: el.cloneNode(true) };
+  });
+  return snap;
+}
+// Retrouve l'élément d'une carte par son instId — sur le plateau réel si
+// elle y est encore, sinon (elle vient de mourir dans le même échange de
+// coups) un ghost invisible repositionné à sa dernière position connue
+// (voir __lastBoardSnapshot), uniquement pour servir de point de départ ou
+// d'arrivée à une animation de charge. Sans ce repli, une créature qui
+// meurt pendant son propre assaut (ripostée à mort, piège, etc.) ne fonçait
+// jamais sur sa cible : son élément avait déjà disparu du plateau au moment
+// où l'animation tentait de le retrouver.
+function resolveCombatEl(instId){
+  const live = document.querySelector(`[data-instid="${instId}"]`);
+  if(live) return { el: live, temp: false };
+  const snap = __lastBoardSnapshot[instId];
+  if(!snap) return { el: null, temp: false };
+  const ghost = snap.clone;
+  ghost.style.position = 'fixed';
+  ghost.style.left = snap.rect.left+'px';
+  ghost.style.top = snap.rect.top+'px';
+  ghost.style.width = snap.rect.width+'px';
+  ghost.style.height = snap.rect.height+'px';
+  ghost.style.margin = '0';
+  ghost.style.opacity = '0';
+  ghost.style.pointerEvents = 'none';
+  document.body.appendChild(ghost);
+  return { el: ghost, temp: true };
+}
+// Joue l'animation de mort d'une carte (identifiée par son instId) à partir
+// de l'instantané pris avant sa disparition — jamais sur l'élément réel,
+// déjà retiré du plateau à ce stade. Un clone fantôme est placé à sa
+// position exacte, éclate en une lueur blanche puis se dissout en tombant
+// légèrement, avant d'être retiré.
+function playCardDeathAnim(instId){
+  playSfx('card-death');
+  const snap = __lastBoardSnapshot[instId];
+  if(!snap) return Promise.resolve();
+  const { rect, clone } = snap;
+  clone.style.position = 'fixed';
+  clone.style.left = rect.left+'px';
+  clone.style.top = rect.top+'px';
+  clone.style.width = rect.width+'px';
+  clone.style.height = rect.height+'px';
+  clone.style.margin = '0';
+  clone.style.zIndex = '9992';
+  clone.style.pointerEvents = 'none';
+  document.body.appendChild(clone);
+  return new Promise(resolve=>{
+    const finish = ()=>{ clone.remove(); resolve(); };
+    if(clone.animate){
+      const anim = clone.animate([
+        { transform:'scale(1) rotate(0deg)', opacity:1, filter:'brightness(1) saturate(1)' },
+        { transform:'scale(1.08) rotate(-3deg)', opacity:1, filter:'brightness(1.8) saturate(0.2)', offset:0.22 },
+        { transform:'scale(0.8) rotate(6deg) translateY(26px)', opacity:0, filter:'brightness(0.3) saturate(0)' }
+      ], { duration: 640, easing:'ease-in' });
+      anim.onfinish = finish;
+      anim.oncancel = finish;
+    } else {
+      setTimeout(finish, 640);
+    }
+  });
+}
+
+/* ============================================================
    ANIMATION DE FRAPPE — les cartes qui se ruent l'une sur l'autre (ou
    sur le héros) au moment du combat
    ============================================================ */
@@ -2587,18 +2682,20 @@ function spawnDamageNumber(anchorEl, amount){
 // bloqueuse ripostant n'est pas "agressive" au sens visuel du terme).
 function playCombatStrike(attackerInstId, blockerInstId){
   queueCombatAnim(()=>{
-    const attEl = document.querySelector(`[data-instid="${attackerInstId}"]`);
+    const attRes = resolveCombatEl(attackerInstId);
     const heroSlot = S.active===MY_KEY ? 'p2' : 'p1';
-    const blkEl = blockerInstId ? document.querySelector(`[data-instid="${blockerInstId}"]`) : document.getElementById(`hero-frame-${heroSlot}`);
+    const blkRes = blockerInstId ? resolveCombatEl(blockerInstId) : { el: document.getElementById(`hero-frame-${heroSlot}`), temp: false };
+    const attEl = attRes.el, blkEl = blkRes.el;
     debugLog(`[anim] playCombatStrike : attEl=${!!attEl} blkEl=${!!blkEl}`, attEl&&blkEl ? 'log-ok' : 'log-error');
-    if(!attEl || !blkEl) return Promise.resolve();
+    const cleanup = ()=>{ if(attRes.temp) attEl.remove(); if(blkRes.temp) blkEl.remove(); };
+    if(!attEl || !blkEl){ cleanup(); return Promise.resolve(); }
     // Ampleur du tremblement estimée depuis l'attaque affichée de
     // l'attaquant (pas d'info de dégâts exacte remontée pour ce chemin-là) —
     // déclenché au moment où le lunge atteint sa cible, pas au départ.
     const atkTxt = attEl.querySelector('.nstat-wrap.n-atk .nstat-txt');
     const atk = atkTxt ? (parseInt(atkTxt.textContent, 10) || 0) : 0;
     setTimeout(()=>shakeScreen(hitSfxForDamage(atk)), 280);
-    return lungeToward(attEl, blkEl, 480);
+    return lungeToward(attEl, blkEl, 480).then(cleanup);
   });
 }
 
