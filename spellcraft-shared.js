@@ -297,6 +297,7 @@ const SFX_OGG_FILES = new Set([
   'cast-1','cast-2','cast-3',
   'attack','pass',
   'mana-empty','pack-tear',
+  'phase-reminder',
 ]);
 // Quelques sfx sont en .wav.
 const SFX_WAV_FILES = new Set([
