@@ -296,6 +296,11 @@ const SFX_OGG_FILES = new Set([
   'artefact',
   'cast-1','cast-2','cast-3',
   'attack','pass',
+  'mana-empty','pack-tear',
+]);
+// Quelques sfx sont en .wav.
+const SFX_WAV_FILES = new Set([
+  'mana-full',
 ]);
 
 // Joue un effet sonore ponctuel depuis sfx/. Si `key` correspond à une famille
@@ -309,7 +314,7 @@ function playSfx(key, volume=0.6){
       const arr = SFX_VARIANTS[key];
       file = arr[Math.floor(Math.random()*arr.length)];
     }
-    const ext = SFX_OGG_FILES.has(file) ? 'ogg' : 'mp3';
+    const ext = SFX_OGG_FILES.has(file) ? 'ogg' : SFX_WAV_FILES.has(file) ? 'wav' : 'mp3';
     const audio = new Audio(`sfx/${file}.${ext}`);
     audio.volume = volume * sfxVolumeLevel;
     audio.play().catch(()=>{});
