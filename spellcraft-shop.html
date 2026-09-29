@@ -165,6 +165,38 @@
 .ncard .ntypeline{position:absolute;left:50%;transform:translateX(-50%);z-index:9;text-align:center;color:#3a2f1f;font-style:italic;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .ncard .nlegendary-gem{position:absolute;z-index:8;aspect-ratio:231/297;}
 
+/* Bandeau "NOUVEAU" — reste entièrement DANS les limites de la carte (pas
+   de débordement en diagonale) car la carte est ensuite redimensionnée par
+   transform:scale() dans une boîte à overflow:hidden pendant l'ouverture
+   d'un booster : tout ce qui dépasserait le cadre serait rogné. Un reflet
+   lumineux balaie le texte en boucle. N'apparaît que pour la toute première
+   copie obtenue d'une carte (voir opts.isNew). */
+.ncard .nnew-badge{
+  position:absolute;z-index:20;left:50%;overflow:hidden;pointer-events:none;
+  text-align:center;transform-origin:center center;border-radius:3px;
+  background:linear-gradient(180deg,#fff2b0 0%,#f4c430 45%,#c8880a 100%);
+  box-shadow:0 2px 10px rgba(0,0,0,.6),0 0 14px rgba(255,205,60,.55),0 0 0 1px rgba(255,255,255,.4) inset;
+  opacity:0;transform:translateX(-50%) translateY(-6px) scale(.7);
+  transition:opacity .35s ease .5s,transform .5s cubic-bezier(.34,1.56,.64,1) .5s;
+}
+.flip-card.flipped .ncard .nnew-badge{opacity:1;transform:translateX(-50%) translateY(0) scale(1);}
+.ncard .nnew-badge span{
+  position:relative;z-index:1;display:block;
+  font-family:'Cinzel',serif;font-weight:700;letter-spacing:.1em;
+  color:#3a2400;text-shadow:0 1px 0 rgba(255,255,255,.5);
+  text-transform:uppercase;white-space:nowrap;
+}
+.ncard .nnew-badge::after{
+  content:'';position:absolute;top:0;left:-60%;width:35%;height:100%;
+  background:linear-gradient(115deg,transparent 0%,rgba(255,255,255,.9) 50%,transparent 100%);
+  animation:nnew-sweep 2.4s ease-in-out .9s infinite;
+}
+@keyframes nnew-sweep{
+  0%{left:-60%;}
+  45%{left:140%;}
+  100%{left:140%;}
+}
+
 .ncard.n-big{width:300px;height:423.2px;}
 .ncard.n-big .nart-layer{left:11.1%;top:7.87%;width:79.31%;height:52.36%;}
 .ncard.n-big.n-hero-card .nart-layer{height:83%;}
@@ -177,6 +209,8 @@
 .ncard.n-big .nrarity-gem{left:50%;bottom:0.89%;width:12%;transform:translateX(-50%);}
 .ncard.n-big .ntypeline{bottom:11.63%;width:72%;font-size:10.5px;}
 .ncard.n-big .nlegendary-gem{left:50%;top:-3%;width:12%;transform:translateX(-50%);}
+.ncard.n-big .nnew-badge{top:2%;width:58%;padding:4.5px 0;}
+.ncard.n-big .nnew-badge span{font-size:13px;}
 .ncard.n-big .nstat-wrap.n-atk{left:3%;bottom:1%;width:26%;}
 .ncard.n-big .nstat-wrap.n-atk .nstat-txt{font-size:27px;}
 .ncard.n-big .nstat-wrap.n-end{right:3%;bottom:1%;width:26%;}
@@ -194,6 +228,8 @@
 .ncard.n-small .nrarity-gem{left:50%;bottom:-0.5%;width:11%;transform:translateX(-50%);}
 .ncard.n-small .ntypeline{bottom:15%;width:64%;font-size:8.5px;}
 .ncard.n-small .nlegendary-gem{left:50%;top:-1%;width:11%;transform:translateX(-50%);}
+.ncard.n-small .nnew-badge{top:1.5%;width:56%;padding:3px 0;}
+.ncard.n-small .nnew-badge span{font-size:9.5px;}
 .ncard.n-small .nstat-wrap.n-atk{left:6%;bottom:5%;width:22%;}
 .ncard.n-small .nstat-wrap.n-atk .nstat-txt{font-size:19.5px;}
 .ncard.n-small .nstat-wrap.n-end{right:6%;bottom:5%;width:22%;}
@@ -234,6 +270,33 @@
 #pack-hint{color:var(--parchment-dim);font-family:'Cinzel',serif;font-size:13px;letter-spacing:.5px;}
 #pack-burst{position:absolute;inset:0;pointer-events:none;}
 
+/* ---------- déchirure du paquet à l'ouverture ---------- */
+/* Le paquet tremble, puis se déchire en deux moitiés qui s'écartent, avec
+   un éclat de lumière dont la couleur dépend de la plus haute rareté
+   obtenue (voir boosterTearColor) : bleu (Rare), violet (Épique), doré/
+   orange (Mythique ou Légendaire) — neutre sinon. */
+@keyframes pack-shake{
+  0%,100%{transform:translateX(0) rotate(0);}
+  15%{transform:translateX(-6px) rotate(-3deg);}
+  30%{transform:translateX(5px) rotate(2.5deg);}
+  45%{transform:translateX(-5px) rotate(-2.5deg);}
+  60%{transform:translateX(4px) rotate(2deg);}
+  75%{transform:translateX(-3px) rotate(-1.5deg);}
+  90%{transform:translateX(2px) rotate(1deg);}
+}
+#pack-stage.tearing{animation:pack-shake .48s ease-in-out;cursor:default;}
+.pack-tear-half{position:fixed;z-index:9994;pointer-events:none;overflow:hidden;}
+.pack-tear-half img{width:160px;filter:drop-shadow(0 14px 30px rgba(0,0,0,.7));display:block;}
+.pack-tear-half.pack-tear-top{clip-path:inset(0 0 50% 0);}
+.pack-tear-half.pack-tear-bottom{clip-path:inset(50% 0 0 0);}
+.pack-tear-burst{position:fixed;z-index:9993;pointer-events:none;border-radius:50%;
+  transform:translate(-50%,-50%) scale(.15);opacity:.95;
+  animation:pack-tear-burst-kf .6s ease-out forwards;}
+@keyframes pack-tear-burst-kf{
+  0%{opacity:.95;transform:translate(-50%,-50%) scale(.15);}
+  100%{opacity:0;transform:translate(-50%,-50%) scale(1);}
+}
+
 #cards-stage{display:none;gap:16px;flex-wrap:wrap;justify-content:center;max-width:900px;max-height:78vh;overflow-y:auto;padding:8px;}
 #cards-stage.show{display:flex;}
 .flip-card{width:260px;height:366px;perspective:1200px;cursor:pointer;opacity:0;transform:translateY(30px) scale(.7);transition:opacity .4s ease, transform .4s ease;position:relative;}
@@ -246,6 +309,23 @@
 .flip-back .default-sigil{font-size:38px;filter:drop-shadow(0 0 10px rgba(212,175,55,.5));}
 .flip-front{transform:rotateY(180deg);display:flex;align-items:center;justify-content:center;position:relative;width:100%;height:100%;}
 .flip-front .ncard{transform:scale(0.8667);}
+
+/* ---------- lueur selon la rareté, au moment où la carte se retourne ---------- */
+/* Même code couleur que la déchirure du paquet (boosterTearColor) : bleu
+   (Rare), violet (Épique), doré/orange (Mythique ou Légendaire). Un premier
+   éclat plus fort à l'instant du flip, puis un pulse doux en continu tant
+   que la carte reste retournée. */
+.flip-card.tier-rare.flipped .flip-front{animation:tier-glow-rare-kf .6s ease-out, tier-pulse-rare 1.8s ease-in-out .6s infinite;}
+@keyframes tier-glow-rare-kf{0%{box-shadow:0 0 0 rgba(126,196,255,0);}40%{box-shadow:0 0 46px 14px rgba(126,196,255,.85);}100%{box-shadow:0 0 16px 4px rgba(126,196,255,.55);}}
+@keyframes tier-pulse-rare{0%,100%{box-shadow:0 0 16px 4px rgba(126,196,255,.55);}50%{box-shadow:0 0 24px 7px rgba(126,196,255,.8);}}
+
+.flip-card.tier-epic.flipped .flip-front{animation:tier-glow-epic-kf .6s ease-out, tier-pulse-epic 1.8s ease-in-out .6s infinite;}
+@keyframes tier-glow-epic-kf{0%{box-shadow:0 0 0 rgba(185,139,255,0);}40%{box-shadow:0 0 50px 16px rgba(185,139,255,.9);}100%{box-shadow:0 0 18px 5px rgba(185,139,255,.6);}}
+@keyframes tier-pulse-epic{0%,100%{box-shadow:0 0 18px 5px rgba(185,139,255,.6);}50%{box-shadow:0 0 28px 8px rgba(185,139,255,.85);}}
+
+.flip-card.tier-legendary.flipped .flip-front{animation:tier-glow-legendary-kf .65s ease-out, tier-pulse-legendary 1.6s ease-in-out .65s infinite;}
+@keyframes tier-glow-legendary-kf{0%{box-shadow:0 0 0 rgba(255,180,60,0);}40%{box-shadow:0 0 60px 20px rgba(255,180,60,.95);}100%{box-shadow:0 0 22px 6px rgba(255,180,60,.7);}}
+@keyframes tier-pulse-legendary{0%,100%{box-shadow:0 0 22px 6px rgba(255,180,60,.7);}50%{box-shadow:0 0 34px 10px rgba(255,190,80,.95);}}
 .flip-front .ncard{width:100% !important;height:100% !important;}
 .fragments-banner{
   position:absolute;top:-16px;left:50%;transform:translateX(-50%);z-index:20;
@@ -826,6 +906,15 @@ function buildNewCardEl(card, size, opts={}){
     root.appendChild(nImg('images/card/icon/rare/legendaire.png', 'nlegendary-gem'));
   }
 
+  // Mention "NOUVEAU" — ruban brillant, uniquement quand la carte vient
+  // d'être obtenue pour la toute première fois (opts.isNew, voir le flag
+  // is_new renvoyé par open_booster / open_boosters_bulk).
+  if(opts.isNew){
+    const badge = nEl('div', 'nnew-badge');
+    badge.innerHTML = '<span>NOUVEAU</span>';
+    root.appendChild(badge);
+  }
+
   return root;
 }
 
@@ -878,8 +967,8 @@ function buildCardEl(card){
 // Utilisé spécifiquement à l'ouverture d'un booster et pour les offres de
 // la boutique — seuls contextes où le nouveau cadre de héros doit
 // s'appliquer (ailleurs, un héros garde son ancien visuel).
-function buildBoosterCardEl(card){
-  const el = buildNewCardEl(card, 'big', {heroCardFrame:true});
+function buildBoosterCardEl(card, isNew){
+  const el = buildNewCardEl(card, 'big', {heroCardFrame:true, isNew: !!isNew});
   requestAnimationFrame(()=>fitNewCard(el));
   return el;
 }
@@ -1099,11 +1188,96 @@ async function openBoosterAnimation(boosterImageUrl, cardsResult){
   const fullCards = await fetchFullCards(idsToFetch);
 
   packStage.onclick = () => {
-    packStage.style.display = 'none';
-    hint.style.display = 'none';
     packStage.onclick = null;
-    dealBoosterCards(cardsStage, cardsResult, fullCards, backUrl, actions);
+    hint.style.display = 'none';
+    const tier = boosterTearColor(cardsResult, fullCards);
+    playPackTearAnimation(packStage, tier).then(()=>{
+      packStage.style.display = 'none';
+      packStage.style.visibility = '';
+      dealBoosterCards(cardsStage, cardsResult, fullCards, backUrl, actions);
+    });
   };
+}
+
+// Palier de rareté d'une carte — 'legendary' regroupe Mythique ET Légendaire
+// (comme demandé), utilisé à la fois pour la couleur de la déchirure du
+// paquet et pour la lueur de chaque carte à son retournement, pour rester
+// cohérent visuellement d'un bout à l'autre de l'ouverture.
+function cardRarityTier(full){
+  if(!full) return null;
+  if(full.isLegendary || full.rarity==='Mythique') return 'legendary';
+  if(full.rarity==='Épique') return 'epic';
+  if(full.rarity==='Rare') return 'rare';
+  return null;
+}
+function cardRarityTierClass(full){
+  const tier = cardRarityTier(full);
+  return tier ? `tier-${tier}` : null;
+}
+// Couleur de l'éclat de déchirure selon la plus haute rareté obtenue dans
+// CE booster — bleu (Rare), violet (Épique), doré/orange (Mythique ou
+// Légendaire), neutre sinon.
+function boosterTearColor(cardsResult, fullCards){
+  let best = null; // null < 'rare' < 'epic' < 'legendary'
+  const rank = { rare:1, epic:2, legendary:3 };
+  (cardsResult||[]).forEach(res=>{
+    const tier = cardRarityTier(fullCards[res.card_id] || { rarity: res.rarity });
+    if(tier && (!best || rank[tier] > rank[best])) best = tier;
+  });
+  if(best==='legendary') return { color:'#ffdd7a', color2:'#ff8c1a' }; // doré → orange
+  if(best==='epic') return { color:'#b98bff', color2:'#6b2fd6' };      // violet
+  if(best==='rare') return { color:'#7ec4ff', color2:'#1c5fd6' };      // bleu
+  return { color:'#d4af37', color2:'#8a6d1a' };                        // doré neutre (par défaut)
+}
+
+// Le paquet tremble, puis se déchire en deux moitiés qui s'écartent en
+// tournoyant, avec un éclat de lumière coloré au centre. Anime des clones
+// flottants (comme les autres animations du jeu) plutôt que l'élément réel,
+// qui doit rester en place pour être réutilisé au prochain booster ouvert.
+function playPackTearAnimation(packStage, tier){
+  return new Promise(resolve=>{
+    const rect = packStage.getBoundingClientRect();
+    const innerHtml = packStage.innerHTML;
+    playSfx('pack-tear');
+
+    packStage.classList.add('tearing');
+    setTimeout(()=>{
+      packStage.classList.remove('tearing');
+      packStage.style.visibility = 'hidden';
+
+      const burst = document.createElement('div');
+      burst.className = 'pack-tear-burst';
+      burst.style.left = (rect.left+rect.width/2)+'px';
+      burst.style.top = (rect.top+rect.height/2)+'px';
+      burst.style.width = '520px';
+      burst.style.height = '520px';
+      burst.style.background = `radial-gradient(circle, ${tier.color} 0%, ${tier.color2} 38%, transparent 72%)`;
+      document.body.appendChild(burst);
+      setTimeout(()=>burst.remove(), 650);
+
+      [['pack-tear-top', -70, -95, -36], ['pack-tear-bottom', 70, 95, 36]].forEach(([cls, dx, dy, rot])=>{
+        const half = document.createElement('div');
+        half.className = `pack-tear-half ${cls}`;
+        half.style.left = rect.left+'px';
+        half.style.top = rect.top+'px';
+        half.style.width = rect.width+'px';
+        half.style.height = rect.height+'px';
+        half.innerHTML = innerHtml;
+        document.body.appendChild(half);
+        if(half.animate){
+          const anim = half.animate([
+            { transform:'translate(0,0) rotate(0deg)', opacity:1 },
+            { transform:`translate(${dx}px, ${dy}px) rotate(${rot}deg)`, opacity:0 }
+          ], { duration: 560, easing:'cubic-bezier(.3,.1,.3,1)' });
+          anim.onfinish = ()=>half.remove();
+        } else {
+          setTimeout(()=>half.remove(), 560);
+        }
+      });
+
+      setTimeout(resolve, 580);
+    }, 480);
+  });
 }
 
 function dealBoosterCards(cardsStage, cardsResult, fullCards, backUrl, actions){
@@ -1125,7 +1299,9 @@ function dealBoosterCards(cardsStage, cardsResult, fullCards, backUrl, actions){
     const front = document.createElement('div');
     front.className = 'flip-face flip-front';
     const full = fullCards[res.card_id] || { name: res.name, rarity: res.rarity };
-    const frontCardEl = buildBoosterCardEl(full);
+    const tierClass = cardRarityTierClass(full);
+    if(tierClass) flip.classList.add(tierClass);
+    const frontCardEl = buildBoosterCardEl(full, res.result==='card' && res.is_new===true);
     attachShopHoverPreview(frontCardEl, full);
     front.appendChild(frontCardEl);
     let banner = null;

@@ -34,6 +34,27 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .title-font{font-family:'Cinzel',serif;}
 
 #board-scale-outer{position:fixed;inset:0;background:var(--bg-void,#0b0a12);overflow:hidden;display:flex;align-items:center;justify-content:center;z-index:1;}
+/* Écran qui tremble sur un gros coup — voir shakeScreen(). Sur le conteneur
+   plein écran (pas #app-outer, déjà utilisé pour la mise à l'échelle du
+   plateau) pour que ce soit TOUT l'écran qui vibre, pas juste le plateau. */
+@keyframes screen-shake-medium{
+  0%,100%{transform:translate(0,0);}
+  20%{transform:translate(-6px,3px);}
+  40%{transform:translate(5px,-4px);}
+  60%{transform:translate(-4px,4px);}
+  80%{transform:translate(3px,-2px);}
+}
+@keyframes screen-shake-large{
+  0%,100%{transform:translate(0,0);}
+  15%{transform:translate(-13px,6px);}
+  30%{transform:translate(11px,-9px);}
+  45%{transform:translate(-9px,8px);}
+  60%{transform:translate(8px,-6px);}
+  75%{transform:translate(-5px,4px);}
+  90%{transform:translate(3px,-2px);}
+}
+#board-scale-outer.shake-medium{animation:screen-shake-medium .36s ease-in-out;}
+#board-scale-outer.shake-large{animation:screen-shake-large .46s ease-in-out;}
 #app-outer{width:1920px;height:1080px;transform-origin:center center;flex-shrink:0;display:flex;flex-direction:column;}
 #app{display:flex;flex:1;width:100%;min-height:0;}
 
@@ -518,6 +539,76 @@ body.targeting *{cursor:crosshair !important;}
   100%{opacity:1;transform:translateY(0) scale(1);}
 }
 .hand-card-slot.card-just-drawn{animation:hand-card-enter .4s ease-out;}
+
+/* ============================================================
+   RÉVÉLATION 3D — carte jouée / piège déclenché (voir renderGameLog
+   et playCardFlipReveal). Grand plan centré, façon ouverture de
+   booster : la carte se retourne pour montrer ce qui vient de se
+   passer, puis s'efface.
+   ============================================================ */
+.ability-reveal-overlay{position:fixed;inset:0;z-index:9990;display:flex;align-items:center;justify-content:center;
+  background:rgba(5,4,10,0);opacity:0;pointer-events:none;transition:opacity .28s ease, background .28s ease;}
+.ability-reveal-overlay.show{opacity:1;background:rgba(5,4,10,.58);pointer-events:auto;cursor:pointer;}
+.ability-reveal-overlay.closing{opacity:0;background:rgba(5,4,10,0);}
+.ability-reveal-flip{width:260px;height:366px;perspective:1400px;transform:scale(.72);transition:transform .3s cubic-bezier(.34,1.4,.64,1);}
+.ability-reveal-overlay.show .ability-reveal-flip{transform:scale(1);}
+.ability-reveal-inner{position:relative;width:100%;height:100%;transition:transform .55s cubic-bezier(.3,.1,.2,1);transform-style:preserve-3d;}
+.ability-reveal-inner.flipped{transform:rotateY(180deg);}
+.ability-reveal-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:12px;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 26px 60px rgba(0,0,0,.7), 0 0 70px rgba(124,92,255,.4);}
+.ability-reveal-back{background:linear-gradient(145deg,#241d3d,#100c1e);border:2px solid var(--gold);font-size:64px;}
+.ability-reveal-back .trap-reveal-icon{filter:drop-shadow(0 3px 8px rgba(0,0,0,.8));}
+.ability-reveal-back .trap-reveal-icon-corner{position:absolute;bottom:10px;right:10px;font-size:26px;
+  background:rgba(10,8,18,.65);border:1px solid var(--gold);border-radius:50%;width:40px;height:40px;
+  display:flex;align-items:center;justify-content:center;}
+.ability-reveal-front{transform:rotateY(180deg);}
+.ability-reveal-front .ncard{transform:scale(0.8667);}
+
+/* ============================================================
+   FLÈCHE DE CAPACITÉ — un "projectile" lumineux part de la carte qui
+   porte la capacité et fonce vers chaque cible touchée (voir
+   fireAbilityArrow). Distinct des flèches de blocage (rouge) et de la
+   ligne de visée du joueur (déjà en var(--arcane)) : même teinte,
+   usage différent (résultat d'un effet, pas une sélection en cours).
+   ============================================================ */
+.ability-bolt{position:fixed;z-index:9994;width:34px;height:8px;pointer-events:none;
+  background:linear-gradient(90deg, rgba(124,92,255,0) 0%, rgba(124,92,255,.55) 35%, var(--arcane) 100%);
+  border-radius:6px;filter:drop-shadow(0 0 8px var(--arcane));}
+.ability-bolt::after{content:'';position:absolute;right:-3px;top:50%;width:10px;height:10px;transform:translateY(-50%);
+  background:var(--arcane);border-radius:50%;box-shadow:0 0 12px 4px var(--arcane);}
+.ability-impact-ring{position:fixed;z-index:9994;left:0;top:0;width:64px;height:64px;margin:-32px;border-radius:50%;
+  border:3px solid var(--arcane);pointer-events:none;box-shadow:0 0 16px var(--arcane);
+  animation:ability-impact-pop .5s ease-out forwards;}
+@keyframes ability-impact-pop{
+  0%{opacity:.9;transform:scale(.2);}
+  100%{opacity:0;transform:scale(1.6);}
+}
+.ability-hit-flash{animation:ability-hit-flash-kf .5s ease-out;}
+@keyframes ability-hit-flash-kf{
+  0%{filter:brightness(1) drop-shadow(0 0 0 rgba(124,92,255,0));}
+  35%{filter:brightness(1.5) drop-shadow(0 0 18px var(--arcane));}
+  100%{filter:brightness(1) drop-shadow(0 0 0 rgba(124,92,255,0));}
+}
+
+/* ============================================================
+   DÉCLENCHEMENT SUR SOI-MÊME — quand la cible d'une capacité EST sa
+   propre source, pas de flèche (rien à relier) : un éclat doré qui
+   CONVERGE sur la carte, nettement distinct visuellement de la teinte
+   arcane utilisée pour une flèche vers une autre carte.
+   ============================================================ */
+.ability-self-burst{position:fixed;z-index:9994;left:0;top:0;width:120px;height:120px;margin:-60px;border-radius:50%;
+  pointer-events:none;border:3px solid var(--gold);box-shadow:0 0 20px var(--gold);
+  animation:ability-self-burst-kf .65s cubic-bezier(.2,.7,.3,1) forwards;}
+@keyframes ability-self-burst-kf{
+  0%{opacity:0;transform:scale(2.2);}
+  55%{opacity:1;}
+  100%{opacity:0;transform:scale(.35);}
+}
+.ability-self-trigger{animation:ability-self-trigger-kf .9s ease-out;}
+@keyframes ability-self-trigger-kf{
+  0%,100%{box-shadow:none;}
+  30%{box-shadow:0 0 0 4px var(--gold), 0 0 26px var(--gold);}
+}
 </style>
 </head>
 <body>
@@ -919,6 +1010,18 @@ function onJournalEffectLeave(){
 // "Vous" pour les mêmes actions).
 let SEEN_GAMELOG_COUNT = 0;
 function hitSfxForDamage(n){ return n<=4 ? 'hitLight' : n<=10 ? 'hitMedium' : 'hitLarge'; }
+// Fait trembler tout l'écran sur un gros coup — jamais sur un petit pichenette
+// (tier 'hitLight' ignoré), pour que ça reste marquant plutôt que fatiguant.
+function shakeScreen(tier){
+  if(tier!=='hitMedium' && tier!=='hitLarge') return;
+  const outer = document.getElementById('board-scale-outer');
+  if(!outer) return;
+  const cls = tier==='hitLarge' ? 'shake-large' : 'shake-medium';
+  outer.classList.remove('shake-medium','shake-large');
+  void outer.offsetWidth; // force le reflow pour pouvoir rejouer l'animation si elle tourne déjà
+  outer.classList.add(cls);
+  setTimeout(()=>outer.classList.remove(cls), tier==='hitLarge' ? 460 : 360);
+}
 
 function renderGameLog(){
   const el = document.getElementById('log');
@@ -951,6 +1054,7 @@ function renderGameLog(){
           const heroEl = document.getElementById(`hero-frame-${slot}`);
           if(heroEl) spawnDamageNumber(heroEl, dmg);
           playSfx(hitSfxForDamage(dmg));
+          shakeScreen(hitSfxForDamage(dmg));
         }
         (entry.highlightIds||[]).forEach(attackerInstId=>{
           queueCombatAnim(()=>{
@@ -963,12 +1067,36 @@ function renderGameLog(){
         });
       }
     } else if(entry.cardName){
+      const full = entry.cardId ? JOURNAL_CARD_LOOKUP[entry.cardId] : null;
       if(entry.kind==='trap'){
         playSfx('trap');
       } else {
-        const c = entry.cardId ? JOURNAL_CARD_LOOKUP[entry.cardId] : null;
-        playSfx(c && c.type==='Sortilège' ? 'cast' : 'cardPlay');
+        playSfx(full && full.type==='Sortilège' ? 'cast' : 'cardPlay');
       }
+
+      // Révélation 3D — uniquement pour une carte qui vient d'être jouée ou
+      // un piège qui se déclenche (pas les capacités qui s'enchaînent
+      // ensuite : ça spammerait l'écran à chaque tour un peu chargé).
+      if((entry.kind==='play' || entry.kind==='trap') && full){
+        const ownerP = S[entry.ownerKey];
+        const trapBackUrl = entry.kind==='trap' && ownerP ? ownerP.cardBackUrl : null;
+        queueCombatAnim(()=>playCardFlipReveal(full, {isTrap: entry.kind==='trap', backUrl: trapBackUrl}));
+      }
+
+      // Flèche d'effet vers chaque cible touchée par une capacité — ou
+      // éclat doré distinct si la capacité s'est ciblée elle-même.
+      (entry.effects||[]).forEach(eff=>{
+        (eff.targetInstIds||[]).forEach(targetInstId=>{
+          queueCombatAnim(()=>{
+            const sourceEl = resolveLogSourceEl(entry);
+            if(entry.sourceInstId && targetInstId===entry.sourceInstId){
+              return flashSelfTrigger(sourceEl);
+            }
+            const targetEl = resolveLogTargetEl(targetInstId);
+            return fireAbilityArrow(sourceEl, targetEl);
+          });
+        });
+      });
     }
   });
   SEEN_GAMELOG_COUNT = entries.length;
@@ -2432,7 +2560,164 @@ function playCombatStrike(attackerInstId, blockerInstId){
     const blkEl = blockerInstId ? document.querySelector(`[data-instid="${blockerInstId}"]`) : document.getElementById(`hero-frame-${heroSlot}`);
     debugLog(`[anim] playCombatStrike : attEl=${!!attEl} blkEl=${!!blkEl}`, attEl&&blkEl ? 'log-ok' : 'log-error');
     if(!attEl || !blkEl) return Promise.resolve();
+    // Ampleur du tremblement estimée depuis l'attaque affichée de
+    // l'attaquant (pas d'info de dégâts exacte remontée pour ce chemin-là) —
+    // déclenché au moment où le lunge atteint sa cible, pas au départ.
+    const atkTxt = attEl.querySelector('.nstat-wrap.n-atk .nstat-txt');
+    const atk = atkTxt ? (parseInt(atkTxt.textContent, 10) || 0) : 0;
+    setTimeout(()=>shakeScreen(hitSfxForDamage(atk)), 280);
     return lungeToward(attEl, blkEl, 480);
+  });
+}
+
+/* ============================================================
+   RÉVÉLATION 3D — carte jouée / piège déclenché (voir renderGameLog,
+   plus bas, qui appelle ceci via queueCombatAnim pour chaque nouvelle
+   entrée kind==='play' ou kind==='trap').
+   ============================================================ */
+function playCardFlipReveal(card, opts={}){
+  return new Promise(resolve=>{
+    if(!card){ resolve(); return; }
+    const overlay = document.createElement('div');
+    overlay.className = 'ability-reveal-overlay';
+    const flip = document.createElement('div');
+    flip.className = 'ability-reveal-flip';
+    const inner = document.createElement('div');
+    inner.className = 'ability-reveal-inner';
+    const back = document.createElement('div');
+    back.className = 'ability-reveal-face ability-reveal-back';
+    if(opts.backUrl){
+      // Dos personnalisé du joueur propriétaire (celui équipé dans son
+      // profil) — cohérent avec ce qu'il voit déjà à l'ouverture d'un
+      // booster ou sur son deck. On garde quand même le loup en petit
+      // repère visuel pour un piège, discret dans le coin.
+      back.style.backgroundImage = `url('${opts.backUrl.replace(/'/g,'')}')`;
+      back.style.backgroundSize = 'cover';
+      back.style.backgroundPosition = 'center';
+      if(opts.isTrap) back.innerHTML = `<span class="trap-reveal-icon trap-reveal-icon-corner">🐺</span>`;
+    } else {
+      back.innerHTML = `<span class="trap-reveal-icon">${opts.isTrap ? '🐺' : '🃏'}</span>`;
+    }
+    const front = document.createElement('div');
+    front.className = 'ability-reveal-face ability-reveal-front';
+    try {
+      front.appendChild(cardEl(card, {isPreview:true}));
+    } catch(e) {
+      console.error('Erreur playCardFlipReveal (cardEl) :', e, card);
+    }
+    inner.appendChild(back); inner.appendChild(front);
+    flip.appendChild(inner);
+    overlay.appendChild(flip);
+    document.body.appendChild(overlay);
+
+    let done = false;
+    const finish = ()=>{
+      if(done) return; done = true;
+      overlay.classList.remove('show');
+      overlay.classList.add('closing');
+      setTimeout(()=>{ overlay.remove(); resolve(); }, 300);
+    };
+    // Un clic sur l'overlay permet d'écourter — utile pour un joueur qui
+    // enchaîne vite et ne veut pas attendre la fin de chaque révélation.
+    overlay.onclick = finish;
+
+    requestAnimationFrame(()=>{
+      overlay.classList.add('show');
+      setTimeout(()=>{ inner.classList.add('flipped'); }, 220);
+    });
+    const holdMs = opts.isTrap ? 1500 : 1150;
+    setTimeout(finish, 220 + 550 + holdMs);
+  });
+}
+
+/* ============================================================
+   RÉSOLUTION SOURCE/CIBLE D'UNE ENTRÉE DE JOURNAL — voir le champ
+   sourceInstId ajouté côté serveur (startLogContext/pushLogEntry) et
+   les targetInstIds déjà présents par effet. 'hero-p1'/'hero-p2' sont
+   des clés synthétiques (voir logCardOutcome côté serveur) qui
+   désignent un héros plutôt qu'une créature — jamais un vrai instId.
+   ============================================================ */
+function resolveLogSourceEl(entry){
+  if(entry.sourceInstId){
+    const el = document.querySelector(`[data-instid="${entry.sourceInstId}"]`);
+    if(el) return el;
+  }
+  // Repli : portrait du héros propriétaire de la capacité (piège, région,
+  // pouvoir de héros, ou simplement une créature qui n'est plus sur le
+  // plateau au moment où l'animation se joue).
+  const slot = entry.ownerKey===MY_KEY ? 'p1' : 'p2';
+  return document.getElementById(`hero-frame-${slot}`);
+}
+function resolveLogTargetEl(targetInstId){
+  if(!targetInstId) return null;
+  if(targetInstId==='hero-p1' || targetInstId==='hero-p2'){
+    const serverKey = targetInstId==='hero-p1' ? 'p1' : 'p2';
+    const slot = serverKey===MY_KEY ? 'p1' : 'p2';
+    return document.getElementById(`hero-frame-${slot}`);
+  }
+  return document.querySelector(`[data-instid="${targetInstId}"]`);
+}
+
+/* ============================================================
+   FLÈCHE DE CAPACITÉ — un projectile lumineux voyage de la source vers
+   la cible, puis un éclat d'impact marque l'arrivée. Anime un élément
+   flottant indépendant (comme lungeToward) — jamais l'élément réel de
+   la carte, pour ne pas interférer avec son propre rendu.
+   ============================================================ */
+function fireAbilityArrow(sourceEl, targetEl){
+  return new Promise(resolve=>{
+    if(!sourceEl || !targetEl){ resolve(); return; }
+    const a = sourceEl.getBoundingClientRect(), b = targetEl.getBoundingClientRect();
+    const x1 = a.left+a.width/2, y1 = a.top+a.height/2;
+    const x2 = b.left+b.width/2, y2 = b.top+b.height/2;
+    const dx = x2-x1, dy = y2-y1;
+    const dist = Math.hypot(dx,dy) || 1;
+    const angle = Math.atan2(dy,dx) * 180/Math.PI;
+
+    const bolt = document.createElement('div');
+    bolt.className = 'ability-bolt';
+    bolt.style.left = x1+'px';
+    bolt.style.top = y1+'px';
+    document.body.appendChild(bolt);
+
+    if(!bolt.animate){ bolt.remove(); flashImpact(targetEl); resolve(); return; }
+    const anim = bolt.animate([
+      { transform:`translate(0,-50%) rotate(${angle}deg) translateX(0)`, opacity:0 },
+      { transform:`translate(0,-50%) rotate(${angle}deg) translateX(0)`, opacity:1, offset:0.08 },
+      { transform:`translate(0,-50%) rotate(${angle}deg) translateX(${dist}px)`, opacity:1, offset:0.92 },
+      { transform:`translate(0,-50%) rotate(${angle}deg) translateX(${dist}px)`, opacity:0 }
+    ], { duration: 420, easing:'cubic-bezier(.3,.1,.2,1)' });
+    anim.onfinish = ()=>{ bolt.remove(); flashImpact(targetEl); resolve(); };
+    anim.oncancel = ()=>{ bolt.remove(); resolve(); };
+  });
+}
+function flashImpact(targetEl){
+  if(!targetEl) return;
+  const r = targetEl.getBoundingClientRect();
+  const ring = document.createElement('div');
+  ring.className = 'ability-impact-ring';
+  ring.style.left = (r.left+r.width/2)+'px';
+  ring.style.top = (r.top+r.height/2)+'px';
+  document.body.appendChild(ring);
+  setTimeout(()=>ring.remove(), 520);
+  targetEl.classList.add('ability-hit-flash');
+  setTimeout(()=>{ if(targetEl && targetEl.classList) targetEl.classList.remove('ability-hit-flash'); }, 520);
+}
+// Effet distinct quand une capacité se cible elle-même : pas de flèche
+// (rien à relier), un éclat doré qui converge sur la carte suffit à bien
+// repérer le déclenchement, sans le confondre avec une flèche classique.
+function flashSelfTrigger(el){
+  return new Promise(resolve=>{
+    if(!el){ resolve(); return; }
+    el.classList.add('ability-self-trigger');
+    setTimeout(()=>{ if(el && el.classList) el.classList.remove('ability-self-trigger'); }, 900);
+    const r = el.getBoundingClientRect();
+    const burst = document.createElement('div');
+    burst.className = 'ability-self-burst';
+    burst.style.left = (r.left+r.width/2)+'px';
+    burst.style.top = (r.top+r.height/2)+'px';
+    document.body.appendChild(burst);
+    setTimeout(()=>{ burst.remove(); resolve(); }, 650);
   });
 }
 
