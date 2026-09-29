@@ -307,25 +307,54 @@
 .flip-back{background-size:cover;background-position:center;border:3px solid var(--gold);box-shadow:0 8px 20px rgba(0,0,0,.6);
   background-image:linear-gradient(160deg,#241f38,#171325);display:flex;align-items:center;justify-content:center;}
 .flip-back .default-sigil{font-size:38px;filter:drop-shadow(0 0 10px rgba(212,175,55,.5));}
-.flip-front{transform:rotateY(180deg);display:flex;align-items:center;justify-content:center;position:relative;width:100%;height:100%;}
+.flip-front{transform:rotateY(180deg);display:flex;align-items:center;justify-content:center;position:relative;width:100%;height:100%;
+  overflow:visible;} /* la lueur de rareté doit pouvoir déborder derrière la carte — voir plus bas, sinon .flip-face la coupe au bord du cadre */
 .flip-front .ncard{transform:scale(0.8667);}
 
 /* ---------- lueur selon la rareté, au moment où la carte se retourne ---------- */
 /* Même code couleur que la déchirure du paquet (boosterTearColor) : bleu
    (Rare), violet (Épique), doré/orange (Mythique ou Légendaire). Un premier
    éclat plus fort à l'instant du flip, puis un pulse doux en continu tant
-   que la carte reste retournée. */
-.flip-card.tier-rare.flipped .flip-front{animation:tier-glow-rare-kf .6s ease-out, tier-pulse-rare 1.8s ease-in-out .6s infinite;}
-@keyframes tier-glow-rare-kf{0%{box-shadow:0 0 0 rgba(126,196,255,0);}40%{box-shadow:0 0 46px 14px rgba(126,196,255,.85);}100%{box-shadow:0 0 16px 4px rgba(126,196,255,.55);}}
-@keyframes tier-pulse-rare{0%,100%{box-shadow:0 0 16px 4px rgba(126,196,255,.55);}50%{box-shadow:0 0 24px 7px rgba(126,196,255,.8);}}
+   que la carte reste retournée.
+   IMPORTANT : un filter:drop-shadow (et non un box-shadow) — appliqué sur
+   la carte elle-même (.ncard), pas sur son conteneur rectangulaire. Le
+   cadre illustré (PNG) a des coins transparents ; box-shadow suivait le
+   rectangle qui contient l'image et laissait un vide visible dans ces
+   coins, alors que drop-shadow épouse la silhouette réelle (la
+   transparence du PNG), donnant une lueur qui semble vraiment posée
+   derrière la carte plutôt qu'autour d'un cadre invisible. */
+.flip-card.tier-rare.flipped .flip-front .ncard{animation:tier-glow-rare-kf .6s ease-out, tier-pulse-rare 1.8s ease-in-out .6s infinite;}
+@keyframes tier-glow-rare-kf{
+  0%{filter:drop-shadow(0 0 0 rgba(126,196,255,0));}
+  40%{filter:drop-shadow(0 0 30px rgba(126,196,255,.95)) drop-shadow(0 0 58px rgba(126,196,255,.55));}
+  100%{filter:drop-shadow(0 0 12px rgba(126,196,255,.65)) drop-shadow(0 0 26px rgba(126,196,255,.35));}
+}
+@keyframes tier-pulse-rare{
+  0%,100%{filter:drop-shadow(0 0 12px rgba(126,196,255,.65)) drop-shadow(0 0 26px rgba(126,196,255,.35));}
+  50%{filter:drop-shadow(0 0 18px rgba(126,196,255,.9)) drop-shadow(0 0 34px rgba(126,196,255,.5));}
+}
 
-.flip-card.tier-epic.flipped .flip-front{animation:tier-glow-epic-kf .6s ease-out, tier-pulse-epic 1.8s ease-in-out .6s infinite;}
-@keyframes tier-glow-epic-kf{0%{box-shadow:0 0 0 rgba(185,139,255,0);}40%{box-shadow:0 0 50px 16px rgba(185,139,255,.9);}100%{box-shadow:0 0 18px 5px rgba(185,139,255,.6);}}
-@keyframes tier-pulse-epic{0%,100%{box-shadow:0 0 18px 5px rgba(185,139,255,.6);}50%{box-shadow:0 0 28px 8px rgba(185,139,255,.85);}}
+.flip-card.tier-epic.flipped .flip-front .ncard{animation:tier-glow-epic-kf .6s ease-out, tier-pulse-epic 1.8s ease-in-out .6s infinite;}
+@keyframes tier-glow-epic-kf{
+  0%{filter:drop-shadow(0 0 0 rgba(185,139,255,0));}
+  40%{filter:drop-shadow(0 0 34px rgba(185,139,255,1)) drop-shadow(0 0 62px rgba(185,139,255,.6));}
+  100%{filter:drop-shadow(0 0 14px rgba(185,139,255,.7)) drop-shadow(0 0 28px rgba(185,139,255,.4));}
+}
+@keyframes tier-pulse-epic{
+  0%,100%{filter:drop-shadow(0 0 14px rgba(185,139,255,.7)) drop-shadow(0 0 28px rgba(185,139,255,.4));}
+  50%{filter:drop-shadow(0 0 20px rgba(185,139,255,.95)) drop-shadow(0 0 38px rgba(185,139,255,.55));}
+}
 
-.flip-card.tier-legendary.flipped .flip-front{animation:tier-glow-legendary-kf .65s ease-out, tier-pulse-legendary 1.6s ease-in-out .65s infinite;}
-@keyframes tier-glow-legendary-kf{0%{box-shadow:0 0 0 rgba(255,180,60,0);}40%{box-shadow:0 0 60px 20px rgba(255,180,60,.95);}100%{box-shadow:0 0 22px 6px rgba(255,180,60,.7);}}
-@keyframes tier-pulse-legendary{0%,100%{box-shadow:0 0 22px 6px rgba(255,180,60,.7);}50%{box-shadow:0 0 34px 10px rgba(255,190,80,.95);}}
+.flip-card.tier-legendary.flipped .flip-front .ncard{animation:tier-glow-legendary-kf .65s ease-out, tier-pulse-legendary 1.6s ease-in-out .65s infinite;}
+@keyframes tier-glow-legendary-kf{
+  0%{filter:drop-shadow(0 0 0 rgba(255,180,60,0));}
+  40%{filter:drop-shadow(0 0 40px rgba(255,180,60,1)) drop-shadow(0 0 74px rgba(255,180,60,.65));}
+  100%{filter:drop-shadow(0 0 16px rgba(255,180,60,.8)) drop-shadow(0 0 32px rgba(255,180,60,.45));}
+}
+@keyframes tier-pulse-legendary{
+  0%,100%{filter:drop-shadow(0 0 16px rgba(255,180,60,.8)) drop-shadow(0 0 32px rgba(255,180,60,.45));}
+  50%{filter:drop-shadow(0 0 24px rgba(255,190,80,1)) drop-shadow(0 0 44px rgba(255,190,80,.6));}
+}
 .flip-front .ncard{width:100% !important;height:100% !important;}
 .fragments-banner{
   position:absolute;top:-16px;left:50%;transform:translateX(-50%);z-index:20;
