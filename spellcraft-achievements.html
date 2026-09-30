@@ -25,6 +25,13 @@
 #view-toggle-row{text-align:center;margin-bottom:16px;}
 .summary{text-align:center;margin-bottom:28px;color:var(--parchment-dim);font-size:14px;}
 .summary b{color:var(--gold);}
+#category-tabs{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:24px;}
+.cat-tab{background:var(--bg-panel);border:1.5px solid var(--line);border-radius:20px;padding:7px 16px;
+  font-family:'Cinzel',serif;font-weight:700;font-size:12px;color:var(--parchment-dim);cursor:pointer;
+  white-space:nowrap;transition:border-color .15s ease,color .15s ease;}
+.cat-tab:hover{border-color:var(--gold);color:var(--parchment);}
+.cat-tab.active{border-color:var(--gold);color:var(--gold);background:var(--bg-panel-3);}
+.cat-tab .cat-count{opacity:.7;font-weight:400;font-size:10.5px;margin-left:4px;}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}
 .card{background:var(--bg-panel);border:1.5px solid var(--line);border-radius:14px;padding:16px;display:flex;gap:14px;
   position:relative;overflow:hidden;transition:border-color .15s ease;}
@@ -83,6 +90,7 @@
       <button class="sc-btn sc-btn-ghost sc-btn-sm" id="view-toggle-btn" onclick="toggleLeaderboardView()">🏆 Voir le classement</button>
     </div>
     <div class="summary" id="summary"></div>
+    <div id="category-tabs"></div>
     <div class="grid" id="ach-grid"></div>
     <div id="leaderboard-wrap" style="display:none;"></div>
   </div>
@@ -97,6 +105,23 @@
 <script>
 let achievements = [];
 
+// Catégories affichées en sous-onglets, dans cet ordre. Un succès sans
+// catégorie reconnue (ancien succès jamais reclassé) tombe dans "Autre".
+const CATEGORY_ORDER = ['wins','cards_total','cards_class','boosters','crafting','card_types','damage','hp','turn_cards','secret'];
+const CATEGORY_LABELS = {
+  wins: '🏆 Partie gagnée',
+  cards_total: '🃏 Carte jouée',
+  cards_class: '🔮 Carte jouée (par classe)',
+  boosters: '🎁 Ouverture de booster',
+  crafting: '🔨 Fabrication',
+  card_types: '📜 Type de carte jouée',
+  damage: '⚔️ Dégâts',
+  hp: '❤️ Score de PV atteint',
+  turn_cards: '📚 Cartes jouées en un tour',
+  secret: '❔ Secret'
+};
+let activeCategory = null;
+
 async function loadAchievements(){
   const { data, error } = await sb.rpc('get_achievements');
   if(error || data.error){
@@ -104,7 +129,12 @@ async function loadAchievements(){
     return;
   }
   achievements = data.achievements || [];
+  if(!activeCategory){
+    const firstWithItems = CATEGORY_ORDER.find(c=>achievements.some(a=>(a.category||'autre')===c));
+    activeCategory = firstWithItems || 'autre';
+  }
   renderSummary();
+  renderCategoryTabs();
   renderGrid();
 }
 
@@ -115,13 +145,37 @@ function renderSummary(){
     : '';
 }
 
+function renderCategoryTabs(){
+  const wrap = document.getElementById('category-tabs');
+  const present = CATEGORY_ORDER.filter(c=>achievements.some(a=>(a.category||'autre')===c));
+  if(achievements.some(a=>!a.category)) present.push('autre');
+  if(present.length<=1){ wrap.innerHTML=''; return; }
+  wrap.innerHTML = present.map(c=>{
+    const list = achievements.filter(a=>(a.category||'autre')===c);
+    const done = list.filter(a=>a.completed).length;
+    const label = CATEGORY_LABELS[c] || 'Autre';
+    return `<button class="cat-tab ${c===activeCategory?'active':''}" onclick="switchCategory('${c}')">${label}<span class="cat-count">${done}/${list.length}</span></button>`;
+  }).join('');
+}
+
+function switchCategory(c){
+  activeCategory = c;
+  renderCategoryTabs();
+  renderGrid();
+}
+
 function renderGrid(){
   const grid = document.getElementById('ach-grid');
   if(achievements.length===0){
     grid.innerHTML = `<div class="empty-state">Aucun succès disponible pour l'instant.</div>`;
     return;
   }
-  grid.innerHTML = achievements.map(a=>{
+  const visible = achievements.filter(a=>(a.category||'autre')===activeCategory);
+  if(visible.length===0){
+    grid.innerHTML = `<div class="empty-state">Aucun succès dans cette catégorie pour l'instant.</div>`;
+    return;
+  }
+  grid.innerHTML = visible.map(a=>{
     const pct = Math.min(100, Math.round((a.progress_count / a.target_count) * 100));
     const stateClass = a.completed ? 'completed' : (a.progress_count>0 ? '' : 'locked');
     const badge = a.image_url
@@ -152,6 +206,7 @@ let showingLeaderboard = false;
 async function toggleLeaderboardView(){
   showingLeaderboard = !showingLeaderboard;
   document.getElementById('summary').style.display = showingLeaderboard ? 'none' : 'block';
+  document.getElementById('category-tabs').style.display = showingLeaderboard ? 'none' : 'flex';
   document.getElementById('ach-grid').style.display = showingLeaderboard ? 'none' : 'grid';
   document.getElementById('leaderboard-wrap').style.display = showingLeaderboard ? 'block' : 'none';
   document.getElementById('view-toggle-btn').textContent = showingLeaderboard ? '🏅 Voir mes succès' : '🏆 Voir le classement';

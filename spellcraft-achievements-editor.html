@@ -101,14 +101,43 @@ textarea{resize:vertical;min-height:60px;}
       </div>
     </div>
 
+    <div class="grid2">
+      <div class="field">
+        <label>Limiter à un type de carte (optionnel)</label>
+        <select id="f-cardtype">
+          <option value="">Peu importe</option>
+          <option value="Créature">Créature</option>
+          <option value="Sortilège">Sortilège</option>
+          <option value="Artefact">Artefact</option>
+          <option value="Piège">Piège</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Limiter à une classe (optionnel)</label>
+        <select id="f-class">
+          <option value="">Peu importe</option>
+          <option value="Aube">Aube</option>
+          <option value="Crépuscule">Crépuscule</option>
+          <option value="Volonté">Volonté</option>
+          <option value="Prima">Prima</option>
+          <option value="Arcane">Arcane</option>
+        </select>
+      </div>
+    </div>
+
     <div class="field">
-      <label>Limiter à un type de carte (optionnel)</label>
-      <select id="f-cardtype">
-        <option value="">Peu importe</option>
-        <option value="Créature">Créature</option>
-        <option value="Sortilège">Sortilège</option>
-        <option value="Artefact">Artefact</option>
-        <option value="Piège">Piège</option>
+      <label>Catégorie (onglet d'affichage sur la page des succès)</label>
+      <select id="f-category">
+        <option value="wins">Partie gagnée</option>
+        <option value="cards_total">Carte jouée (total)</option>
+        <option value="cards_class">Carte jouée par classe</option>
+        <option value="boosters">Ouverture de booster</option>
+        <option value="crafting">Fabrication</option>
+        <option value="card_types">Type de carte jouée</option>
+        <option value="damage">Dégâts</option>
+        <option value="hp">Score de PV atteint</option>
+        <option value="turn_cards">Cartes jouées en un tour</option>
+        <option value="secret">Secret</option>
       </select>
     </div>
 
@@ -201,7 +230,58 @@ const TRIGGER_TEXT = {
   watchExplore: 'Quand un joueur explore',
   watchRetrieveDiscard: 'Quand une carte est récupérée depuis la défausse',
   watchRetrieveDeck: 'Quand une carte est récupérée depuis le deck',
-  watchTargeted: 'Quand une créature est désignée (ciblée par un effet)'
+  watchTargeted: 'Quand une créature est désignée (ciblée par un effet)',
+
+  // Déclencheurs "globaux" (comptes cumulés côté compte, pas liés à un
+  // déclencheur de carte) — utilisés par les succès existants ou par la
+  // refonte par catégories. Ajoutés ici pour que l'éditeur affiche et
+  // conserve correctement le bon condition_type en modification (sinon le
+  // menu déroulant retombe sur son premier choix et écrase la valeur
+  // d'origine au moment d'enregistrer).
+  win_games_total: '[Cumulé] Partie gagnée',
+  lose_games_total: '[Cumulé] Partie perdue',
+  open_boosters_total: '[Cumulé] Booster ouvert',
+  booster_legendary_pulled: '[Ponctuel] Légendaire ouverte dans un booster',
+  booster_epic_x2: '[Ponctuel] 2 Épiques dans un même booster',
+  booster_mythique_x2: '[Ponctuel] 2 Mythiques dans un même booster',
+  booster_mythique_x3: '[Ponctuel] 3 Mythiques dans un même booster',
+  booster_legendary_x3: '[Ponctuel] 3 Légendaires dans un même booster',
+  cards_crafted_total: '[Cumulé] Carte fabriquée',
+  cards_disenchanted_total: '[Cumulé] Carte désassemblée',
+  craft_commune: '[Ponctuel] Carte Commune fabriquée',
+  craft_rare: '[Ponctuel] Carte Rare fabriquée',
+  craft_epique: '[Ponctuel] Carte Épique fabriquée',
+  craft_mythique: '[Ponctuel] Carte Mythique fabriquée',
+  keywords_granted_total: '[Cumulé] Mot-clé octroyé à une carte',
+  hp_gained_total: '[Cumulé] PV de héros regagnés',
+
+  // Succès "pic" (record) — voir progress_achievement_peak : le seuil (X)
+  // est la valeur à atteindre en une seule mesure, pas un cumul.
+  hero_hp_peak: '[Record] PV de héros atteints',
+  damage_to_hero_single_turn_max: '[Record] Dégâts infligés en un seul tour',
+  cards_played_single_turn_max: '[Record] Cartes jouées en un seul tour',
+  conjured_cards_single_match_max: '[Record] Cartes conjurées en une partie',
+  emotes_single_match_max: '[Record] Émotes envoyées en une partie',
+  bruno_lines_seen: '[Record] Répliques de Bruno découvertes',
+
+  // Succès secrets à déclenchement spécial — condition vérifiée côté serveur
+  // par une fonction dédiée, pas par un compteur classique.
+  secret_all_achievements: '[Secret] Tous les autres succès obtenus',
+  secret_daily_weekly_quests: '[Secret] Toutes les quêtes du jour en une journée',
+  secret_card_back_pigeons: '[Secret] Dos de carte "pigeons" obtenu'
+};
+
+const CATEGORY_TEXT = {
+  wins: 'Partie gagnée',
+  cards_total: 'Carte jouée (total)',
+  cards_class: 'Carte jouée par classe',
+  boosters: 'Ouverture de booster',
+  crafting: 'Fabrication',
+  card_types: 'Type de carte jouée',
+  damage: 'Dégâts',
+  hp: 'Score de PV atteint',
+  turn_cards: 'Cartes jouées en un tour',
+  secret: 'Secret'
 };
 
 let achievements = [];
@@ -232,7 +312,7 @@ function renderList(){
       ${a.image_url ? `<img src="${a.image_url}">` : `<div class="img-preview" style="width:36px;height:36px;"></div>`}
       <div class="meta">
         <div class="name">${escapeHtml(a.name)}</div>
-        <div class="sub">${TRIGGER_TEXT[a.condition_type]||a.condition_type} — ${a.target_count}</div>
+        <div class="sub">${CATEGORY_TEXT[a.category]||a.category||'Sans catégorie'} · ${TRIGGER_TEXT[a.condition_type]||a.condition_type} — ${a.target_count}</div>
       </div>
     </div>
   `).join('');
@@ -249,6 +329,8 @@ function newAchievementForm(){
   document.getElementById('f-description').value = '';
   document.getElementById('f-threshold').value = 150;
   document.getElementById('f-cardtype').value = '';
+  document.getElementById('f-class').value = '';
+  document.getElementById('f-category').value = 'wins';
   document.getElementById('f-active').checked = true;
   document.getElementById('delete-btn').style.display = 'none';
   rewards = [];
@@ -271,6 +353,8 @@ function editAchievement(id){
   document.getElementById('f-trigger').value = a.condition_type;
   document.getElementById('f-threshold').value = a.target_count;
   document.getElementById('f-cardtype').value = a.card_type_filter || '';
+  document.getElementById('f-class').value = a.class_filter || '';
+  document.getElementById('f-category').value = a.category || 'wins';
   document.getElementById('f-active').checked = a.active;
   document.getElementById('delete-btn').style.display = 'inline-block';
   rewards = JSON.parse(JSON.stringify(a.rewards || []));
@@ -335,7 +419,7 @@ function renderRewards(){
       row.appendChild(foilLabel);
     } else if(r.type==='booster'){
       const setSel = document.createElement('select');
-      setSel.innerHTML = `<option value="base" ${r.set==='base'?'selected':''}>Set de base</option><option value="latest" ${r.set==='latest'?'selected':''}>Dernier set sorti</option>`;
+      setSel.innerHTML = `<option value="base" ${r.set==='base'?'selected':''}>Set de base</option><option value="latest" ${r.set==='latest'?'selected':''}>Dernier set sorti</option><option value="set-classique" ${r.set==='set-classique'?'selected':''}>Set classique</option>`;
       setSel.onchange=()=>{ r.set=setSel.value; };
       row.appendChild(setSel);
       const cntInp = document.createElement('input');
@@ -372,7 +456,9 @@ async function saveAchievement(){
     p_card_type_filter: document.getElementById('f-cardtype').value || null,
     p_rewards: JSON.stringify(rewards),
     p_active: document.getElementById('f-active').checked,
-    p_order_index: achievements.length
+    p_order_index: achievements.length,
+    p_category: document.getElementById('f-category').value || null,
+    p_class_filter: document.getElementById('f-class').value || null
   });
   if(error){ showStatus('Erreur : ' + error.message, true); return; }
   showStatus('Succès enregistré.');

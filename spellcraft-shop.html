@@ -531,7 +531,11 @@ const BRUNO_THANKS_LINES = [
 
 let brunoThanksTimeout = null;
 function renderBrunoLine(){
-  document.getElementById('vendor-speech').innerHTML = BRUNO_LINES[Math.floor(Math.random()*BRUNO_LINES.length)];
+  const idx = Math.floor(Math.random()*BRUNO_LINES.length);
+  document.getElementById('vendor-speech').innerHTML = BRUNO_LINES[idx];
+  // Succès secret "Habitué de la boutique" — mémorise côté serveur quelles
+  // répliques d'accueil ont déjà été vues (persiste entre les visites).
+  try{ sb.rpc('mark_bruno_line_seen', { p_line_index: idx }); }catch(e){ /* jamais bloquant */ }
 }
 function showBrunoThanks(){
   if(brunoThanksTimeout) clearTimeout(brunoThanksTimeout);
