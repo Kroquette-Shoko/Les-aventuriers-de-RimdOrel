@@ -2003,9 +2003,21 @@ function renderArtifactStack(key, slot){
     wrap.className = 'relic-slot';
     if(relics[i]){
       const r = relics[i];
-      const cardElNode = cardEl(r, {inPlay:true});
+      // Un artefact peut être la cible en attente d'un sort/capacité en
+      // cours de ciblage (ex : "Passage du temps", "détruisez un artefact
+      // ennemi de votre choix") — ce cas manquait entièrement ici jusque-là :
+      // isValidNewFormatTarget/pickNewFormatTarget n'étaient câblés que sur
+      // les créatures (voir renderLane), jamais sur les artefacts. La cible
+      // se mettait bien en attente côté client, mais il n'existait aucun
+      // moyen de cliquer sur l'artefact visé pour la confirmer — le
+      // ciblage restait bloqué indéfiniment, sans erreur visible.
+      const isTargetable = UI.pendingNewTarget && isValidNewFormatTarget(key, r);
+      const cardElNode = cardEl(r, {inPlay:true, targetable: isTargetable});
       wrap.appendChild(cardElNode);
-      if(slot==='p1' && S.active===MY_KEY && S.phase==='main' && !UI.selectingAttackers){
+      if(isTargetable){
+        cardElNode.style.cursor = 'pointer';
+        cardElNode.onclick = ()=>pickNewFormatTarget(r.instId);
+      } else if(slot==='p1' && S.active===MY_KEY && S.phase==='main' && !UI.selectingAttackers){
         // Nouveau format (card.abilities) — celui que l'éditeur actuel
         // produit. L'ancien format (triggeredEffects.activated) reste
         // vérifié en repli pour les cartes plus anciennes.
