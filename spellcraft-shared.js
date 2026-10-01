@@ -186,6 +186,11 @@ function migrateCard(c){
   if(c.imagePosXAnnounceRight===undefined) c.imagePosXAnnounceRight = 50;
   if(c.imagePosYAnnounceRight===undefined) c.imagePosYAnnounceRight = 50;
   if(c.imageZoomAnnounceRight===undefined) c.imageZoomAnnounceRight = 100;
+  // Miroir par côté pour l'écran d'annonce — par défaut, seul le côté droit
+  // est inversé (pour faire face au centre) ; un héros peut forcer un autre
+  // réglage sur l'un ou l'autre côté (éditeur de cartes, onglet annonce).
+  if(c.imageMirrorAnnounce===undefined) c.imageMirrorAnnounce = false;
+  if(c.imageMirrorAnnounceRight===undefined) c.imageMirrorAnnounceRight = true;
   if(c.classSecondary===undefined) c.classSecondary = '';
   if(!c.heroMultiClass) c.heroMultiClass = {enabled:false, allowedClasses:[], maxCount:6, scope:'Toutes'};
   if(!c.class) c.class = 'Neutre';

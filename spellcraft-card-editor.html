@@ -1392,8 +1392,8 @@ function switchEditorPage(page){
 // le côté droit affiche l'illustration EN MIROIR pour que le héros fasse face
 // au centre de l'écran (vers son adversaire) plutôt que de tourner le dos.
 const HERO_ANNOUNCE_SIDES = [
-  { key:'left',  label:'Côté gauche (vous)',       fieldX:'imagePosXAnnounce',      fieldY:'imagePosYAnnounce',      fieldZoom:'imageZoomAnnounce',      mirror:false },
-  { key:'right', label:'Côté droit (adversaire) — image inversée', fieldX:'imagePosXAnnounceRight', fieldY:'imagePosYAnnounceRight', fieldZoom:'imageZoomAnnounceRight', mirror:true }
+  { key:'left',  label:'Côté gauche (vous)',       fieldX:'imagePosXAnnounce',      fieldY:'imagePosYAnnounce',      fieldZoom:'imageZoomAnnounce',      fieldMirror:'imageMirrorAnnounce',      mirror:false },
+  { key:'right', label:'Côté droit (adversaire) — image inversée par défaut', fieldX:'imagePosXAnnounceRight', fieldY:'imagePosYAnnounceRight', fieldZoom:'imageZoomAnnounceRight', fieldMirror:'imageMirrorAnnounceRight', mirror:true }
 ];
 
 function renderHeroAnnouncePanel(){
@@ -1513,6 +1513,16 @@ function buildHeroAnnounceSideControls(hero, side){
   block.appendChild(mkSlider('Vertical', 0, 100, posY, v=>updateHeroAnnounceField(hero.id, side, side.fieldY, v)));
   block.appendChild(mkSlider('Zoom', 100, 250, zoom, v=>updateHeroAnnounceField(hero.id, side, side.fieldZoom, v)));
 
+  const mirrorWrap = document.createElement('label');
+  mirrorWrap.style.cssText = 'display:flex;align-items:center;gap:8px;font-size:12px;color:var(--parchment-dim);cursor:pointer;';
+  const mirrorCheckbox = document.createElement('input');
+  mirrorCheckbox.type = 'checkbox';
+  mirrorCheckbox.checked = (hero[side.fieldMirror] ?? side.mirror) === true;
+  mirrorCheckbox.onchange = (e)=>updateHeroAnnounceMirror(hero.id, side, e.target.checked);
+  mirrorWrap.appendChild(mirrorCheckbox);
+  mirrorWrap.appendChild(document.createTextNode('Image inversée (miroir) sur ce côté'));
+  block.appendChild(mirrorWrap);
+
   const resetBtn = document.createElement('button');
   resetBtn.className = 'btn small';
   resetBtn.style.alignSelf = 'flex-start';
@@ -1527,12 +1537,13 @@ function applyHeroAnnoucePreviewStyle(hero, side){
   const el = document.getElementById(`ha-preview-bg-${hero.id}-${side.key}`);
   if(!el) return;
   const posX = hero[side.fieldX] ?? 50, posY = hero[side.fieldY] ?? 50, zoom = hero[side.fieldZoom] ?? 100;
+  const mirrored = (hero[side.fieldMirror] ?? side.mirror) === true;
   if(hero.image){
     el.style.backgroundImage = `url('${hero.image.replace(/'/g,'')}')`;
     el.style.backgroundPosition = `${posX}% ${posY}%`;
     el.style.backgroundSize = zoom>100 ? zoom+'%' : 'cover';
     el.style.backgroundRepeat = 'no-repeat';
-    el.style.transform = side.mirror ? 'scaleX(-1)' : 'none';
+    el.style.transform = mirrored ? 'scaleX(-1)' : 'none';
   } else {
     el.style.backgroundImage = 'none';
     el.style.transform = 'none';
@@ -1543,6 +1554,14 @@ function updateHeroAnnounceField(cardId, side, field, value){
   const hero = cards.find(c=>c.id===cardId);
   if(!hero) return;
   hero[field] = value;
+  applyHeroAnnoucePreviewStyle(hero, side);
+  persistCards();
+}
+
+function updateHeroAnnounceMirror(cardId, side, value){
+  const hero = cards.find(c=>c.id===cardId);
+  if(!hero) return;
+  hero[side.fieldMirror] = value;
   applyHeroAnnoucePreviewStyle(hero, side);
   persistCards();
 }

@@ -1286,18 +1286,27 @@ async function buildMatchAnnounceSide(playerState, heroCollection, side){
   // s'affiche en miroir pour que le héros fasse face au centre de l'écran.
   const isRight = side === 'right';
   let heroImageX = 50, heroImageY = 50, heroImageZoom = 100;
+  // Par défaut : côté gauche normal, côté droit en miroir (pour faire face
+  // au centre). Chaque héros peut cependant forcer son propre réglage par
+  // côté (champs imageMirrorAnnounce / imageMirrorAnnounceRight, réglables
+  // dans l'éditeur de cartes) — utile par exemple quand l'illustration
+  // d'origine du héros est déjà orientée dans un sens qui rend le miroir
+  // par défaut incorrect pour l'un des deux côtés, voire les deux.
+  let heroImageMirror = isRight;
   if(playerState?.hero?.name && heroCollection){
     const heroCard = heroCollection.find(c=>c.name===playerState.hero.name && c.type==='Héros');
     if(heroCard){
       heroImageX = (isRight ? heroCard.imagePosXAnnounceRight : heroCard.imagePosXAnnounce) ?? 50;
       heroImageY = (isRight ? heroCard.imagePosYAnnounceRight : heroCard.imagePosYAnnounce) ?? 50;
       heroImageZoom = (isRight ? heroCard.imageZoomAnnounceRight : heroCard.imageZoomAnnounce) ?? 100;
+      const mirrorField = isRight ? 'imageMirrorAnnounceRight' : 'imageMirrorAnnounce';
+      if(heroCard[mirrorField] !== undefined) heroImageMirror = !!heroCard[mirrorField];
     }
   }
   const info = {
     accent,
     heroImage: playerState?.hero?.image || null,
-    heroImageX, heroImageY, heroImageZoom, heroImageMirror: isRight,
+    heroImageX, heroImageY, heroImageZoom, heroImageMirror,
     cardBackUrl: playerState?.cardBackUrl || null,
     deckName: playerState?.deckName || null,
     name: playerState?.isAI ? 'Intelligence artificielle' : 'Joueur',
