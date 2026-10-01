@@ -417,6 +417,29 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .mulligan-card-wrap.marked .mulligan-tag{color:var(--blood);border-color:var(--blood);}
 .mulligan-confirm-btn{background:var(--arcane);color:#fff;border:none;border-radius:10px;padding:12px 28px;font-family:'Cinzel',serif;font-weight:700;cursor:pointer;font-size:14px;margin-top:8px;}
 
+/* ===== Écran d'annonce de match (joueur vs adversaire) ===== */
+#match-announce-overlay{position:fixed;inset:0;background:#0b0905;display:none;z-index:70;opacity:0;transition:opacity .45s ease;overflow:hidden;}
+#match-announce-overlay.show{display:block;}
+#match-announce-overlay.visible{opacity:1;}
+.ma-side{position:absolute;inset:0;}
+.ma-side-left{clip-path:polygon(0 0, 33.333% 0, 66.667% 100%, 0 100%);}
+.ma-side-right{clip-path:polygon(33.333% 0, 100% 0, 100% 100%, 66.667% 100%);}
+.ma-vignette-left{clip-path:polygon(0 0, 33.333% 0, 66.667% 100%, 0 100%);background:radial-gradient(ellipse 46vw 70vh at 25% 50%, rgba(0,0,0,.72) 0%, rgba(0,0,0,.28) 60%, rgba(0,0,0,.08) 100%);}
+.ma-vignette-right{clip-path:polygon(33.333% 0, 100% 0, 100% 100%, 66.667% 100%);background:radial-gradient(ellipse 46vw 70vh at 75% 50%, rgba(0,0,0,.72) 0%, rgba(0,0,0,.28) 60%, rgba(0,0,0,.08) 100%);}
+.ma-divider-line{position:absolute;inset:0;pointer-events:none;}
+.ma-vs-badge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:76px;height:76px;border-radius:50%;background:#120d08;display:flex;align-items:center;justify-content:center;z-index:5;box-shadow:0 0 0 6px rgba(11,9,5,.9),0 0 22px rgba(0,0,0,.6);}
+.ma-vs-badge span{font-family:'Cinzel',serif;font-size:20px;font-weight:700;letter-spacing:1px;}
+.ma-block{position:absolute;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:10px;width:300px;z-index:3;}
+.ma-block-left{left:25%;}
+.ma-block-right{left:75%;}
+.ma-cardback{width:96px;height:134px;border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;background-size:cover;background-position:center;}
+.ma-name{font-family:'Cinzel',serif;color:#f1e6c8;font-size:26px;font-weight:700;letter-spacing:.5px;text-shadow:0 2px 8px rgba(0,0,0,.7);text-align:center;}
+.ma-deckname{font-style:italic;color:rgba(241,230,200,.65);font-size:14px;text-align:center;}
+.ma-avatar{width:84px;height:84px;border-radius:50%;margin-top:4px;box-shadow:0 4px 12px rgba(0,0,0,.6);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;}
+.ma-title{font-family:'Cinzel',serif;font-size:13px;letter-spacing:1.2px;text-transform:uppercase;margin-top:2px;}
+.ma-badges{display:flex;gap:6px;margin-top:2px;min-height:26px;}
+.ma-badge{width:26px;height:26px;border-radius:50%;background-size:cover;background-position:center;background-color:#1a1510;}
+
 .tip{position:fixed;transform:translate(-50%,-100%);font-size:11px;color:var(--parchment-dim);background:rgba(0,0,0,.6);padding:5px 12px;border-radius:20px;pointer-events:none;text-align:center;max-width:280px;z-index:45;transition:left .15s ease, top .15s ease;}
 
 #targeting-layer{position:fixed;inset:0;pointer-events:none;z-index:40;width:100%;height:100%;}
@@ -852,6 +875,8 @@ body.targeting *{cursor:crosshair !important;}
   <button onclick="gsDisconnect(); window.location.href='spellcraft-lobby.html'">Retour au lobby</button>
 </div>
 
+<div id="match-announce-overlay"></div>
+
 <div class="modal-overlay" id="discard-modal" onclick="if(event.target===this) closeDiscardModal()">
   <div class="modal-box">
     <h2>Défausse</h2>
@@ -1229,6 +1254,104 @@ function afterConnected(code){
 }
 
 let __pendingStateWhileAnimating = null;
+
+// ===== Écran d'annonce de match =====
+let __matchAnnounceActive = false;
+let __matchAnnounceDone = false;
+const MATCH_ANNOUNCE_CLASS_ACCENT = {
+  'Aube':'#D4AF37', 'Crépuscule':'#5B3A8E', 'Volonté':'#8B2E3C', 'Prima':'#1F6F54', 'Arcane':'#2C4A7C', 'Neutre':'#6b6b6b'
+};
+function matchAnnounceEscapeHtml(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+// Construit les infos d'affichage d'un camp à partir de l'état de jeu (hero,
+// dos de carte, nom de deck — déjà connus côté client) et, si ce n'est pas
+// l'IA, du profil du joueur (titre équipé, badges mis en avant, avatar,
+// pseudo) — récupéré via gsGetProfile, comme sur la page de profil.
+async function buildMatchAnnounceSide(playerState, heroCollection){
+  const accent = MATCH_ANNOUNCE_CLASS_ACCENT[playerState?.hero?.class] || MATCH_ANNOUNCE_CLASS_ACCENT.Neutre;
+  const info = {
+    accent,
+    heroImage: playerState?.hero?.image || null,
+    cardBackUrl: playerState?.cardBackUrl || null,
+    deckName: playerState?.deckName || null,
+    name: playerState?.isAI ? 'Intelligence artificielle' : 'Joueur',
+    title: null,
+    avatarUrl: null,
+    badges: []
+  };
+  if(playerState?.isAI || !playerState?.userId) return info;
+  try{
+    const profile = await gsGetProfile(playerState.userId);
+    if(profile && !profile.error){
+      info.name = profile.username || info.name;
+      info.title = profile.equippedTitle || null;
+      info.badges = (profile.featuredAchievements || []).slice(0,5);
+      if(profile.avatarHeroName && heroCollection){
+        const hero = heroCollection.find(c=>c.name===profile.avatarHeroName && c.type==='Héros');
+        if(hero && hero.image) info.avatarUrl = hero.image;
+      }
+      if(!info.avatarUrl && profile.discordAvatarUrl) info.avatarUrl = profile.discordAvatarUrl;
+    }
+  }catch(e){ /* un profil indisponible ne doit jamais bloquer le lancement de la partie */ }
+  return info;
+}
+
+function matchAnnounceSideHtml(side, info){
+  const badgesHtml = Array.from({length:5}).map((_,i)=>{
+    const b = info.badges[i];
+    return `<div class="ma-badge" style="${b && b.imageUrl ? `background-image:url('${b.imageUrl.replace(/'/g,'')}')` : `border:2px dashed rgba(241,230,200,.3);background-color:transparent;`}"></div>`;
+  }).join('');
+  const deckNameHtml = info.deckName ? `<div class="ma-deckname">${matchAnnounceEscapeHtml(info.deckName)}</div>` : '';
+  const titleHtml = info.title ? `<div class="ma-title" style="color:${info.accent};">« ${matchAnnounceEscapeHtml(info.title)} »</div>` : '';
+  return `
+    <div class="ma-block ma-block-${side}">
+      <div class="ma-cardback" style="border:2px solid ${info.accent};background-color:#1a1510;${info.cardBackUrl ? `background-image:url('${info.cardBackUrl.replace(/'/g,'')}')` : `background:linear-gradient(160deg, ${info.accent}55, #1a1510 70%);`}"></div>
+      <div class="ma-name">${matchAnnounceEscapeHtml(info.name)}</div>
+      ${deckNameHtml}
+      <div class="ma-avatar" style="border:3px solid ${info.accent};${info.avatarUrl ? `background-image:url('${info.avatarUrl.replace(/'/g,'')}')` : `background:radial-gradient(circle at 35% 30%, ${info.accent}, #1a1510);`}"></div>
+      ${titleHtml}
+      <div class="ma-badges">${badgesHtml}</div>
+    </div>`;
+}
+
+function playMatchAnnouncement(state){
+  const el = document.getElementById('match-announce-overlay');
+  // Le catalogue (pour résoudre un avatar "héros") est chargé une seule fois
+  // puis réutilisé pour les deux camps.
+  return loadAllCardsAcrossSets().catch(()=>[]).then(collection=>{
+    return Promise.all([
+      buildMatchAnnounceSide(state[MY_KEY], collection),
+      buildMatchAnnounceSide(state[OPP_KEY], collection)
+    ]);
+  }).then(([myInfo, oppInfo])=>{
+    el.innerHTML = `
+      <div class="ma-side ma-side-left" style="background:linear-gradient(145deg, ${myInfo.accent} 0%, #241a10 55%, #120d08 100%);${myInfo.heroImage ? `background-image:url('${myInfo.heroImage.replace(/'/g,'')}'), linear-gradient(145deg, ${myInfo.accent} 0%, #241a10 55%, #120d08 100%);background-size:cover;background-position:center;` : ''}"></div>
+      <div class="ma-side ma-side-right" style="background:linear-gradient(215deg, ${oppInfo.accent} 0%, #241a10 55%, #120d08 100%);${oppInfo.heroImage ? `background-image:url('${oppInfo.heroImage.replace(/'/g,'')}'), linear-gradient(215deg, ${oppInfo.accent} 0%, #241a10 55%, #120d08 100%);background-size:cover;background-position:center;` : ''}"></div>
+      <div class="ma-side ma-vignette-left"></div>
+      <div class="ma-side ma-vignette-right"></div>
+      <svg class="ma-divider-line" viewBox="0 0 1280 720" preserveAspectRatio="none">
+        <line x1="426.667" y1="0" x2="853.333" y2="720" stroke="#D4AF37" stroke-width="5" style="filter:drop-shadow(0 0 7px #D4AF37);"/>
+      </svg>
+      <div class="ma-vs-badge" style="border:3px solid #D4AF37;"><span style="color:#D4AF37;">VS</span></div>
+      ${matchAnnounceSideHtml('left', myInfo)}
+      ${matchAnnounceSideHtml('right', oppInfo)}
+    `;
+    el.classList.add('show');
+    return new Promise(resolve=>{
+      // fondu d'entrée, puis maintien, puis fondu de sortie — 7s au total,
+      // dans la fourchette demandée (6 à 8 secondes).
+      requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ el.classList.add('visible'); }); });
+      setTimeout(()=>{
+        el.classList.remove('visible');
+        setTimeout(()=>{
+          el.classList.remove('show');
+          el.innerHTML = '';
+          resolve();
+        }, 450);
+      }, 6550);
+    });
+  });
+}
 // Compare l'état mana avant/après pour jouer le bon son de gain — un même
 // son pour le mana normal ("plein") ET le mana fragile (comme demandé), un
 // son distinct pour le mana "vide" (le maximum augmente sans qu'aucun mana
@@ -1278,6 +1401,28 @@ function onStateUpdate(state){
   // serveur, j'affiche quand même "moi" en bas et "adversaire" en haut,
   // en lisant simplement S[MY_KEY]/S[OPP_KEY] partout dans le rendu.
   S = state;
+
+  // Écran d'annonce de match : dès que les deux joueurs sont connus pour la
+  // première fois, on affiche quelques secondes un écran plein écran avec
+  // les infos des deux camps AVANT de laisser apparaître le plateau (et
+  // l'éventuel mulligan). Pendant qu'il tourne, S reste à jour mais le
+  // rendu normal est suspendu — on rend une dernière fois à la fin, avec
+  // l'état le plus récent reçu entre-temps.
+  if(!__matchAnnounceDone && !__matchAnnounceActive && state.p2){
+    __matchAnnounceActive = true;
+    playMatchAnnouncement(state).then(()=>{
+      __matchAnnounceActive = false;
+      __matchAnnounceDone = true;
+      finishStateUpdateTail(S);
+    });
+    return;
+  }
+  if(__matchAnnounceActive) return; // S est à jour ; le rendu reprendra à la fin de l'annonce
+
+  finishStateUpdateTail(state);
+}
+
+function finishStateUpdateTail(state){
   render();
   renderGameLog();
 
@@ -3074,7 +3219,7 @@ function setupPhaseReminder(btn, phaseKey){
   if(__phaseReminder.key !== phaseKey){
     clearPhaseReminder();
     __phaseReminder.key = phaseKey;
-    __phaseReminder.timeoutId = setTimeout(()=>startPhaseReminderBlink(phaseKey), 14000);
+    __phaseReminder.timeoutId = setTimeout(()=>startPhaseReminderBlink(phaseKey), 30000);
   } else if(__phaseReminder.blinking){
     // Même état déjà signalé — le bouton vient d'être recréé (re-rendu), on
     // réapplique juste le clignotement plutôt que de repartir de zéro.
