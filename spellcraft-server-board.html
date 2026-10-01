@@ -1269,9 +1269,23 @@ function matchAnnounceEscapeHtml(s){ return (s||'').replace(/[&<>"']/g, c => ({'
 // pseudo) — récupéré via gsGetProfile, comme sur la page de profil.
 async function buildMatchAnnounceSide(playerState, heroCollection){
   const accent = MATCH_ANNOUNCE_CLASS_ACCENT[playerState?.hero?.class] || MATCH_ANNOUNCE_CLASS_ACCENT.Neutre;
+  // Cadrage dédié à l'écran d'annonce, réglé par héros dans l'éditeur de cartes
+  // (onglet "Cadrage héros — écran d'annonce") — indépendant du cadrage utilisé
+  // sur la carte elle-même. On retrouve la fiche complète du héros dans le
+  // catalogue pour lire ces 3 champs ; à défaut, on retombe sur un cadrage neutre.
+  let heroImageX = 50, heroImageY = 50, heroImageZoom = 100;
+  if(playerState?.hero?.name && heroCollection){
+    const heroCard = heroCollection.find(c=>c.name===playerState.hero.name && c.type==='Héros');
+    if(heroCard){
+      heroImageX = heroCard.imagePosXAnnounce ?? 50;
+      heroImageY = heroCard.imagePosYAnnounce ?? 50;
+      heroImageZoom = heroCard.imageZoomAnnounce ?? 100;
+    }
+  }
   const info = {
     accent,
     heroImage: playerState?.hero?.image || null,
+    heroImageX, heroImageY, heroImageZoom,
     cardBackUrl: playerState?.cardBackUrl || null,
     deckName: playerState?.deckName || null,
     name: playerState?.isAI ? 'Intelligence artificielle' : 'Joueur',
@@ -1325,8 +1339,8 @@ function playMatchAnnouncement(state){
     ]);
   }).then(([myInfo, oppInfo])=>{
     el.innerHTML = `
-      <div class="ma-side ma-side-left" style="background:linear-gradient(145deg, ${myInfo.accent} 0%, #241a10 55%, #120d08 100%);${myInfo.heroImage ? `background-image:url('${myInfo.heroImage.replace(/'/g,'')}'), linear-gradient(145deg, ${myInfo.accent} 0%, #241a10 55%, #120d08 100%);background-size:cover;background-position:center;` : ''}"></div>
-      <div class="ma-side ma-side-right" style="background:linear-gradient(215deg, ${oppInfo.accent} 0%, #241a10 55%, #120d08 100%);${oppInfo.heroImage ? `background-image:url('${oppInfo.heroImage.replace(/'/g,'')}'), linear-gradient(215deg, ${oppInfo.accent} 0%, #241a10 55%, #120d08 100%);background-size:cover;background-position:center;` : ''}"></div>
+      <div class="ma-side ma-side-left" style="background:linear-gradient(145deg, ${myInfo.accent} 0%, #241a10 55%, #120d08 100%);${myInfo.heroImage ? `background-image:url('${myInfo.heroImage.replace(/'/g,'')}'), linear-gradient(145deg, ${myInfo.accent} 0%, #241a10 55%, #120d08 100%);background-size:${myInfo.heroImageZoom>100?myInfo.heroImageZoom+'%':'cover'};background-position:${myInfo.heroImageX}% ${myInfo.heroImageY}%;` : ''}"></div>
+      <div class="ma-side ma-side-right" style="background:linear-gradient(215deg, ${oppInfo.accent} 0%, #241a10 55%, #120d08 100%);${oppInfo.heroImage ? `background-image:url('${oppInfo.heroImage.replace(/'/g,'')}'), linear-gradient(215deg, ${oppInfo.accent} 0%, #241a10 55%, #120d08 100%);background-size:${oppInfo.heroImageZoom>100?oppInfo.heroImageZoom+'%':'cover'};background-position:${oppInfo.heroImageX}% ${oppInfo.heroImageY}%;` : ''}"></div>
       <div class="ma-side ma-vignette-left"></div>
       <div class="ma-side ma-vignette-right"></div>
       <svg class="ma-divider-line" viewBox="0 0 1280 720" preserveAspectRatio="none">

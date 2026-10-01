@@ -315,8 +315,14 @@ header .spacer{flex:1;}
     <button class="btn primary" onclick="openExportModal('code')">Exporter le code moteur</button>
   </header>
 
+  <div style="display:flex;gap:8px;padding:12px 20px 0;max-width:1400px;margin:0 auto;width:100%;box-sizing:border-box;">
+    <button class="btn primary" id="page-tab-cards" onclick="switchEditorPage('cards')">🃏 Cartes</button>
+    <button class="btn" id="page-tab-announce" onclick="switchEditorPage('announce')">🖼️ Cadrage héros — écran d'annonce</button>
+  </div>
+
   <div id="body">
 
+    <div id="cards-section">
     <div id="top-row">
       <div id="fields-panel" class="panel">
         <h2>Informations principales</h2>
@@ -714,6 +720,19 @@ header .spacer{flex:1;}
         </div>
 
       </div>
+    </div>
+
+    </div><!-- /cards-section -->
+
+    <div class="panel" id="hero-announce-panel" style="display:none">
+      <h2>Cadrage des héros — écran d'annonce de match <span class="hint">réglage indépendant du cadrage utilisé sur les cartes — sert uniquement de fond à l'écran qui s'affiche au début d'une partie</span></h2>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+        <label style="font-size:11px;color:var(--parchment-dim);display:flex;align-items:center;gap:6px;">
+          Set :
+          <select id="announce-set-selector" onchange="onAnnounceSetSelectorChange()" style="background:var(--bg-panel-2);border:1px solid #3a3260;color:var(--parchment);border-radius:6px;padding:6px 8px;font-size:12px;"></select>
+        </label>
+      </div>
+      <div id="hero-announce-grid" style="display:flex;flex-direction:column;gap:20px;"></div>
     </div>
 
   </div>
@@ -1250,6 +1269,7 @@ async function loadCurrentSetCards(){
   refreshSuggestionLists();
   renderGallery();
   if(cards.length){ loadCardIntoForm(cards[0]); } else { newCard(); }
+  renderHeroAnnouncePanel();
 }
 
 function buildSetSelector(){
@@ -1259,6 +1279,8 @@ function buildSetSelector(){
   const current = setsIndex.find(s=>s.id===currentSetId);
   const checkbox = document.getElementById('set-is-base-checkbox');
   if(checkbox) checkbox.checked = !!(current && current.is_base);
+  const announceSel = document.getElementById('announce-set-selector');
+  if(announceSel) announceSel.innerHTML = sel.innerHTML;
 }
 
 async function onSetIsBaseChange(){
@@ -1285,6 +1307,20 @@ async function onSetSelectorChange(){
   const sel = document.getElementById('set-selector');
   currentSetId = sel.value;
   localStorage.setItem('spellcraft-last-set-id', currentSetId);
+  const current = setsIndex.find(s=>s.id===currentSetId);
+  const checkbox = document.getElementById('set-is-base-checkbox');
+  if(checkbox) checkbox.checked = !!(current && current.is_base);
+  const announceSel = document.getElementById('announce-set-selector');
+  if(announceSel) announceSel.value = currentSetId;
+  await loadCurrentSetCards();
+}
+
+async function onAnnounceSetSelectorChange(){
+  const announceSel = document.getElementById('announce-set-selector');
+  currentSetId = announceSel.value;
+  localStorage.setItem('spellcraft-last-set-id', currentSetId);
+  const mainSel = document.getElementById('set-selector');
+  if(mainSel) mainSel.value = currentSetId;
   const current = setsIndex.find(s=>s.id===currentSetId);
   const checkbox = document.getElementById('set-is-base-checkbox');
   if(checkbox) checkbox.checked = !!(current && current.is_base);
@@ -1329,6 +1365,124 @@ async function deleteCurrentSet(){
   localStorage.setItem('spellcraft-last-set-id', currentSetId);
   buildSetSelector();
   await loadCurrentSetCards();
+}
+
+/* ============================================================
+   PAGE : CADRAGE HÉROS — ÉCRAN D'ANNONCE DE MATCH
+   ============================================================ */
+function switchEditorPage(page){
+  const cardsSection = document.getElementById('cards-section');
+  const announcePanel = document.getElementById('hero-announce-panel');
+  const tabCards = document.getElementById('page-tab-cards');
+  const tabAnnounce = document.getElementById('page-tab-announce');
+  const showAnnounce = page === 'announce';
+  cardsSection.style.display = showAnnounce ? 'none' : '';
+  announcePanel.style.display = showAnnounce ? 'block' : 'none';
+  tabCards.classList.toggle('primary', !showAnnounce);
+  tabAnnounce.classList.toggle('primary', showAnnounce);
+  if(showAnnounce){
+    const announceSel = document.getElementById('announce-set-selector');
+    if(announceSel) announceSel.value = currentSetId;
+    renderHeroAnnouncePanel();
+  }
+}
+
+function renderHeroAnnouncePanel(){
+  const grid = document.getElementById('hero-announce-grid');
+  if(!grid) return;
+  const heroes = cards.filter(c=>c.type==='Héros');
+  if(heroes.length===0){
+    grid.innerHTML = `<div class="empty-state">Ce set ne contient aucun héros pour l'instant.</div>`;
+    return;
+  }
+  grid.innerHTML = '';
+  heroes.forEach(hero=>{
+    const posX = hero.imagePosXAnnounce ?? 50, posY = hero.imagePosYAnnounce ?? 50, zoom = hero.imageZoomAnnounce ?? 100;
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:18px;align-items:flex-start;background:var(--bg-panel-2);border:1px solid #3a3260;border-radius:10px;padding:14px 16px;flex-wrap:wrap;';
+
+    const previewWrap = document.createElement('div');
+    previewWrap.style.cssText = 'flex-shrink:0;';
+    const preview = document.createElement('div');
+    preview.id = `ha-preview-${hero.id}`;
+    preview.style.cssText = `width:320px;height:180px;border-radius:8px;border:2px solid #3a3260;background-color:#1a1510;background-repeat:no-repeat;overflow:hidden;position:relative;`;
+    applyHeroAnnoucePreviewStyle(preview, hero);
+    const previewLabel = document.createElement('div');
+    previewLabel.className = 'hint';
+    previewLabel.style.cssText = 'text-align:center;margin-top:6px;';
+    previewLabel.textContent = 'Aperçu (zone visible derrière l\'écran d\'annonce)';
+    previewWrap.appendChild(preview);
+    previewWrap.appendChild(previewLabel);
+    row.appendChild(previewWrap);
+
+    const controls = document.createElement('div');
+    controls.style.cssText = 'flex:1;min-width:240px;display:flex;flex-direction:column;gap:8px;';
+    const title = document.createElement('div');
+    title.innerHTML = `<span style="font-family:'Cinzel',serif;font-size:14px;color:var(--gold);">${escapeHtml(hero.name || '(héros sans nom)')}</span>`;
+    controls.appendChild(title);
+
+    if(!hero.image){
+      const warn = document.createElement('div');
+      warn.className = 'hint';
+      warn.textContent = 'Ce héros n\'a pas encore d\'illustration (champ "Image" dans sa fiche carte).';
+      controls.appendChild(warn);
+    }
+
+    const mkSlider = (label, min, max, value, oninput)=>{
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex;align-items:center;gap:8px;';
+      wrap.innerHTML = `<span class="mini-field" style="width:80px;flex-shrink:0;">${label}</span>`;
+      const input = document.createElement('input');
+      input.type = 'range'; input.min = min; input.max = max; input.value = value; input.style.flex = '1';
+      input.oninput = (e)=>oninput(parseInt(e.target.value)||0);
+      wrap.appendChild(input);
+      return wrap;
+    };
+
+    controls.appendChild(mkSlider('Horizontal', 0, 100, posX, v=>updateHeroAnnounceField(hero.id, 'imagePosXAnnounce', v)));
+    controls.appendChild(mkSlider('Vertical', 0, 100, posY, v=>updateHeroAnnounceField(hero.id, 'imagePosYAnnounce', v)));
+    controls.appendChild(mkSlider('Zoom', 100, 250, zoom, v=>updateHeroAnnounceField(hero.id, 'imageZoomAnnounce', v)));
+
+    const resetBtn = document.createElement('button');
+    resetBtn.className = 'btn small';
+    resetBtn.style.alignSelf = 'flex-start';
+    resetBtn.textContent = '↺ Recentrer';
+    resetBtn.onclick = ()=>resetHeroAnnounceFrame(hero.id);
+    controls.appendChild(resetBtn);
+
+    row.appendChild(controls);
+    grid.appendChild(row);
+  });
+}
+
+function applyHeroAnnoucePreviewStyle(el, hero){
+  const posX = hero.imagePosXAnnounce ?? 50, posY = hero.imagePosYAnnounce ?? 50, zoom = hero.imageZoomAnnounce ?? 100;
+  if(hero.image){
+    el.style.backgroundImage = `url('${hero.image.replace(/'/g,'')}')`;
+    el.style.backgroundPosition = `${posX}% ${posY}%`;
+    el.style.backgroundSize = zoom>100 ? zoom+'%' : 'cover';
+  } else {
+    el.style.backgroundImage = 'none';
+  }
+}
+
+function updateHeroAnnounceField(cardId, field, value){
+  const hero = cards.find(c=>c.id===cardId);
+  if(!hero) return;
+  hero[field] = value;
+  const preview = document.getElementById(`ha-preview-${cardId}`);
+  if(preview) applyHeroAnnoucePreviewStyle(preview, hero);
+  persistCards();
+}
+
+function resetHeroAnnounceFrame(cardId){
+  const hero = cards.find(c=>c.id===cardId);
+  if(!hero) return;
+  hero.imagePosXAnnounce = 50;
+  hero.imagePosYAnnounce = 50;
+  hero.imageZoomAnnounce = 100;
+  persistCards();
+  renderHeroAnnouncePanel();
 }
 
 let saveTimer = null;

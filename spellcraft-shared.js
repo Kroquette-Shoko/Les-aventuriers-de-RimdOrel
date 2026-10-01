@@ -176,6 +176,10 @@ function migrateCard(c){
   if(c.imagePosX===undefined) c.imagePosX = 50;
   if(c.imagePosY===undefined) c.imagePosY = 50;
   if(c.imageZoom===undefined) c.imageZoom = 100;
+  // Cadrage dédié à l'illustration de fond de l'écran d'annonce de match (héros uniquement)
+  if(c.imagePosXAnnounce===undefined) c.imagePosXAnnounce = 50;
+  if(c.imagePosYAnnounce===undefined) c.imagePosYAnnounce = 50;
+  if(c.imageZoomAnnounce===undefined) c.imageZoomAnnounce = 100;
   if(c.classSecondary===undefined) c.classSecondary = '';
   if(!c.heroMultiClass) c.heroMultiClass = {enabled:false, allowedClasses:[], maxCount:6, scope:'Toutes'};
   if(!c.class) c.class = 'Neutre';
