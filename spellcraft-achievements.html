@@ -108,9 +108,10 @@ let achievements = [];
 
 // Catégories affichées en sous-onglets, dans cet ordre. Un succès sans
 // catégorie reconnue (ancien succès jamais reclassé) tombe dans "Autre".
-const CATEGORY_ORDER = ['wins','cards_class','boosters','crafting','card_types','damage','hp','turn_cards','secret'];
+const CATEGORY_ORDER = ['wins','hero_wins','cards_class','boosters','crafting','card_types','damage','hp','turn_cards','secret'];
 const CATEGORY_LABELS = {
   wins: '🏆 Partie gagnée',
+  hero_wins: '🦸 Partie gagnée (par héros)',
   cards_class: '🔮 Carte jouée (par classe)',
   boosters: '🎁 Ouverture de booster',
   crafting: '🔨 Fabrication',
