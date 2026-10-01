@@ -431,7 +431,14 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .ma-side-bg{position:absolute;inset:0;}
 .ma-vignette-left{clip-path:polygon(0 0, 33.333% 0, 66.667% 100%, 0 100%);background:radial-gradient(ellipse 46vw 70vh at 22% 50%, rgba(0,0,0,.72) 0%, rgba(0,0,0,.28) 60%, rgba(0,0,0,.08) 100%);}
 .ma-vignette-right{clip-path:polygon(33.333% 0, 100% 0, 100% 100%, 66.667% 100%);background:radial-gradient(ellipse 46vw 70vh at 78% 50%, rgba(0,0,0,.72) 0%, rgba(0,0,0,.28) 60%, rgba(0,0,0,.08) 100%);}
-.ma-divider-line{position:absolute;inset:0;pointer-events:none;}
+/* Ligne dorée = un fin ruban taillé avec le MÊME clip-path (33.333%/66.667%)
+   que les deux zones d'illustration ci-dessus, au lieu d'un <svg> séparé
+   avec son propre système de coordonnées (viewBox 1280x720 étiré) — ce
+   dernier pouvait très légèrement diverger du découpage CSS réel selon le
+   navigateur. En réutilisant exactement les mêmes pourcentages (juste
+   élargis de ±0.3 point), la ligne est géométriquement garantie de tomber
+   pile sur la séparation des deux images, sans possibilité de décalage. */
+.ma-divider-glow{background:#D4AF37;clip-path:polygon(33.033% 0, 33.633% 0, 66.967% 100%, 66.367% 100%);filter:drop-shadow(0 0 7px #D4AF37);z-index:4;pointer-events:none;}
 .ma-vs-badge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:76px;height:76px;border-radius:50%;background:#120d08;display:flex;align-items:center;justify-content:center;z-index:5;box-shadow:0 0 0 6px rgba(11,9,5,.9),0 0 22px rgba(0,0,0,.6);}
 .ma-vs-badge span{font-family:'Cinzel',serif;font-size:20px;font-weight:700;letter-spacing:1px;}
 /* Toutes les tailles ci-dessous sont en vw (relatif à la largeur de la
@@ -1369,9 +1376,7 @@ function playMatchAnnouncement(state){
       </div>
       <div class="ma-side ma-vignette-left"></div>
       <div class="ma-side ma-vignette-right"></div>
-      <svg class="ma-divider-line" viewBox="0 0 1280 720" preserveAspectRatio="none">
-        <line x1="426.667" y1="0" x2="853.333" y2="720" stroke="#D4AF37" stroke-width="5" style="filter:drop-shadow(0 0 7px #D4AF37);"/>
-      </svg>
+      <div class="ma-side ma-divider-glow"></div>
       <div class="ma-vs-badge" style="border:3px solid #D4AF37;"><span style="color:#D4AF37;">VS</span></div>
       ${matchAnnounceSideHtml('left', myInfo)}
       ${matchAnnounceSideHtml('right', oppInfo)}
