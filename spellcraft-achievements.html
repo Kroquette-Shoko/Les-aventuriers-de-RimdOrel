@@ -121,6 +121,7 @@ const CATEGORY_LABELS = {
   secret: '❔ Secret'
 };
 let activeCategory = null;
+let CARD_BACK_NAMES = {}; // id -> nom, chargé une fois pour afficher les récompenses "dos de carte"
 
 async function loadAchievements(){
   const { data, error } = await sb.rpc('get_achievements');
@@ -132,6 +133,15 @@ async function loadAchievements(){
   if(!activeCategory){
     const firstWithItems = CATEGORY_ORDER.find(c=>achievements.some(a=>(a.category||'autre')===c));
     activeCategory = firstWithItems || 'autre';
+  }
+  // Noms des dos de carte utilisés en récompense — chargés une seule fois
+  // pour pouvoir afficher "dos de carte « X »" sans requête par carte.
+  if(Object.keys(CARD_BACK_NAMES).length===0){
+    const backIds = [...new Set(achievements.flatMap(a=>(a.rewards||[]).filter(r=>r.type==='card_back').map(r=>r.card_back_id)))];
+    if(backIds.length>0){
+      const { data: backs } = await sb.from('card_backs').select('id, name').in('id', backIds);
+      (backs||[]).forEach(b=>{ CARD_BACK_NAMES[b.id] = b.name; });
+    }
   }
   renderSummary();
   renderCategoryTabs();
@@ -176,6 +186,7 @@ function describeRewardsPreview(rewards){
     if(r.type==='fragment') return `+${r.amount} fragments ${GEM_NAMES[r.class]||r.class}`;
     if(r.type==='booster') return `${r.count} booster${r.count>1?'s':''} (${REWARD_BOOSTER_SET_LABEL[r.set]||r.set})`;
     if(r.type==='card') return r.card_id ? 'une carte précise' : `une carte ${r.rarity||''}${r.foil?' brillante':''}`.trim();
+    if(r.type==='card_back') return `dos de carte « ${CARD_BACK_NAMES[r.card_back_id] || '?'} »`;
     return null;
   }).filter(Boolean).join(', ') || 'Juste le badge';
 }
@@ -269,6 +280,7 @@ async function describeGrantedRewards(granted){
       }catch(e){}
       parts.push(name);
     }
+    else if(g.type==='card_back') parts.push(`dos de carte « ${g.card_back_name||'?'} »`);
   }
   return parts.length ? parts.join(', ') : 'aucune récompense';
 }
