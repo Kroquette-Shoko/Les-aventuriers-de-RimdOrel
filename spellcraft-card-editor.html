@@ -1387,6 +1387,15 @@ function switchEditorPage(page){
   }
 }
 
+// Les 2 côtés de l'écran d'annonce sont réglés indépendamment : un héros peut
+// se retrouver du côté gauche (vous) ou droit (adversaire) selon la partie, et
+// le côté droit affiche l'illustration EN MIROIR pour que le héros fasse face
+// au centre de l'écran (vers son adversaire) plutôt que de tourner le dos.
+const HERO_ANNOUNCE_SIDES = [
+  { key:'left',  label:'Côté gauche (vous)',       fieldX:'imagePosXAnnounce',      fieldY:'imagePosYAnnounce',      fieldZoom:'imageZoomAnnounce',      mirror:false },
+  { key:'right', label:'Côté droit (adversaire) — image inversée', fieldX:'imagePosXAnnounceRight', fieldY:'imagePosYAnnounceRight', fieldZoom:'imageZoomAnnounceRight', mirror:true }
+];
+
 function renderHeroAnnouncePanel(){
   const grid = document.getElementById('hero-announce-grid');
   if(!grid) return;
@@ -1397,90 +1406,108 @@ function renderHeroAnnouncePanel(){
   }
   grid.innerHTML = '';
   heroes.forEach(hero=>{
-    const posX = hero.imagePosXAnnounce ?? 50, posY = hero.imagePosYAnnounce ?? 50, zoom = hero.imageZoomAnnounce ?? 100;
     const row = document.createElement('div');
-    row.style.cssText = 'display:flex;gap:18px;align-items:flex-start;background:var(--bg-panel-2);border:1px solid #3a3260;border-radius:10px;padding:14px 16px;flex-wrap:wrap;';
+    row.style.cssText = 'display:flex;flex-direction:column;gap:12px;background:var(--bg-panel-2);border:1px solid #3a3260;border-radius:10px;padding:14px 16px;';
 
-    const previewWrap = document.createElement('div');
-    previewWrap.style.cssText = 'flex-shrink:0;';
-    const preview = document.createElement('div');
-    preview.id = `ha-preview-${hero.id}`;
-    preview.style.cssText = `width:320px;height:180px;border-radius:8px;border:2px solid #3a3260;background-color:#1a1510;background-repeat:no-repeat;overflow:hidden;position:relative;`;
-    applyHeroAnnoucePreviewStyle(preview, hero);
-    const previewLabel = document.createElement('div');
-    previewLabel.className = 'hint';
-    previewLabel.style.cssText = 'text-align:center;margin-top:6px;';
-    previewLabel.textContent = 'Aperçu (zone visible derrière l\'écran d\'annonce)';
-    previewWrap.appendChild(preview);
-    previewWrap.appendChild(previewLabel);
-    row.appendChild(previewWrap);
-
-    const controls = document.createElement('div');
-    controls.style.cssText = 'flex:1;min-width:240px;display:flex;flex-direction:column;gap:8px;';
     const title = document.createElement('div');
     title.innerHTML = `<span style="font-family:'Cinzel',serif;font-size:14px;color:var(--gold);">${escapeHtml(hero.name || '(héros sans nom)')}</span>`;
-    controls.appendChild(title);
+    row.appendChild(title);
 
     if(!hero.image){
       const warn = document.createElement('div');
       warn.className = 'hint';
       warn.textContent = 'Ce héros n\'a pas encore d\'illustration (champ "Image" dans sa fiche carte).';
-      controls.appendChild(warn);
+      row.appendChild(warn);
     }
 
-    const mkSlider = (label, min, max, value, oninput)=>{
-      const wrap = document.createElement('div');
-      wrap.style.cssText = 'display:flex;align-items:center;gap:8px;';
-      wrap.innerHTML = `<span class="mini-field" style="width:80px;flex-shrink:0;">${label}</span>`;
-      const input = document.createElement('input');
-      input.type = 'range'; input.min = min; input.max = max; input.value = value; input.style.flex = '1';
-      input.oninput = (e)=>oninput(parseInt(e.target.value)||0);
-      wrap.appendChild(input);
-      return wrap;
-    };
+    const sidesWrap = document.createElement('div');
+    sidesWrap.style.cssText = 'display:flex;gap:24px;flex-wrap:wrap;';
 
-    controls.appendChild(mkSlider('Horizontal', 0, 100, posX, v=>updateHeroAnnounceField(hero.id, 'imagePosXAnnounce', v)));
-    controls.appendChild(mkSlider('Vertical', 0, 100, posY, v=>updateHeroAnnounceField(hero.id, 'imagePosYAnnounce', v)));
-    controls.appendChild(mkSlider('Zoom', 100, 250, zoom, v=>updateHeroAnnounceField(hero.id, 'imageZoomAnnounce', v)));
+    HERO_ANNOUNCE_SIDES.forEach(side=>{
+      sidesWrap.appendChild(buildHeroAnnounceSideUI(hero, side));
+    });
 
-    const resetBtn = document.createElement('button');
-    resetBtn.className = 'btn small';
-    resetBtn.style.alignSelf = 'flex-start';
-    resetBtn.textContent = '↺ Recentrer';
-    resetBtn.onclick = ()=>resetHeroAnnounceFrame(hero.id);
-    controls.appendChild(resetBtn);
-
-    row.appendChild(controls);
+    row.appendChild(sidesWrap);
     grid.appendChild(row);
   });
 }
 
-function applyHeroAnnoucePreviewStyle(el, hero){
-  const posX = hero.imagePosXAnnounce ?? 50, posY = hero.imagePosYAnnounce ?? 50, zoom = hero.imageZoomAnnounce ?? 100;
+function buildHeroAnnounceSideUI(hero, side){
+  const block = document.createElement('div');
+  block.style.cssText = 'display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;flex:1;min-width:300px;';
+
+  const previewWrap = document.createElement('div');
+  previewWrap.style.cssText = 'flex-shrink:0;';
+  const preview = document.createElement('div');
+  preview.id = `ha-preview-${hero.id}-${side.key}`;
+  preview.style.cssText = `width:220px;height:180px;border-radius:8px;border:2px solid #3a3260;background-color:#1a1510;background-repeat:no-repeat;overflow:hidden;position:relative;`;
+  applyHeroAnnoucePreviewStyle(preview, hero, side);
+  const previewLabel = document.createElement('div');
+  previewLabel.className = 'hint';
+  previewLabel.style.cssText = 'text-align:center;margin-top:6px;max-width:220px;';
+  previewLabel.textContent = side.label;
+  previewWrap.appendChild(preview);
+  previewWrap.appendChild(previewLabel);
+  block.appendChild(previewWrap);
+
+  const controls = document.createElement('div');
+  controls.style.cssText = 'flex:1;min-width:180px;display:flex;flex-direction:column;gap:8px;';
+
+  const mkSlider = (label, min, max, value, oninput)=>{
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;align-items:center;gap:8px;';
+    wrap.innerHTML = `<span class="mini-field" style="width:80px;flex-shrink:0;">${label}</span>`;
+    const input = document.createElement('input');
+    input.type = 'range'; input.min = min; input.max = max; input.value = value; input.style.flex = '1';
+    input.oninput = (e)=>oninput(parseInt(e.target.value)||0);
+    wrap.appendChild(input);
+    return wrap;
+  };
+
+  const posX = hero[side.fieldX] ?? 50, posY = hero[side.fieldY] ?? 50, zoom = hero[side.fieldZoom] ?? 100;
+  controls.appendChild(mkSlider('Horizontal', 0, 100, posX, v=>updateHeroAnnounceField(hero.id, side, side.fieldX, v)));
+  controls.appendChild(mkSlider('Vertical', 0, 100, posY, v=>updateHeroAnnounceField(hero.id, side, side.fieldY, v)));
+  controls.appendChild(mkSlider('Zoom', 100, 250, zoom, v=>updateHeroAnnounceField(hero.id, side, side.fieldZoom, v)));
+
+  const resetBtn = document.createElement('button');
+  resetBtn.className = 'btn small';
+  resetBtn.style.alignSelf = 'flex-start';
+  resetBtn.textContent = '↺ Recentrer';
+  resetBtn.onclick = ()=>resetHeroAnnounceFrame(hero.id, side);
+  controls.appendChild(resetBtn);
+
+  block.appendChild(controls);
+  return block;
+}
+
+function applyHeroAnnoucePreviewStyle(el, hero, side){
+  const posX = hero[side.fieldX] ?? 50, posY = hero[side.fieldY] ?? 50, zoom = hero[side.fieldZoom] ?? 100;
   if(hero.image){
     el.style.backgroundImage = `url('${hero.image.replace(/'/g,'')}')`;
     el.style.backgroundPosition = `${posX}% ${posY}%`;
     el.style.backgroundSize = zoom>100 ? zoom+'%' : 'cover';
+    el.style.transform = side.mirror ? 'scaleX(-1)' : 'none';
   } else {
     el.style.backgroundImage = 'none';
+    el.style.transform = 'none';
   }
 }
 
-function updateHeroAnnounceField(cardId, field, value){
+function updateHeroAnnounceField(cardId, side, field, value){
   const hero = cards.find(c=>c.id===cardId);
   if(!hero) return;
   hero[field] = value;
-  const preview = document.getElementById(`ha-preview-${cardId}`);
-  if(preview) applyHeroAnnoucePreviewStyle(preview, hero);
+  const preview = document.getElementById(`ha-preview-${cardId}-${side.key}`);
+  if(preview) applyHeroAnnoucePreviewStyle(preview, hero, side);
   persistCards();
 }
 
-function resetHeroAnnounceFrame(cardId){
+function resetHeroAnnounceFrame(cardId, side){
   const hero = cards.find(c=>c.id===cardId);
   if(!hero) return;
-  hero.imagePosXAnnounce = 50;
-  hero.imagePosYAnnounce = 50;
-  hero.imageZoomAnnounce = 100;
+  hero[side.fieldX] = 50;
+  hero[side.fieldY] = 50;
+  hero[side.fieldZoom] = 100;
   persistCards();
   renderHeroAnnouncePanel();
 }

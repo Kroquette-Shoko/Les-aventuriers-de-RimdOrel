@@ -177,9 +177,15 @@ function migrateCard(c){
   if(c.imagePosY===undefined) c.imagePosY = 50;
   if(c.imageZoom===undefined) c.imageZoom = 100;
   // Cadrage dédié à l'illustration de fond de l'écran d'annonce de match (héros uniquement)
+  // — réglage indépendant pour chaque côté de l'écran : "Annonce" = côté gauche (vous),
+  // "AnnonceRight" = côté droit (adversaire), où l'image est affichée inversée (miroir)
+  // pour que le héros fasse face au centre de l'écran.
   if(c.imagePosXAnnounce===undefined) c.imagePosXAnnounce = 50;
   if(c.imagePosYAnnounce===undefined) c.imagePosYAnnounce = 50;
   if(c.imageZoomAnnounce===undefined) c.imageZoomAnnounce = 100;
+  if(c.imagePosXAnnounceRight===undefined) c.imagePosXAnnounceRight = 50;
+  if(c.imagePosYAnnounceRight===undefined) c.imagePosYAnnounceRight = 50;
+  if(c.imageZoomAnnounceRight===undefined) c.imageZoomAnnounceRight = 100;
   if(c.classSecondary===undefined) c.classSecondary = '';
   if(!c.heroMultiClass) c.heroMultiClass = {enabled:false, allowedClasses:[], maxCount:6, scope:'Toutes'};
   if(!c.class) c.class = 'Neutre';

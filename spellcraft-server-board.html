@@ -424,6 +424,9 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .ma-side{position:absolute;inset:0;}
 .ma-side-left{clip-path:polygon(0 0, 33.333% 0, 66.667% 100%, 0 100%);}
 .ma-side-right{clip-path:polygon(33.333% 0, 100% 0, 100% 100%, 66.667% 100%);}
+/* Couche interne portant l'image de fond : la découpe diagonale reste sur .ma-side-left/right
+   (ci-dessus), le miroir éventuel (côté droit) ne s'applique qu'à cette couche, jamais à la découpe. */
+.ma-side-bg{position:absolute;inset:0;}
 .ma-vignette-left{clip-path:polygon(0 0, 33.333% 0, 66.667% 100%, 0 100%);background:radial-gradient(ellipse 46vw 70vh at 25% 50%, rgba(0,0,0,.72) 0%, rgba(0,0,0,.28) 60%, rgba(0,0,0,.08) 100%);}
 .ma-vignette-right{clip-path:polygon(33.333% 0, 100% 0, 100% 100%, 66.667% 100%);background:radial-gradient(ellipse 46vw 70vh at 75% 50%, rgba(0,0,0,.72) 0%, rgba(0,0,0,.28) 60%, rgba(0,0,0,.08) 100%);}
 .ma-divider-line{position:absolute;inset:0;pointer-events:none;}
@@ -1267,25 +1270,26 @@ function matchAnnounceEscapeHtml(s){ return (s||'').replace(/[&<>"']/g, c => ({'
 // dos de carte, nom de deck — déjà connus côté client) et, si ce n'est pas
 // l'IA, du profil du joueur (titre équipé, badges mis en avant, avatar,
 // pseudo) — récupéré via gsGetProfile, comme sur la page de profil.
-async function buildMatchAnnounceSide(playerState, heroCollection){
+async function buildMatchAnnounceSide(playerState, heroCollection, side){
   const accent = MATCH_ANNOUNCE_CLASS_ACCENT[playerState?.hero?.class] || MATCH_ANNOUNCE_CLASS_ACCENT.Neutre;
-  // Cadrage dédié à l'écran d'annonce, réglé par héros dans l'éditeur de cartes
-  // (onglet "Cadrage héros — écran d'annonce") — indépendant du cadrage utilisé
-  // sur la carte elle-même. On retrouve la fiche complète du héros dans le
-  // catalogue pour lire ces 3 champs ; à défaut, on retombe sur un cadrage neutre.
+  // Cadrage dédié à l'écran d'annonce, réglé par héros ET par côté dans l'éditeur
+  // de cartes (onglet "Cadrage héros — écran d'annonce") — indépendant du cadrage
+  // utilisé sur la carte elle-même. Le côté droit utilise ses propres champs et
+  // s'affiche en miroir pour que le héros fasse face au centre de l'écran.
+  const isRight = side === 'right';
   let heroImageX = 50, heroImageY = 50, heroImageZoom = 100;
   if(playerState?.hero?.name && heroCollection){
     const heroCard = heroCollection.find(c=>c.name===playerState.hero.name && c.type==='Héros');
     if(heroCard){
-      heroImageX = heroCard.imagePosXAnnounce ?? 50;
-      heroImageY = heroCard.imagePosYAnnounce ?? 50;
-      heroImageZoom = heroCard.imageZoomAnnounce ?? 100;
+      heroImageX = (isRight ? heroCard.imagePosXAnnounceRight : heroCard.imagePosXAnnounce) ?? 50;
+      heroImageY = (isRight ? heroCard.imagePosYAnnounceRight : heroCard.imagePosYAnnounce) ?? 50;
+      heroImageZoom = (isRight ? heroCard.imageZoomAnnounceRight : heroCard.imageZoomAnnounce) ?? 100;
     }
   }
   const info = {
     accent,
     heroImage: playerState?.hero?.image || null,
-    heroImageX, heroImageY, heroImageZoom,
+    heroImageX, heroImageY, heroImageZoom, heroImageMirror: isRight,
     cardBackUrl: playerState?.cardBackUrl || null,
     deckName: playerState?.deckName || null,
     name: playerState?.isAI ? 'Intelligence artificielle' : 'Joueur',
@@ -1334,13 +1338,17 @@ function playMatchAnnouncement(state){
   // puis réutilisé pour les deux camps.
   return loadAllCardsAcrossSets().catch(()=>[]).then(collection=>{
     return Promise.all([
-      buildMatchAnnounceSide(state[MY_KEY], collection),
-      buildMatchAnnounceSide(state[OPP_KEY], collection)
+      buildMatchAnnounceSide(state[MY_KEY], collection, 'left'),
+      buildMatchAnnounceSide(state[OPP_KEY], collection, 'right')
     ]);
   }).then(([myInfo, oppInfo])=>{
     el.innerHTML = `
-      <div class="ma-side ma-side-left" style="background:linear-gradient(145deg, ${myInfo.accent} 0%, #241a10 55%, #120d08 100%);${myInfo.heroImage ? `background-image:url('${myInfo.heroImage.replace(/'/g,'')}'), linear-gradient(145deg, ${myInfo.accent} 0%, #241a10 55%, #120d08 100%);background-size:${myInfo.heroImageZoom>100?myInfo.heroImageZoom+'%':'cover'};background-position:${myInfo.heroImageX}% ${myInfo.heroImageY}%;` : ''}"></div>
-      <div class="ma-side ma-side-right" style="background:linear-gradient(215deg, ${oppInfo.accent} 0%, #241a10 55%, #120d08 100%);${oppInfo.heroImage ? `background-image:url('${oppInfo.heroImage.replace(/'/g,'')}'), linear-gradient(215deg, ${oppInfo.accent} 0%, #241a10 55%, #120d08 100%);background-size:${oppInfo.heroImageZoom>100?oppInfo.heroImageZoom+'%':'cover'};background-position:${oppInfo.heroImageX}% ${oppInfo.heroImageY}%;` : ''}"></div>
+      <div class="ma-side ma-side-left" style="background:linear-gradient(145deg, ${myInfo.accent} 0%, #241a10 55%, #120d08 100%);">
+        ${myInfo.heroImage ? `<div class="ma-side-bg" style="background-image:url('${myInfo.heroImage.replace(/'/g,'')}');background-size:${myInfo.heroImageZoom>100?myInfo.heroImageZoom+'%':'cover'};background-position:${myInfo.heroImageX}% ${myInfo.heroImageY}%;${myInfo.heroImageMirror?'transform:scaleX(-1);':''}"></div>` : ''}
+      </div>
+      <div class="ma-side ma-side-right" style="background:linear-gradient(215deg, ${oppInfo.accent} 0%, #241a10 55%, #120d08 100%);">
+        ${oppInfo.heroImage ? `<div class="ma-side-bg" style="background-image:url('${oppInfo.heroImage.replace(/'/g,'')}');background-size:${oppInfo.heroImageZoom>100?oppInfo.heroImageZoom+'%':'cover'};background-position:${oppInfo.heroImageX}% ${oppInfo.heroImageY}%;${oppInfo.heroImageMirror?'transform:scaleX(-1);':''}"></div>` : ''}
+      </div>
       <div class="ma-side ma-vignette-left"></div>
       <div class="ma-side ma-vignette-right"></div>
       <svg class="ma-divider-line" viewBox="0 0 1280 720" preserveAspectRatio="none">
