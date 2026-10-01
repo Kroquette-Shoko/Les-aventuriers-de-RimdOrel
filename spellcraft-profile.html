@@ -34,6 +34,8 @@
   display:flex;align-items:center;justify-content:center;font-size:26px;
 }
 #profile-username{font-family:'Cinzel',serif;font-weight:700;color:var(--parchment);font-size:18px;margin:0 0 4px;}
+#profile-title{font-family:'Cinzel',serif;font-size:12.5px;color:var(--gold);letter-spacing:.3px;margin:0 0 4px;}
+#profile-title:empty{display:none;}
 #profile-since{font-size:11.5px;color:var(--parchment-dim);}
 
 #featured-row{display:flex;gap:10px;margin-left:auto;}
@@ -79,6 +81,13 @@
 }
 .achievement-choice.selected{border-color:var(--gold);box-shadow:0 0 0 2px rgba(212,175,55,.4);}
 .achievement-choice.disabled{opacity:.3;cursor:not-allowed;}
+
+#title-choices{display:flex;flex-wrap:wrap;gap:8px;max-height:180px;overflow-y:auto;}
+.title-choice{
+  padding:7px 14px;border-radius:20px;cursor:pointer;font-family:'Cinzel',serif;font-size:12px;
+  border:1.5px solid var(--line);background:var(--bg-panel-2);color:var(--parchment-dim);
+}
+.title-choice.selected{border-color:var(--gold);color:var(--gold);box-shadow:0 0 0 2px rgba(212,175,55,.25);}
 #edit-status{font-size:11.5px;color:var(--parchment-dim);min-height:14px;margin:12px 0;}
 #edit-buttons{display:flex;gap:10px;margin-top:6px;}
 #edit-buttons .sc-btn{flex:1;}
@@ -110,6 +119,7 @@
       <div id="avatar-circle" onclick="openEditPanel()">👤</div>
       <div>
         <div id="profile-username">...</div>
+        <div id="profile-title"></div>
         <div id="profile-since"></div>
       </div>
       <div id="featured-row"></div>
@@ -130,6 +140,9 @@
 
     <h3>5 succès mis en avant</h3>
     <div id="achievement-choices"></div>
+
+    <h3>Titre affiché</h3>
+    <div id="title-choices"></div>
 
     <div id="edit-status"></div>
     <div id="edit-buttons">
@@ -154,6 +167,7 @@ let UNLOCKED_ACHIEVEMENT_IDS = [];
 let SELECTED_AVATAR = null;
 let LAST_PROFILE = null; // dernière réponse de gsGetProfile, réutilisée par openEditPanel
 let SELECTED_ACHIEVEMENTS = [];
+let SELECTED_TITLE = null; // id du succès dont le nom sert de titre équipé (ou null = aucun)
 
 function escapeHtmlProfile(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
@@ -174,6 +188,7 @@ async function loadAndRenderProfile(){
   LAST_PROFILE = res;
 
   document.getElementById('profile-username').textContent = res.username;
+  document.getElementById('profile-title').textContent = res.equippedTitle ? `« ${res.equippedTitle} »` : '';
   document.getElementById('profile-since').textContent =
     `Membre depuis le ${new Date(res.createdAt).toLocaleDateString('fr-FR', {day:'numeric', month:'long', year:'numeric'})}`;
 
@@ -262,11 +277,12 @@ async function openEditPanel(){
     };
   });
 
-  const { data: achievements } = await sb.from('achievement_definitions').select('id, name, description, image_url').order('order_index');
+  const { data: achievements } = await sb.from('achievement_definitions').select('id, name, description, image_url, grants_title').order('order_index');
   const { data: unlocked } = await sb.from('user_achievements').select('achievement_id').eq('user_id', MY_USER_ID).eq('completed', true);
   ALL_ACHIEVEMENTS = achievements || [];
   UNLOCKED_ACHIEVEMENT_IDS = (unlocked||[]).map(u=>u.achievement_id);
   SELECTED_ACHIEVEMENTS = [];
+  SELECTED_TITLE = (LAST_PROFILE && LAST_PROFILE.equippedTitleAchievementId) || null;
 
   const achWrap = document.getElementById('achievement-choices');
   achWrap.innerHTML = ALL_ACHIEVEMENTS.map(a=>{
@@ -289,6 +305,26 @@ async function openEditPanel(){
     };
   });
 
+  // Titres : uniquement les succès marqués "donne un titre" ET débloqués par
+  // le joueur. "Aucun titre" est toujours proposé pour pouvoir le retirer.
+  const unlockedTitleAchievements = ALL_ACHIEVEMENTS.filter(a => a.grants_title && UNLOCKED_ACHIEVEMENT_IDS.includes(a.id));
+  const titleWrap = document.getElementById('title-choices');
+  let titleTilesHtml = `<div class="title-choice${SELECTED_TITLE ? '' : ' selected'}" data-title-id="">Aucun titre</div>`;
+  titleTilesHtml += unlockedTitleAchievements.map(a => `
+    <div class="title-choice${a.id===SELECTED_TITLE ? ' selected' : ''}" data-title-id="${escapeHtmlProfile(a.id)}">${escapeHtmlProfile(a.name)}</div>
+  `).join('');
+  titleWrap.innerHTML = titleTilesHtml;
+  if(unlockedTitleAchievements.length === 0){
+    titleWrap.innerHTML += '<p style="font-size:12px;color:var(--parchment-dim);width:100%;">Aucun titre débloqué pour l\'instant — certains succès en donnent un en plus du badge.</p>';
+  }
+  titleWrap.querySelectorAll('.title-choice').forEach(el=>{
+    el.onclick = ()=>{
+      SELECTED_TITLE = el.dataset.titleId || null;
+      titleWrap.querySelectorAll('.title-choice').forEach(e=>e.classList.remove('selected'));
+      el.classList.add('selected');
+    };
+  });
+
   document.getElementById('edit-status').textContent = '';
 }
 
@@ -299,7 +335,7 @@ function closeEditPanel(){
 async function saveProfileCustomization(){
   const statusEl = document.getElementById('edit-status');
   statusEl.textContent = 'Enregistrement...';
-  const res = await gsUpdateProfileCustomization(SELECTED_AVATAR, SELECTED_ACHIEVEMENTS);
+  const res = await gsUpdateProfileCustomization(SELECTED_AVATAR, SELECTED_ACHIEVEMENTS, SELECTED_TITLE);
   if(res.error){ statusEl.textContent = 'Erreur : ' + res.error; return; }
   statusEl.textContent = 'Enregistré !';
   await loadAndRenderProfile();

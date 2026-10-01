@@ -535,7 +535,13 @@ function renderBrunoLine(){
   document.getElementById('vendor-speech').innerHTML = BRUNO_LINES[idx];
   // Succès secret "Habitué de la boutique" — mémorise côté serveur quelles
   // répliques d'accueil ont déjà été vues (persiste entre les visites).
-  try{ sb.rpc('mark_bruno_line_seen', { p_line_index: idx }); }catch(e){ /* jamais bloquant */ }
+  // Important : renderBrunoLine() est appelée dès l'ouverture de la page,
+  // AVANT que la session (initSpellcraftAuth) ne soit confirmée — un appel
+  // immédiat arrivait donc sans utilisateur connecté côté serveur et ne
+  // s'enregistrait jamais. On attend que la session soit prête.
+  __spellcraftAuthReadyForBruno.then(()=>{
+    try{ sb.rpc('mark_bruno_line_seen', { p_line_index: idx }); }catch(e){ /* jamais bloquant */ }
+  });
 }
 function showBrunoThanks(){
   if(brunoThanksTimeout) clearTimeout(brunoThanksTimeout);
@@ -1528,7 +1534,10 @@ async function maybeGrantTutorialBoosters(){
   const banner = document.getElementById('tutorial-shop-banner');
   if(banner && total>0) banner.style.display = 'flex';
 }
-initSpellcraftAuth();
+// Capturée ici (au lieu d'un simple appel "fire and forget") pour que
+// renderBrunoLine() puisse attendre que la session soit prête avant
+// d'enregistrer la réplique vue — voir le commentaire dans renderBrunoLine.
+const __spellcraftAuthReadyForBruno = initSpellcraftAuth();
 initShop();
 sb.auth.onAuthStateChange(()=>{ refreshCurrency(); renderCardBackShelf(); renderSingleShelf(); renderHeroShelf(); flashBoosterInventoryBadge(); });
 </script>

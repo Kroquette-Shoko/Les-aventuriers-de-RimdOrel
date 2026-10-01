@@ -107,9 +107,9 @@ async function gsGetProfile(userId) {
   if (error) return { error: error.message || String(error) };
   return data;
 }
-async function gsUpdateProfileCustomization(avatarHeroName, featuredAchievements) {
+async function gsUpdateProfileCustomization(avatarHeroName, featuredAchievements, equippedTitleAchievementId) {
   const { data, error } = await sb.functions.invoke('game-action', {
-    body: { action: 'updateProfileCustomization', avatarHeroName, featuredAchievements }
+    body: { action: 'updateProfileCustomization', avatarHeroName, featuredAchievements, equippedTitleAchievementId }
   });
   if (error) return { error: error.message || String(error) };
   return data;
