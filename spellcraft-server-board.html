@@ -367,6 +367,8 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .mini-tag.relic{border-color:var(--gold);}
 
 .phase-bar{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-shrink:0;}
+.phase-bar-stack{display:flex;flex-direction:column;align-items:stretch;gap:8px;}
+.phase-bar-subrow{display:flex;gap:8px;justify-content:flex-end;}
 .phase-btn{background:linear-gradient(180deg,var(--arcane),#5537c2);color:#fff;border:none;border-radius:10px;padding:10px 22px;font-family:'Cinzel',serif;font-weight:700;font-size:13px;cursor:pointer;box-shadow:0 4px 12px rgba(124,92,255,.4);letter-spacing:.4px;white-space:nowrap;}
 /* Rappel clignotant — quand le bouton d'action (combat/fin de tour/fin de
    blocage) reste cliquable sans que le joueur agisse, voir setupPhaseReminder. */
@@ -432,16 +434,22 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .ma-divider-line{position:absolute;inset:0;pointer-events:none;}
 .ma-vs-badge{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:76px;height:76px;border-radius:50%;background:#120d08;display:flex;align-items:center;justify-content:center;z-index:5;box-shadow:0 0 0 6px rgba(11,9,5,.9),0 0 22px rgba(0,0,0,.6);}
 .ma-vs-badge span{font-family:'Cinzel',serif;font-size:20px;font-weight:700;letter-spacing:1px;}
-.ma-block{position:absolute;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:13px;width:380px;z-index:3;}
-.ma-block-left{left:25%;}
-.ma-block-right{left:75%;}
-.ma-cardback{width:122px;height:170px;border-radius:10px;box-shadow:0 8px 22px rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;background-size:cover;background-position:center;}
-.ma-name{font-family:'Cinzel',serif;color:#f1e6c8;font-size:32px;font-weight:700;letter-spacing:.5px;text-shadow:0 2px 8px rgba(0,0,0,.7);text-align:center;}
-.ma-deckname{font-style:italic;color:rgba(241,230,200,.65);font-size:16px;text-align:center;}
-.ma-avatar{width:108px;height:108px;border-radius:50%;margin-top:5px;box-shadow:0 5px 15px rgba(0,0,0,.6);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;}
-.ma-title{font-family:'Cinzel',serif;font-size:15px;letter-spacing:1.2px;text-transform:uppercase;margin-top:2px;}
-.ma-badges{display:flex;gap:9px;margin-top:4px;min-height:38px;}
-.ma-badge{width:38px;height:38px;border-radius:50%;background-size:cover;background-position:center;background-color:#1a1510;border:2px solid rgba(241,230,200,.5);box-shadow:0 2px 6px rgba(0,0,0,.5);}
+/* Toutes les tailles ci-dessous sont en vw (relatif à la largeur de la
+   fenêtre, calées sur une référence de 1280px), comme la découpe diagonale
+   (clip-path en %) et la ligne dorée (SVG en viewBox 1280x720) — ainsi le
+   cadre de joueur reste TOUJOURS correctement aligné avec la ligne, quelle
+   que soit la taille d'écran réelle (avant : tailles fixes en px, qui
+   pouvaient déborder de la découpe sur certaines résolutions). */
+.ma-block{position:absolute;top:50%;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;gap:clamp(8px,1vw,15px);width:clamp(230px,29.7vw,420px);z-index:3;}
+.ma-block-left{left:22%;}
+.ma-block-right{left:78%;}
+.ma-cardback{width:clamp(74px,9.5vw,135px);height:clamp(103px,13.3vw,188px);border-radius:10px;box-shadow:0 8px 22px rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;background-size:cover;background-position:center;}
+.ma-name{font-family:'Cinzel',serif;color:#f1e6c8;font-size:clamp(19px,2.5vw,35px);font-weight:700;letter-spacing:.5px;text-shadow:0 2px 8px rgba(0,0,0,.7);text-align:center;}
+.ma-deckname{font-style:italic;color:rgba(241,230,200,.65);font-size:clamp(10px,1.25vw,17px);text-align:center;}
+.ma-avatar{width:clamp(65px,8.4vw,120px);height:clamp(65px,8.4vw,120px);border-radius:50%;margin-top:5px;box-shadow:0 5px 15px rgba(0,0,0,.6);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;}
+.ma-title{font-family:'Cinzel',serif;font-size:clamp(9px,1.17vw,16px);letter-spacing:1.2px;text-transform:uppercase;margin-top:2px;}
+.ma-badges{display:flex;flex-wrap:wrap;justify-content:center;gap:clamp(6px,0.7vw,10px);margin-top:4px;min-height:clamp(70px,8.9vw,128px);}
+.ma-badge{width:clamp(70px,8.9vw,128px);height:clamp(70px,8.9vw,128px);border-radius:50%;background-size:cover;background-position:center;background-color:#1a1510;border:2px solid rgba(241,230,200,.5);box-shadow:0 2px 6px rgba(0,0,0,.5);cursor:default;}
 
 .tip{position:fixed;transform:translate(-50%,-100%);font-size:11px;color:var(--parchment-dim);background:rgba(0,0,0,.6);padding:5px 12px;border-radius:20px;pointer-events:none;text-align:center;max-width:280px;z-index:45;transition:left .15s ease, top .15s ease;}
 
@@ -1317,7 +1325,8 @@ async function buildMatchAnnounceSide(playerState, heroCollection, side){
 function matchAnnounceSideHtml(side, info){
   const badgesHtml = Array.from({length:5}).map((_,i)=>{
     const b = info.badges[i];
-    return `<div class="ma-badge" style="${b && b.imageUrl ? `background-image:url('${b.imageUrl.replace(/'/g,'')}')` : `border:2px dashed rgba(241,230,200,.3);background-color:transparent;`}"></div>`;
+    const titleAttr = b && b.name ? ` title="${matchAnnounceEscapeHtml(b.name)}"` : '';
+    return `<div class="ma-badge" ${titleAttr} style="${b && b.imageUrl ? `background-image:url('${b.imageUrl.replace(/'/g,'')}')` : `border:2px dashed rgba(241,230,200,.3);background-color:transparent;`}"></div>`;
   }).join('');
   const deckNameHtml = info.deckName ? `<div class="ma-deckname">${matchAnnounceEscapeHtml(info.deckName)}</div>` : '';
   const titleHtml = info.title ? `<div class="ma-title" style="color:${info.accent};">« ${matchAnnounceEscapeHtml(info.title)} »</div>` : '';
@@ -3320,16 +3329,25 @@ function renderPhaseBar(){
     btn.textContent = UI.selectedAttackers.length ? `Valider ${UI.selectedAttackers.length} attaquant(s)` : "Passer l'attaque";
     btn.onclick = uiConfirmAttackers;
     phaseKey = 'attack-confirm';
+    // Le bouton "Tout sélectionner" (et "Annuler") passe sous le bouton
+    // d'attaque, dans un empilement vertical plutôt qu'à côté.
     const selectAll = document.createElement('button');
     selectAll.className = 'phase-btn secondary small';
     selectAll.textContent = 'Tout sélectionner';
     selectAll.onclick = uiSelectAllAttackers;
-    bar.appendChild(selectAll);
     const cancel = document.createElement('button');
     cancel.className = 'phase-btn secondary small';
     cancel.textContent = 'Annuler';
     cancel.onclick = ()=>{ UI.selectingAttackers = false; UI.selectedAttackers = []; render(); };
-    bar.appendChild(cancel);
+    const subRow = document.createElement('div');
+    subRow.className = 'phase-bar-subrow';
+    subRow.appendChild(selectAll);
+    subRow.appendChild(cancel);
+    const stack = document.createElement('div');
+    stack.className = 'phase-bar-stack';
+    stack.appendChild(btn);
+    stack.appendChild(subRow);
+    bar.appendChild(stack);
   } else if(S.phase==='main' && !me.attackPhaseDone){
     btn.textContent = '⚔ Passer au combat';
     btn.onclick = ()=>{ UI.selectingAttackers = true; UI.selectedAttackers = []; render(); };
@@ -3340,7 +3358,7 @@ function renderPhaseBar(){
     phaseKey = 'end-turn';
   }
 
-  bar.appendChild(btn);
+  if(!btn.parentNode) bar.appendChild(btn);
   setupPhaseReminder(btn, phaseKey);
 }
 

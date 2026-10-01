@@ -25,6 +25,8 @@
 #view-toggle-row{text-align:center;margin-bottom:16px;}
 .summary{text-align:center;margin-bottom:28px;color:var(--parchment-dim);font-size:14px;}
 .summary b{color:var(--gold);}
+.summary-bar-wrap{max-width:420px;margin:10px auto 0;height:16px;border-radius:8px;background:var(--bg-panel-2, #241d3a);border:1px solid var(--line, #3a3260);overflow:hidden;}
+.summary-bar-fill{height:100%;border-radius:8px 0 0 8px;background:linear-gradient(90deg, #a8842f, var(--gold));transition:width .4s ease;}
 #category-tabs{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:24px;}
 .cat-tab{background:var(--bg-panel);border:1.5px solid var(--line);border-radius:20px;padding:7px 16px;
   font-family:'Cinzel',serif;font-weight:700;font-size:12px;color:var(--parchment-dim);cursor:pointer;
@@ -150,9 +152,13 @@ async function loadAchievements(){
 
 function renderSummary(){
   const done = achievements.filter(a=>a.completed).length;
-  document.getElementById('summary').innerHTML = achievements.length
-    ? `<b>${done}</b> / ${achievements.length} succès débloqués`
-    : '';
+  const total = achievements.length;
+  if(!total){ document.getElementById('summary').innerHTML = ''; return; }
+  const pct = Math.round((done/total)*100);
+  document.getElementById('summary').innerHTML = `
+    <div><b>${done}</b> / ${total} succès débloqués (${pct}%)</div>
+    <div class="summary-bar-wrap"><div class="summary-bar-fill" style="width:${pct}%;"></div></div>
+  `;
 }
 
 function renderCategoryTabs(){
