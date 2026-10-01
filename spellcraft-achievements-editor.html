@@ -239,6 +239,7 @@ const TRIGGER_TEXT = {
   // menu déroulant retombe sur son premier choix et écrase la valeur
   // d'origine au moment d'enregistrer).
   win_games_total: '[Cumulé] Partie gagnée',
+  win_games_with_hero: '[Cumulé] Partie gagnée avec un héros précis',
   lose_games_total: '[Cumulé] Partie perdue',
   open_boosters_total: '[Cumulé] Booster ouvert',
   booster_legendary_pulled: '[Ponctuel] Légendaire ouverte dans un booster',
@@ -287,6 +288,7 @@ const CATEGORY_TEXT = {
 let achievements = [];
 let editingId = null;
 let rewards = [];
+let CARD_BACKS = []; // {id, name} — chargés une fois pour le sélecteur de récompense "dos de carte"
 let imgPickerTargetInput = null, imgPickerTargetPreview = null;
 const IMG_PICKER_STORAGE_KEY = 'spellcraft_achievements_filelist';
 const IMG_BASE_PATH = 'images/achievements/';
@@ -383,6 +385,7 @@ function renderRewards(){
       <option value="fragment" ${r.type==='fragment'?'selected':''}>Fragments</option>
       <option value="card" ${r.type==='card'?'selected':''}>Carte</option>
       <option value="booster" ${r.type==='booster'?'selected':''}>Booster</option>
+      <option value="card_back" ${r.type==='card_back'?'selected':''}>Dos de carte</option>
     `;
     typeSel.onchange = ()=>{ rewards[i] = defaultRewardFor(typeSel.value); renderRewards(); };
     row.appendChild(typeSel);
@@ -426,6 +429,12 @@ function renderRewards(){
       cntInp.type='number'; cntInp.value=r.count||1; cntInp.min=1; cntInp.placeholder='Nombre';
       cntInp.oninput=()=>{ r.count=parseInt(cntInp.value)||1; };
       row.appendChild(cntInp);
+    } else if(r.type==='card_back'){
+      const backSel = document.createElement('select');
+      backSel.innerHTML = CARD_BACKS.map(cb=>`<option value="${cb.id}" ${r.card_back_id===cb.id?'selected':''}>${cb.name}</option>`).join('')
+        || '<option value="">Aucun dos de carte disponible</option>';
+      backSel.onchange=()=>{ r.card_back_id=backSel.value; };
+      row.appendChild(backSel);
     }
 
     const rm = document.createElement('button');
@@ -439,6 +448,7 @@ function defaultRewardFor(type){
   if(type==='fragment') return {type:'fragment', class:'aube', amount:5};
   if(type==='card') return {type:'card', rarity:'Rare', count:1, foil:false};
   if(type==='booster') return {type:'booster', set:'base', count:1};
+  if(type==='card_back') return {type:'card_back', card_back_id: (CARD_BACKS[0] && CARD_BACKS[0].id) || ''};
 }
 
 async function saveAchievement(){
@@ -514,6 +524,8 @@ function pickImgFromPicker(filename){
 
 async function init(){
   populateTriggerSelect();
+  const { data: backs } = await sb.from('card_backs').select('id, name').order('name');
+  CARD_BACKS = backs || [];
   await loadAchievements();
   newAchievementForm();
 }
