@@ -392,6 +392,7 @@ function wireActionButtons(){
     if(res.error) return showLobbyError('Erreur : ' + res.error);
     if(!res.waiting){
       // Un adversaire attendait déjà — la partie est prête immédiatement.
+      playSfx('match-found');
       goToBoard(res.sessionId, 'p2');
     } else {
       showMatchmakingWaitScreen();
@@ -518,6 +519,7 @@ function showMatchmakingWaitScreen(){
     }
     if(!res.waiting){
       clearInterval(WAIT_POLL_TIMER);
+      playSfx('match-found');
       goToBoard(res.sessionId, 'p1');
     }
   }, 2500);

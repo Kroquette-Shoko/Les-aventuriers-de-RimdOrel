@@ -1131,10 +1131,22 @@ function renderGameLog(){
       // Révélation 3D — uniquement pour une carte qui vient d'être jouée ou
       // un piège qui se déclenche (pas les capacités qui s'enchaînent
       // ensuite : ça spammerait l'écran à chaque tour un peu chargé).
-      if((entry.kind==='play' || entry.kind==='trap') && full){
+      // Important : on ne teste PAS `full` ici (il peut encore être
+      // manquant si JOURNAL_CARD_LOOKUP — chargé en arrière-plan — n'a pas
+      // fini de se remplir à cet instant précis, typique en tout début de
+      // partie), sinon l'animation est silencieusement sautée pour cette
+      // carte. On relit JOURNAL_CARD_LOOKUP au moment où l'animation
+      // s'exécute réellement (dans la file, donc après un léger délai qui
+      // laisse largement le temps au chargement de se terminer).
+      if(entry.kind==='play' || entry.kind==='trap'){
         const ownerP = S[entry.ownerKey];
         const ownerBackUrl = ownerP ? ownerP.cardBackUrl : null;
-        queueCombatAnim(()=>playCardFlipReveal(full, {isTrap: entry.kind==='trap', backUrl: ownerBackUrl}));
+        const cardId = entry.cardId;
+        queueCombatAnim(()=>{
+          const fullAtAnimTime = cardId ? JOURNAL_CARD_LOOKUP[cardId] : null;
+          if(!fullAtAnimTime) return Promise.resolve(); // carte vraiment introuvable (cas rarissime) : on ne bloque pas la file pour autant
+          return playCardFlipReveal(fullAtAnimTime, {isTrap: entry.kind==='trap', backUrl: ownerBackUrl});
+        });
       }
 
       // Flèche d'effet vers chaque cible touchée par une capacité — ou
@@ -2004,10 +2016,20 @@ function renderDiscoverChoiceModal(){
 // fonctionnelle) : le débordement, s'il y en a, se gère par un défilement
 // normal plutôt que par un rétrécissement silencieux de tout le plateau.
 
+let __gameOverSfxPlayed = false; // évite de relancer le jingle à chaque re-rendu tant que l'écran de fin reste affiché
 function renderGameOverOverlay(){
   const overlay = document.getElementById('overlay');
   if(!S.gameOver){ overlay.classList.remove('show'); return; }
   document.getElementById('overlay-text').textContent = S.winnerKey===MY_KEY ? 'Victoire !' : 'Défaite...';
+  // Musique de fin de partie (victoire/défaite) — jouée une seule fois, coupe
+  // la musique de combat en cours. Comme c'est un simple objet Audio() non
+  // rattaché au système de reprise entre pages, elle s'arrête automatiquement
+  // si le joueur quitte la partie (navigation complète vers une autre page)
+  // avant la fin du morceau — pas de code supplémentaire nécessaire pour ça.
+  if(!__gameOverSfxPlayed){
+    __gameOverSfxPlayed = true;
+    playFinalSfx(S.winnerKey===MY_KEY ? 'victory' : 'defeat');
+  }
 
   const summaryEl = document.getElementById('overlay-summary');
   const sm = S.matchSummary;
@@ -3672,8 +3694,10 @@ async function initFromUrl(){
   // partie — j'utilisais par erreur playMusic('combat',...) qui cherchait
   // un seul fichier combat.ogg inexistant.
   playCombatMusicRotation(0.35);
-  // Chargé en arrière-plan (pas besoin d'attendre) — sert uniquement aux
-  // aperçus de carte au survol dans le journal.
+  // Chargé en arrière-plan (pas besoin d'attendre) — sert aux aperçus de
+  // carte au survol dans le journal, ET à l'animation de révélation 3D
+  // d'une carte jouée (qui relit ce tableau au moment où elle s'exécute,
+  // voir plus haut — c'est pour ça qu'elle n'a pas besoin d'attendre ici).
   loadAllCardsAcrossSets().then(cards=>{
     JOURNAL_CARD_LOOKUP = {};
     cards.forEach(c=>{ JOURNAL_CARD_LOOKUP[c.id] = c; });

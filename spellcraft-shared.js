@@ -317,6 +317,8 @@ const SFX_OGG_FILES = new Set([
 // Quelques sfx sont en .wav.
 const SFX_WAV_FILES = new Set([
   'mana-full',
+  'match-found',
+  'message', // pas encore déclenché nulle part — en attente d'une fenêtre de chat
 ]);
 
 // Joue un effet sonore ponctuel depuis sfx/. Si `key` correspond à une famille

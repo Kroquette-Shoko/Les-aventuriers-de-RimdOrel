@@ -47,8 +47,13 @@ header .spacer{flex:1;}
 .panel h2{font-family:'Cinzel',serif;font-size:14px;margin:0 0 14px;color:var(--gold);letter-spacing:.5px;display:flex;align-items:center;gap:8px;}
 .panel h2 .hint{font-family:'Inter';font-size:11px;font-weight:400;color:var(--parchment-dim);letter-spacing:0;}
 
-#top-row{display:flex;gap:20px;align-items:flex-start;}
-#fields-panel{flex:1.5;min-width:0;}
+/* L'aperçu de carte (#preview-panel) est maintenant un frère de
+   #cards-left-col (qui regroupe TOUTES les sections d'édition d'une carte :
+   infos principales, capacités, galerie, boutique), pas seulement du bloc
+   du haut comme avant — sa position "sticky" reste donc collée à l'écran
+   sur toute la hauteur de la page, pas uniquement en haut. */
+#cards-main-row{display:flex;gap:20px;align-items:flex-start;}
+#cards-left-col{flex:1.5;min-width:0;}
 #preview-panel{width:340px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:14px;position:sticky;top:70px;}
 
 .field{margin-bottom:13px;}
@@ -323,7 +328,8 @@ header .spacer{flex:1;}
   <div id="body">
 
     <div id="cards-section">
-    <div id="top-row">
+    <div id="cards-main-row">
+    <div id="cards-left-col">
       <div id="fields-panel" class="panel">
         <h2>Informations principales</h2>
 
@@ -595,19 +601,6 @@ header .spacer{flex:1;}
         </div>
       </div>
 
-      <div id="preview-panel">
-        <div class="preview-label">Aperçu</div>
-        <div id="preview-big"></div>
-        <div id="new-preview-wrap" style="display:none">
-          <div class="n-preview-label">Nouveau template — Big</div>
-          <div id="new-preview-big"></div>
-          <div class="n-preview-label" id="new-preview-small-label">Nouveau template — Small (plateau)</div>
-          <div id="new-preview-small"></div>
-        </div>
-        <div class="preview-meta" id="preview-meta"></div>
-      </div>
-    </div>
-
     <div class="panel" id="abilities-panel">
       <h2>Capacités <span class="hint">déclencheur + conditions + effets, générés en texte automatiquement</span></h2>
       <div id="abilities-list"></div>
@@ -620,6 +613,12 @@ header .spacer{flex:1;}
         </div>
         <div id="generated-text-box"></div>
         <textarea id="manual-text-box" oninput="onManualTextInput()" placeholder="Écris le texte final de la carte ici..."></textarea>
+      </div>
+
+      <div class="form-actions" style="display:flex;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid #2b2440;">
+        <button class="btn primary" onclick="saveCurrentCard()">💾 Enregistrer</button>
+        <button class="btn" onclick="newCard()">➕ Nouvelle carte</button>
+        <button class="btn danger" onclick="deleteCurrentCard()">🗑 Supprimer</button>
       </div>
     </div>
 
@@ -721,6 +720,22 @@ header .spacer{flex:1;}
 
       </div>
     </div>
+
+    </div><!-- /cards-left-col -->
+
+    <div id="preview-panel">
+      <div class="preview-label">Aperçu</div>
+      <div id="preview-big"></div>
+      <div id="new-preview-wrap" style="display:none">
+        <div class="n-preview-label">Nouveau template — Big</div>
+        <div id="new-preview-big"></div>
+        <div class="n-preview-label" id="new-preview-small-label">Nouveau template — Small (plateau)</div>
+        <div id="new-preview-small"></div>
+      </div>
+      <div class="preview-meta" id="preview-meta"></div>
+    </div>
+
+    </div><!-- /cards-main-row -->
 
     </div><!-- /cards-section -->
 
