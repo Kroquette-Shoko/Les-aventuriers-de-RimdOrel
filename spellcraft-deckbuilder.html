@@ -1882,8 +1882,16 @@ function onCardClick(card){
   if(deckBuildStep==='hero'){
     if(card.type!=='Héros') return;
     currentDeck.heroId = card.id;
+    const nbCartesAvant = currentDeck.cards.length;
+    currentDeck.cards = currentDeck.cards.filter(entry=>{
+      const c = cardById(entry.cardId);
+      return c ? classAllowedByDeck(c) : true;
+    });
+    const nbRetirees = nbCartesAvant - currentDeck.cards.length;
     deckBuildStep = 'region';
-    flashSaved(`✓ ${card.name} choisi comme héros`);
+    flashSaved(nbRetirees>0
+      ? `✓ ${card.name} choisi comme héros (${nbRetirees} carte${nbRetirees>1?'s':''} retirée${nbRetirees>1?'s':''} car devenue${nbRetirees>1?'s':''} incompatible${nbRetirees>1?'s':''})`
+      : `✓ ${card.name} choisi comme héros`);
     currentPage = 0;
     renderDeckPanel();
     renderWizardHint();
