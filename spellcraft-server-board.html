@@ -1526,7 +1526,7 @@ function renderGameLog(){
               };
               // Pas d'élément à animer : on montre quand même chiffre et son.
               if(!attEl || !heroEl){ if(attRes.temp && attEl) attEl.remove(); onImpact(); return Promise.resolve(); }
-              return lungeToward(attEl, heroEl, { onImpact }).then(()=>{ if(attRes.temp) attEl.remove(); });
+              return arrowThenLunge(attEl, heroEl, { onImpact }).then(()=>{ if(attRes.temp) attEl.remove(); });
             });
           });
         }
@@ -3269,49 +3269,79 @@ const ANIM_LUNGE_RETURN_MS = 270;  // retour à sa place
 const ANIM_RECOIL_MS = 300;        // petit recul final des deux créatures ayant combattu
 const ANIM_RECOIL_PX = 16;         // amplitude du recul (pixels d'écran)
 const ANIM_IMPACT_FX_MS = 450;     // anneau + éclat de lumière à l'impact
+const ANIM_ARROW_LEAD_MS = 200;    // la flèche attaquant -> cible s'affiche seule avant que la charge parte
 
 /* ============================================================
    FLÈCHES DE BLOCAGE — affichent les assignations bloqueur → attaquant
    ============================================================ */
+// Flèche (ligne en pointillés + pointe) de (x1,y1) vers (x2,y2), ajoutée dans
+// `parent` (le calque SVG #block-arrows-layer ou un <g> dedans). Style :
+// .block-arrow-line / .block-arrow-head. La pointe s'arrête avant le centre
+// de la cible pour ne pas la masquer.
+function appendArrowShape(parent, x1, y1, x2, y2){
+  const angle = Math.atan2(y2-y1, x2-x1);
+  const shorten = 44;
+  const ex = x2 - Math.cos(angle)*shorten, ey = y2 - Math.sin(angle)*shorten;
+
+  const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+  line.setAttribute('x1', x1); line.setAttribute('y1', y1);
+  line.setAttribute('x2', ex); line.setAttribute('y2', ey);
+  line.setAttribute('class', 'block-arrow-line');
+  parent.appendChild(line);
+
+  const backX = x2 - Math.cos(angle)*32, backY = y2 - Math.sin(angle)*32;
+  const perpX = Math.cos(angle+Math.PI/2)*13, perpY = Math.sin(angle+Math.PI/2)*13;
+  const arrow = document.createElementNS('http://www.w3.org/2000/svg','polygon');
+  arrow.setAttribute('points', `${ex+Math.cos(angle)*32},${ey+Math.sin(angle)*32} ${backX+perpX},${backY+perpY} ${backX-perpX},${backY-perpY}`);
+  arrow.setAttribute('class', 'block-arrow-head');
+  parent.appendChild(arrow);
+}
+// Ancienne version : dessine bloqueur -> attaquant d'après UI.pendingBlockAssignments
+// (jamais alimenté aujourd'hui, donc sans effet) ; garde la même géométrie via
+// appendArrowShape. La flèche utilisée en jeu est showCombatArrow, ci-dessous.
 function drawBlockArrows(){
   const svg = document.getElementById('block-arrows-layer');
   if(!svg || !S) return;
   svg.innerHTML = '';
-  ['p1','p2'].forEach(defKey=>{
-    const defP = S[defKey];
-    if(!defP) return;
-    (defP.board||[]).forEach(blocker=>{
-      if(!blocker.hasBlockedThisTurn) return;
-      // le serveur ne garde pas de table blocage->attaquant après coup
-      // (résolu immédiatement) — on ne dessine donc que pendant la phase
-      // de blocage en cours, via UI.pendingBlockAssignments (rempli côté client)
-    });
-  });
   (UI.pendingBlockAssignments||[]).forEach(({attackerInstId, blockerInstId})=>{
     const attWrap = document.querySelector(`[data-instid="${attackerInstId}"]`);
     const blkWrap = document.querySelector(`[data-instid="${blockerInstId}"]`);
     if(!attWrap || !blkWrap) return;
     const a = attWrap.getBoundingClientRect();
     const b = blkWrap.getBoundingClientRect();
-    const x1 = b.left + b.width/2, y1 = b.top + b.height/2;
-    const x2 = a.left + a.width/2, y2 = a.top + a.height/2;
-    const angle = Math.atan2(y2-y1, x2-x1);
-    const shorten = 44;
-    const ex = x2 - Math.cos(angle)*shorten, ey = y2 - Math.sin(angle)*shorten;
-
-    const line = document.createElementNS('http://www.w3.org/2000/svg','line');
-    line.setAttribute('x1', x1); line.setAttribute('y1', y1);
-    line.setAttribute('x2', ex); line.setAttribute('y2', ey);
-    line.setAttribute('class', 'block-arrow-line');
-    svg.appendChild(line);
-
-    const backX = x2 - Math.cos(angle)*32, backY = y2 - Math.sin(angle)*32;
-    const perpX = Math.cos(angle+Math.PI/2)*13, perpY = Math.sin(angle+Math.PI/2)*13;
-    const arrow = document.createElementNS('http://www.w3.org/2000/svg','polygon');
-    arrow.setAttribute('points', `${ex+Math.cos(angle)*32},${ey+Math.sin(angle)*32} ${backX+perpX},${backY+perpY} ${backX-perpX},${backY-perpY}`);
-    arrow.setAttribute('class', 'block-arrow-head');
-    svg.appendChild(arrow);
+    appendArrowShape(svg, b.left + b.width/2, b.top + b.height/2, a.left + a.width/2, a.top + a.height/2);
   });
+}
+// Trace une flèche attaquant -> cible dans le calque #block-arrows-layer
+// (fixed, hors du plateau mis à l'échelle : coordonnées d'écran, comme les
+// autres animations). Renvoie la fonction qui la retire (idempotente) ; elle
+// est aussi retirée si la file d'animations est interrompue. Le calque a
+// pointer-events:none : aucun clic n'est bloqué au-delà du verrou existant.
+function showCombatArrow(fromEl, toEl){
+  const svg = document.getElementById('block-arrows-layer');
+  if(!svg || !fromEl || !toEl) return ()=>{};
+  const a = fromEl.getBoundingClientRect(), b = toEl.getBoundingClientRect();
+  const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+  appendArrowShape(g, a.left+a.width/2, a.top+a.height/2, b.left+b.width/2, b.top+b.height/2);
+  svg.appendChild(g);
+  const remove = ()=>g.remove();
+  registerCombatCleanup(remove);
+  return remove;
+}
+// Une frappe complète : flèche attaquant -> cible seule pendant ANIM_ARROW_LEAD_MS
+// (on voit QUI vise QUOI), puis la charge ; la flèche disparaît à la fin de
+// l'arrêt à l'impact. `opts` : voir lungeToward.
+function arrowThenLunge(attEl, targetEl, opts){
+  opts = opts || {};
+  const removeArrow = showCombatArrow(attEl, targetEl);
+  const lead = cms(ANIM_ARROW_LEAD_MS);
+  const wait = lead ? new Promise(r=>combatTimeout(r, lead)) : Promise.resolve();
+  return wait.then(()=>lungeToward(attEl, targetEl, Object.assign({}, opts, {
+    onImpact: ()=>{
+      combatTimeout(removeArrow, cms(ANIM_IMPACT_HOLD_MS));
+      if(opts.onImpact) opts.onImpact();
+    }
+  }))).then(removeArrow, e=>{ removeArrow(); throw e; });
 }
 
 /* ============================================================
@@ -3725,7 +3755,7 @@ function playCombatStrike(attackerInstId, blockerInstId, outcome){
     // l'événement (avant résurrection Implacable : une créature ressuscitée ne
     // recule pas non plus, prudence) ou, à défaut, dans l'état précédent/courant.
     let blockerRecoil = Promise.resolve();
-    return lungeToward(attEl, blkEl, {
+    return arrowThenLunge(attEl, blkEl, {
       onImpact: ()=>applyBlockImpact(attEl, blkEl, o),
       recoilPx: o.attackerDied ? 0 : ANIM_RECOIL_PX,
       onRecoilStart: ()=>{ if(!o.blockerDied) blockerRecoil = recoilAway(blkEl, attEl); }
