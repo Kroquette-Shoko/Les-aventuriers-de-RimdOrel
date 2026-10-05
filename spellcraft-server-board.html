@@ -234,6 +234,9 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .card.stunned{filter:grayscale(.7) brightness(.75);}
 .card.summon-sick{transform:rotate(-4deg);}
 .card.summon-sick:hover{transform:rotate(-4deg) translateY(-6px);}
+.ncard.is-stunned{filter:grayscale(.7) brightness(.75);}
+.ncard.is-frozen{filter:hue-rotate(180deg) saturate(1.4) brightness(.9);}
+.card-status-badge{position:absolute;bottom:2px;right:2px;z-index:11;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;line-height:1;background:rgba(23,19,37,.9);border:1.5px solid var(--gold);box-shadow:0 1px 4px rgba(0,0,0,.7);cursor:help;}
 .zzz{position:absolute;top:2px;right:3px;display:flex;align-items:flex-end;z-index:4;pointer-events:none;}
 .zzz span{font-family:'Cinzel',serif;font-weight:700;color:#ffd76b;text-shadow:0 1px 2px rgba(0,0,0,.7);animation:zzz-float 1.8s ease-in-out infinite;display:inline-block;}
 .zzz span:nth-child(1){font-size:9px;animation-delay:0s;}
@@ -1784,6 +1787,22 @@ function cardEl(card, opts={}){
     el.appendChild(stack);
   }
 
+  // Étourdie / gelée : créature grisée + pastille avec infobulle (le
+  // serveur lui refuse déjà attaque, blocage et capacités).
+  if(inPlay && card.stunned){
+    el.classList.add('is-stunned');
+    const badge = nEl('div','card-status-badge');
+    badge.textContent = '💫';
+    badge.title = 'Étourdie';
+    el.appendChild(badge);
+  } else if(inPlay && card.frozen){
+    el.classList.add('is-frozen');
+    const badge = nEl('div','card-status-badge');
+    badge.textContent = '❄️';
+    badge.title = 'Gelée';
+    el.appendChild(badge);
+  }
+
   // survol : aperçu toujours en grande taille, avec le texte complet
   if(!opts.isPreview) attachHoverPreview(el, card, inPlay);
 
@@ -2464,13 +2483,14 @@ function onBoardCreatureClick(key, c){
   }
   // sélection des attaquants (mon tour, phase principale)
   if(isMine && UI.selectingAttackers){
+    if(c.stunned || c.frozen) return; // étourdie/gelée : ne peut pas attaquer
     const idx = UI.selectedAttackers.indexOf(c.instId);
     if(idx>=0) UI.selectedAttackers.splice(idx,1); else UI.selectedAttackers.push(c.instId);
     render();
     return;
   }
   // choix du bloqueur (l'adversaire m'attaque)
-  if(isMine && S.phase==='declareBlockersMe' && S.active===OPP_KEY && !c.hasBlockedThisTurn && !c.keywords?.includes('fearful')){
+  if(isMine && S.phase==='declareBlockersMe' && S.active===OPP_KEY && !c.hasBlockedThisTurn && !c.stunned && !c.frozen && !c.keywords?.includes('fearful')){
     UI.pendingBlocker = c.instId;
     render();
     return;
@@ -2484,7 +2504,7 @@ function onBoardCreatureClick(key, c){
   if(isMine && S.active===MY_KEY && S.phase==='main' && !UI.selectingAttackers){
     const hasNewActivated = c.abilities && c.abilities.some(ab=>ab.kind==='triggered' && (ab.triggers||[]).some(te=>te.trigger==='activated'));
     const hasOldActivated = c.triggeredEffects && c.triggeredEffects.activated;
-    if((hasNewActivated || hasOldActivated) && (c._activationCooldownRemaining||0)<=0){
+    if((hasNewActivated || hasOldActivated) && !c.stunned && (c._activationCooldownRemaining||0)<=0){
       uiActivatePermanent('creature', c.instId);
     }
   }
@@ -3651,7 +3671,7 @@ function uiSelectAllAttackers(){
   // Une créature peut attaquer si elle n'est pas malade d'invocation,
   // sauf si elle a le mot-clé "charge" qui lève cette restriction.
   const eligibleIds = (me.board||[])
-    .filter(c=>!c.summonSick || c.keywords?.includes('charge'))
+    .filter(c=>(!c.summonSick || c.keywords?.includes('charge')) && !c.stunned && !c.frozen)
     .map(c=>c.instId);
   UI.selectedAttackers = eligibleIds;
   render();
