@@ -156,6 +156,32 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .kw-tooltip-icon{width:20px;height:20px;flex-shrink:0;margin-top:1px;}
 .kw-tooltip-txt{font-size:11.5px;line-height:1.4;color:#f2ead2;}
 .kw-tooltip-txt strong{color:var(--gold);font-family:'Cinzel',serif;font-size:11.5px;}
+/* Aperçu d'une créature en jeu : écarts avec la carte de base */
+.kw-tooltip-item.kw-added{border-color:#58c27d;}
+.kw-tooltip-item.kw-added .kw-tooltip-txt strong{color:#8df0b0;}
+.kw-tooltip-item.kw-lost{border-color:#d86a6a;}
+.kw-tooltip-item.kw-lost .kw-tooltip-txt strong{color:#ffa3a3;text-decoration:line-through;}
+.kw-tooltip-item.kw-lost .kw-tooltip-icon{opacity:.55;}
+.kw-tooltip-tag{font-size:10px;font-weight:700;color:#f2ead2;}
+.kw-added .kw-tooltip-tag{color:#8df0b0;}
+.kw-lost .kw-tooltip-tag{color:#ffa3a3;}
+.preview-card-col{display:flex;flex-direction:column;align-items:flex-start;gap:6px;}
+.preview-mods{width:300px;box-sizing:border-box;background:rgba(15,12,24,.92);border:1px solid var(--line, #3a3260);border-radius:8px;padding:7px 10px;font-size:11.5px;line-height:1.4;color:#f2ead2;}
+.preview-mods-title{font-family:'Cinzel',serif;font-size:11.5px;color:var(--gold);margin-bottom:2px;}
+.preview-mods .pm-added{color:#8df0b0;}
+.preview-mods .pm-lost{color:#ffa3a3;}
+.preview-mods .pm-note{font-size:10.5px;color:#b9b0d4;margin-top:2px;}
+.preview-base-tag{width:300px;box-sizing:border-box;text-align:center;font-family:'Cinzel',serif;font-size:11.5px;color:var(--gold);background:rgba(15,12,24,.92);border:1px solid var(--line, #3a3260);border-radius:8px;padding:4px 8px;}
+.preview-base-hint{width:300px;box-sizing:border-box;font-size:10.5px;color:#b9b0d4;text-align:center;}
+.preview-base-btn{display:none;pointer-events:auto;cursor:pointer;font-family:'Cinzel',serif;font-size:12px;color:#f2ead2;background:var(--arcane);border:none;border-radius:8px;padding:8px 16px;}
+@media (hover: none){
+  .preview-base-hint .pbh-key{display:none;}
+  .preview-base-btn{display:inline-block;}
+}
+/* Capacités perdues (silence) : texte du catalogue atténué + estampille */
+.ncard.n-text-lost .ncard-text{opacity:.35;}
+.ncard.n-big .n-text-lost-stamp{position:absolute;left:16%;top:65.79%;width:68%;height:27.5%;z-index:9;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+.ncard .n-text-lost-stamp span{transform:rotate(-8deg);font-family:'Cinzel',serif;font-weight:700;font-size:15px;letter-spacing:.5px;text-transform:uppercase;color:#ffa3a3;border:2px solid #ffa3a3;border-radius:6px;padding:2px 8px;background:rgba(11,10,18,.78);text-shadow:0 0 2px #000;}
 
 #card-reveal{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:85;opacity:0;background:rgba(5,4,10,0);transition:opacity .3s ease, background .3s ease;}
 #card-reveal.show{opacity:1;background:rgba(5,4,10,.5);}
@@ -1161,6 +1187,63 @@ function diffKeywordBadgeSnapshots(prevSnap, nextSnap){
   return out;
 }
 // </keyword-diff>
+
+// ---------------- Aperçu d'une créature en jeu : écarts avec la carte de base ----------------
+// Fonctions pures. `base` = carte du catalogue (JOURNAL_CARD_LOOKUP) ou
+// undefined si le catalogue n'est pas chargé / carte absente (token généré) :
+// sans base, on ne compare rien (aucun faux « ajouté »).
+// <preview-mods>
+const KEYWORD_SOURCE_LABELS = { temp:'temporaire', aura:'aura', permanent:'permanent' };
+
+// Classe chaque mot-clé : 'base' (d'origine), 'added' (+ source : temp / aura /
+// permanent, selon _tempKeywords / _auraKeywords) ou 'lost' (d'origine mais
+// plus sur la carte). Renvoie null si la comparaison est impossible.
+function classifyKeywordsVsBase(card, base){
+  if(!base || !Array.isArray(base.keywords)) return null;
+  const cur = [...new Set(card.keywords || [])];
+  const baseKw = [...new Set(base.keywords)];
+  const temp = card._tempKeywords || [], aura = card._auraKeywords || [];
+  const rows = cur.map(key=>{
+    if(baseKw.includes(key)) return { key, status:'base', source:null };
+    return { key, status:'added', source: temp.includes(key) ? 'temp' : aura.includes(key) ? 'aura' : 'permanent' };
+  });
+  baseKw.forEach(key=>{ if(!cur.includes(key)) rows.push({ key, status:'lost', source:null }); });
+  return rows;
+}
+// Capacités de la base disparues ? Le serveur n'a PAS de marqueur « silenced » :
+// l'effet silence (mode abilities/both) met keywords=[], abilities=[],
+// triggeredEffects={} et onPlayEffect=null. On ne conclut donc que sur ces
+// valeurs EXACTES (tableau/objet vide, null) alors que la base en a ; une
+// instance sans champ (undefined) n'a jamais eu ces capacités : pas de conclusion.
+function hasLostAbilities(card, base){
+  if(!base) return false;
+  if(Array.isArray(base.abilities) && base.abilities.length > 0
+     && Array.isArray(card.abilities) && card.abilities.length === 0) return true;
+  const baseLegacy = !!base.onPlayEffect
+    || (!!base.triggeredEffects && typeof base.triggeredEffects==='object' && Object.keys(base.triggeredEffects).length > 0);
+  if(baseLegacy && card.onPlayEffect === null
+     && !!card.triggeredEffects && typeof card.triggeredEffects==='object' && Object.keys(card.triggeredEffects).length === 0) return true;
+  return false;
+}
+// Résumé des écarts : { rows (ou null), added, lost, silenced, statLines, hasChanges }.
+function describeCreatureModifications(card, base, turn){
+  const rows = classifyKeywordsVsBase(card, base);
+  const added = rows ? rows.filter(r=>r.status==='added') : [];
+  const lost = rows ? rows.filter(r=>r.status==='lost') : [];
+  const silenced = hasLostAbilities(card, base);
+  const statLines = [];
+  if(base && typeof base.atk==='number' && typeof base.hp==='number'){
+    const info = creatureStatInfo(card, base, turn);
+    const curAtk = card.curAtk ?? card.atk ?? 0;
+    const maxHp = card.hp ?? card.curHp ?? 0;
+    if(curAtk !== base.atk && info.atk.title) statLines.push(info.atk.title);
+    // seuls les PV MAX comptent comme modification (une blessure n'en est pas une)
+    if(maxHp !== base.hp && info.hp.title) statLines.push(info.hp.title);
+  }
+  return { rows, added, lost, silenced, statLines,
+           hasChanges: !!(added.length || lost.length || silenced || statLines.length) };
+}
+// </preview-mods>
 
 // ---------------- Règles d'attaque / de blocage (miroir du serveur) ----------------
 // Ces fonctions reproduisent EXACTEMENT les règles du serveur, pour griser
@@ -2412,20 +2495,31 @@ function attachHoverPreview(el, card, inPlay){
 }
 let __previewHoverToken = 0;
 let __lastPreviewEvent = null;
-function buildKeywordTooltipCol(card, inPlay){
-  const kw = (card.keywords || []).filter(k=>KEYWORD_ICON_FILES[k] && KEYWORD_DESCRIPTIONS[k] && isKeywordActiveNow(k, card, inPlay));
-  if(!kw.length) return null;
+// `classified` (optionnel, créature en jeu avec carte de base connue) : lignes
+// { key, status:'base'|'added'|'lost', source } de classifyKeywordsVsBase.
+// Ajouté = vert + « + » et sa source ; perdu = rouge, barré, « perdu ». Les
+// mentions sont du TEXTE visible : l'aperçu ne reçoit pas la souris
+// (pointer-events:none), une infobulle title ne s'afficherait jamais.
+function buildKeywordTooltipCol(card, inPlay, classified){
+  const rows = (classified || (card.keywords || []).map(key=>({ key, status:'base', source:null })))
+    .filter(r=>KEYWORD_ICON_FILES[r.key] && KEYWORD_DESCRIPTIONS[r.key]
+      && (r.status==='lost' || isKeywordActiveNow(r.key, card, inPlay)));
+  if(!rows.length) return null;
   const col = document.createElement('div');
   col.className = 'kw-tooltip-col';
-  kw.forEach(k=>{
+  rows.forEach(r=>{
+    const k = r.key;
     const item = document.createElement('div');
-    item.className = 'kw-tooltip-item';
+    item.className = 'kw-tooltip-item' + (r.status==='added' ? ' kw-added' : r.status==='lost' ? ' kw-lost' : '');
     const icon = document.createElement('img');
     icon.className = 'kw-tooltip-icon';
     icon.src = `images/${KEYWORD_ICON_FILES[k]}`;
     const txt = document.createElement('div');
     txt.className = 'kw-tooltip-txt';
-    txt.innerHTML = `<strong>${escapeHtmlGS(KEYWORD_LABELS[k]||k)}</strong><br>${escapeHtmlGS(KEYWORD_DESCRIPTIONS[k])}`;
+    let tag = '';
+    if(r.status==='added') tag = ` <span class="kw-tooltip-tag">+ ajouté (${escapeHtmlGS(KEYWORD_SOURCE_LABELS[r.source]||r.source)})</span>`;
+    else if(r.status==='lost') tag = ' <span class="kw-tooltip-tag">perdu</span>';
+    txt.innerHTML = `<strong>${escapeHtmlGS(KEYWORD_LABELS[k]||k)}</strong>${tag}<br>${escapeHtmlGS(KEYWORD_DESCRIPTIONS[k])}`;
     item.appendChild(icon);
     item.appendChild(txt);
     col.appendChild(item);
@@ -2433,10 +2527,97 @@ function buildKeywordTooltipCol(card, inPlay){
   return col;
 }
 
+// Carte du catalogue correspondant à cette instance (undefined si le catalogue
+// n'est pas encore chargé — chargement en arrière-plan — ou si la carte n'y est
+// pas : jeton généré par un effet).
+function lookupBaseCard(card){
+  const base = (typeof JOURNAL_CARD_LOOKUP!=='undefined' && card && card.id) ? JOURNAL_CARD_LOOKUP[card.id] : undefined;
+  return (base && base.type==='Créature') ? base : undefined;
+}
+// Bloc « Modifications » affiché sous la carte (voir describeCreatureModifications).
+function buildPreviewModsEl(mods){
+  const box = nEl('div','preview-mods');
+  const kwNames = (rs)=>rs.map(r=>escapeHtmlGS(KEYWORD_LABELS[r.key]||r.key) + (r.source ? ` (${escapeHtmlGS(KEYWORD_SOURCE_LABELS[r.source]||r.source)})` : '')).join(', ');
+  const lines = [`<div class="preview-mods-title">Modifications</div>`];
+  if(mods.silenced) lines.push(`<div class="pm-lost">Réduite au silence : les capacités du texte sont perdues.</div>`);
+  if(mods.added.length) lines.push(`<div class="pm-added">+ Mots-clés ajoutés : ${kwNames(mods.added)}</div>`);
+  if(mods.lost.length) lines.push(`<div class="pm-lost">Mots-clés perdus : ${kwNames(mods.lost)}</div>`);
+  mods.statLines.forEach(t=>lines.push(`<div>${escapeHtmlGS(t)}</div>`));
+  if(mods.added.some(r=>r.source==='temp')) lines.push(`<div class="pm-note">Un mot-clé temporaire est retiré au début du prochain tour de son contrôleur.</div>`);
+  box.innerHTML = lines.join('');
+  return box;
+}
+
+// ---- Bascule « voir la base » (touche Maj maintenue, ou bouton en tactile) ----
+// L'aperçu agrandi d'une créature en jeu montre ses valeurs ACTUELLES ; la
+// bascule affiche la carte telle qu'elle est au catalogue (stats, mots-clés et
+// texte d'origine). Le bouton n'existe que sur les appareils sans survol
+// ((hover: none), voir CSS) : l'aperçu ne reçoit pas la souris sur ordinateur.
+let __previewPinned = false; // aperçu « épinglé » après un appui sur le bouton (tactile)
+function setPreviewBaseView(on){
+  const box = document.getElementById('card-preview');
+  if(box && box.classList.contains('show') && typeof box._setBaseView==='function') box._setBaseView(!!on);
+}
+window.addEventListener('keydown', ev=>{ if(ev.key==='Shift') setPreviewBaseView(true); });
+window.addEventListener('keyup', ev=>{ if(ev.key==='Shift') setPreviewBaseView(false); });
+window.addEventListener('blur', ()=>setPreviewBaseView(false));
+// Aperçu épinglé : un appui en dehors de lui le referme (sinon il resterait affiché)
+document.addEventListener('pointerdown', ev=>{
+  if(__previewPinned && !(ev.target.closest && ev.target.closest('#card-preview'))) hidePreview(true);
+}, true);
+
+// Branche la bascule sur l'aperçu d'une créature en jeu. `parts` = { col (colonne
+// carte), big, modsEl, kwCol } ; le visuel de base est construit à la demande.
+function attachBaseViewToggle(box, parts, baseCard, startOnBase){
+  let baseBig = null, baseKwCol = null, on = false;
+  const tag = nEl('div','preview-base-tag');
+  tag.textContent = 'Carte de base (catalogue)';
+  tag.style.display = 'none';
+  parts.col.insertBefore(tag, parts.col.firstChild);
+  const hint = nEl('div','preview-base-hint');
+  const btn = nEl('button','preview-base-btn');
+  btn.type = 'button';
+  hint.innerHTML = '<span class="pbh-key">Maintenir Maj : voir la carte de base</span>';
+  hint.appendChild(btn);
+  parts.col.appendChild(hint);
+  const setView = (wantBase)=>{
+    wantBase = !!wantBase;
+    if(wantBase === on) return;
+    on = wantBase;
+    if(on && !baseBig){
+      baseBig = buildNewCardEl(baseCard, 'big', undefined, { heroCardFrame:true }); // sans liveStats : valeurs du catalogue
+      parts.col.insertBefore(baseBig, parts.big);
+      baseKwCol = buildKeywordTooltipCol(baseCard, false);
+      if(baseKwCol){ baseKwCol.style.display = 'none'; box.appendChild(baseKwCol); }
+    }
+    parts.big.style.display = on ? 'none' : '';
+    if(parts.modsEl) parts.modsEl.style.display = on ? 'none' : '';
+    if(parts.kwCol) parts.kwCol.style.display = on ? 'none' : '';
+    if(baseBig) baseBig.style.display = on ? '' : 'none';
+    if(baseKwCol) baseKwCol.style.display = on ? '' : 'none';
+    tag.style.display = on ? '' : 'none';
+    btn.textContent = on ? "Voir l'état actuel" : 'Voir la base';
+    if(on && baseBig) requestAnimationFrame(()=>fitNewCard(baseBig)); // mesure impossible tant qu'il était masqué
+    if(__lastPreviewEvent) moveHeroPreview(__lastPreviewEvent);
+  };
+  btn.textContent = 'Voir la base';
+  // pointerdown (et non click) : il précède les événements souris qui feraient
+  // refermer l'aperçu (mouseleave de la carte) avant le clic.
+  btn.addEventListener('pointerdown', ev=>{
+    ev.preventDefault();
+    __previewPinned = true;
+    setView(!on);
+  });
+  box._setBaseView = setView;
+  if(startOnBase) setView(true);
+}
+
 function showCardPreviewHover(card, ev, inPlay){
   const box = document.getElementById('card-preview');
   const myToken = ++__previewHoverToken;
   __lastPreviewEvent = ev;
+  __previewPinned = false;
+  box._setBaseView = null;
   box.innerHTML = '';
   if(card.type==='Héros'){
     box.classList.add('hero-preview');
@@ -2471,6 +2652,33 @@ function showCardPreviewHover(card, ev, inPlay){
       // la largeur finale, les cartes liées arrivant après coup).
       if(__lastPreviewEvent) moveHeroPreview(__lastPreviewEvent);
     }).catch(()=>{});
+  } else if(inPlay && card.type==='Créature'){
+    // Créature EN JEU (et seulement elle) : valeurs actuelles, écarts avec la
+    // carte de base en couleur, bloc « Modifications », bascule « voir la base ».
+    // Main, marché, deckbuilder, artefacts : chemin inchangé ci-dessous.
+    box.classList.remove('hero-preview');
+    const baseCard = lookupBaseCard(card);
+    const mods = describeCreatureModifications(card, baseCard, S && S.turn);
+    const col = nEl('div','preview-card-col');
+    const big = buildNewCardEl(card, 'big', undefined, {heroCardFrame:true, liveStats:true});
+    if(mods.silenced){
+      // Le texte affiché est celui du catalogue (jamais modifié) : on l'atténue
+      // et on l'estampille pour ne pas laisser croire que ces capacités agissent encore.
+      big.classList.add('n-text-lost');
+      const stamp = nEl('div','n-text-lost-stamp');
+      stamp.innerHTML = '<span>Capacités perdues</span>';
+      big.appendChild(stamp);
+    }
+    col.appendChild(big);
+    const modsEl = mods.hasChanges ? buildPreviewModsEl(mods) : null;
+    if(modsEl) col.appendChild(modsEl);
+    box.appendChild(col);
+    requestAnimationFrame(()=>fitNewCard(big));
+    const kwCol = buildKeywordTooltipCol(card, true, mods.rows);
+    if(kwCol) box.appendChild(kwCol);
+    if(baseCard) attachBaseViewToggle(box, { col, big, modsEl, kwCol }, baseCard, !!(ev && ev.shiftKey));
+    box.classList.add('show');
+    moveHeroPreview(ev);
   } else {
     box.classList.remove('hero-preview');
     const big = buildNewCardEl(card, 'big', undefined, {heroCardFrame:true, liveStats: !!inPlay});
@@ -4464,7 +4672,11 @@ function moveHeroPreview(ev){
   box.style.left = x + 'px';
   box.style.top = y + 'px';
 }
-function hidePreview(){
+// `force` : ignore l'épinglage (appui en dehors de l'aperçu). Utilisée aussi
+// comme gestionnaire d'événement (le paramètre est alors l'événement : sans effet).
+function hidePreview(force){
+  if(__previewPinned && force!==true) return;
+  __previewPinned = false;
   __previewHoverToken++;
   document.getElementById('card-preview').classList.remove('show');
 }
