@@ -815,6 +815,13 @@ body.targeting *{cursor:crosshair !important;}
   body.combat-anim-lock #hand-p1{
     pointer-events:none;
   }
+  /* Bouton « Passer » : option de la modale d'options (classe combat-skip-enabled
+     sur <body>), visible uniquement tant que la file d'animations joue. */
+  #combat-skip-btn{display:none;position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:99990;
+    padding:7px 18px;font-family:'Cinzel',serif;font-weight:700;font-size:14px;letter-spacing:.4px;color:var(--parchment,#f0e6c8);
+    background:rgba(15,12,20,.72);border:1.5px solid rgba(212,175,55,.55);border-radius:18px;cursor:pointer;opacity:.8;}
+  #combat-skip-btn:hover{opacity:1;background:rgba(15,12,20,.92);}
+  body.combat-anim-lock.combat-skip-enabled #combat-skip-btn{display:block;}
   .journal-entry-effects{max-height:0;overflow:hidden;transition:max-height .18s ease;padding-left:14px;border-left:2px solid var(--line, #3a3260);margin-left:4px;}
   .journal-entry:hover .journal-entry-effects, .journal-entry-effects.force-open{max-height:200px;}
   .journal-effect-line{font-size:11px;color:var(--parchment-dim,#d9cfae);padding:2px 0;cursor:default;}
@@ -893,6 +900,7 @@ body.targeting *{cursor:crosshair !important;}
   <polygon id="target-arrow" points="0,0 0,0 0,0" style="display:none"/>
 </svg>
 <svg id="block-arrows-layer"></svg>
+<button id="combat-skip-btn" type="button" title="Terminer les animations et afficher le résultat" onclick="abortCombatAnimations()">Passer ⏭</button>
 
 <div id="mulligan-overlay">
   <h2>Ta main de départ</h2>
@@ -1483,6 +1491,12 @@ function renderGameLog(){
             hitHero(ho.total); // aucun attaquant à animer : tout de suite, comme avant
           }
           let totalShown = false;
+          if(combatInstant() && attackers.length){
+            // mode instantané : pas de charge ni de chiffre, un seul son (le plus fort)
+            const loudest = ho.exact ? Math.max(0, ...Object.values(ho.amounts)) : ho.total;
+            if(loudest>0) playSfx(hitSfxForDamage(loudest));
+            return;
+          }
           attackers.forEach(attackerInstId=>{
             queueCombatAnim(()=>{
               const attRes = resolveCombatEl(attackerInstId);
@@ -1508,7 +1522,8 @@ function renderGameLog(){
       // Une créature vient de mourir au combat (voir logDirect côté
       // serveur) — cas à part : ni son de carte jouée, ni flèche
       // d'effet, juste l'animation de dissolution.
-      queueCombatAnim(()=>playCardDeathAnim(entry.deadInstId));
+      if(combatInstant()) playSfx('card-death'); // mode instantané : le son seul, sans file
+      else queueCombatAnim(()=>playCardDeathAnim(entry.deadInstId));
     } else if(entry.cardName){
       const full = entry.cardId ? JOURNAL_CARD_LOOKUP[entry.cardId] : null;
       if(entry.kind==='trap'){
@@ -1705,6 +1720,7 @@ function unfreezeBoardRender(){
 // dérouler sur l'ANCIEN plateau ? (même tri que dans renderGameLog)
 function entryAnimatesBoardCombat(entry){
   if(!entry) return false;
+  if(combatInstant()) return false; // mode instantané : rien à animer, donc pas de gel
   if(entry.raw){
     if(entry.raw.includes('attaque avec')) return false; // simple son
     if(entry.highlightIds && entry.highlightIds.length===2) return true; // combat bloqué
@@ -3323,6 +3339,7 @@ function resolveCombatEl(instId){
 // légèrement, avant d'être retiré.
 function playCardDeathAnim(instId){
   playSfx('card-death');
+  if(combatInstant()) return Promise.resolve(); // mode instantané : le son seul
   const snap = __lastBoardSnapshot[instId];
   if(!snap) return Promise.resolve();
   // Le plateau est gelé sur l'ancien état (voir "Gel du rendu") : la carte
@@ -3340,6 +3357,9 @@ function playCardDeathAnim(instId){
   clone.style.zIndex = '9992';
   clone.style.pointerEvents = 'none';
   document.body.appendChild(clone);
+  const deathDur = cms(640);
+  const cleanDeath = ()=>{ clone.remove(); };
+  registerCombatCleanup(cleanDeath);
   return new Promise(resolve=>{
     const finish = ()=>{ clone.remove(); resolve(); };
     if(clone.animate){
@@ -3347,11 +3367,11 @@ function playCardDeathAnim(instId){
         { transform:'scale(1) rotate(0deg)', opacity:1, filter:'brightness(1) saturate(1)' },
         { transform:'scale(1.08) rotate(-3deg)', opacity:1, filter:'brightness(1.8) saturate(0.2)', offset:0.22 },
         { transform:'scale(0.8) rotate(6deg) translateY(26px)', opacity:0, filter:'brightness(0.3) saturate(0)' }
-      ], { duration: 640, easing:'ease-in' });
+      ], { duration: deathDur, easing:'ease-in' });
       anim.onfinish = finish;
       anim.oncancel = finish;
     } else {
-      setTimeout(finish, 640);
+      setTimeout(finish, deathDur);
     }
   });
 }
@@ -3372,12 +3392,13 @@ function lungeToward(el, targetEl, opts){
   opts = opts || {};
   const duration = opts.totalMs;
   if(!el || !targetEl) return Promise.resolve();
+  if(!cms(duration||650)){ if(opts.onImpact) opts.onImpact(); return Promise.resolve(); } // instantané : pas de mouvement
   const a = el.getBoundingClientRect(), b = targetEl.getBoundingClientRect();
   const dx = (b.left+b.width/2) - (a.left+a.width/2);
   const dy = (b.top+b.height/2) - (a.top+a.height/2);
   const len = Math.hypot(dx,dy) || 1;
   const ux = dx/len, uy = dy/len;
-  const dur = duration||650;
+  const dur = cms(duration||650);
 
   // Anime une copie indépendante plutôt que l'élément réel du plateau —
   // celui-ci est reconstruit à chaque mise à jour d'état (très fréquent :
@@ -3398,8 +3419,10 @@ function lungeToward(el, targetEl, opts){
   // Le choc a lieu quand la carte atteint le centre de la cible (offset 0.6
   // des keyframes ci-dessous).
   if(opts.onImpact) combatTimeout(opts.onImpact, dur*0.6);
+  const restore = ()=>{ ghost.remove(); if(el && el.style) el.style.opacity=''; };
+  registerCombatCleanup(restore); // interruption de la file : on retire le clone et on rend la carte réelle
   return new Promise(resolve=>{
-    const restore = ()=>{ ghost.remove(); if(el && el.style) el.style.opacity=''; resolve(); };
+    const done = ()=>{ restore(); resolve(); };
     if(ghost.animate){
       // Recul marqué (élan), puis fonce jusqu'au CENTRE de la cible (dx/dy
       // représentent déjà le vecteur exact jusqu'à ce centre) en le
@@ -3411,10 +3434,10 @@ function lungeToward(el, targetEl, opts){
         { transform:`translate(${dx*1.12}px, ${dy*1.12}px) scale(1.22)`, offset:0.6 },
         { transform:'translate(0,0) scale(1)' }
       ], { duration: dur, easing:'ease-in-out' });
-      anim.onfinish = restore;
-      anim.oncancel = restore;
+      anim.onfinish = done;
+      anim.oncancel = done;
     } else {
-      setTimeout(restore, dur);
+      setTimeout(done, dur);
     }
   });
 }
@@ -3427,13 +3450,49 @@ let __combatAnimQueue = [];
 let __combatAnimPlaying = false;
 let __combatAnimGen = 0;      // identifie la "session" de lecture en cours (voir releaseCombatAnimLock)
 let __combatAnimWatchdog = null;
-// Garde-fou : la file ne doit jamais bloquer le jeu plus longtemps que ça
-// (animation qui ne se termine pas, onfinish jamais appelé, onglet en
-// arrière-plan...). Passé ce délai on abandonne le reste de la file, on
-// rend l'état final et on débloque les actions.
+let __combatAnimStartedAt = 0;
+// Garde-fous : la file ne doit jamais bloquer le jeu (animation qui ne se
+// termine pas, onfinish jamais appelé, onglet en arrière-plan...). Passé ces
+// délais on abandonne le reste de la file, on rend l'état final et on débloque
+// les actions. Depuis que les séquences de combat sont plus longues, le
+// minuteur est RELANCÉ avant chaque élément de la file : MAX_MS = temps
+// maximal accordé à UN élément, TOTAL_MAX_MS = plafond pour toute la file.
 const COMBAT_ANIM_MAX_MS = 10000;
+const COMBAT_ANIM_TOTAL_MAX_MS = 30000;
+
+// ---------------- Vitesse des animations de combat (options) ----------------
+// Réglage « Vitesse des animations de combat » de la modale d'options
+// (spellcraft-shared.js) : Normale (1x), Rapide (2x : toutes les durées /2),
+// Instantanée (animations de combat ignorées, état final rendu directement,
+// seul un son d'impact par coup est conservé). cms(ms) convertit une durée
+// de référence (vitesse normale) en durée réelle ; 0 en mode instantané.
+function combatSpeedMode(){
+  try { return typeof scGetCombatSpeedMode==='function' ? scGetCombatSpeedMode() : 'normal'; }
+  catch(e){ return 'normal'; }
+}
+function combatInstant(){ return combatSpeedMode()==='instant'; }
+function cms(ms){
+  try { return typeof scScaleMs==='function' ? scScaleMs(ms, combatSpeedMode()) : ms; }
+  catch(e){ return ms; }
+}
+
+// Bouton « Passer » : la classe combat-skip-enabled sur <body> (voir CSS de
+// #combat-skip-btn) suit la case à cocher des options, y compris changée en
+// cours de partie (événement envoyé par spellcraft-shared.js).
+function syncCombatSkipButton(){
+  let on = false;
+  try { on = typeof scGetShowSkipButton==='function' && scGetShowSkipButton(); } catch(e){}
+  document.body.classList.toggle('combat-skip-enabled', !!on);
+}
+window.addEventListener('sc-combat-options-changed', syncCombatSkipButton);
+syncCombatSkipButton();
+
+// Nettoyages à exécuter si la file est interrompue (clones flottants à retirer,
+// cartes réelles à rendre visibles) — idempotents. Vidés à chaque fin de file.
+let __combatCleanups = [];
+function registerCombatCleanup(fn){ __combatCleanups.push(fn); }
 // setTimeout lié à la session de lecture en cours : si la file est
-// interrompue (garde-fou) entre-temps, le rappel ne s'exécute pas.
+// interrompue (garde-fou, bouton Passer) entre-temps, le rappel ne s'exécute pas.
 function combatTimeout(fn, ms){
   const gen = __combatAnimGen;
   return setTimeout(()=>{ if(gen === __combatAnimGen) fn(); }, ms);
@@ -3449,6 +3508,8 @@ function releaseCombatAnimLock(){
   __combatAnimWatchdog = null;
   __combatAnimGen++; // invalide la boucle de lecture éventuellement encore suspendue
   __combatAnimQueue.length = 0;
+  const cleanups = __combatCleanups; __combatCleanups = [];
+  cleanups.forEach(fn=>{ try{ fn(); }catch(e){} });
   document.body.classList.remove('combat-anim-lock');
   __combatAnimPlaying = false;
   // Rend d'abord l'état final (S) que le gel avait retenu...
@@ -3462,18 +3523,35 @@ function releaseCombatAnimLock(){
     onStateUpdate(pending);
   }
 }
+// Interruption immédiate (bouton « Passer » ou garde-fou) : coupe les sons en
+// cours, retire tout ce qui flotte encore (chiffres, flèches, révélation,
+// clones), puis lève le verrou et rend l'état final.
+const COMBAT_ABORT_PURGE_SELECTOR = '.dmg-popup, .ability-reveal-overlay, .ability-bolt, .ability-impact-ring, .ability-self-burst';
+function abortCombatAnimations(){
+  try { if(typeof stopAllSfx==='function') stopAllSfx(); } catch(e){}
+  document.querySelectorAll(COMBAT_ABORT_PURGE_SELECTOR).forEach(n=>n.remove());
+  releaseCombatAnimLock();
+}
+// (Ré)arme le garde-fou : au plus MAX_MS pour l'élément qui démarre, sans
+// jamais dépasser TOTAL_MAX_MS depuis le début de la lecture.
+function armCombatWatchdog(){
+  clearTimeout(__combatAnimWatchdog);
+  const left = COMBAT_ANIM_TOTAL_MAX_MS - (Date.now() - __combatAnimStartedAt);
+  __combatAnimWatchdog = setTimeout(()=>{
+    console.warn('File d\'animations de combat : délai dépassé, rendu final forcé');
+    abortCombatAnimations();
+  }, Math.max(0, Math.min(COMBAT_ANIM_MAX_MS, left)));
+}
 async function processCombatAnimQueue(){
   if(__combatAnimPlaying) return;
   __combatAnimPlaying = true;
   const gen = ++__combatAnimGen;
+  __combatAnimStartedAt = Date.now();
   document.body.classList.add('combat-anim-lock');
-  __combatAnimWatchdog = setTimeout(()=>{
-    console.warn('File d\'animations de combat : délai dépassé, rendu final forcé');
-    releaseCombatAnimLock();
-  }, COMBAT_ANIM_MAX_MS);
   while(__combatAnimQueue.length){
     if(gen !== __combatAnimGen) return; // déblocage forcé entre-temps
     const fn = __combatAnimQueue.shift();
+    armCombatWatchdog();
     try { await fn(); } catch(e) { console.error('Erreur animation de combat', e); }
   }
   if(gen !== __combatAnimGen) return;
@@ -3491,15 +3569,17 @@ function spawnDamageNumber(anchorEl, amount, opts){
   el.textContent = spec.text;
   el.style.left = (r.left+r.width/2)+'px';
   el.style.top = (r.top+r.height/2)+'px';
+  const lifeMs = cms(1400);
+  el.style.animationDuration = lifeMs+'ms';
   document.body.appendChild(el);
-  setTimeout(()=>el.remove(), 1450);
+  setTimeout(()=>el.remove(), lifeMs+50);
 }
 // Effets du choc d'un blocage, appelés au moment de l'impact : sons selon les
 // dégâts (voir planBlockSounds), chiffres sur chacune des deux créatures, et
 // tremblement d'écran selon le plus gros coup.
 function applyBlockImpact(attEl, blkEl, o){
   planBlockSounds(o).forEach(snd=>{
-    if(snd.delayMs>0) combatTimeout(()=>playSfx(snd.key, snd.volume), snd.delayMs);
+    if(snd.delayMs>0) combatTimeout(()=>playSfx(snd.key, snd.volume), cms(snd.delayMs));
     else playSfx(snd.key, snd.volume);
   });
   // Le coup de l'attaquant (chiffre sur le bloqueur) puis la riposte (chiffre
@@ -3507,7 +3587,7 @@ function applyBlockImpact(attEl, blkEl, o){
   const specB = damagePopupSpec(o.dmgToBlocker, o.absorbedBlocker);
   const specA = damagePopupSpec(o.dmgToAttacker, o.absorbedAttacker);
   if(specB) spawnDamageNumber(blkEl, 0, { spec:specB });
-  if(specA) combatTimeout(()=>spawnDamageNumber(attEl, 0, { spec:specA }), SFX_RIPOSTE_GAP_MS);
+  if(specA) combatTimeout(()=>spawnDamageNumber(attEl, 0, { spec:specA }), cms(SFX_RIPOSTE_GAP_MS));
   const big = maxBlockDamage(o);
   if(big!==null) shakeScreen(hitSfxForDamage(big));
 }
@@ -3519,6 +3599,13 @@ function applyBlockImpact(attEl, blkEl, o){
 // `outcome` : résultat du blocage (voir resolveBlockOutcome) — dégâts exacts
 // si le serveur a envoyé l'événement blockResolved, estimés sinon.
 function playCombatStrike(attackerInstId, blockerInstId, outcome){
+  if(combatInstant()){
+    // mode instantané : pas de charge, de chiffres ni de tremblement ; un seul
+    // son d'impact, celui du coup le plus fort
+    const snd = pickLoudestSound(planBlockSounds(outcome || {}));
+    if(snd) playSfx(snd.key, snd.volume);
+    return;
+  }
   queueCombatAnim(()=>{
     const attRes = resolveCombatEl(attackerInstId);
     const heroSlot = S.active===MY_KEY ? 'p2' : 'p1';
@@ -3650,13 +3737,14 @@ function fireAbilityArrow(sourceEl, targetEl){
     bolt.style.top = y1+'px';
     document.body.appendChild(bolt);
 
-    if(!bolt.animate){ bolt.remove(); flashImpact(targetEl); resolve(); return; }
+    const boltMs = cms(420);
+    if(!bolt.animate || !boltMs){ bolt.remove(); flashImpact(targetEl); resolve(); return; }
     const anim = bolt.animate([
       { transform:`translate(0,-50%) rotate(${angle}deg) translateX(0)`, opacity:0 },
       { transform:`translate(0,-50%) rotate(${angle}deg) translateX(0)`, opacity:1, offset:0.08 },
       { transform:`translate(0,-50%) rotate(${angle}deg) translateX(${dist}px)`, opacity:1, offset:0.92 },
       { transform:`translate(0,-50%) rotate(${angle}deg) translateX(${dist}px)`, opacity:0 }
-    ], { duration: 420, easing:'cubic-bezier(.3,.1,.2,1)' });
+    ], { duration: boltMs, easing:'cubic-bezier(.3,.1,.2,1)' });
     anim.onfinish = ()=>{ bolt.remove(); flashImpact(targetEl); resolve(); };
     anim.oncancel = ()=>{ bolt.remove(); resolve(); };
   });
