@@ -589,6 +589,13 @@ body.targeting *{cursor:crosshair !important;}
   15%{opacity:1;transform:translate(-50%,-62%) scale(1.2);}
   100%{opacity:0;transform:translate(-50%,-150%) scale(1);}
 }
+/* Chiffres de dégâts : taille/couleur selon l'ampleur (voir damagePopupSpec).
+   Sans classe de taille (ancien appel) : style de base ci-dessus. */
+.dmg-popup.dmg-s{font-size:26px;}
+.dmg-popup.dmg-m{font-size:34px;color:#ff3b3b;}
+.dmg-popup.dmg-l{font-size:46px;color:#ff1f1f;text-shadow:0 0 12px rgba(255,60,60,.8),0 3px 6px rgba(0,0,0,.9);}
+.dmg-popup.dmg-shield{font-size:30px;color:#9fd3ff;text-shadow:0 0 10px rgba(120,190,255,.7),0 2px 5px rgba(0,0,0,.85);}
+.dmg-popup.dmg-zero{font-size:18px;color:#d9d2c0;font-weight:600;}
 @keyframes hand-card-enter{
   0%{opacity:0;transform:translateY(40px) scale(.8);}
   100%{opacity:1;transform:translateY(0) scale(1);}
@@ -1276,7 +1283,144 @@ function getNewGameLogEntries(commit=true){
   const entries = (S && S.__gameLog) || [];
   return commit ? GAMELOG_TRACKER.take(entries) : GAMELOG_TRACKER.peek(entries);
 }
+// ---------------- Événements de combat structurés (S.__combatEvents) ----------------
+// Le serveur publie, en plus du journal, un tableau SÉPARÉ des 60 derniers
+// événements de combat avec les dégâts RÉELS (après amplificateurs) :
+//  - blockResolved : un attaquant bloqué par une créature (dégâts dans les
+//    deux sens, armure absorbée, morts) ;
+//  - heroDamage : dégâts non bloqués au héros, par attaquant.
+// Même compteur `seq` que le journal : on réutilise donc la fabrique de suivi
+// createGameLogTracker() (nouveaux = seq plus grand que le dernier vu). Le
+// journal (S.__gameLog) continue de piloter QUELLE animation joue ; ces
+// événements ne fournissent que les CHIFFRES. Sans événement (ancien serveur,
+// partie commencée avant le déploiement, événement manquant) on retombe sur
+// une estimation à partir de l'état affiché (PREV_S), sans erreur.
+// <combat-events>
+const SFX_ARMOR_ABSORB = 'clic';       // son léger déjà présent dans sfx/ (0,2 s) : coup absorbé par l'armure
+const SFX_RIPOSTE_GAP_MS = 110;        // décalage entre le coup de l'attaquant et la riposte du bloqueur
+// Son d'impact selon les dégâts : ≤4 léger, 5 à 10 moyen, au-delà fort.
+// Seuils conservés : ils couvrent bien les créatures courantes (Force 1-10)
+// et restent cohérents avec les dégâts au héros déjà réglés ainsi.
 function hitSfxForDamage(n){ return n<=4 ? 'hitLight' : n<=10 ? 'hitMedium' : 'hitLarge'; }
+function isCombatNumber(x){ return typeof x==='number' && isFinite(x); }
+function cleanDamage(x){ return isCombatNumber(x) ? Math.max(0, Math.round(x)) : null; }
+// Créature (état de jeu) par instId sur l'un des deux plateaux, ou null.
+function findCreatureInState(state, instId){
+  if(!state || !instId) return null;
+  for(const key of ['p1','p2']){
+    const c = ((state[key] && state[key].board) || []).find(x=>x && x.instId===instId);
+    if(c) return c;
+  }
+  return null;
+}
+// Retire du lot `pool` (modifié) le premier événement `kind` qui satisfait
+// `pred`, et le renvoie ; null sinon. Chaque événement sert donc une seule fois.
+function takeCombatEvent(pool, kind, pred){
+  if(!Array.isArray(pool)) return null;
+  const i = pool.findIndex(e=>e && e.combatEvent===kind && (!pred || pred(e)));
+  return i>=0 ? pool.splice(i,1)[0] : null;
+}
+// Résultat d'un blocage lu dans un événement blockResolved. Champ absent ou
+// invalide = null (« inconnu »), complété ensuite par l'estimation.
+function blockOutcomeFromEvent(ev){
+  const dB = cleanDamage(ev.dmgToBlocker), dA = cleanDamage(ev.dmgToAttacker);
+  const absB = typeof ev.armorAbsorbedBlocker==='boolean' ? ev.armorAbsorbedBlocker
+             : (ev.armorAbsorbed===true && dB===0);
+  const absA = typeof ev.armorAbsorbedAttacker==='boolean' ? ev.armorAbsorbedAttacker
+             : (ev.armorAbsorbed===true && dA===0);
+  return { exact:true, dmgToBlocker:dB, dmgToAttacker:dA, absorbedBlocker:absB, absorbedAttacker:absA,
+           attackerDied:!!ev.attackerDied, blockerDied:!!ev.blockerDied };
+}
+// APPROXIMATIF (repli sans événement) : dégâts = force affichée (curAtk) de
+// chaque créature dans l'état précédent PREV_S, donc sans amplificateurs,
+// Initiative ni armure. Mort = présente avant, absente maintenant.
+function estimateBlockOutcome(prevState, state, attackerId, blockerId){
+  const att = findCreatureInState(prevState, attackerId);
+  const blk = findCreatureInState(prevState, blockerId);
+  return {
+    exact:false,
+    dmgToBlocker: att ? cleanDamage(att.curAtk ?? att.atk) : null,
+    dmgToAttacker: blk ? cleanDamage(blk.curAtk ?? blk.atk) : null,
+    absorbedBlocker:false, absorbedAttacker:false,
+    attackerDied: !!att && !findCreatureInState(state, attackerId),
+    blockerDied: !!blk && !findCreatureInState(state, blockerId)
+  };
+}
+function resolveBlockOutcome(ev, prevState, state, attackerId, blockerId){
+  const est = estimateBlockOutcome(prevState, state, attackerId, blockerId);
+  if(!ev) return est;
+  const out = blockOutcomeFromEvent(ev);
+  if(out.dmgToBlocker===null){ out.dmgToBlocker = est.dmgToBlocker; out.exact = false; }
+  if(out.dmgToAttacker===null){ out.dmgToAttacker = est.dmgToAttacker; out.exact = false; }
+  return out;
+}
+// Dégâts au héros par attaquant : dmg + pierceExcess (excédent de Perforant)
+// = ce que CET attaquant a réellement fait au héros ; la somme vaut `total`.
+// Sans événement : amounts vide, seul le total (lu dans le journal) est connu.
+function heroOutcome(ev, fallbackTotal){
+  const amounts = {};
+  let exact = false;
+  if(ev && Array.isArray(ev.attackers)){
+    exact = true;
+    ev.attackers.forEach(a=>{
+      if(a && a.instId) amounts[a.instId] = (cleanDamage(a.dmg)||0) + (cleanDamage(a.pierceExcess)||0);
+    });
+  }
+  const total = (ev && cleanDamage(ev.total)!==null) ? cleanDamage(ev.total) : (cleanDamage(fallbackTotal)||0);
+  return { exact, total, amounts };
+}
+// Chiffre flottant : {text, cls} ou null s'il n'y a rien à montrer (inconnu).
+// Bouclier si l'armure a absorbé, « 0 » discret si aucun dégât, sinon -N
+// (taille/couleur selon N : ≤4 petit, ≤10 moyen, au-delà grand).
+function damagePopupSpec(amount, absorbed){
+  if(absorbed) return { text:'🛡', cls:'dmg-shield' };
+  if(!isCombatNumber(amount)) return null;
+  if(amount<=0) return { text:'0', cls:'dmg-zero' };
+  return { text:'-'+amount, cls: amount<=4 ? 'dmg-s' : amount<=10 ? 'dmg-m' : 'dmg-l' };
+}
+// Sons d'un blocage : un son par coup réellement porté (le coup de l'attaquant,
+// puis la riposte SFX_RIPOSTE_GAP_MS plus tard : on les entend comme deux
+// coups, pas comme un seul son écrasé). Armure absorbée = son léger distinct ;
+// 0 dégât sans armure = silence (Initiative qui empêche le second coup...).
+// Tout inconnu (aucun événement, aucune estimation) : ancien comportement,
+// un hitMedium.
+function planBlockSounds(o){
+  const strikes = [
+    { dmg:o.dmgToBlocker, absorbed:!!o.absorbedBlocker },
+    { dmg:o.dmgToAttacker, absorbed:!!o.absorbedAttacker }
+  ];
+  if(!isCombatNumber(strikes[0].dmg) && !isCombatNumber(strikes[1].dmg) && !strikes[0].absorbed && !strikes[1].absorbed){
+    return [{ key:'hitMedium', delayMs:0, volume:0.6 }];
+  }
+  const out = [];
+  strikes.forEach(s=>{
+    const key = s.absorbed ? SFX_ARMOR_ABSORB : (isCombatNumber(s.dmg) && s.dmg>0 ? hitSfxForDamage(s.dmg) : null);
+    if(key) out.push({ key, delayMs: out.length*SFX_RIPOSTE_GAP_MS, volume: out.length ? 0.5 : 0.6 });
+  });
+  return out;
+}
+// Le plus fort des sons planifiés (mode instantané : un seul son, sans décalage).
+function pickLoudestSound(plan){
+  const rank = k => k==='hitLarge' ? 3 : k==='hitMedium' ? 2 : k==='hitLight' ? 1 : 0;
+  let best = null;
+  (plan||[]).forEach(p=>{ if(!best || rank(p.key)>rank(best.key)) best = p; });
+  return best ? { key:best.key, delayMs:0, volume:best.volume } : null;
+}
+// Plus gros coup d'un blocage (pour le tremblement d'écran) ; null si inconnu.
+function maxBlockDamage(o){
+  const v = [o.dmgToBlocker, o.dmgToAttacker].filter(isCombatNumber);
+  return v.length ? Math.max(...v) : null;
+}
+// </combat-events>
+const COMBAT_EVENT_TRACKER = createGameLogTracker();
+// Nouveaux événements de combat depuis le dernier rendu (voir getNewGameLogEntries).
+// On ignore ce qui n'a pas de seq numérique : le suivi par empreinte du journal
+// ne convient pas à ces objets, et le contrat serveur garantit un seq.
+function getNewCombatEvents(commit=true){
+  const all = (S && Array.isArray(S.__combatEvents)) ? S.__combatEvents : [];
+  const evs = all.filter(e=>e && e.combatEvent && isCombatNumber(e.seq));
+  return commit ? COMBAT_EVENT_TRACKER.take(evs) : COMBAT_EVENT_TRACKER.peek(evs);
+}
 // Fait trembler tout l'écran sur un gros coup — jamais sur un petit pichenette
 // (tier 'hitLight' ignoré), pour que ça reste marquant plutôt que fatiguant.
 function shakeScreen(tier){
@@ -1297,6 +1441,9 @@ function renderGameLog(){
   // Anime et sonorise les NOUVELLES entrées depuis le dernier rendu (marche
   // pour les deux joueurs, pas seulement celui qui vient d'agir, puisque
   // c'est basé sur l'état reçu et pas sur une action locale).
+  // Événements de combat structurés (chiffres exacts) : une seule lecture par
+  // rendu ; chaque entrée de journal « consomme » son événement (takeCombatEvent).
+  const newCombatEvents = getNewCombatEvents();
   getNewGameLogEntries().forEach(entry=>{
     if(entry.raw){
       if(entry.raw.includes('attaque avec')){
@@ -1305,8 +1452,12 @@ function renderGameLog(){
         // "bloque la créature X avec Y" : les deux se ruent l'une sur l'autre
         const [attackerInstId, blockerInstId] = entry.highlightIds;
         debugLog(`[anim] combat bloqué détecté : attaquant=${attackerInstId} bloqueur=${blockerInstId}`, 'log-ok');
-        playCombatStrike(attackerInstId, blockerInstId);
-        playSfx('hitMedium');
+        // Chiffres exacts via l'événement blockResolved ; sans lui, estimation
+        // depuis PREV_S (état encore affiché). Le(s) son(s) d'impact jouent
+        // au moment du choc, dans playCombatStrike.
+        const blockEv = takeCombatEvent(newCombatEvents, 'blockResolved',
+          e=>e.attackerInstId===attackerInstId && e.blockerInstId===blockerInstId);
+        playCombatStrike(attackerInstId, blockerInstId, resolveBlockOutcome(blockEv, PREV_S, S, attackerInstId, blockerInstId));
       } else if(entry.raw.includes('perdu') && entry.raw.includes('point')){
         // dégâts non bloqués au héros : popup + son selon l'ampleur, et
         // chaque attaquant se rue vers le héros (même animation que pour
@@ -1314,22 +1465,44 @@ function renderGameLog(){
         const m = entry.raw.match(/(\d+) point/);
         if(m){
           const dmg = parseInt(m[1]);
-          const slot = entry.ownerKey===MY_KEY ? 'p1' : 'p2';
-          const heroEl = document.getElementById(`hero-frame-${slot}`);
-          if(heroEl) spawnDamageNumber(heroEl, dmg);
-          playSfx(hitSfxForDamage(dmg));
-          shakeScreen(hitSfxForDamage(dmg));
-        }
-        (entry.highlightIds||[]).forEach(attackerInstId=>{
-          queueCombatAnim(()=>{
-            const heroSlot = entry.ownerKey===MY_KEY ? 'p1' : 'p2';
-            const attRes = resolveCombatEl(attackerInstId);
-            const attEl = attRes.el;
+          const heroSlot = entry.ownerKey===MY_KEY ? 'p1' : 'p2';
+          // Événement heroDamage correspondant (même héros, même total) :
+          // donne les dégâts de CHAQUE attaquant. Sans lui : un seul chiffre
+          // (le total du journal) et un seul son, au premier choc.
+          const heroEv = takeCombatEvent(newCombatEvents, 'heroDamage',
+            e=>e.heroOwner===entry.ownerKey && e.total===dmg);
+          const ho = heroOutcome(heroEv, dmg);
+          const attackers = entry.highlightIds||[];
+          const hitHero = (amount)=>{
             const heroEl = document.getElementById(`hero-frame-${heroSlot}`);
-            if(!attEl || !heroEl){ if(attRes.temp) attEl.remove(); return Promise.resolve(); }
-            return lungeToward(attEl, heroEl, 480).then(()=>{ if(attRes.temp) attEl.remove(); });
+            if(heroEl) spawnDamageNumber(heroEl, amount);
+            playSfx(hitSfxForDamage(amount));
+            shakeScreen(hitSfxForDamage(amount));
+          };
+          if(!attackers.length){
+            hitHero(ho.total); // aucun attaquant à animer : tout de suite, comme avant
+          }
+          let totalShown = false;
+          attackers.forEach(attackerInstId=>{
+            queueCombatAnim(()=>{
+              const attRes = resolveCombatEl(attackerInstId);
+              const attEl = attRes.el;
+              const heroEl = document.getElementById(`hero-frame-${heroSlot}`);
+              const onImpact = ()=>{
+                if(ho.exact){
+                  const amount = ho.amounts[attackerInstId];
+                  if(amount>0) hitHero(amount);
+                } else if(!totalShown){
+                  totalShown = true;
+                  hitHero(ho.total);
+                }
+              };
+              // Pas d'élément à animer : on montre quand même chiffre et son.
+              if(!attEl || !heroEl){ if(attRes.temp && attEl) attEl.remove(); onImpact(); return Promise.resolve(); }
+              return lungeToward(attEl, heroEl, { totalMs:480, onImpact }).then(()=>{ if(attRes.temp) attEl.remove(); });
+            });
           });
-        });
+        }
       }
     } else if(entry.deadInstId){
       // Une créature vient de mourir au combat (voir logDirect côté
@@ -3192,7 +3365,12 @@ function playCardDeathAnim(instId){
 // de revenir à sa position. Retourne une Promise résolue à la fin, pour
 // pouvoir être mise en file (voir queueCombatAnim) plutôt que jouée
 // immédiatement.
-function lungeToward(el, targetEl, duration){
+// `opts` : une durée en ms (ancien appel) ou { totalMs, onImpact } — onImpact
+// est appelé au moment où la carte atteint sa cible (son, chiffres, tremblement).
+function lungeToward(el, targetEl, opts){
+  if(typeof opts==='number') opts = { totalMs: opts };
+  opts = opts || {};
+  const duration = opts.totalMs;
   if(!el || !targetEl) return Promise.resolve();
   const a = el.getBoundingClientRect(), b = targetEl.getBoundingClientRect();
   const dx = (b.left+b.width/2) - (a.left+a.width/2);
@@ -3217,6 +3395,9 @@ function lungeToward(el, targetEl, duration){
   ghost.style.pointerEvents = 'none';
   document.body.appendChild(ghost);
   el.style.opacity = '0';
+  // Le choc a lieu quand la carte atteint le centre de la cible (offset 0.6
+  // des keyframes ci-dessous).
+  if(opts.onImpact) combatTimeout(opts.onImpact, dur*0.6);
   return new Promise(resolve=>{
     const restore = ()=>{ ghost.remove(); if(el && el.style) el.style.opacity=''; resolve(); };
     if(ghost.animate){
@@ -3251,6 +3432,12 @@ let __combatAnimWatchdog = null;
 // arrière-plan...). Passé ce délai on abandonne le reste de la file, on
 // rend l'état final et on débloque les actions.
 const COMBAT_ANIM_MAX_MS = 10000;
+// setTimeout lié à la session de lecture en cours : si la file est
+// interrompue (garde-fou) entre-temps, le rappel ne s'exécute pas.
+function combatTimeout(fn, ms){
+  const gen = __combatAnimGen;
+  return setTimeout(()=>{ if(gen === __combatAnimGen) fn(); }, ms);
+}
 function queueCombatAnim(fn){
   __combatAnimQueue.push(fn);
   processCombatAnimQueue();
@@ -3292,23 +3479,46 @@ async function processCombatAnimQueue(){
   if(gen !== __combatAnimGen) return;
   releaseCombatAnimLock();
 }
-function spawnDamageNumber(anchorEl, amount){
-  if(!anchorEl || !amount) return;
+// Chiffre flottant au centre de `anchorEl`. Ancien appel (amount seul) : « -N »
+// (rien si 0). `opts.spec` = résultat de damagePopupSpec (bouclier, « 0 »...).
+function spawnDamageNumber(anchorEl, amount, opts){
+  opts = opts || {};
+  const spec = opts.spec || (amount ? damagePopupSpec(amount, false) : null);
+  if(!anchorEl || !spec) return;
   const r = anchorEl.getBoundingClientRect();
   const el = document.createElement('div');
-  el.className = 'dmg-popup';
-  el.textContent = '-'+amount;
+  el.className = 'dmg-popup ' + spec.cls;
+  el.textContent = spec.text;
   el.style.left = (r.left+r.width/2)+'px';
   el.style.top = (r.top+r.height/2)+'px';
   document.body.appendChild(el);
   setTimeout(()=>el.remove(), 1450);
+}
+// Effets du choc d'un blocage, appelés au moment de l'impact : sons selon les
+// dégâts (voir planBlockSounds), chiffres sur chacune des deux créatures, et
+// tremblement d'écran selon le plus gros coup.
+function applyBlockImpact(attEl, blkEl, o){
+  planBlockSounds(o).forEach(snd=>{
+    if(snd.delayMs>0) combatTimeout(()=>playSfx(snd.key, snd.volume), snd.delayMs);
+    else playSfx(snd.key, snd.volume);
+  });
+  // Le coup de l'attaquant (chiffre sur le bloqueur) puis la riposte (chiffre
+  // sur l'attaquant, à son emplacement d'origine), avec le même décalage que les sons.
+  const specB = damagePopupSpec(o.dmgToBlocker, o.absorbedBlocker);
+  const specA = damagePopupSpec(o.dmgToAttacker, o.absorbedAttacker);
+  if(specB) spawnDamageNumber(blkEl, 0, { spec:specB });
+  if(specA) combatTimeout(()=>spawnDamageNumber(attEl, 0, { spec:specA }), SFX_RIPOSTE_GAP_MS);
+  const big = maxBlockDamage(o);
+  if(big!==null) shakeScreen(hitSfxForDamage(big));
 }
 // Joue l'animation de frappe pour un combat entre deux instId (créature vs
 // créature) — appelé juste après avoir reçu la confirmation du serveur.
 // Seul l'attaquant charge — le bloqueur ne fait jamais de charge en
 // retour, même s'il riposte (voir la discussion sur les animations : la
 // bloqueuse ripostant n'est pas "agressive" au sens visuel du terme).
-function playCombatStrike(attackerInstId, blockerInstId){
+// `outcome` : résultat du blocage (voir resolveBlockOutcome) — dégâts exacts
+// si le serveur a envoyé l'événement blockResolved, estimés sinon.
+function playCombatStrike(attackerInstId, blockerInstId, outcome){
   queueCombatAnim(()=>{
     const attRes = resolveCombatEl(attackerInstId);
     const heroSlot = S.active===MY_KEY ? 'p2' : 'p1';
@@ -3317,13 +3527,16 @@ function playCombatStrike(attackerInstId, blockerInstId){
     debugLog(`[anim] playCombatStrike : attEl=${!!attEl} blkEl=${!!blkEl}`, attEl&&blkEl ? 'log-ok' : 'log-error');
     const cleanup = ()=>{ if(attRes.temp) attEl.remove(); if(blkRes.temp) blkEl.remove(); };
     if(!attEl || !blkEl){ cleanup(); return Promise.resolve(); }
-    // Ampleur du tremblement estimée depuis l'attaque affichée de
-    // l'attaquant (pas d'info de dégâts exacte remontée pour ce chemin-là) —
-    // déclenché au moment où le lunge atteint sa cible, pas au départ.
-    const atkTxt = attEl.querySelector('.nstat-wrap.n-atk .nstat-txt');
-    const atk = atkTxt ? (parseInt(atkTxt.textContent, 10) || 0) : 0;
-    setTimeout(()=>shakeScreen(hitSfxForDamage(atk)), 280);
-    return lungeToward(attEl, blkEl, 480).then(cleanup);
+    // Dernier repli (ni événement ni créature dans PREV_S) : force lue dans le
+    // DOM encore affiché — approximatif, comme avant l'ajout des événements.
+    const domAtk = el=>{
+      const t = el.querySelector('.nstat-wrap.n-atk .nstat-txt');
+      return t ? (parseInt(t.textContent, 10) || 0) : null;
+    };
+    const o = Object.assign({}, outcome || {});
+    if(!isCombatNumber(o.dmgToBlocker)) o.dmgToBlocker = domAtk(attEl);
+    if(!isCombatNumber(o.dmgToAttacker)) o.dmgToAttacker = domAtk(blkEl);
+    return lungeToward(attEl, blkEl, { totalMs:480, onImpact: ()=>applyBlockImpact(attEl, blkEl, o) }).then(cleanup);
   });
 }
 
