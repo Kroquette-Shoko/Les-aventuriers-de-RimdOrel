@@ -993,6 +993,11 @@ updateBoardScale();
 let S = null; // état de la partie reçu du serveur
 let MY_KEY = null, OPP_KEY = null;
 let UI = { selectingAttackers:false, selectedAttackers:[], pendingBlocker:null };
+// Dernière action envoyée au serveur qui peut exiger un sacrifice (carte
+// jouée, piège, pouvoir de héros, capacité activée) avec ses paramètres
+// exacts. Si le serveur répond « sacrifice en attente », c'est cette action
+// qu'on lui renvoie, complétée de la créature choisie (sacrificeInstId).
+let LAST_SACRIFICEABLE_ACTION = null;
 
 // ---------------- Signalement de problème ----------------
 // Capture l'état complet de la partie au moment du clic (main, plateau,
@@ -2169,6 +2174,7 @@ async function uiActivateHeroPower(targetInfo, chosenTargets){
       return;
     }
   }
+  LAST_SACRIFICEABLE_ACTION = { action:'useHeroPower', targetInfo, chosenTargets };
   await runAction('Pouvoir de héros', ()=>gsUseHeroPower(targetInfo, chosenTargets));
 }
 async function uiActivatePermanent(permanentType, permanentInstId, targetInfo, chosenTargets){
@@ -2191,6 +2197,7 @@ async function uiActivatePermanent(permanentType, permanentInstId, targetInfo, c
       return;
     }
   }
+  LAST_SACRIFICEABLE_ACTION = { action:'activatePermanent', permanentType, permanentInstId, targetInfo, chosenTargets };
   const res = await runAction('Capacité activée', ()=>gsActivatePermanent(permanentType, permanentInstId, targetInfo, chosenTargets));
   if(permanentType==='artifact' && res && !res.error){
     // Le nouveau rendu (qui grise l'artefact désormais utilisé) vient de
@@ -2450,18 +2457,33 @@ function cancelPendingCard(){
 async function resolvePendingSacrifice(instId){
   const pending = S.pendingSacrifice;
   if(!pending) return;
-  if(pending.action==='setTrap'){
-    await runAction('Poser le piège', ()=>gsSetTrap(pending.handIndex, instId));
-  } else if(pending.action==='useHeroPower'){
-    const targetInfo = pending.targetIsHero ? { isHeroTarget:true, playerKey:pending.targetPlayerKey } : (pending.targetInstId ? { instId:pending.targetInstId } : null);
-    await runAction('Pouvoir de héros', ()=>gsUseHeroPower(targetInfo, pending.chosenTargets, instId));
-  } else if(pending.action==='activatePermanent'){
-    const targetInfo = pending.targetIsHero ? { isHeroTarget:true, playerKey:pending.targetPlayerKey } : (pending.targetInstId ? { instId:pending.targetInstId } : null);
-    await runAction('Capacité activée', ()=>gsActivatePermanent(pending.permanentType, pending.permanentInstId, targetInfo, pending.chosenTargets, instId));
-  } else if(pending.action==='playCardSimple'){
-    const targetInfo = pending.targetIsHero ? { isHeroTarget:true, playerKey:pending.targetPlayerKey } : (pending.targetInstId ? { instId:pending.targetInstId } : null);
-    await runAction('Jouer la carte', ()=>gsPlayCardSimple(pending.handIndex, targetInfo, pending.chosenTargets, pending.choiceKey, instId));
+  // On privilégie l'action mémorisée côté client (paramètres exacts envoyés),
+  // et on se rabat sur les champs du sacrifice en attente fournis par le serveur.
+  const mem = LAST_SACRIFICEABLE_ACTION;
+  const kind = pending.action || (mem && mem.action);
+  const src = (mem && mem.action===kind) ? mem : {
+    action: kind,
+    handIndex: pending.handIndex,
+    targetInfo: pending.targetIsHero ? { isHeroTarget:true, playerKey:pending.targetPlayerKey } : (pending.targetInstId ? { instId:pending.targetInstId } : null),
+    chosenTargets: pending.chosenTargets,
+    choiceKey: pending.choiceKey,
+    permanentType: pending.permanentType,
+    permanentInstId: pending.permanentInstId
+  };
+  let res;
+  if(kind==='setTrap'){
+    res = await runAction('Poser le piège', ()=>gsSetTrap(src.handIndex, instId));
+  } else if(kind==='useHeroPower'){
+    res = await runAction('Pouvoir de héros', ()=>gsUseHeroPower(src.targetInfo, src.chosenTargets, instId));
+  } else if(kind==='activatePermanent'){
+    res = await runAction('Capacité activée', ()=>gsActivatePermanent(src.permanentType, src.permanentInstId, src.targetInfo, src.chosenTargets, instId));
+  } else if(kind==='playCardSimple'){
+    res = await runAction('Jouer la carte', ()=>gsPlayCardSimple(src.handIndex, src.targetInfo, src.chosenTargets, src.choiceKey, instId));
+  } else {
+    showActionError("Impossible de terminer le sacrifice : l'action d'origine est inconnue.");
+    return;
   }
+  if(res && !res.error) LAST_SACRIFICEABLE_ACTION = null;
 }
 
 function onBoardCreatureClick(key, c){
@@ -3565,6 +3587,31 @@ function closeDiscardModal(){
 // fini de se traiter — sinon plusieurs clics rapides se marchent dessus
 // sur le verrou serveur (409 "session-busy") et la partie semble bloquée.
 let ACTION_IN_FLIGHT = false;
+// Message d'erreur visible à l'écran (le panneau de débogage est retiré :
+// sans ça, une action refusée par le serveur paraissait « ne rien faire »).
+const ACTION_ERROR_LABELS = {
+  'pending-sacrifice-choice': 'choisis d\'abord la créature à sacrifier.',
+  'cannot-block': 'cette créature est étourdie ou gelée et ne peut pas agir.'
+};
+function describeActionError(err){
+  const key = String(err);
+  return ACTION_ERROR_LABELS[key] || key;
+}
+let __actionErrorTimer = null;
+function showActionError(msg){
+  console.error(msg);
+  let box = document.getElementById('action-error-toast');
+  if(!box){
+    box = document.createElement('div');
+    box.id = 'action-error-toast';
+    box.style.cssText = 'position:fixed;top:14px;left:50%;transform:translateX(-50%);z-index:100000;max-width:80vw;padding:10px 18px;border-radius:10px;background:rgba(120,25,35,.95);color:#fff;border:1.5px solid var(--gold);font-weight:700;font-size:14px;box-shadow:0 4px 18px rgba(0,0,0,.6);pointer-events:none;';
+    document.body.appendChild(box);
+  }
+  box.textContent = msg;
+  box.style.display = 'block';
+  if(__actionErrorTimer) clearTimeout(__actionErrorTimer);
+  __actionErrorTimer = setTimeout(()=>{ box.style.display = 'none'; }, 5000);
+}
 async function runAction(label, fn){
   if(ACTION_IN_FLIGHT){ debugLog(`${label} → une action est déjà en cours, patiente un instant.`, 'log-error'); return; }
   ACTION_IN_FLIGHT = true;
@@ -3573,6 +3620,7 @@ async function runAction(label, fn){
     const res = await fn();
     if(res && res.error){
       debugLog(`${label} → ${res.error}`, 'log-error');
+      showActionError(`${label} : ${describeActionError(res.error)}`);
     } else if(res && res.state){
       // Applique directement l'état renvoyé par l'action elle-même — ne
       // dépend plus uniquement de la diffusion temps réel (qui met à jour
@@ -3585,6 +3633,7 @@ async function runAction(label, fn){
     return res;
   } catch(e){
     debugLog(`${label} → exception : ${e && e.message || e}`, 'log-error');
+    showActionError(`${label} : ${e && e.message || e}`);
   } finally {
     ACTION_IN_FLIGHT = false;
     document.body.classList.remove('action-busy');
@@ -3639,6 +3688,7 @@ async function uiPlayCard(i, targetInfo, chosenTargets, choiceKey){
     showCardChoiceModal(card, choiceAbility, (pickedKey)=>{ uiPlayCard(i, targetInfo, chosenTargets, pickedKey); });
     return;
   }
+  LAST_SACRIFICEABLE_ACTION = { action:'playCardSimple', handIndex:i, targetInfo, chosenTargets, choiceKey };
   await runAction('Jouer carte', ()=>gsPlayCardSimple(i, targetInfo, chosenTargets, choiceKey));
 }
 function showCardChoiceModal(card, ability, onPick){
@@ -3664,7 +3714,10 @@ function showCardChoiceModal(card, ability, onPick){
   });
   document.body.appendChild(overlay);
 }
-async function uiSetTrap(i){ await runAction('Poser le piège', ()=>gsSetTrap(i)); }
+async function uiSetTrap(i){
+  LAST_SACRIFICEABLE_ACTION = { action:'setTrap', handIndex:i };
+  await runAction('Poser le piège', ()=>gsSetTrap(i));
+}
 async function uiEndTurn(){ playSfx('pass'); await runAction('Fin de tour', ()=>gsEndTurn()); }
 function uiSelectAllAttackers(){
   const me = S[MY_KEY];
