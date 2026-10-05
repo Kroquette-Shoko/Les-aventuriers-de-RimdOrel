@@ -43,7 +43,7 @@ Un deck est composé de :
 | **Créature** | Oui | Force / Endurance | Peut attaquer, bloquer, mourir. Porte la majorité des mots-clés de combat. |
 | **Artefact** | Oui | Usure (charges) | Reste en jeu, s'épuise après N utilisations si limité. |
 | **Sortilège** | Oui | — | Effet immédiat à la résolution, puis va en défausse. |
-| **Piège** | Oui | — | Posé face cachée, reste dans votre main, sans payer de mana à la pose. Armé au prochain changement de phase, il attend sa condition adverse (attaque, sort, invocation). Le coût en mana est payé uniquement au déclenchement ; si le mana manque, le Piège ne se déclenche pas et reste armé. Une fois résolu, il va en défausse. Non déclenché avant votre tour suivant : se désarme sans effet. |
+| **Piège** | Oui | — | Posé face cachée, reste dans votre main, sans payer de mana à la pose. Armé au prochain changement de phase, il attend sa condition adverse (attaque, sort, invocation). Le coût en mana est payé uniquement au déclenchement ; si le mana manque, le Piège ne se déclenche pas et reste armé. Une fois résolu, il va en défausse. Non déclenché avant votre tour suivant : se désarme sans effet. Aucune limite au nombre de Pièges actifs ; s'ils visent le même événement, ils s'utilisent du plus ancien au plus récent, un à la fois. |
 
 ### 3.1 Cycle de vie d'un Piège
 
@@ -56,6 +56,8 @@ Contrairement à un Sortilège, poser un Piège ne le retire pas de votre main e
    - Si vous avez assez de mana : le Piège se révèle, son effet se résout, puis il part en défausse. Un Piège ne se déclenche qu'une seule fois.
    - Si vous n'avez pas assez de mana : le Piège ne se déclenche pas et reste armé. Il retentera au prochain déclenchement possible.
 5. **Désarmement** — si un Piège armé ne s'est pas déclenché avant le début de votre tour suivant, il se désarme sans effet et redevient une carte normale en main (vous pouvez le reposer comme Piège plus tard, ou le jouer autrement).
+
+**Plusieurs Pièges sur le même événement.** Si plusieurs de vos Pièges peuvent se déclencher sur le même événement, ils sont utilisés du plus ancien (posé en premier) au plus récent. Un seul Piège se résout à la fois : le suivant ne peut se déclencher qu'après la résolution complète du précédent, et seulement si l'événement qui le déclenche existe toujours à ce moment-là. Exemple : vous avez deux « Oups » armés et l'adversaire lance un sort. Le premier « Oups » annule ce sort. Comme il n'y a plus de sort à annuler, le second ne se déclenche pas : il reste armé et son coût en mana n'est pas payé.
 
 L'adversaire ne voit pas les Pièges dans votre main : il ne découvre un Piège qu'au moment où il se déclenche.
 
