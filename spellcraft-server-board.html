@@ -236,6 +236,8 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .card.summon-sick:hover{transform:rotate(-4deg) translateY(-6px);}
 .ncard.is-stunned{filter:grayscale(.7) brightness(.75);}
 .ncard.is-frozen{filter:hue-rotate(180deg) saturate(1.4) brightness(.9);}
+.ncard .nstat-txt.n-up{color:#8df0b0;text-shadow:0 0 2px #000,0 1px 3px #000,0 0 6px rgba(0,0,0,.9);}
+.ncard .nstat-txt.n-down{color:#ffa3a3;text-shadow:0 0 2px #000,0 1px 3px #000,0 0 6px rgba(0,0,0,.9);}
 .ncard.is-unavailable{opacity:.55;outline:2px dashed rgba(220,220,220,.55);outline-offset:-2px;}
 .card-unavailable-badge{position:absolute;bottom:2px;left:2px;z-index:11;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1;background:rgba(23,19,37,.9);border:1.5px solid #bbb;box-shadow:0 1px 4px rgba(0,0,0,.7);cursor:help;}
 .card-status-badge{position:absolute;bottom:2px;right:2px;z-index:11;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;line-height:1;background:rgba(23,19,37,.9);border:1.5px solid var(--gold);box-shadow:0 1px 4px rgba(0,0,0,.7);cursor:help;}
@@ -973,6 +975,60 @@ function isKeywordActiveNow(k, card, inPlay){
   if(k==='stealth') return !!card.summonSick;
   return true;
 }
+// ---------------- Couleur des stats d'une créature en jeu ----------------
+// Compare les stats actuelles à celles du catalogue (carte d'origine).
+// Fonction pure : `base` = carte du catalogue ({atk,hp}) ou undefined si le
+// catalogue n'est pas (encore) chargé ; `turn` = tour global courant (sert à
+// dire quand un bonus temporaire expire).
+// Champs lus sur l'instance (voir serveur) : curAtk/curHp = valeurs courantes,
+// atk/hp = maximum courant (avec bonus), _tempModifiers = bonus temporaires.
+// Renvoie { atk:{cls,title}, hp:{cls,title} } ; cls = 'n-up' (bonus, vert),
+// 'n-down' (malus ou dégâts, rouge) ou '' (inchangé).
+// <stat-colors>
+function creatureStatInfo(card, base, turn){
+  const signed = (n)=> (n>0?'+':'') + n;
+  const mods = card._tempModifiers || [];
+  // Détaille l'écart à la base : part temporaire (par échéance) + part permanente.
+  const describeDiff = (diff, field)=>{
+    const parts = [];
+    let temp = 0;
+    mods.forEach(m=>{
+      const v = m[field] || 0;
+      if(!v) return;
+      temp += v;
+      parts.push(`${signed(v)} ${m.expiresAtGlobalTurn <= turn ? "jusqu'à la fin du tour" : "jusqu'à la fin du prochain tour"}`);
+    });
+    const perm = diff - temp;
+    if(perm) parts.unshift(`${signed(perm)} permanent`);
+    return parts.join(', ');
+  };
+  const hasBase = !!base && typeof base.atk==='number' && typeof base.hp==='number';
+
+  // --- Force ---
+  const curAtk = card.curAtk ?? card.atk ?? 0;
+  const atk = { cls:'', title:'' };
+  if(hasBase && curAtk !== base.atk){
+    atk.cls = curAtk > base.atk ? 'n-up' : 'n-down';
+    atk.title = `Force ${curAtk} (base ${base.atk}, ${describeDiff(curAtk - base.atk, 'atk')})`;
+  }
+
+  // --- Points de vie ---
+  const curHp = card.curHp ?? card.hp ?? 0;
+  const maxHp = card.hp ?? curHp;
+  const wounded = curHp < maxHp;
+  const hp = { cls:'', title:'' };
+  if(wounded) hp.cls = 'n-down';                       // dégâts subis : toujours le plus parlant
+  else if(hasBase && maxHp > base.hp) hp.cls = 'n-up';
+  else if(hasBase && maxHp < base.hp) hp.cls = 'n-down';
+  if(wounded || hp.cls){
+    let t = `PV ${curHp}/${maxHp}`;
+    if(hasBase && maxHp !== base.hp) t += ` (base ${base.hp}, ${describeDiff(maxHp - base.hp, 'hp')})`;
+    hp.title = t;
+  }
+  return { atk, hp };
+}
+// </stat-colors>
+
 // ---------------- Règles d'attaque / de blocage (miroir du serveur) ----------------
 // Ces fonctions reproduisent EXACTEMENT les règles du serveur, pour griser
 // et expliquer côté client ce que le serveur refuserait de toute façon.
@@ -1825,12 +1881,16 @@ function buildNewCardEl(card, size, effectiveCostOverride, opts={}){
     wa.appendChild(nImg('images/card/icon/bubble/attack.png'));
     const ta = nEl('div','nstat-txt'); ta.textContent = card.curAtk ?? card.atk ?? 0;
     wa.appendChild(ta);
+    // Créature en jeu uniquement : force/PV colorés selon bonus/malus (+ infobulle)
+    const live = opts.liveStats ? creatureStatInfo(card, (typeof JOURNAL_CARD_LOOKUP!=='undefined' ? JOURNAL_CARD_LOOKUP[card.id] : undefined), S && S.turn) : null;
+    if(live && live.atk.cls){ ta.classList.add(live.atk.cls); wa.title = live.atk.title; }
     root.appendChild(wa);
 
     const we = nEl('div','nstat-wrap n-end');
     we.appendChild(nImg('images/card/icon/bubble/endurance.png'));
     const te = nEl('div','nstat-txt'); te.textContent = card.curHp ?? card.hp ?? 0;
     we.appendChild(te);
+    if(live && live.hp.cls){ te.classList.add(live.hp.cls); we.title = live.hp.title; }
     root.appendChild(we);
   }
   if(isArtifact){
@@ -1951,7 +2011,7 @@ function cardEl(card, opts={}){
   // le coût effectif (réductions actives) n'a de sens que pour une carte pas
   // encore jouée, appartenant au joueur local (seule main visible)
   const effectiveCost = (!inPlay && !opts.isPreview && S && S[MY_KEY]) ? getEffectiveCostClient(S[MY_KEY], card) : undefined;
-  const el = buildNewCardEl(card, size, effectiveCost);
+  const el = buildNewCardEl(card, size, effectiveCost, {liveStats: inPlay});
   if(card.instId) el.dataset.instid = card.instId;
   requestAnimationFrame(()=>fitNewCard(el));
 
@@ -2112,7 +2172,7 @@ function showCardPreviewHover(card, ev, inPlay){
     }).catch(()=>{});
   } else {
     box.classList.remove('hero-preview');
-    const big = buildNewCardEl(card, 'big', undefined, {heroCardFrame:true});
+    const big = buildNewCardEl(card, 'big', undefined, {heroCardFrame:true, liveStats: !!inPlay});
     box.appendChild(big);
     requestAnimationFrame(()=>fitNewCard(big));
     // Bulles contextuelles : une par mot-clé actuellement actif sur la
