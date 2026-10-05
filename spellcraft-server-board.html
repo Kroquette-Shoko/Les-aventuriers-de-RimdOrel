@@ -573,6 +573,28 @@ body.targeting *{cursor:crosshair !important;}
 .ncard .card-armor-shield{position:absolute;top:2px;left:2px;width:22px;height:22px;z-index:10;background:radial-gradient(circle, #cfd8e8 0%, #8fa3c0 70%);border-radius:50%;border:2px solid #fff;pointer-events:none;}
 .ncard .status-stack-tr{position:absolute;top:2px;right:2px;z-index:10;display:flex;flex-direction:column;gap:2px;pointer-events:none;}
 .ncard .status-stack-tr .kw-icon{width:36px;height:36px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.8));}
+/* Gain / perte d'un badge de mot-clé (voir playKeywordBadgeChanges). Couleurs
+   « gain » / « perte » = celles des stats (n-up / n-down). Les durées sont
+   posées en ligne (style.animationDuration) pour suivre la vitesse choisie. */
+.ncard .status-stack-tr .kw-icon.kw-badge-gain{animation:kw-badge-gain-kf .7s ease-out both;}
+.ncard .status-stack-tr .kw-icon.kw-badge-pending{visibility:hidden;}
+@keyframes kw-badge-gain-kf{
+  0%{transform:scale(0);opacity:0;filter:drop-shadow(0 0 0 rgba(141,240,176,0));}
+  55%{transform:scale(1.45);opacity:1;filter:drop-shadow(0 0 6px #8df0b0) drop-shadow(0 0 12px #8df0b0);}
+  100%{transform:scale(1);opacity:1;filter:drop-shadow(0 1px 2px rgba(0,0,0,.8));}
+}
+.kw-ghost{position:fixed;z-index:9992;pointer-events:none;animation:kw-ghost-kf .8s ease-in forwards;}
+.kw-ghost img{display:block;width:100%;height:100%;}
+.kw-ghost-strike{position:absolute;left:-10%;top:50%;width:120%;height:3px;border-radius:2px;background:#ffa3a3;box-shadow:0 0 6px #ff6b6b;transform:rotate(-35deg) scaleX(0);animation:kw-ghost-strike-kf .8s ease-out forwards;}
+@keyframes kw-ghost-kf{
+  0%{transform:scale(1);opacity:1;filter:none;}
+  35%{transform:scale(1.1);opacity:1;filter:drop-shadow(0 0 6px #ff6b6b);}
+  100%{transform:scale(.4);opacity:0;filter:drop-shadow(0 0 4px #ff6b6b) grayscale(1);}
+}
+@keyframes kw-ghost-strike-kf{
+  0%{transform:rotate(-35deg) scaleX(0);}
+  40%,100%{transform:rotate(-35deg) scaleX(1);}
+}
 
 #targeting-layer{position:fixed;inset:0;pointer-events:none;z-index:9998;width:100%;height:100%;}
 #target-line{stroke:var(--arcane);stroke-width:6;stroke-linecap:round;filter:drop-shadow(0 0 12px var(--arcane)) drop-shadow(0 0 22px var(--arcane));stroke-dasharray:14 8;animation:target-dash .5s linear infinite;}
@@ -1056,6 +1078,89 @@ function creatureStatInfo(card, base, turn){
   return { atk, hp };
 }
 // </stat-colors>
+
+// ---------------- Badges de mots-clés : quels badges, et leurs changements ----------------
+// Fonctions pures (aucune lecture de l'état global ni du DOM) : le rendu
+// (cardEl) et la détection de changements (animations de gain/perte) partent
+// de la MÊME liste, sinon une animation pourrait viser un badge absent.
+// <keyword-diff>
+// Mots-clés dont l'icône est déjà dessinée par le cadre de la carte
+// (buildNewCardEl : nkeyword-assault / nkeyword-final, au-dessus de la gemme
+// de rareté). Ils figuraient AUSSI dans la pile de badges (KEYWORD_ICON_FILES) :
+// la même information sortait deux fois. On les retire de la pile.
+const KEYWORDS_DRAWN_BY_CARD_FRAME = ['assault', 'final'];
+
+// Mots-clés dont un badge est affiché MAINTENANT dans la pile d'une créature
+// en jeu (sans doublon, ordre de la carte conservé).
+function activeBadgeKeywords(card){
+  const out = [];
+  (card.keywords || []).forEach(k=>{
+    if(out.includes(k)) return;
+    if(!KEYWORD_ICON_FILES[k]) return;
+    if(KEYWORDS_DRAWN_BY_CARD_FRAME.includes(k)) return;
+    // Parade/Armure ne restent affichées que tant que leur protection l'est
+    if(!isKeywordActiveNow(k, card, true)) return;
+    out.push(k);
+  });
+  return out;
+}
+// Comparaison de deux listes de mots-clés (ensembles : l'ordre ne compte pas,
+// un réordonnancement n'est donc jamais un changement).
+function diffKeywordLists(before, after){
+  const b = new Set(before || []), a = new Set(after || []);
+  return {
+    gained: [...a].filter(k=>!b.has(k)),
+    lost: [...b].filter(k=>!a.has(k))
+  };
+}
+// Instantané des badges de toutes les créatures en jeu :
+// { instId: { active:[badges affichés], raw:[mots-clés bruts de la carte] } }.
+// `raw` sert à distinguer une vraie perte (le mot-clé a quitté la carte) d'un
+// badge qui s'éteint tout seul (Parade après le 1er tour, Armure consommée :
+// le mot-clé est toujours sur la carte, c'est seulement sa protection qui est
+// épuisée) — voir keywordBadgeChanges.
+function snapshotKeywordBadges(state, playerKeys){
+  const snap = {};
+  if(!state) return snap;
+  (playerKeys || []).forEach(key=>{
+    const p = state[key];
+    ((p && p.board) || []).forEach(c=>{
+      if(!c || !c.instId) return;
+      snap[c.instId] = { active: activeBadgeKeywords(c), raw: [...(c.keywords || [])] };
+    });
+  });
+  return snap;
+}
+// Changements de badges d'UNE créature entre deux instantanés.
+//  - gagné : badge affiché maintenant, absent avant ET pas déjà sur la carte
+//    avant (sinon c'est une protection qui se « réarme », pas un gain) ;
+//  - perdu : badge affiché avant, absent maintenant ET plus sur la carte
+//    (Parade/Armure qui s'éteignent mais restent sur la carte : pas une perte).
+// Un mot-clé temporaire qui expire, une aura retirée, Tenace consommé ou un
+// silence SONT des pertes (le mot-clé quitte la carte).
+function keywordBadgeChanges(prevEntry, nextEntry){
+  const d = diffKeywordLists(prevEntry.active, nextEntry.active);
+  return {
+    gained: d.gained.filter(k=>!prevEntry.raw.includes(k)),
+    lost: d.lost.filter(k=>!nextEntry.raw.includes(k))
+  };
+}
+// Changements pour tout le plateau. Renvoie [{instId, gained, lost}] (seulement
+// les créatures qui changent). Rien si l'un des instantanés est nul (premier
+// rendu) ; une créature absente d'un des deux côtés (qui arrive ou qui part)
+// est ignorée : son apparition/disparition a sa propre animation.
+function diffKeywordBadgeSnapshots(prevSnap, nextSnap){
+  if(!prevSnap || !nextSnap) return [];
+  const out = [];
+  Object.keys(nextSnap).forEach(id=>{
+    const prev = prevSnap[id];
+    if(!prev) return;
+    const ch = keywordBadgeChanges(prev, nextSnap[id]);
+    if(ch.gained.length || ch.lost.length) out.push({ instId:id, gained:ch.gained, lost:ch.lost });
+  });
+  return out;
+}
+// </keyword-diff>
 
 // ---------------- Règles d'attaque / de blocage (miroir du serveur) ----------------
 // Ces fonctions reproduisent EXACTEMENT les règles du serveur, pour griser
@@ -2225,15 +2330,8 @@ function cardEl(card, opts={}){
 
   const kw = card.keywords || [];
   const hasArmorShield = inPlay && kw.includes('armor') && !card.armorUsed;
-  const activeKeywordIcons = inPlay ? kw.filter(k=>{
-    if(!KEYWORD_ICON_FILES[k]) return false;
-    // Parade (et Armure, déjà géré) ne restent affichés que tant que leur
-    // protection l'est réellement — sinon l'icône reste visible en jeu
-    // alors que le mot-clé n'a plus d'effet (ex. Parade après le premier
-    // tour de la créature).
-    if(!isKeywordActiveNow(k, card, true)) return false;
-    return true;
-  }) : [];
+  // Même liste que celle comparée par les animations de badges (voir activeBadgeKeywords).
+  const activeKeywordIcons = inPlay ? activeBadgeKeywords(card) : [];
 
   if(isSick){
     const zzz = nEl('div','zzz');
@@ -2250,6 +2348,7 @@ function cardEl(card, opts={}){
     activeKeywordIcons.forEach(k=>{
       const img = nImg(`images/${KEYWORD_ICON_FILES[k]}`, 'kw-icon');
       img.title = KEYWORD_LABELS[k]||k;
+      img.dataset.kw = k; // repéré par les animations de gain/perte (playKeywordBadgeChanges)
       stack.appendChild(img);
     });
     el.appendChild(stack);
@@ -2394,6 +2493,7 @@ function render(){
   // Plateau gelé pendant une animation de combat : on note qu'il faudra
   // re-rendre (fait par unfreezeBoardRender à la fin de la file).
   if(__boardRenderFrozen){ __boardRenderDirty = true; return; }
+  const keywordBadgePlan = planKeywordBadgeAnim(); // avant la reconstruction du DOM
   renderManaBox(MY_KEY, 'p1');
   renderManaBox(OPP_KEY, 'p2');
   renderHeroFrame(MY_KEY, 'p1');
@@ -2412,6 +2512,7 @@ function render(){
   renderDiscoverChoiceModal();
   renderKeywordChoiceModal();
   syncTargetingArrow();
+  playKeywordBadgeChanges(keywordBadgePlan); // après : les classes se posent sur le nouveau DOM
   // renderTurnTimer(); — minuteur désactivé pour l'instant (voir afterConnected)
 }
 
@@ -3435,6 +3536,110 @@ function playCardDeathAnim(instId){
 }
 
 /* ============================================================
+   ANIMATION DES BADGES DE MOTS-CLÉS (gain / perte)
+   ============================================================ */
+// Un badge GAGNÉ apparaît (zoom + halo vert) ; un badge PERDU laisse un
+// fantôme (clone position:fixed à son ancienne place, comme les clones de
+// mort) qui rétrécit, rougit et est barré avant de disparaître.
+//
+// Principe : on compare ce qui était AFFICHÉ au dernier rendu (instantané
+// __keywordBadgeSnapshot) à ce qui va l'être (S). Ce n'est volontairement pas
+// « PREV_S vs S » : PREV_S peut contenir un état que le gel du rendu n'a
+// jamais affiché (deux états reçus pendant une animation de combat). Avec
+// l'instantané du dernier rendu : un resync sans changement ou un état rejoué
+// à l'identique ne donne aucun écart, le tout premier rendu (instantané nul)
+// n'anime rien, et pendant le gel (render() sort tôt) rien ne bouge ; les
+// changements issus d'un combat s'animent donc au dégel, APRÈS la file.
+const KW_BADGE_GAIN_MS = 700;
+const KW_BADGE_LOSS_MS = 800;
+// Son discret, UNE fois par lot (existants dans sfx/ ; playSfx respecte la
+// sourdine). Gain prioritaire si le lot contient les deux. Conservé en mode
+// Instantané, comme le son de mort des cartes : seul le visuel est supprimé.
+const KW_BADGE_SFX = { gain:{ key:'cast', volume:0.22 }, loss:{ key:'clic', volume:0.3 } };
+let __keywordBadgeSnapshot = null; // null tant qu'aucun rendu n'a eu lieu
+function keywordBadgeEl(instId, kw){
+  return document.querySelector(`[data-instid="${instId}"] .kw-icon[data-kw="${kw}"]`);
+}
+// À appeler AVANT que render() ne reconstruise le DOM (S est déjà le nouvel
+// état, le DOM encore l'ancien : on y lit la position des badges perdus).
+// Ne doit jamais empêcher le rendu : toute erreur renvoie null.
+function planKeywordBadgeAnim(){
+  try {
+    const next = snapshotKeywordBadges(S, [MY_KEY, OPP_KEY]);
+    const changes = diffKeywordBadgeSnapshots(__keywordBadgeSnapshot, next);
+    __keywordBadgeSnapshot = next;
+    if(!changes.length) return null;
+    const ghosts = [];
+    if(!combatInstant()){
+      changes.forEach(ch=>ch.lost.forEach(kw=>{
+        const old = keywordBadgeEl(ch.instId, kw);
+        if(!old) return; // pas à l'écran (carte au-delà de la 8e, rendu partiel...) : rien à dissoudre
+        ghosts.push({ rect: old.getBoundingClientRect(), src: old.getAttribute('src'), filter: getComputedStyle(old).filter });
+      }));
+    }
+    return { changes, ghosts };
+  } catch(e){ console.error('Badges de mots-clés : comparaison impossible', e); return null; }
+}
+function spawnKeywordGhost(g){
+  const dur = cms(KW_BADGE_LOSS_MS);
+  const wrap = document.createElement('div');
+  wrap.className = 'kw-ghost';
+  wrap.style.left = g.rect.left+'px';
+  wrap.style.top = g.rect.top+'px';
+  wrap.style.width = g.rect.width+'px';
+  wrap.style.height = g.rect.height+'px';
+  wrap.style.animationDuration = dur+'ms';
+  const img = document.createElement('img');
+  img.src = g.src;
+  if(g.filter && g.filter!=='none') img.style.filter = g.filter; // l'ancien badge n'est plus dans .ncard : on recopie son rendu
+  const strike = document.createElement('span');
+  strike.className = 'kw-ghost-strike';
+  strike.style.animationDuration = dur+'ms';
+  wrap.appendChild(img);
+  wrap.appendChild(strike);
+  document.body.appendChild(wrap);
+  setTimeout(()=>wrap.remove(), dur+80);
+}
+// À appeler APRÈS le rendu (classes posées sur le nouveau DOM, par instId).
+function playKeywordBadgeChanges(plan){
+  if(!plan) return;
+  const instant = combatInstant();
+  const gainedEls = [];
+  plan.changes.forEach(ch=>ch.gained.forEach(kw=>{
+    const el = keywordBadgeEl(ch.instId, kw);
+    if(el) gainedEls.push({ el, ch, kw });
+  }));
+  const run = ()=>{
+    if(!instant){
+      gainedEls.forEach(({ el, ch, kw })=>{
+        // le DOM a pu être reconstruit entre-temps (rendu pendant la file) : on relit
+        const cur = el.isConnected ? el : keywordBadgeEl(ch.instId, kw);
+        if(!cur) return;
+        cur.classList.remove('kw-badge-pending');
+        const dur = cms(KW_BADGE_GAIN_MS);
+        cur.style.animationDuration = dur+'ms';
+        cur.classList.add('kw-badge-gain');
+        setTimeout(()=>{ cur.classList.remove('kw-badge-gain'); cur.style.animationDuration = ''; }, dur+80);
+      });
+      plan.ghosts.forEach(spawnKeywordGhost);
+    }
+    const snd = gainedEls.length ? KW_BADGE_SFX.gain : (plan.changes.some(c=>c.lost.length) ? KW_BADGE_SFX.loss : null);
+    if(snd) playSfx(snd.key, snd.volume);
+  };
+  // Une file d'animations (révélation de capacité...) joue sans gel du
+  // plateau : on attend son tour pour ne pas écraser ces animations, en
+  // cachant les badges gagnés d'ici là. Si la file est interrompue
+  // (« Passer », garde-fou), le nettoyage les remet visibles.
+  if(__combatAnimPlaying && !instant){
+    gainedEls.forEach(({ el })=>el.classList.add('kw-badge-pending'));
+    registerCombatCleanup(()=>gainedEls.forEach(({ el })=>el.classList.remove('kw-badge-pending')));
+    queueCombatAnim(run);
+  } else {
+    run();
+  }
+}
+
+/* ============================================================
    ANIMATION DE FRAPPE — les cartes qui se ruent l'une sur l'autre (ou
    sur le héros) au moment du combat
    ============================================================ */
@@ -3652,7 +3857,7 @@ function releaseCombatAnimLock(){
 // Interruption immédiate (bouton « Passer » ou garde-fou) : coupe les sons en
 // cours, retire tout ce qui flotte encore (chiffres, flèches, révélation,
 // clones), puis lève le verrou et rend l'état final.
-const COMBAT_ABORT_PURGE_SELECTOR = '.dmg-popup, .ability-reveal-overlay, .ability-bolt, .ability-impact-ring, .ability-self-burst, .combat-impact-ring';
+const COMBAT_ABORT_PURGE_SELECTOR = '.dmg-popup, .ability-reveal-overlay, .ability-bolt, .ability-impact-ring, .ability-self-burst, .combat-impact-ring, .kw-ghost';
 function abortCombatAnimations(){
   try { if(typeof stopAllSfx==='function') stopAllSfx(); } catch(e){}
   document.querySelectorAll(COMBAT_ABORT_PURGE_SELECTOR).forEach(n=>n.remove());
