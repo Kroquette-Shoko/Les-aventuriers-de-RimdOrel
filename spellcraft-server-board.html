@@ -596,6 +596,19 @@ body.targeting *{cursor:crosshair !important;}
 .dmg-popup.dmg-l{font-size:46px;color:#ff1f1f;text-shadow:0 0 12px rgba(255,60,60,.8),0 3px 6px rgba(0,0,0,.9);}
 .dmg-popup.dmg-shield{font-size:30px;color:#9fd3ff;text-shadow:0 0 10px rgba(120,190,255,.7),0 2px 5px rgba(0,0,0,.85);}
 .dmg-popup.dmg-zero{font-size:18px;color:#d9d2c0;font-weight:600;}
+/* Choc d'un coup de combat (voir flashCombatImpact) */
+.combat-impact-ring{position:fixed;z-index:9996;left:0;top:0;width:110px;height:110px;margin:-55px;border-radius:50%;
+  border:6px solid #ffd9a0;box-shadow:0 0 30px rgba(255,110,60,.9);pointer-events:none;animation:combat-impact-pop .45s ease-out forwards;}
+@keyframes combat-impact-pop{
+  0%{opacity:.95;transform:scale(.25);}
+  100%{opacity:0;transform:scale(1.7);}
+}
+.combat-hit-flash{animation:combat-hit-flash-kf .45s ease-out;}
+@keyframes combat-hit-flash-kf{
+  0%{filter:brightness(1);}
+  30%{filter:brightness(1.9) saturate(1.3) drop-shadow(0 0 16px rgba(255,90,50,.9));}
+  100%{filter:brightness(1);}
+}
 @keyframes hand-card-enter{
   0%{opacity:0;transform:translateY(40px) scale(.8);}
   100%{opacity:1;transform:translateY(0) scale(1);}
@@ -1483,7 +1496,7 @@ function renderGameLog(){
           const attackers = entry.highlightIds||[];
           const hitHero = (amount)=>{
             const heroEl = document.getElementById(`hero-frame-${heroSlot}`);
-            if(heroEl) spawnDamageNumber(heroEl, amount);
+            if(heroEl){ flashCombatImpact(heroEl); spawnDamageNumber(heroEl, amount); }
             playSfx(hitSfxForDamage(amount));
             shakeScreen(hitSfxForDamage(amount));
           };
@@ -1513,7 +1526,7 @@ function renderGameLog(){
               };
               // Pas d'élément à animer : on montre quand même chiffre et son.
               if(!attEl || !heroEl){ if(attRes.temp && attEl) attEl.remove(); onImpact(); return Promise.resolve(); }
-              return lungeToward(attEl, heroEl, { totalMs:480, onImpact }).then(()=>{ if(attRes.temp) attEl.remove(); });
+              return lungeToward(attEl, heroEl, { onImpact }).then(()=>{ if(attRes.temp) attEl.remove(); });
             });
           });
         }
@@ -3243,6 +3256,21 @@ document.addEventListener('keydown', (e)=>{
 });
 
 /* ============================================================
+   DURÉES DES ANIMATIONS DE COMBAT (ms, à vitesse NORMALE)
+   Un seul endroit pour les régler. Elles sont passées dans cms() au moment de
+   jouer l'animation : Rapide les divise par 2, Instantanée les supprime
+   (voir « Vitesse des animations de combat » dans spellcraft-shared.js).
+   ============================================================ */
+const ANIM_LUNGE_WINDUP_MS = 150;  // recul d'élan avant la charge
+const ANIM_LUNGE_CHARGE_MS = 200;  // course jusqu'au centre de la cible
+const ANIM_IMPACT_HOLD_MS  = 130;  // arrêt à l'impact (laisse voir le choc, flash et chiffres)
+const ANIM_LUNGE_RETURN_MS = 270;  // retour à sa place
+//   => une charge dure 750 ms (480 ms avant), dont 130 ms d'arrêt à l'impact.
+const ANIM_RECOIL_MS = 300;        // petit recul final des deux créatures ayant combattu
+const ANIM_RECOIL_PX = 16;         // amplitude du recul (pixels d'écran)
+const ANIM_IMPACT_FX_MS = 450;     // anneau + éclat de lumière à l'impact
+
+/* ============================================================
    FLÈCHES DE BLOCAGE — affichent les assignations bloqueur → attaquant
    ============================================================ */
 function drawBlockArrows(){
@@ -3385,42 +3413,56 @@ function playCardDeathAnim(instId){
 // de revenir à sa position. Retourne une Promise résolue à la fin, pour
 // pouvoir être mise en file (voir queueCombatAnim) plutôt que jouée
 // immédiatement.
-// `opts` : une durée en ms (ancien appel) ou { totalMs, onImpact } — onImpact
-// est appelé au moment où la carte atteint sa cible (son, chiffres, tremblement).
-function lungeToward(el, targetEl, opts){
-  if(typeof opts==='number') opts = { totalMs: opts };
-  opts = opts || {};
-  const duration = opts.totalMs;
-  if(!el || !targetEl) return Promise.resolve();
-  if(!cms(duration||650)){ if(opts.onImpact) opts.onImpact(); return Promise.resolve(); } // instantané : pas de mouvement
-  const a = el.getBoundingClientRect(), b = targetEl.getBoundingClientRect();
-  const dx = (b.left+b.width/2) - (a.left+a.width/2);
-  const dy = (b.top+b.height/2) - (a.top+a.height/2);
-  const len = Math.hypot(dx,dy) || 1;
-  const ux = dx/len, uy = dy/len;
-  const dur = cms(duration||650);
-
-  // Anime une copie indépendante plutôt que l'élément réel du plateau —
-  // celui-ci est reconstruit à chaque mise à jour d'état (très fréquent :
-  // ta propre action, la diffusion, la resynchronisation périodique), ce
-  // qui détruisait l'élément en cours d'animation avant même qu'elle ait pu
-  // se voir à l'écran.
+// Clone flottant (position:fixed dans le <body>) d'un élément du plateau, placé
+// exactement sur lui. On anime ce clone plutôt que l'élément réel : celui-ci est
+// reconstruit à chaque mise à jour d'état (très fréquent : ta propre action, la
+// diffusion, la resynchronisation périodique), ce qui détruisait l'élément en
+// cours d'animation avant même qu'elle ait pu se voir à l'écran. L'élément réel
+// est masqué le temps de l'animation ; la fonction renvoyée retire le clone et
+// le rend visible (idempotente, enregistrée pour une interruption de la file).
+function makeCombatGhost(el, rect){
   const ghost = el.cloneNode(true);
   ghost.style.position = 'fixed';
-  ghost.style.left = a.left+'px';
-  ghost.style.top = a.top+'px';
-  ghost.style.width = a.width+'px';
-  ghost.style.height = a.height+'px';
+  ghost.style.left = rect.left+'px';
+  ghost.style.top = rect.top+'px';
+  ghost.style.width = rect.width+'px';
+  ghost.style.height = rect.height+'px';
   ghost.style.margin = '0';
   ghost.style.zIndex = '9995';
   ghost.style.pointerEvents = 'none';
   document.body.appendChild(ghost);
   el.style.opacity = '0';
-  // Le choc a lieu quand la carte atteint le centre de la cible (offset 0.6
-  // des keyframes ci-dessous).
-  if(opts.onImpact) combatTimeout(opts.onImpact, dur*0.6);
   const restore = ()=>{ ghost.remove(); if(el && el.style) el.style.opacity=''; };
-  registerCombatCleanup(restore); // interruption de la file : on retire le clone et on rend la carte réelle
+  registerCombatCleanup(restore);
+  return { ghost, restore };
+}
+// Anime une charge de combat : recul d'élan, course jusqu'au CENTRE de la cible
+// en passant par-dessus elle (façon MTG Arena), ARRÊT à l'impact, retour à sa
+// place, puis éventuellement un petit recul. Durées : constantes ANIM_* ci-dessus.
+// Retourne une Promise résolue à la fin, pour pouvoir être mise en file (voir
+// queueCombatAnim) plutôt que jouée immédiatement.
+// `opts` (tous facultatifs) :
+//  - onImpact : appelé à l'arrivée sur la cible (son, flash, chiffres, tremblement) ;
+//  - recoilPx : amplitude du recul final de cette carte (0 ou absent = pas de recul) ;
+//  - onRecoilStart : appelé quand la carte est revenue à sa place et que le recul
+//    commence (sert à faire reculer l'autre créature en même temps).
+function lungeToward(el, targetEl, opts){
+  opts = (opts && typeof opts==='object') ? opts : {};
+  if(!el || !targetEl) return Promise.resolve();
+  const windup = cms(ANIM_LUNGE_WINDUP_MS), charge = cms(ANIM_LUNGE_CHARGE_MS);
+  const hold = cms(ANIM_IMPACT_HOLD_MS), ret = cms(ANIM_LUNGE_RETURN_MS);
+  if(!(windup+charge+hold+ret)){ if(opts.onImpact) opts.onImpact(); return Promise.resolve(); } // instantané : pas de mouvement
+  const recoilMs = opts.recoilPx ? cms(ANIM_RECOIL_MS) : 0;
+  const a = el.getBoundingClientRect(), b = targetEl.getBoundingClientRect();
+  const dx = (b.left+b.width/2) - (a.left+a.width/2);
+  const dy = (b.top+b.height/2) - (a.top+a.height/2);
+  const len = Math.hypot(dx,dy) || 1;
+  const ux = dx/len, uy = dy/len;
+  const tImpact = windup+charge, tHoldEnd = tImpact+hold, tHome = tHoldEnd+ret, total = tHome+recoilMs;
+
+  const { ghost, restore } = makeCombatGhost(el, a);
+  if(opts.onImpact) combatTimeout(opts.onImpact, tImpact);
+  if(opts.onRecoilStart) combatTimeout(opts.onRecoilStart, tHome);
   return new Promise(resolve=>{
     const done = ()=>{ restore(); resolve(); };
     if(ghost.animate){
@@ -3428,18 +3470,72 @@ function lungeToward(el, targetEl, opts){
       // représentent déjà le vecteur exact jusqu'à ce centre) en le
       // dépassant légèrement, pour donner l'impression de passer par-
       // dessus elle plutôt que de simplement s'y arrêter.
+      const hit = `translate(${dx*1.12}px, ${dy*1.12}px) scale(1.22)`;
+      const frames = [
+        { transform:'translate(0,0) scale(1)', offset:0, easing:'ease-out' },
+        { transform:`translate(${-ux*22}px, ${-uy*22}px) scale(1.06)`, offset:windup/total, easing:'cubic-bezier(.5,0,.9,.55)' },
+        { transform:hit, offset:tImpact/total, easing:'linear' },
+        { transform:hit, offset:tHoldEnd/total, easing:'ease-in-out' }, // arrêt à l'impact
+        { transform:'translate(0,0) scale(1)', offset:tHome/total }
+      ];
+      if(recoilMs){
+        // petit recul à l'opposé de la cible, puis retour à la place exacte
+        frames[4].easing = 'ease-out';
+        frames.push({ transform:`translate(${-ux*opts.recoilPx}px, ${-uy*opts.recoilPx}px) scale(1)`, offset:(tHome+recoilMs*0.4)/total, easing:'ease-in-out' });
+        frames.push({ transform:'translate(0,0) scale(1)', offset:1 });
+      } else {
+        frames[4].offset = 1;
+      }
+      const anim = ghost.animate(frames, { duration: total });
+      anim.onfinish = done;
+      anim.oncancel = done;
+    } else {
+      setTimeout(done, total);
+    }
+  });
+}
+// Petit recul d'une créature (bloqueur) à l'opposé de `fromEl` (l'attaquant) :
+// aller-retour de ANIM_RECOIL_PX sur un clone, sans toucher à la carte réelle.
+function recoilAway(el, fromEl){
+  const dur = cms(ANIM_RECOIL_MS);
+  if(!el || !fromEl || !dur) return Promise.resolve();
+  const a = fromEl.getBoundingClientRect(), b = el.getBoundingClientRect();
+  let dx = (b.left+b.width/2) - (a.left+a.width/2), dy = (b.top+b.height/2) - (a.top+a.height/2);
+  const len = Math.hypot(dx,dy);
+  if(len<1){ dx = 0; dy = -1; } else { dx /= len; dy /= len; } // même place : on recule vers le haut
+  const { ghost, restore } = makeCombatGhost(el, b);
+  return new Promise(resolve=>{
+    const done = ()=>{ restore(); resolve(); };
+    if(ghost.animate){
       const anim = ghost.animate([
-        { transform:'translate(0,0) scale(1)' },
-        { transform:`translate(${-ux*22}px, ${-uy*22}px) scale(1.06)`, offset:0.25 },
-        { transform:`translate(${dx*1.12}px, ${dy*1.12}px) scale(1.22)`, offset:0.6 },
-        { transform:'translate(0,0) scale(1)' }
-      ], { duration: dur, easing:'ease-in-out' });
+        { transform:'translate(0,0)', offset:0, easing:'ease-out' },
+        { transform:`translate(${dx*ANIM_RECOIL_PX}px, ${dy*ANIM_RECOIL_PX}px)`, offset:0.4, easing:'ease-in-out' },
+        { transform:'translate(0,0)', offset:1 }
+      ], { duration: dur });
       anim.onfinish = done;
       anim.oncancel = done;
     } else {
       setTimeout(done, dur);
     }
   });
+}
+// Anneau + éclat rouge/orangé sur la cible d'un coup de combat (distinct de
+// l'éclat violet des capacités, voir flashImpact).
+function flashCombatImpact(targetEl){
+  if(!targetEl) return;
+  const fxMs = cms(ANIM_IMPACT_FX_MS);
+  if(!fxMs) return;
+  const r = targetEl.getBoundingClientRect();
+  const ring = document.createElement('div');
+  ring.className = 'combat-impact-ring';
+  ring.style.left = (r.left+r.width/2)+'px';
+  ring.style.top = (r.top+r.height/2)+'px';
+  ring.style.animationDuration = fxMs+'ms';
+  document.body.appendChild(ring);
+  setTimeout(()=>ring.remove(), fxMs+30);
+  targetEl.style.animationDuration = fxMs+'ms';
+  targetEl.classList.add('combat-hit-flash');
+  setTimeout(()=>{ if(targetEl && targetEl.classList){ targetEl.classList.remove('combat-hit-flash'); targetEl.style.animationDuration = ''; } }, fxMs+30);
 }
 
 // ---------------- File d'animations de combat ----------------
@@ -3526,7 +3622,7 @@ function releaseCombatAnimLock(){
 // Interruption immédiate (bouton « Passer » ou garde-fou) : coupe les sons en
 // cours, retire tout ce qui flotte encore (chiffres, flèches, révélation,
 // clones), puis lève le verrou et rend l'état final.
-const COMBAT_ABORT_PURGE_SELECTOR = '.dmg-popup, .ability-reveal-overlay, .ability-bolt, .ability-impact-ring, .ability-self-burst';
+const COMBAT_ABORT_PURGE_SELECTOR = '.dmg-popup, .ability-reveal-overlay, .ability-bolt, .ability-impact-ring, .ability-self-burst, .combat-impact-ring';
 function abortCombatAnimations(){
   try { if(typeof stopAllSfx==='function') stopAllSfx(); } catch(e){}
   document.querySelectorAll(COMBAT_ABORT_PURGE_SELECTOR).forEach(n=>n.remove());
@@ -3586,6 +3682,7 @@ function applyBlockImpact(attEl, blkEl, o){
   // sur l'attaquant, à son emplacement d'origine), avec le même décalage que les sons.
   const specB = damagePopupSpec(o.dmgToBlocker, o.absorbedBlocker);
   const specA = damagePopupSpec(o.dmgToAttacker, o.absorbedAttacker);
+  flashCombatImpact(blkEl);
   if(specB) spawnDamageNumber(blkEl, 0, { spec:specB });
   if(specA) combatTimeout(()=>spawnDamageNumber(attEl, 0, { spec:specA }), cms(SFX_RIPOSTE_GAP_MS));
   const big = maxBlockDamage(o);
@@ -3623,7 +3720,16 @@ function playCombatStrike(attackerInstId, blockerInstId, outcome){
     const o = Object.assign({}, outcome || {});
     if(!isCombatNumber(o.dmgToBlocker)) o.dmgToBlocker = domAtk(attEl);
     if(!isCombatNumber(o.dmgToAttacker)) o.dmgToAttacker = domAtk(blkEl);
-    return lungeToward(attEl, blkEl, { totalMs:480, onImpact: ()=>applyBlockImpact(attEl, blkEl, o) }).then(cleanup);
+    // Recul final des DEUX créatures une fois le choc résolu — sauf celle qui
+    // meurt (elle se dissout juste après, voir playCardDeathAnim). Mort lue dans
+    // l'événement (avant résurrection Implacable : une créature ressuscitée ne
+    // recule pas non plus, prudence) ou, à défaut, dans l'état précédent/courant.
+    let blockerRecoil = Promise.resolve();
+    return lungeToward(attEl, blkEl, {
+      onImpact: ()=>applyBlockImpact(attEl, blkEl, o),
+      recoilPx: o.attackerDied ? 0 : ANIM_RECOIL_PX,
+      onRecoilStart: ()=>{ if(!o.blockerDied) blockerRecoil = recoilAway(blkEl, attEl); }
+    }).then(()=>blockerRecoil).then(cleanup);
   });
 }
 
