@@ -1066,7 +1066,106 @@ function onJournalEffectLeave(){
 // "Vous"/"L'adversaire" selon le rôle du joueur qui regarde (la donnée
 // stockée côté serveur est neutre, sans ça les deux joueurs verraient
 // "Vous" pour les mêmes actions).
-let SEEN_GAMELOG_COUNT = 0;
+
+// ---------------- Suivi des entrées de journal déjà jouées ----------------
+// Avant : un simple compteur (nombre d'entrées vues) + slice(compteur). Or le
+// serveur élague le journal (il ne garde que les derniers tours) : le tableau
+// pouvait RACCOURCIR, le slice ne renvoyait plus rien et sons/animations des
+// nouvelles entrées étaient perdus. Et au rechargement de la page le compteur
+// repartait à 0 : tout l'historique récent était rejoué d'un coup.
+//
+// createGameLogTracker() renvoie un suivi indépendant de la taille du tableau :
+//  - entrée avec `seq` (compteur croissant posé par le serveur, jamais
+//    réutilisé) : elle est nouvelle si seq > dernier seq traité ;
+//  - entrée SANS seq (ancien serveur / partie commencée avant la mise à jour) :
+//    on retrouve la position de la dernière entrée vue grâce à une empreinte
+//    "tour # rang dans le tour # contenu". Le rang dans le tour ne change pas
+//    quand les tours anciens sont élagués, donc l'empreinte reste valable ;
+//  - tout premier appel (chargement de la page) : on considère tout ce qui
+//    existe comme déjà vu, sans rien rejouer ;
+//  - si le journal semble avoir été remis à zéro (seq plus petit qu'avant,
+//    empreinte introuvable alors qu'elle devrait être là) : on se recale
+//    silencieusement plutôt que de rejouer ou de planter.
+// peek(entries) = liste des nouvelles entrées SANS rien mémoriser ;
+// take(entries) = pareil, et mémorise (à n'appeler qu'une fois par rendu).
+// Les entrées reviennent dans l'ordre du tableau (donc dans l'ordre du jeu),
+// même si une reconnexion en apporte plusieurs d'un coup.
+function createGameLogTracker(){
+  let st = { initialized:false, lastSeq:-1, lastFp:null, lastFpTurn:null };
+  const hasSeq = e => e && typeof e.seq==='number' && isFinite(e.seq);
+  // Empreinte de chaque entrée sans seq (rang calculé par tour).
+  function fingerprints(list){
+    const rank = {};
+    return list.map(e=>{
+      const t = (e && typeof e.turn==='number') ? e.turn : 0;
+      rank[t] = (rank[t]||0)+1;
+      const content = JSON.stringify([
+        e.ownerKey, e.raw, e.kind, e.cardId, e.cardName, e.deadInstId,
+        e.highlightIds, (e.effects||[]).map(x=>x && x.text)
+      ]);
+      return { fp: t+'#'+rank[t]+'#'+content, turn:t };
+    });
+  }
+  // État de référence après lecture de tout le tableau (rien à rejouer).
+  function baseline(entries){
+    const legacy = entries.filter(e=>!hasSeq(e));
+    const fps = fingerprints(legacy);
+    const last = fps.length ? fps[fps.length-1] : null;
+    let maxSeq = -1;
+    entries.forEach(e=>{ if(hasSeq(e) && e.seq>maxSeq) maxSeq = e.seq; });
+    return { initialized:true, lastSeq:maxSeq, lastFp:last?last.fp:null, lastFpTurn:last?last.turn:null };
+  }
+  function scan(entries){
+    entries = Array.isArray(entries) ? entries.filter(Boolean) : [];
+    if(!st.initialized) return { fresh:[], next:baseline(entries) };
+
+    const seqd = entries.filter(hasSeq);
+    const legacy = entries.filter(e=>!hasSeq(e));
+    let maxSeq = -1;
+    seqd.forEach(e=>{ if(e.seq>maxSeq) maxSeq = e.seq; });
+    // Compteur du serveur reparti plus bas : nouvelle partie / journal remis à zéro.
+    if(seqd.length && maxSeq < st.lastSeq) return { fresh:[], next:baseline(entries) };
+
+    // Entrées sans seq : retrouver la dernière entrée vue.
+    const freshLegacy = new Set();
+    const fps = fingerprints(legacy);
+    if(legacy.length){
+      if(st.lastFp===null){
+        legacy.forEach(e=>freshLegacy.add(e));
+      } else {
+        let idx = -1;
+        for(let i=fps.length-1;i>=0;i--){ if(fps[i].fp===st.lastFp){ idx=i; break; } }
+        if(idx>=0){
+          legacy.slice(idx+1).forEach(e=>freshLegacy.add(e));
+        } else if(st.lastFpTurn < Math.min(...fps.map(f=>f.turn))){
+          // la dernière entrée vue a été élaguée : tout ce qui reste est plus récent
+          legacy.forEach(e=>freshLegacy.add(e));
+        } else {
+          return { fresh:[], next:baseline(entries) }; // journal incohérent : on se recale
+        }
+      }
+    }
+    const fresh = entries.filter(e=> hasSeq(e) ? e.seq>st.lastSeq : freshLegacy.has(e));
+    const lastLegacy = fps.length ? fps[fps.length-1] : null;
+    return { fresh, next:{
+      initialized:true,
+      lastSeq: Math.max(st.lastSeq, maxSeq),
+      lastFp: lastLegacy ? lastLegacy.fp : st.lastFp,
+      lastFpTurn: lastLegacy ? lastLegacy.turn : st.lastFpTurn
+    }};
+  }
+  return {
+    peek(entries){ return scan(entries).fresh; },
+    take(entries){ const r = scan(entries); st = r.next; return r.fresh; }
+  };
+}
+const GAMELOG_TRACKER = createGameLogTracker();
+// Nouvelles entrées de S.__gameLog depuis le dernier rendu. commit=false :
+// simple aperçu (ne marque rien comme vu).
+function getNewGameLogEntries(commit=true){
+  const entries = (S && S.__gameLog) || [];
+  return commit ? GAMELOG_TRACKER.take(entries) : GAMELOG_TRACKER.peek(entries);
+}
 function hitSfxForDamage(n){ return n<=4 ? 'hitLight' : n<=10 ? 'hitMedium' : 'hitLarge'; }
 // Fait trembler tout l'écran sur un gros coup — jamais sur un petit pichenette
 // (tier 'hitLight' ignoré), pour que ça reste marquant plutôt que fatiguant.
@@ -1088,8 +1187,7 @@ function renderGameLog(){
   // Anime et sonorise les NOUVELLES entrées depuis le dernier rendu (marche
   // pour les deux joueurs, pas seulement celui qui vient d'agir, puisque
   // c'est basé sur l'état reçu et pas sur une action locale).
-  const entries = S.__gameLog||[];
-  entries.slice(SEEN_GAMELOG_COUNT).forEach(entry=>{
+  getNewGameLogEntries().forEach(entry=>{
     if(entry.raw){
       if(entry.raw.includes('attaque avec')){
         playSfx('attack');
@@ -1178,7 +1276,6 @@ function renderGameLog(){
       });
     }
   });
-  SEEN_GAMELOG_COUNT = entries.length;
 
   el.innerHTML = '';
   (S.__gameLog||[]).forEach(entry=>{
