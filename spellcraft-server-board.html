@@ -1390,6 +1390,47 @@ function afterConnected(code){
 
 let __pendingStateWhileAnimating = null;
 
+// État reçu juste AVANT l'état courant S (null au tout premier état). Pendant
+// une animation de combat, c'est exactement ce que le plateau affiche encore
+// (voir "gel du rendu" plus bas) — utile pour comparer avant/après (diff de
+// stats ou de mots-clés, estimation de dégâts de repli...). Mis à jour dans
+// onStateUpdate uniquement, au moment où S est réaffecté.
+let PREV_S = null;
+
+// ---------------- Gel du rendu du plateau pendant une animation de combat ----
+// Problème : le serveur renvoie l'état FINAL de l'action ; render() le dessinait
+// tout de suite, donc au moment où l'animation de frappe jouait, les PV/ATK
+// étaient déjà à leur valeur finale et les créatures mortes déjà disparues.
+// Solution retenue (option A) : tant que des animations de combat sont dans la
+// file, on NE reconstruit PAS le plateau — le DOM reste celui de l'ancien état
+// (stats d'avant, créatures mortes encore visibles). S est quand même mis à
+// jour tout de suite. À la fin de la file (ou au timeout de sécurité) on
+// rend l'état final d'un coup. Pourquoi A plutôt que "afficher les stats
+// d'avant sur le nouveau rendu" (B) : renderLane reconstruit tout le DOM, B
+// aurait demandé de ré-insérer les cartes mortes et de réécrire les stats
+// après chaque rendu, beaucoup plus invasif ; A ne touche qu'à render().
+let __boardRenderFrozen = false;
+let __boardRenderDirty = false;
+function freezeBoardRender(){ __boardRenderFrozen = true; __boardRenderDirty = false; }
+function unfreezeBoardRender(){
+  if(!__boardRenderFrozen) return;
+  __boardRenderFrozen = false;
+  __boardRenderDirty = false;
+  render(); // S est déjà l'état final : on l'affiche maintenant
+}
+// Cette entrée de journal va-t-elle jouer une animation de combat qui doit se
+// dérouler sur l'ANCIEN plateau ? (même tri que dans renderGameLog)
+function entryAnimatesBoardCombat(entry){
+  if(!entry) return false;
+  if(entry.raw){
+    if(entry.raw.includes('attaque avec')) return false; // simple son
+    if(entry.highlightIds && entry.highlightIds.length===2) return true; // combat bloqué
+    return entry.raw.includes('perdu') && entry.raw.includes('point') && (entry.highlightIds||[]).length>0; // dégâts au héros
+  }
+  if(entry.deadInstId) return true;
+  return (entry.effects||[]).some(eff=>/meurt au combat|est détruite|^détruit "|^sacrifie "/i.test(eff.text||''));
+}
+
 // ===== Écran d'annonce de match =====
 let __matchAnnounceActive = false;
 let __matchAnnounceDone = false;
@@ -1561,6 +1602,7 @@ function onStateUpdate(state){
   // vue toujours du point de vue du joueur local : si je suis p2 côté
   // serveur, j'affiche quand même "moi" en bas et "adversaire" en haut,
   // en lisant simplement S[MY_KEY]/S[OPP_KEY] partout dans le rendu.
+  PREV_S = S;
   S = state;
 
   // Écran d'annonce de match : dès que les deux joueurs sont connus pour la
@@ -1584,8 +1626,16 @@ function onStateUpdate(state){
 }
 
 function finishStateUpdateTail(state){
-  render();
+  // Si ce lot contient une animation de combat, on garde l'ancien plateau à
+  // l'écran jusqu'à la fin de la file (voir "Gel du rendu"). L'aperçu
+  // (commit=false) ne marque rien comme vu : renderGameLog s'en charge.
+  if(!__boardRenderFrozen && getNewGameLogEntries(false).some(entryAnimatesBoardCombat)){
+    freezeBoardRender();
+  }
+  render(); // sans effet si le plateau est gelé (voir render)
   renderGameLog();
+  // Gel demandé mais rien n'est finalement parti dans la file : on affiche.
+  if(__boardRenderFrozen && !__combatAnimPlaying && !__combatAnimQueue.length) unfreezeBoardRender();
 
   // Diagnostic temporaire : affiche les traces envoyées par le serveur
   // (voir recalculateContinuousEffects côté serveur) pour repérer où une
@@ -2013,6 +2063,9 @@ function showCardPreviewHover(card, ev, inPlay){
 
 function render(){
   if(!S) return;
+  // Plateau gelé pendant une animation de combat : on note qu'il faudra
+  // re-rendre (fait par unfreezeBoardRender à la fin de la file).
+  if(__boardRenderFrozen){ __boardRenderDirty = true; return; }
   renderManaBox(MY_KEY, 'p1');
   renderManaBox(OPP_KEY, 'p2');
   renderHeroFrame(MY_KEY, 'p1');
@@ -2932,6 +2985,11 @@ function playCardDeathAnim(instId){
   playSfx('card-death');
   const snap = __lastBoardSnapshot[instId];
   if(!snap) return Promise.resolve();
+  // Le plateau est gelé sur l'ancien état (voir "Gel du rendu") : la carte
+  // réelle y est encore. On la cache pour ne pas voir l'original ET son
+  // clone qui se dissout.
+  const liveEl = document.querySelector(`[data-instid="${instId}"]`);
+  if(liveEl) liveEl.style.visibility = 'hidden';
   const { rect, clone } = snap;
   clone.style.position = 'fixed';
   clone.style.left = rect.left+'px';
@@ -3019,28 +3077,53 @@ function lungeToward(el, targetEl, duration){
 // actions des deux joueurs sont figées tant que la file n'est pas vide.
 let __combatAnimQueue = [];
 let __combatAnimPlaying = false;
+let __combatAnimGen = 0;      // identifie la "session" de lecture en cours (voir releaseCombatAnimLock)
+let __combatAnimWatchdog = null;
+// Garde-fou : la file ne doit jamais bloquer le jeu plus longtemps que ça
+// (animation qui ne se termine pas, onfinish jamais appelé, onglet en
+// arrière-plan...). Passé ce délai on abandonne le reste de la file, on
+// rend l'état final et on débloque les actions.
+const COMBAT_ANIM_MAX_MS = 10000;
 function queueCombatAnim(fn){
   __combatAnimQueue.push(fn);
   processCombatAnimQueue();
 }
-async function processCombatAnimQueue(){
-  if(__combatAnimPlaying) return;
-  __combatAnimPlaying = true;
-  document.body.classList.add('combat-anim-lock');
-  while(__combatAnimQueue.length){
-    const fn = __combatAnimQueue.shift();
-    try { await fn(); } catch(e) { console.error('Erreur animation de combat', e); }
-  }
+// Fin de lecture (normale ou forcée) : lève le verrou, affiche l'état final
+// puis applique l'éventuel état arrivé entre-temps. Idempotent.
+function releaseCombatAnimLock(){
+  clearTimeout(__combatAnimWatchdog);
+  __combatAnimWatchdog = null;
+  __combatAnimGen++; // invalide la boucle de lecture éventuellement encore suspendue
+  __combatAnimQueue.length = 0;
   document.body.classList.remove('combat-anim-lock');
   __combatAnimPlaying = false;
-  // Applique maintenant le dernier état arrivé pendant que la file jouait
-  // (voir onStateUpdate) — sinon le plateau resterait figé sur un état
+  // Rend d'abord l'état final (S) que le gel avait retenu...
+  unfreezeBoardRender();
+  // ...puis applique maintenant le dernier état arrivé pendant que la file
+  // jouait (voir onStateUpdate) — sinon le plateau resterait figé sur un état
   // périmé jusqu'à la prochaine mise à jour, qui peut tarder.
   if(__pendingStateWhileAnimating){
     const pending = __pendingStateWhileAnimating;
     __pendingStateWhileAnimating = null;
     onStateUpdate(pending);
   }
+}
+async function processCombatAnimQueue(){
+  if(__combatAnimPlaying) return;
+  __combatAnimPlaying = true;
+  const gen = ++__combatAnimGen;
+  document.body.classList.add('combat-anim-lock');
+  __combatAnimWatchdog = setTimeout(()=>{
+    console.warn('File d\'animations de combat : délai dépassé, rendu final forcé');
+    releaseCombatAnimLock();
+  }, COMBAT_ANIM_MAX_MS);
+  while(__combatAnimQueue.length){
+    if(gen !== __combatAnimGen) return; // déblocage forcé entre-temps
+    const fn = __combatAnimQueue.shift();
+    try { await fn(); } catch(e) { console.error('Erreur animation de combat', e); }
+  }
+  if(gen !== __combatAnimGen) return;
+  releaseCombatAnimLock();
 }
 function spawnDamageNumber(anchorEl, amount){
   if(!anchorEl || !amount) return;
