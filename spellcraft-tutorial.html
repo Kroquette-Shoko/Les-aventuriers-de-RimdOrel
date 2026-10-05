@@ -2168,7 +2168,7 @@ function renderHand(){
   PREV_HAND_LENGTH = hand.length;
   if(newCount>0) playSfx('draw');
   hand.forEach((card, i)=>{
-    const affordable = getEffectiveCostClient(p, card) <= (p.manaNormal + p.manaFragile);
+    const affordable = card.type==='Piège' || getEffectiveCostClient(p, card) <= (p.manaNormal + p.manaFragile);
     const isPendingTrap = !!card.pendingTrap;
     const isLockedTrap = !!card.activeTrap; // un piège déjà armé, lui, reste verrouillé
     const canPlay = GS_ROLE!=='spectator' && myTurn && S.phase==='main' && affordable && !UI.selectingAttackers && !isLockedTrap && !isPendingTrap;
@@ -3191,7 +3191,7 @@ const TUT_STEPS_INFO = {
   playC1: { title:'Jouez votre première créature', text:"Vous avez en main Gobelin inconscient, une créature Volonté à 1 mana (2 attaque / 1 point de vie) avec le mot-clé Charge : elle peut attaquer dès qu'elle est posée. Glissez-la depuis votre main jusqu'au plateau pour la jouer.", continueBtn:false, highlight:['[data-instid="t-p1-c1"]'] },
   goToAttack1: { title:"Passez à l'attaque", text:"Le plateau adverse est vide : votre Gobelin inconscient peut attaquer sans être bloqué. Cliquez sur « ⚔ Passer au combat », en bas de l'écran.", continueBtn:false, highlight:['#phase-bar button'] },
   selectAttackers1: { title:'Choisissez votre attaquant', text:"Cliquez sur le Gobelin inconscient pour le désigner comme attaquant, puis cliquez sur « Valider » pour lancer l'attaque.", continueBtn:false, highlight:['[data-instid="t-p1-c1"]'] },
-  playTrap: { title:'Posez un piège', text:"Vous avez aussi en main Frappe preventive, un Piège Volonté à 1 mana : « Avant qu'une créature alliée ne combatte, infligez 3 dégâts à la créature qu'elle va affronter. » Glissez-le sur le plateau pour l'activer — il restera caché et se déclenchera tout seul lors d'un futur combat.", continueBtn:false, highlight:['[data-instid="t-p1-trap"]'] },
+  playTrap: { title:'Posez un piège', text:"Vous avez aussi en main Frappe preventive, un Piège Volonté à 1 mana : « Avant qu'une créature alliée ne combatte, infligez 3 dégâts à la créature qu'elle va affronter. » Glissez-le sur le plateau pour le poser : aucun mana n'est dépensé à la pose, le piège s'arme au prochain changement de phase, puis se déclenchera tout seul (et son mana sera payé à ce moment-là) lors d'un futur combat.", continueBtn:false, highlight:['[data-instid="t-p1-trap"]'] },
   endTurn1: { title:'Terminez votre tour', text:"Le Gobelin inconscient, non bloqué, a infligé 2 dégâts à Sandroska. Cliquez sur « Fin de tour », en bas de l'écran.", continueBtn:false, highlight:['#phase-bar button'] },
   aiTurn1: { title:"Tour de l'adversaire", text:"Sandroska joue Forge-sort, une créature Arcane à 2 mana (1 attaque / 1 point de vie)...", continueBtn:false, highlight:[] },
   playC2: { title:'Une deuxième créature', text:"Nouveau tour : vous avez pioché Chevaucheuse de requin des sables, une créature Volonté à 3 mana (4 attaque / 3 points de vie), elle aussi avec Charge. Glissez-la sur le plateau.", continueBtn:false, highlight:['[data-instid="t-p1-c2"]'] },

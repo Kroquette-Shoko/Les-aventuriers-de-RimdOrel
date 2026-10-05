@@ -150,7 +150,7 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
         <div class="cardtype"><h4>Créature</h4><p>A une Force (dégâts infligés au combat) et des PV. Peut attaquer et bloquer. Nouvellement arrivée, elle a la <em>fatigue d'invocation</em> et ne peut pas attaquer ce tour-ci (sauf mot-clé Charge).</p></div>
         <div class="cardtype"><h4>Artefact</h4><p>Reste en jeu sans combattre. Offre en général une capacité passive ou activable. Peut avoir des charges limitées.</p></div>
         <div class="cardtype"><h4>Sortilège</h4><p>Effet ponctuel résolu immédiatement, puis la carte part en défausse. Souvent, demande une cible.</p></div>
-        <div class="cardtype"><h4>Piège</h4><p>Se pose face cachée, sans effet immédiat. Se déclenche automatiquement plus tard, dès que sa condition est remplie (voir section 8).</p></div>
+        <div class="cardtype"><h4>Piège</h4><p>Se pose face cachée, sans effet immédiat et sans payer de mana. Se déclenche automatiquement plus tard, dès que sa condition est remplie ; son coût en mana est alors payé (voir section 8).</p></div>
       </div>
       <p class="dim" style="margin-top:12px;">Chaque carte a aussi une <strong>classe</strong> (Aube, Crépuscule, Volonté, Prima, Arcane ou Neutre) qui la relie à une couleur/identité de jeu, et une <strong>rareté</strong> (Basique, Commune, Rare, Épique, Mythique) qui influence surtout la collection et le craft, pas les règles elles-mêmes.</p>
     </section>
@@ -201,9 +201,14 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
       <h2>8. Les pièges</h2>
       <p>Un piège se pose face cachée, sans effet immédiat. Sa condition de déclenchement (écrite sur la carte, ex. "quand une créature ennemie attaque") est surveillée en permanence :</p>
       <ul>
-        <li>Vous pouvez avoir <strong>plusieurs pièges actifs en même temps</strong>.</li>
-        <li>Un piège se déclenche automatiquement dès que sa condition se réalise — le plus souvent au moment d'un <strong>changement de phase</strong> (par exemple, quand l'adversaire déclare ses attaquants), pas seulement en fin de tour.</li>
-        <li>Si vous rejouez un piège qui n'est pas encore armé (parce qu'il vient d'être posé et attend le prochain changement de phase pour s'activer), cela <strong>annule</strong> ce piège au lieu d'en poser un second à la même case — le mana réservé est alors libéré.</li>
+        <li><strong>À la pose</strong>, aucun mana n'est vérifié ni dépensé : la carte reste simplement dans votre main, face cachée.</li>
+        <li>Le piège est <strong>armé</strong> au prochain changement de phase : à la fin de votre tour, ou au passage au combat (déclaration des attaquants), selon ce qui arrive en premier.</li>
+        <li>Vous pouvez avoir <strong>autant de pièges armés que vous le souhaitez</strong> en même temps : il n'y a aucune limite.</li>
+        <li>Si plusieurs de vos pièges peuvent se déclencher sur le même événement, ils sont utilisés <strong>du plus ancien (posé en premier) au plus récent</strong>.</li>
+        <li><strong>Un piège à la fois</strong> : un piège ne se déclenche qu'après la résolution complète du précédent, et seulement si l'événement qui le déclenche existe toujours à ce moment-là. Exemple : vous avez deux « Oups » armés et l'adversaire lance un sort. Le premier « Oups » annule ce sort. Comme il n'y a plus de sort à annuler, le second ne se déclenche pas : il reste armé et son coût en mana n'est pas payé.</li>
+        <li>Un piège se déclenche automatiquement dès que sa condition se réalise. C'est à ce moment-là que son <strong>coût en mana est payé</strong>. Si vous n'avez pas assez de mana, il ne se déclenche pas et <strong>reste armé</strong> : il retentera au prochain déclenchement possible. Sinon, il se révèle, son effet se résout, puis il part en défausse. Un piège ne se déclenche qu'une seule fois.</li>
+        <li>Si un piège armé ne s'est pas déclenché au début de votre tour suivant, il <strong>se désarme</strong> et redevient une carte normale en main : vous pouvez le reposer plus tard, ou le jouer autrement.</li>
+        <li>Votre adversaire ne voit pas vos pièges en main : il ne découvre un piège qu'au moment où il se déclenche.</li>
       </ul>
     </section>
 
