@@ -2168,7 +2168,7 @@ function renderHand(){
   PREV_HAND_LENGTH = hand.length;
   if(newCount>0) playSfx('draw');
   hand.forEach((card, i)=>{
-    const affordable = getEffectiveCostClient(p, card) <= (p.manaNormal + p.manaFragile);
+    const affordable = card.type==='Piège' || getEffectiveCostClient(p, card) <= (p.manaNormal + p.manaFragile);
     const isPendingTrap = !!card.pendingTrap;
     const isLockedTrap = !!card.activeTrap; // un piège déjà armé, lui, reste verrouillé
     const canPlay = GS_ROLE!=='spectator' && myTurn && S.phase==='main' && affordable && !UI.selectingAttackers && !isLockedTrap && !isPendingTrap;

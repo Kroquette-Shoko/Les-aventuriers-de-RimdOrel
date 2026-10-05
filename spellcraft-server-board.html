@@ -2565,10 +2565,26 @@ function renderHand(){
   PREV_HAND_LENGTH = hand.length;
   if(newCount>0) playSfx('draw');
   hand.forEach((card, i)=>{
-    const affordable = getEffectiveCostClient(p, card) <= (p.manaNormal + p.manaFragile);
+    // Un Piège se pose gratuitement (le coût n'est payé qu'au déclenchement) :
+    // le mana ne conditionne donc pas sa jouabilité.
+    const isTrapCard = card.type==='Piège';
+    const affordable = isTrapCard || getEffectiveCostClient(p, card) <= (p.manaNormal + p.manaFragile);
     const isPendingTrap = !!card.pendingTrap;
     const isLockedTrap = !!card.activeTrap; // un piège déjà armé, lui, reste verrouillé
-    const canPlay = GS_ROLE!=='spectator' && myTurn && S.phase==='main' && affordable && !UI.selectingAttackers && !isLockedTrap && !isPendingTrap;
+    // Choix bloquant en attente pour nous (sacrifice, découverte, mot-clé) :
+    // le serveur refuse toute autre action tant qu'il n'est pas résolu.
+    const hasBlockingChoice = [S.pendingSacrifice, S.pendingDiscover, S.pendingKeywordChoice].some(x=>x && x.playerKey===MY_KEY);
+    const hasSacrificeCost = !isTrapCard && card.extraCostEnabled && card.extraCostType==='sacrificeCreature';
+    // Plateau plein (8 créatures) / artefacts pleins (2) — sauf si un coût de
+    // sacrifice libère de la place (cas incertain : on ne grise pas).
+    const noRoom = (card.type==='Créature' && (p.board||[]).length>=8 && !hasSacrificeCost)
+                || (card.type==='Artefact' && (p.relics||[]).length>=2 && !hasSacrificeCost);
+    // Coût additionnel impayable (pas de piège : pose gratuite, cas incertain)
+    const extraCostUnpayable = !isTrapCard && card.extraCostEnabled && (
+         (card.extraCostType==='sacrificeCreature' && (p.board||[]).length<1)
+      || (card.extraCostType==='discardCard' && hand.filter((c,j)=>j!==i).length<1));
+    const canPlay = GS_ROLE!=='spectator' && myTurn && S.phase==='main' && affordable && !UI.selectingAttackers && !isLockedTrap && !isPendingTrap
+                    && !hasBlockingChoice && !noRoom && !extraCostUnpayable;
     const el2 = cardEl(card, {});
     el2.classList.add('hand-card');
     const slot = document.createElement('div');
