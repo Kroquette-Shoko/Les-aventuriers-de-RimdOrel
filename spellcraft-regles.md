@@ -474,9 +474,9 @@ L'IA utilise désormais ses artefacts, **1 fois par tour chacun**, selon les mê
 
 ### 8.8 Ce qui n'est pas tranché ou reste tel quel
 
-- **Ordre exact à la dernière charge** : quand l'utilisation (ou le déclenchement) retire la dernière charge, on ne précise pas si l'effet de l'artefact se résout complètement avant la destruction, ni dans quel ordre se résolvent « Quand je suis détruit » et les autres réactions. L'intention probable est : l'effet se résout, puis l'artefact est détruit.
-- **Déclenchement « réel »** : on ne précise pas si une capacité déclenchée dont la condition échoue (ou dont l'effet n'a aucune cible, ou dont le « X % de chance » échoue) compte comme « résolue » et use une charge. La formulation « se résout réellement » suggère que non, mais cela reste à confirmer côté moteur.
-- **Déclencheur « À chaque utilisation »** (`onUse`) : ce déclencheur, proposé aux artefacts dans l'éditeur, se produit à chaque utilisation de l'artefact. On ne précise pas s'il retire une charge en plus de celle de l'utilisation (la règle d'usure exclut la capacité « Utiliser » elle-même, pas explicitement ce déclencheur).
+- **Ordre à la dernière charge (tranché dans le moteur)** : l'effet de l'artefact se résout **complètement** ; ensuite la charge est retirée ; si elle tombe à 0, l'artefact quitte le jeu pour le cimetière, puis son « Quand je suis détruit » se résout (une seule fois). Exemple : le Tombeau de la maudite pioche d'abord, puis inflige X dégâts, X étant le nombre de cartes en main à ce moment-là. L'ordre entre « Quand je suis détruit » et les réactions d'**autres** cartes à la même destruction n'est pas précisé.
+- **Déclenchement « réel » (tranché dans le moteur)** : l'usure automatique n'a lieu que si au moins un effet de la capacité a **vraiment été appliqué**. Une condition qui échoue, ou une cible aléatoire sans candidat, n'use donc pas l'artefact. Le cas d'un effet « X % de chance » qui rate n'a pas été vérifié.
+- **Déclencheur « À chaque utilisation »** (`onUse`) : il ne retire **pas** de charge en plus de celle de l'utilisation (le moteur l'exclut explicitement de l'usure).
 - **Effet « Épuiser un artefact »** (`exhaustArtifact`, « il ne peut plus être activé ce tour-ci ») : configurable dans l'éditeur, mais **ignoré par le moteur** (voir 12).
 - **Effet « Retirer des utilisations »** (`removeArtifactCharges`) : reste utilisable. Si ce retrait fait tomber l'artefact à 0, il est détruit (règle 8.5, point 2).
 - **Effet « Ajouter des charges »** (`addCharges`) et **« Fixer les utilisations »** (option de « Fixer une statistique ») : configurables dans l'éditeur ; les règles validées ne disent rien de plus. En particulier, **fixer les utilisations à 0** : on ne précise pas si l'artefact est alors détruit (par analogie avec 8.5, ce serait logique, mais ce n'est pas écrit). Il n'y a pas non plus de nombre maximum de charges précisé.
@@ -500,7 +500,7 @@ L'IA utilise désormais ses artefacts, **1 fois par tour chacun**, selon les mê
 | Quand cette carte élimine une créature | Chez la créature qui met sa cible à 0 PV au combat (attaque ou blocage) ou par « Combat forcé », **si elle est encore en vie** à la fin de l'échange (voir 7.8) |
 | Quand cette carte revient du cimetière | Réapparition d'elle-même par Tenace |
 | Quand vous ramenez une créature de la défausse | Chaque fois qu'une carte (de n'importe quel type) est récupérée depuis votre défausse |
-| À chaque utilisation *(onUse)* | Artefacts : à chaque utilisation de l'artefact. Son interaction avec les charges n'est pas tranchée (voir 8.8) |
+| À chaque utilisation *(onUse)* | Artefacts : à chaque utilisation de l'artefact. Il ne retire pas de charge en plus de celle de l'utilisation (voir 8.8) |
 | Quand je suis détruit *(onDestroyed)* | Artefacts : quand un effet le détruit ou que sa dernière charge disparaît (voir 8.5). Ne retire pas de charge |
 | Au début / à la fin de votre tour | Chaque tour (pour un artefact, chaque résolution lui retire 1 charge) |
 | Quand vous gagnez un point de mana | À chaque incrément de mana (normal, fragile ou vide) |
