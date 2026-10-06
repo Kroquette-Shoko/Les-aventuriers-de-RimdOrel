@@ -211,7 +211,7 @@ Le client traduit les refus du serveur : `no-valid-target` (aucune cible valide)
 
 3. **Phase de combat**
    - Chaque créature non étourdie, non gelée, sans Protecteur et n'ayant pas le mal d'invocation (sauf **Charge**) peut attaquer une fois.
-   - **Résolution automatique** : si aucune de vos créatures ne peut attaquer (mal d'invocation sans Charge, gel, étourdissement, Protecteur, déjà attaqué, plateau vide), la phase de combat est sautée : l'interface ne propose plus que « Fin de tour ». Quand une créature peut attaquer, le bouton « Fin de tour » reste utilisable directement, sans passer par le combat.
+   - **Résolution automatique** : si aucune de vos créatures ne peut attaquer (mal d'invocation sans Charge, gel, étourdissement, Protecteur, déjà attaqué, plateau vide), la phase de combat est sautée : l'interface ne propose plus que « Fin de tour ». Quand une créature peut attaquer, le bouton « Fin de tour » reste utilisable directement, sans passer par le combat. Après le combat (qu'il y ait eu une attaque ou que vous ayez choisi « Passer le combat »), vous revenez en phase principale : vous pouvez encore jouer des cartes avant de cliquer sur « Fin de tour ». Si une carte jouée rend une créature capable d'attaquer (Charge, par exemple) alors que le combat n'a pas été fait, le bouton « ⚔ Combat » réapparaît.
    - Voir Section 6 pour le détail du combat, et la Section 7 pour les règles complètes des créatures.
 
 4. **Fin de tour** (dans cet ordre)

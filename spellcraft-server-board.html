@@ -5172,12 +5172,13 @@ function renderPhaseBar(){
       btn.onclick = uiConfirmAttackers;
       phaseKey = 'attack-confirm';
     } else {
-      // Aucun attaquant choisi : inutile de passer par « Passer l'attaque »
-      // puis « Fin de tour » — un seul clic termine le tour (le serveur
-      // n'exige pas attackPhaseDone pour finir un tour).
-      btn.textContent = 'Fin de tour';
-      btn.onclick = ()=>{ UI.selectingAttackers = false; UI.selectedAttackers = []; uiEndTurn(); };
-      phaseKey = 'end-turn';
+      // Aucun attaquant choisi : « Passer le combat » termine seulement la
+      // phase de combat. Le joueur reste dans sa phase principale : il peut
+      // encore jouer des cartes (comme après une attaque) puis cliquer sur
+      // « Fin de tour ». Ce bouton ne termine PAS le tour.
+      btn.textContent = 'Passer le combat';
+      btn.onclick = uiConfirmAttackers;
+      phaseKey = 'attack-confirm';
     }
     // Le bouton "Tout sélectionner" (et "Annuler") passe sous le bouton
     // d'attaque, dans un empilement vertical plutôt qu'à côté.
