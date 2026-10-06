@@ -1698,6 +1698,58 @@ function shakeScreen(tier){
   setTimeout(()=>outer.classList.remove(cls), tier==='hitLarge' ? 460 : 360);
 }
 
+// ---------------- Journal : accords grammaticaux et perspective ----------------
+// Le serveur écrit les effets à la 3e personne du singulier ("inflige 3
+// dégâts à ...") et, pour les héros, avec des tournures figées sur p1
+// ("votre héros" = p1, "l'adversaire" = p2). Ces fonctions les remettent à
+// la bonne personne et dans la perspective du joueur local (MY_KEY).
+const JOURNAL_VERB_IRREGULAR = {
+  fait:'faites', met:'mettez', détruit:'détruisez', étourdit:'étourdissez',
+  réduit:'réduisez', gèle:'gelez', récupère:'récupérez', renforcera:'renforcerez',
+  renvoie:'renvoyez', envoie:'envoyez', dit:'dites'
+};
+function journalConjugateYou(verb){
+  if(Object.prototype.hasOwnProperty.call(JOURNAL_VERB_IRREGULAR, verb)) return JOURNAL_VERB_IRREGULAR[verb];
+  if(/era$/.test(verb)) return verb.slice(0,-1)+'ez';        // futur : renforcera -> renforcerez
+  if(/è([^aeiouyéèêàâîôûç]+)e$/.test(verb)) return verb.replace(/è([^aeiouyéèêàâîôûç]+)e$/, 'é$1ez');
+  if(/e$/.test(verb)) return verb+'z';                        // inflige -> infligez
+  if(/it$/.test(verb)) return verb.slice(0,-1)+'ssez';       // verbes en -ir
+  return verb;
+}
+// Mots-clés internes (anglais) -> libellés français, uniquement entre
+// guillemets ou parenthèses pour ne pas toucher aux noms de cartes.
+function journalFrenchKeywords(text){
+  return text.replace(/(["(])(charge|flying|reach|pierce|lifesteal|initiative|armor|stealth|relentless|fearful|protecteur|toxic|discret|imparable|fugace|assault|debut|final)([")])/g,
+    (m,a,k,b)=>a+(KEYWORD_LABELS[k]||k)+b);
+}
+// Remplace la tournure "votre héros" / "l'adversaire" par celle qui est juste
+// pour le joueur local, d'après le héros réellement visé (id "hero-p1"/"hero-p2").
+function journalFixHeroPerspective(text, eff, actorKey){
+  const ids = (eff && eff.targetInstIds || []).filter(id=>id==='hero-p1' || id==='hero-p2');
+  if(ids.length!==1) return text;
+  const heroKey = ids[0]==='hero-p1' ? 'p1' : 'p2';
+  let phrase;
+  if(heroKey===MY_KEY) phrase = 'votre héros';
+  else if(heroKey===actorKey) phrase = 'son héros';
+  else phrase = "l'adversaire";
+  return text.replace(/votre héros|l'adversaire/, phrase);
+}
+// Phrase complète pour un effet : sujet + verbe accordé + complément. Jamais "undefined".
+function journalEffectSentence(eff, actorKey){
+  let t = String((eff && eff.text) || '').trim();
+  t = t.replace(/\s*undefined\s*/g, ' ').replace(/\s+/g,' ').trim();
+  if(!t) return '';
+  t = journalFrenchKeywords(journalFixHeroPerspective(t, eff, actorKey));
+  const isMe = actorKey===MY_KEY;
+  const first = t.split(' ')[0];
+  const rest = t.slice(first.length);
+  // Texte qui porte déjà son sujet (nom de carte entre guillemets, "trop de sorts...") : tel quel.
+  if(/^["«]/.test(t) || /^(trop|le|la|les|un|une|des|l')$/i.test(first) || /^l'/i.test(first)) return t + '.';
+  if(!/^[a-zéèêëàâîïôûùç]+$/i.test(first)) return t + '.';
+  if(isMe) return `Vous ${journalConjugateYou(first)}${rest}.`;
+  return `L'adversaire ${first}${rest}.`;
+}
+
 function renderGameLog(){
   const el = document.getElementById('log');
   if(!el || !S) return;
@@ -1858,7 +1910,7 @@ function renderGameLog(){
       // message de combat : {who} est remplacé, et si des créatures sont
       // listées, tout le texte devient survolable — surbrillance sur
       // place si tout est encore là, sinon voyage dans le temps.
-      line.textContent = entry.raw.replace('{who}', who);
+      line.textContent = journalFrenchKeywords(String(entry.raw).replace('{who}', who).replace(/\s*undefined\s*/g,' ').trim());
       if(entry.highlightIds && entry.highlightIds.length){
         line.classList.add('hl-ref');
         line.onmouseenter = ()=>onJournalEffectHover(entry, entry.highlightIds);
@@ -1886,7 +1938,7 @@ function renderGameLog(){
         ? (isMe ? `La capacité de votre région ${nameSpan} se déclenche.` : `La capacité de la région adverse ${nameSpan} se déclenche.`)
         : `${who} joue ${nameSpan}.`);
       // On ignore les effets sans texte (évite « Vous undefined. »).
-      const effects = (entry.effects || []).filter(e=>e && typeof e.text==='string' && e.text.trim());
+      const effects = (entry.effects || []).filter(e=>e && typeof e.text==='string' && journalEffectSentence(e, entry.ownerKey));
       const header = document.createElement('div');
       header.className = 'journal-entry-card';
       if(effects.length <= 1){
@@ -1894,7 +1946,7 @@ function renderGameLog(){
         // seule avec "et" — "Vous jouez X. Vous gagnez 1 mana fragile."
         const eff = effects[0];
         header.innerHTML = eff
-          ? `${headerPhrase} <span class="effect-sentence">${who} ${escapeHtmlGS(eff.text)}.</span>`
+          ? `${headerPhrase} <span class="effect-sentence">${escapeHtmlGS(journalEffectSentence(eff, entry.ownerKey))}</span>`
           : headerPhrase;
         if(eff && eff.targetInstIds && eff.targetInstIds.length){
           const effSpan = header.querySelector('.effect-sentence');
@@ -1912,7 +1964,7 @@ function renderGameLog(){
         effects.forEach(eff=>{
           const effLine = document.createElement('div');
           effLine.className = 'journal-effect-line';
-          effLine.textContent = `${who} ${eff.text}.`;
+          effLine.textContent = journalEffectSentence(eff, entry.ownerKey);
           if(eff.targetInstIds && eff.targetInstIds.length){
             effLine.classList.add('hl-ref');
             effLine.onmouseenter = ()=>onJournalEffectHover(entry, eff.targetInstIds);
@@ -3037,10 +3089,9 @@ function renderHeroFrame(key, slot){
 async function uiActivateHeroPower(targetInfo, chosenTargets){
   if(!targetInfo && !chosenTargets){
     const hero = S[MY_KEY].hero;
-    const chosen = findNewFormatChosenTarget(hero, 'activated');
-    if(chosen){
-      UI.pendingNewTarget = { kind:'hero', target: chosen.target, ability: chosen.ability, selectedInstIds: [], extra: {} };
-      render();
+    const chosenDefs = findNewFormatChosenTargets(hero, 'activated');
+    if(chosenDefs.length){
+      startNewFormatTargeting('hero', chosenDefs, {});
       return;
     }
     const eff = hero && hero.activeEffect;
@@ -3060,10 +3111,9 @@ async function uiActivatePermanent(permanentType, permanentInstId, targetInfo, c
     if(permanentType==='creature') permanent = p.board.find(c=>c.instId===permanentInstId);
     else if(permanentType==='artifact') permanent = p.relics.find(r=>r.instId===permanentInstId);
     else if(permanentType==='region') permanent = p.region;
-    const chosen = permanent ? findNewFormatChosenTarget(permanent, 'activated') : null;
-    if(chosen){
-      UI.pendingNewTarget = { kind:'permanent', target: chosen.target, ability: chosen.ability, selectedInstIds: [], extra: { permanentType, permanentInstId } };
-      render();
+    const chosenDefs = permanent ? findNewFormatChosenTargets(permanent, 'activated') : [];
+    if(chosenDefs.length){
+      startNewFormatTargeting('permanent', chosenDefs, { permanentType, permanentInstId });
       return;
     }
     const eff = permanent && permanent.triggeredEffects && permanent.triggeredEffects.activated;
@@ -3377,70 +3427,232 @@ function needsTargetClient(card){
   return !!eff && TARGETED_EFFECTS.includes(eff.type) && eff.targetOwner!=='self' && eff.targetOwner!=='trigger';
 }
 // ---------------- Ciblage manuel : nouveau format (card.abilities) ----------------
-// Cherche, pour une carte/permanent donné et un nom de déclencheur donné,
-// la première capacité + cible nécessitant un choix manuel du joueur
-// (selectionMode==='chosen'). Une seule cible "chosen" gérée à la fois pour
-// ce lot — si une carte en a plusieurs, seule la première est proposée.
-function findNewFormatChosenTarget(source, triggerName){
-  if(!source || !source.abilities) return null;
+// Miroir côté client des règles du serveur (validateSpellPlay /
+// resolveNewTargetEntry) : le joueur ne peut choisir que des cibles que le
+// serveur acceptera. Le serveur reste l'arbitre (il refuse sinon).
+const NEW_FORMAT_MANUAL_CATEGORIES = ['creature','hero_creature','artifact','player','hero'];
+// Effets de sort qui n'utilisent jamais de cible désignée (même liste que le serveur).
+const SPELL_TARGETLESS_EFFECTS_CLIENT = ['grantMana','discard','setStatsGroup','resource','emptyManaEffect','fragileManaEffect','refillMana','burnMana','draw','conjure','drawTyped','discardSelf','setStats'];
+function effectTargetRefsClient(e){
+  const refs = [e.usesTarget, e.fightFirstTargetId, e.destroyDealAtkSecondTargetId];
+  if(e.transformMode==='another_target') refs.push(e.transformSourceTargetId);
+  if(e.reduceCostSelectionMode==='chosen') refs.push(e.reduceCostTargetId);
+  if(e.stealStatReceiver==='chosen') refs.push(e.stealStatReceiverTargetId);
+  return refs.filter(Boolean);
+}
+// Une capacité de sort se lance depuis la main si elle n'a aucun déclencheur
+// ou un déclencheur "onPlay". Une capacité "quand piochée" (onDrawn) non.
+function spellAbilityRunsClient(ab){
+  const t = ab.triggers || [];
+  return t.length===0 || t.some(x=>x.trigger==='onPlay');
+}
+// Sort jouable depuis la main ? (miroir de spellIsPlayable côté serveur)
+function spellIsPlayableClient(card){
+  const abs = card.abilities || [];
+  if(!abs.length) return true;
+  return !!card.effect || abs.some(spellAbilityRunsClient);
+}
+// Effets + définitions de cibles d'une capacité, selon le choix A/B/C/D déjà fait.
+function newFormatAbilityView(ab, choiceKey){
+  if(!ab.useChoice) return { effects: ab.effects || [], defs: ab.targets || [] };
+  const k = choiceKey || 'A';
+  const ch = (k==='A'||k==='B'||k==='C'||k==='D') ? ab['choice'+k] : null;
+  if(!ch) return null;
+  return { effects: ch.effects || [], defs: [...(ab.targets||[]), ...(ch.targets||[])] };
+}
+// Liste ordonnée des cibles que le joueur doit désigner (selectionMode
+// 'chosen'), y compris celles propres au choix A/B (choiceX.targets) et les
+// cartes à plusieurs cibles (ex : Lancer, Chasse préparée : allié puis ennemi).
+//  - sort (opts.spell) : capacités jouables depuis la main, cibles réellement
+//    utilisées par un effet, camp allié/ennemi/n'importe lequel ;
+//  - autres (créature, artefact, pouvoir, capacité activée) : capacités du
+//    déclencheur donné (triggerName), camp autre que self/trigger.
+function findNewFormatChosenTargets(source, triggerName, choiceKey, opts){
+  const out = [];
+  if(!source || !source.abilities) return out;
+  const spell = !!(opts && opts.spell);
+  const seen = new Set();
   for(const ab of source.abilities){
     if(ab.kind!=='triggered') continue;
-    if(triggerName && !(ab.triggers||[]).some(te=>te.trigger===triggerName)) continue;
-    for(const tgt of (ab.targets||[])){
-      if(tgt.selectionMode==='chosen' && tgt.targetOwner!=='self' && tgt.targetOwner!=='trigger'){
-        return { ability: ab, target: tgt };
+    if(spell){ if(!spellAbilityRunsClient(ab)) continue; }
+    else if(triggerName && !(ab.triggers||[]).some(te=>te.trigger===triggerName)) continue;
+    const view = newFormatAbilityView(ab, choiceKey);
+    if(!view) continue;
+    for(const tgt of view.defs){
+      if(seen.has(tgt.id)) continue;
+      if(tgt.selectionMode!=='chosen') continue;
+      if(NEW_FORMAT_MANUAL_CATEGORIES.indexOf(tgt.targetCategory)<0) continue; // zones (main, défausse...) : pas de choix manuel côté client
+      if(spell){
+        if(tgt.targetOwner!=='ally' && tgt.targetOwner!=='enemy' && tgt.targetOwner!=='any') continue;
+        if(!view.effects.some(e=>!SPELL_TARGETLESS_EFFECTS_CLIENT.includes(e.effectType) && effectTargetRefsClient(e).includes(tgt.id))) continue;
+      } else if(tgt.targetOwner==='self' || tgt.targetOwner==='trigger'){
+        continue;
       }
+      seen.add(tgt.id);
+      out.push({ ability: ab, target: tgt });
     }
   }
+  return out;
+}
+// Compatibilité : première cible à choisir (ou null).
+function findNewFormatChosenTarget(source, triggerName, choiceKey, opts){
+  const all = findNewFormatChosenTargets(source, triggerName, choiceKey, opts);
+  return all.length ? all[0] : null;
+}
+function newFormatTargetIsDynamic(tgt){ return tgt.countMode==='dynamic'; }
+// Nombre maximal de cibles : "X cibles" = de 1 jusqu'à X. Valeur dynamique :
+// incalculable côté client, on laisse choisir autant de candidats que voulu
+// (bouton Valider) et le serveur tranche.
+function newFormatTargetMax(tgt, nCandidates){
+  if(newFormatTargetIsDynamic(tgt)) return Math.max(1, nCandidates||1);
+  return Math.max(1, tgt.countFixed || 1);
+}
+function newFormatStatOf(c, stat){
+  if(stat==='atk') return c.curAtk;
+  if(stat==='hp') return c.curHp;
+  if(stat==='cost') return c.cost;
+  if(stat==='charges') return c.charges;
   return null;
 }
-function newFormatTargetCount(tgt){
-  if(tgt.countMode==='dynamic') return 1; // valeur dynamique : on ne peut pas la calculer côté client, on demande au moins 1
-  return tgt.countFixed || 1;
-}
-// Une créature/carte est-elle un choix valide pour la cible du nouveau
-// format actuellement en attente ? Miroir des filtres côté serveur.
-function isValidNewFormatTarget(key, c){
-  if(!UI.pendingNewTarget) return false;
-  const tgt = UI.pendingNewTarget.target;
-  const oppKey = MY_KEY==='p1' ? 'p2' : 'p1';
-  const allowed = tgt.targetOwner==='ally' ? [MY_KEY] : tgt.targetOwner==='enemy' ? [oppKey] : [MY_KEY, oppKey];
-  if(!allowed.includes(key)) return false;
-  if(tgt.targetCategory!=='creature' && tgt.targetCategory!=='hero_creature' && tgt.targetCategory!=='artifact') return false;
-  if(tgt.subtypeFilter && !(c.subtypes||[]).some(s=>s.toLowerCase()===tgt.subtypeFilter.toLowerCase())) return false;
+// Filtres du serveur applicables côté client : sous-type, mot-clé, statistique.
+// (Non reproduits, car l'état client ne les expose pas : "cartes hors deck de
+// base" et "a attaqué au tour précédent" — le serveur les vérifie.)
+function newFormatMatchesFilters(tgt, c){
+  if(tgt.subtypeFilter && !(c.subtypes||[]).some(s=>String(s).toLowerCase()===String(tgt.subtypeFilter).toLowerCase())) return false;
+  if(tgt.keywordFilter && !(c.keywords||[]).includes(tgt.keywordFilter)) return false;
   if(tgt.statFilterEnabled){
-    const stat = tgt.statFilterStat==='atk' ? c.curAtk : c.curHp;
+    const stat = newFormatStatOf(c, tgt.statFilterStat);
+    if(stat==null) return false;
     if(tgt.statFilterMode==='atLeast' && !(stat>=tgt.statFilterValue)) return false;
     if(tgt.statFilterMode==='atMost' && !(stat<=tgt.statFilterValue)) return false;
     if(tgt.statFilterMode==='exactly' && stat!==tgt.statFilterValue) return false;
   }
-  if(UI.pendingNewTarget.selectedInstIds.includes(c.instId)) return false; // déjà choisie
   return true;
+}
+function newFormatHasAnyFilter(tgt){
+  return !!(tgt.subtypeFilter || tgt.keywordFilter || tgt.statFilterEnabled || tgt.zoneTypeFilterEnabled || tgt.attackedLastTurnFilter);
+}
+// Candidats valides pour une définition de cible : camp, catégorie, Parade
+// (créature adverse protégée exclue), filtres. `selected` = marqueurs déjà pris.
+function newFormatCandidates(tgt, selected){
+  const out = [];
+  if(!S || !tgt) return out;
+  const oppKey = MY_KEY==='p1' ? 'p2' : 'p1';
+  const keys = tgt.targetOwner==='ally' ? [MY_KEY] : tgt.targetOwner==='enemy' ? [oppKey] : [MY_KEY, oppKey];
+  const cat = tgt.targetCategory;
+  keys.forEach(k=>{
+    const pl = S[k]; if(!pl) return;
+    if(cat==='creature' || cat==='hero_creature'){
+      (pl.board||[]).forEach(c=>{
+        if(isStealthProtectedClient(c, k, MY_KEY)) return; // Parade : aussi pour les sorts
+        if(newFormatMatchesFilters(tgt, c)) out.push({ key:k, marker:c.instId });
+      });
+    }
+    if(cat==='artifact'){
+      (pl.relics||[]).forEach(r=>{ if(newFormatMatchesFilters(tgt, r)) out.push({ key:k, marker:r.instId }); });
+    }
+    if(cat==='player' || cat==='hero' || cat==='hero_creature'){
+      // un filtre (sous-type, mot-clé, statistique) exclut les héros, comme le serveur
+      if(!newFormatHasAnyFilter(tgt)) out.push({ key:k, marker:`hero:${k}`, hero:true });
+    }
+  });
+  return selected && selected.length ? out.filter(x=>!selected.includes(x.marker)) : out;
+}
+// Une créature/artefact est-il un choix valide pour la cible actuellement en attente ?
+function isValidNewFormatTarget(key, c){
+  if(!UI.pendingNewTarget) return false;
+  const pn = UI.pendingNewTarget;
+  return newFormatCandidates(pn.target, pn.selectedInstIds).some(x=>x.key===key && x.marker===c.instId);
 }
 function isValidNewFormatHeroTarget(key){
   if(!UI.pendingNewTarget) return false;
-  const tgt = UI.pendingNewTarget.target;
-  if(tgt.targetCategory!=='player' && tgt.targetCategory!=='hero' && tgt.targetCategory!=='hero_creature') return false;
-  const oppKey = MY_KEY==='p1' ? 'p2' : 'p1';
-  const allowed = tgt.targetOwner==='ally' ? [MY_KEY] : tgt.targetOwner==='enemy' ? [oppKey] : [MY_KEY, oppKey];
-  if(!allowed.includes(key)) return false;
-  const marker = `hero:${key}`;
-  return !UI.pendingNewTarget.selectedInstIds.includes(marker);
-}
-// Ajoute une cible choisie ; si le nombre requis est atteint, lance l'action
-// correspondante (carte jouée, pouvoir, capacité activée).
-function pickNewFormatTarget(marker){
   const pn = UI.pendingNewTarget;
-  pn.selectedInstIds.push(marker);
-  const needed = newFormatTargetCount(pn.target);
-  if(pn.selectedInstIds.length < needed){ render(); return; }
-  const chosenTargets = { [pn.target.id]: pn.selectedInstIds };
+  return newFormatCandidates(pn.target, pn.selectedInstIds).some(x=>x.hero && x.key===key);
+}
+// Invite lisible pour la cible en cours : "Choisissez une créature ennemie (Force ≤ 3)".
+function newFormatTargetPrompt(tgt){
+  const cat = tgt.targetCategory;
+  let noun, fem;
+  if(cat==='artifact'){ noun='artefact'; fem=false; }
+  else if(cat==='player' || cat==='hero'){ noun='héros'; fem=false; }
+  else if(cat==='hero_creature'){ noun='cible (créature ou héros)'; fem=true; }
+  else { noun='créature'; fem=true; }
+  const adj = tgt.targetOwner==='ally' ? (fem?'alliée':'allié') : tgt.targetOwner==='enemy' ? (fem?'ennemie':'ennemi') : '';
+  const pluralNoun = noun==='héros' ? 'héros' : noun==='artefact' ? 'artefacts' : noun.startsWith('cible') ? 'cibles (créatures ou héros)' : 'créatures';
+  const pluralAdj = adj ? (adj+'s') : '';
+  const max = newFormatTargetMax(tgt, 0);
+  const extras = [];
+  if(tgt.subtypeFilter) extras.push(`de type ${tgt.subtypeFilter}`);
+  if(tgt.keywordFilter) extras.push(`avec ${KEYWORD_LABELS[tgt.keywordFilter] || tgt.keywordFilter}`);
+  if(tgt.statFilterEnabled){
+    const statLabel = ({atk:'Force', hp:'Endurance', cost:'Coût', charges:'Utilisations'})[tgt.statFilterStat] || tgt.statFilterStat;
+    const op = ({atLeast:'≥', atMost:'≤', exactly:'='})[tgt.statFilterMode] || '=';
+    extras.push(`(${statLabel} ${op} ${tgt.statFilterValue})`);
+  }
+  const tail = extras.length ? ' ' + extras.join(' ') : '';
+  if(newFormatTargetIsDynamic(tgt)) return `Choisissez des ${pluralNoun}${pluralAdj?' '+pluralAdj:''}${tail}`;
+  if(max>1) return `Choisissez jusqu'à ${max} ${pluralNoun}${pluralAdj?' '+pluralAdj:''}${tail}`;
+  return `Choisissez ${fem?'une':'un'} ${noun}${adj?' '+adj:''}${tail}`;
+}
+function noValidTargetMessage(kind){
+  if(kind==='hero') return "Aucune cible valide : le pouvoir n'est pas utilisé.";
+  if(kind==='permanent') return "Aucune cible valide : la capacité n'est pas utilisée.";
+  return "Aucune cible valide : la carte n'est pas jouée et reste en main (rien n'est dépensé).";
+}
+// Ouvre le mode ciblage (séquence de cibles) — sauf si une cible n'a aucun
+// candidat : message clair, rien n'est ouvert, rien n'est envoyé.
+function startNewFormatTargeting(kind, defs, extra){
+  if(!defs.length) return false;
+  if(defs.some(d=>newFormatCandidates(d.target).length===0)){
+    showActionError(noValidTargetMessage(kind));
+    render();
+    return false;
+  }
+  UI.pendingNewTarget = { kind, queue: defs, step: 0, collected: {}, target: defs[0].target, ability: defs[0].ability, selectedInstIds: [], extra: extra || {} };
+  render();
+  return true;
+}
+// Valide la sélection de la cible en cours, puis passe à la suivante ou envoie l'action.
+function advanceNewFormatTargeting(){
+  const pn = UI.pendingNewTarget;
+  if(!pn) return;
+  pn.collected[pn.target.id] = pn.selectedInstIds.slice();
+  if(pn.step+1 < pn.queue.length){
+    pn.step++;
+    pn.target = pn.queue[pn.step].target;
+    pn.ability = pn.queue[pn.step].ability;
+    pn.selectedInstIds = [];
+    render();
+    return;
+  }
+  const chosenTargets = pn.collected;
   const kind = pn.kind;
-  const extra = pn.extra;
+  const extra = pn.extra || {};
   UI.pendingNewTarget = null;
-  if(kind==='card') uiPlayCard(extra.index, null, chosenTargets);
+  if(kind==='card') uiPlayCard(extra.index, null, chosenTargets, extra.choiceKey); // choiceKey conservé
   else if(kind==='hero') uiActivateHeroPower(null, chosenTargets);
   else if(kind==='permanent') uiActivatePermanent(extra.permanentType, extra.permanentInstId, null, chosenTargets);
+}
+// Ajoute une cible choisie ; auto-validation au nombre maximal (ou s'il ne
+// reste plus de candidat), sinon le joueur peut valider dès 1 cible.
+function pickNewFormatTarget(marker){
+  const pn = UI.pendingNewTarget;
+  if(!pn) return;
+  pn.selectedInstIds.push(marker);
+  const remaining = newFormatCandidates(pn.target, pn.selectedInstIds).length;
+  const max = newFormatTargetMax(pn.target, pn.selectedInstIds.length + remaining);
+  if(pn.selectedInstIds.length >= max || remaining===0){
+    if(newFormatTargetIsDynamic(pn.target) && remaining>0){ render(); return; } // dynamique : validation manuelle
+    advanceNewFormatTargeting();
+    return;
+  }
+  render();
+}
+// Bouton "Valider" : de 1 jusqu'à X cibles.
+function confirmNewFormatTargets(){
+  const pn = UI.pendingNewTarget;
+  if(!pn || pn.selectedInstIds.length<1) return;
+  advanceNewFormatTargeting();
 }
 function cancelPendingNewTarget(){
   UI.pendingNewTarget = null;
@@ -3662,17 +3874,22 @@ function renderHand(){
     // Choix bloquant en attente pour nous (sacrifice, découverte, mot-clé) :
     // le serveur refuse toute autre action tant qu'il n'est pas résolu.
     const hasBlockingChoice = [S.pendingSacrifice, S.pendingDiscover, S.pendingKeywordChoice].some(x=>x && x.playerKey===MY_KEY);
-    const hasSacrificeCost = !isTrapCard && card.extraCostEnabled && card.extraCostType==='sacrificeCreature';
+    // Coût supplémentaire : porté par la carte ou par l'une de ses capacités (comme le serveur)
+    const extraSrc = card.extraCostEnabled ? card : ((card.abilities||[]).find(a=>a.extraCostEnabled) || card);
+    const hasSacrificeCost = !isTrapCard && extraSrc.extraCostEnabled && extraSrc.extraCostType==='sacrificeCreature';
+    // Sort "quand piochée" : non jouable depuis la main (serveur : not-playable)
+    const drawOnlySpell = card.type==='Sortilège' && !spellIsPlayableClient(card);
     // Plateau plein (8 créatures) / artefacts pleins (2) — sauf si un coût de
     // sacrifice libère de la place (cas incertain : on ne grise pas).
     const noRoom = (card.type==='Créature' && (p.board||[]).length>=8 && !hasSacrificeCost)
                 || (card.type==='Artefact' && (p.relics||[]).length>=2 && !hasSacrificeCost);
     // Coût additionnel impayable (pas de piège : pose gratuite, cas incertain)
-    const extraCostUnpayable = !isTrapCard && card.extraCostEnabled && (
-         (card.extraCostType==='sacrificeCreature' && (p.board||[]).length<1)
-      || (card.extraCostType==='discardCard' && hand.filter((c,j)=>j!==i).length<1));
+    const extraCostUnpayable = !isTrapCard && extraSrc.extraCostEnabled && (
+         (extraSrc.extraCostType==='sacrificeCreature' && (p.board||[]).length<1)
+      || (extraSrc.extraCostType==='discardCard' && hand.filter((c,j)=>j!==i).length<1)
+      || (extraSrc.extraCostType==='loseLife' && !(p.hp > (extraSrc.extraCostAmount || 1)))); // PV <= coût : injouable
     const canPlay = GS_ROLE!=='spectator' && myTurn && S.phase==='main' && affordable && !UI.selectingAttackers && !isLockedTrap && !isPendingTrap
-                    && !hasBlockingChoice && !noRoom && !extraCostUnpayable;
+                    && !hasBlockingChoice && !noRoom && !extraCostUnpayable && !drawOnlySpell;
     const el2 = cardEl(card, {});
     el2.classList.add('hand-card');
     const slot = document.createElement('div');
@@ -3680,6 +3897,18 @@ function renderHand(){
     if(newCount>0 && i>=hand.length-newCount) slot.classList.add('card-just-drawn');
     slot.appendChild(el2);
     if(!canPlay && !isPendingTrap) el2.style.opacity = '.5';
+    if(drawOnlySpell){
+      const dbadge = document.createElement('div');
+      dbadge.style.cssText = 'position:absolute;top:-10px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;padding:2px 8px;border-radius:8px;background:#5b5470;color:#fff;white-space:nowrap;z-index:6;';
+      dbadge.textContent = 'Se déclenche à la pioche';
+      el2.appendChild(dbadge);
+      el2.title = 'Ce sort se déclenche à la pioche : il ne se joue pas depuis la main.';
+      slot.title = el2.title;
+      if(myTurn){
+        el2.style.cursor = 'help';
+        el2.addEventListener('click', ()=>showActionError('Ce sort se déclenche à la pioche : il ne se joue pas depuis la main.'));
+      }
+    }
     if(isPendingTrap || isLockedTrap){
       const badge = document.createElement('div');
       badge.style.cssText = 'position:absolute;top:-10px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;padding:2px 8px;border-radius:8px;background:var(--gold);color:#231d33;white-space:nowrap;z-index:6;';
@@ -4565,39 +4794,6 @@ function onCardDragMove(ev){
   zone.classList.toggle('drop-target', over);
 }
 
-// Une créature qui vise une cible "alliée désignée" doit pouvoir se
-// cibler elle-même une fois posée — mais au moment de cette vérification,
-// elle n'existe pas encore visuellement sur le plateau (juste en main).
-// On la compte donc comme candidate potentielle hypothétique ici, en plus
-// des créatures déjà en jeu, pour savoir s'il existe VRAIMENT une raison
-// de demander une cible au joueur.
-function hasAnyPossibleTargetForPlay(card, tgt){
-  const oppKey = MY_KEY==='p1' ? 'p2' : 'p1';
-  const allowedKeys = tgt.targetOwner==='ally' ? [MY_KEY] : tgt.targetOwner==='enemy' ? [oppKey] : [MY_KEY, oppKey];
-  const matchesFilters = (c)=>{
-    if(tgt.subtypeFilter && !(c.subtypes||[]).some(s=>s.toLowerCase()===tgt.subtypeFilter.toLowerCase())) return false;
-    if(tgt.statFilterEnabled){
-      const stat = tgt.statFilterStat==='atk' ? (c.curAtk ?? c.atk) : (c.curHp ?? c.hp);
-      if(tgt.statFilterMode==='atLeast' && !(stat>=tgt.statFilterValue)) return false;
-      if(tgt.statFilterMode==='atMost' && !(stat<=tgt.statFilterValue)) return false;
-      if(tgt.statFilterMode==='exactly' && stat!==tgt.statFilterValue) return false;
-    }
-    return true;
-  };
-  if(tgt.targetCategory==='creature' || tgt.targetCategory==='hero_creature' || tgt.targetCategory==='artifact'){
-    for(const k of allowedKeys){
-      const pool = tgt.targetCategory==='artifact' ? S[k].relics : S[k].board;
-      if((pool||[]).some(matchesFilters)) return true;
-    }
-    // La carte en cours de pose elle-même, une fois en jeu — seulement si
-    // "allié" est autorisé et qu'elle est bien une créature (les cibles
-    // de type artefact ne peuvent jamais se référer à une créature qu'on
-    // pose).
-    if(card.type==='Créature' && tgt.targetCategory!=='artifact' && allowedKeys.includes(MY_KEY) && matchesFilters(card)) return true;
-    if(tgt.targetCategory==='hero_creature') return true; // un héros est toujours une cible valide
-  }
-  return false;
-}
 function onCardDragEnd(ev){
   if(!DRAG_STATE) return;
   const { handIndex, ghost, sourceEl } = DRAG_STATE;
@@ -4634,23 +4830,47 @@ function onCardDragEnd(ev){
 // avec le choix maintenant connu (choiceKey).
 function continueCardDragDecision(handIndex, choiceKey){
     const card = S[MY_KEY].hand[handIndex];
-    const newTrigger = card && card.type==='Sortilège' ? null : 'onPlay'; // sortilège : n'importe quelle capacité s'applique direct
-    const chosen = card ? findNewFormatChosenTarget(card, newTrigger) : null;
-    if(chosen && card.type==='Créature' && !hasAnyPossibleTargetForPlay(card, chosen.target)){
-      // Aucune cible possible, même en comptant la créature elle-même une
-      // fois posée — contrairement à un sort ou un piège, une créature
-      // doit quand même pouvoir être jouée : son effet à la pose ne fera
-      // simplement rien faute de cible.
-      uiPlayCard(handIndex, null, null, choiceKey);
-    } else if(chosen){
-      UI.pendingNewTarget = { kind:'card', target: chosen.target, ability: chosen.ability, selectedInstIds: [], extra: { index: handIndex, choiceKey } };
-      render();
+    if(!card) return;
+    const isSpell = card.type==='Sortilège';
+    if(isSpell && !spellIsPlayableClient(card)){
+      showActionError('Ce sort se déclenche à la pioche : il ne se joue pas depuis la main.');
+      return;
+    }
+    // sortilège : toutes les capacités jouables depuis la main ; autres cartes : "onPlay"
+    let defs = findNewFormatChosenTargets(card, isSpell ? null : 'onPlay', choiceKey, { spell: isSpell });
+    if(isSpell){
+      // Règle des sorts : une cible exigée sans aucun candidat valide = jeu refusé
+      // (rien n'est dépensé, la carte reste en main). On n'ouvre pas de ciblage vide.
+      if(defs.some(d=>newFormatCandidates(d.target).length===0)){
+        showActionError(noValidTargetMessage('card'));
+        return;
+      }
+    } else {
+      // Créature / artefact : l'effet à la pose ne fait simplement rien faute de
+      // cible, la carte doit quand même pouvoir être jouée.
+      defs = defs.filter(d=>newFormatCandidates(d.target).length>0);
+    }
+    if(defs.length){
+      startNewFormatTargeting('card', defs, { index: handIndex, choiceKey });
     } else if(card && needsTargetClient(card)){
+      if(isSpell && !oldFormatSpellHasCandidate(card)){
+        showActionError(noValidTargetMessage('card'));
+        return;
+      }
       UI.pendingCard = { index: handIndex, card, choiceKey };
       render();
     } else {
       uiPlayCard(handIndex, null, null, choiceKey);
     }
+}
+// Ancien format (card.effect) : existe-t-il au moins une cible valide pour ce sort ?
+function oldFormatSpellHasCandidate(card){
+  const eff = cardPlayEffectClient(card);
+  if(!eff) return true;
+  if(eff.type==='damage' || eff.type==='heal') return true; // un héros est une cible valide
+  const oppKey = MY_KEY==='p1' ? 'p2' : 'p1';
+  const allowed = eff.targetOwner==='ally' ? [MY_KEY] : eff.targetOwner==='any' ? [MY_KEY, oppKey] : [oppKey];
+  return allowed.some(k=>(S[k].board||[]).some(c=>!isStealthProtectedClient(c, k, MY_KEY)));
 }
 
 // Affiche un compte à rebours — interpolé localement entre deux passages du
@@ -4742,14 +4962,26 @@ function renderPhaseBar(){
     const btn = document.createElement('button');
     btn.className = 'phase-btn';
     if(UI.pendingNewTarget){
-      const needed = newFormatTargetCount(UI.pendingNewTarget.target);
-      const got = UI.pendingNewTarget.selectedInstIds.length;
-      btn.textContent = needed>1 ? `Choisis une cible (${got}/${needed})...` : 'Choisis une cible...';
+      const pn = UI.pendingNewTarget;
+      const got = pn.selectedInstIds.length;
+      const max = newFormatTargetMax(pn.target, got + newFormatCandidates(pn.target, pn.selectedInstIds).length);
+      let label = newFormatTargetPrompt(pn.target);
+      if(pn.queue && pn.queue.length>1) label += ` — cible ${pn.step+1}/${pn.queue.length}`;
+      if(max>1) label += ` (${got}/${newFormatTargetIsDynamic(pn.target) ? '…' : max})`;
+      btn.textContent = label + '...';
     } else {
       btn.textContent = 'Choisis une cible...';
     }
     btn.disabled = true;
     bar.appendChild(btn);
+    if(UI.pendingNewTarget && UI.pendingNewTarget.selectedInstIds.length>=1){
+      // "X cibles" = de 1 jusqu'à X : on peut valider dès la première.
+      const ok = document.createElement('button');
+      ok.className = 'phase-btn';
+      ok.textContent = 'Valider';
+      ok.onclick = confirmNewFormatTargets;
+      bar.appendChild(ok);
+    }
     const cancel = document.createElement('button');
     cancel.className = 'phase-btn secondary small';
     cancel.textContent = 'Annuler';
@@ -4977,12 +5209,23 @@ const ACTION_ERROR_LABELS = {
   'cannot-block': 'cette créature ne peut pas bloquer (étourdie, gelée, Peureuse ou a déjà bloqué).',
   'attacker-not-declared': 'cet attaquant n\'est pas déclaré ce tour.',
   'attacker-gone': 'cet attaquant n\'est plus en jeu.',
-  'no-valid-target': 'Aucune cible valide : l\'artefact n\'est pas utilisé.',
+  // 'no-valid-target' : message adapté à l'action, voir describeActionError()
+  'target-required': 'il faut désigner une cible.',
+  'invalid-target': 'cible invalide (hors critères, mauvais camp, créature protégée par Parade ou cible en double) : rien n\'est dépensé.',
+  'invalid-choice': 'choix invalide : cette option n\'existe pas sur la carte.',
+  'board-full': 'votre plateau est plein (8 créatures) : impossible de jouer cette carte.',
+  'not-playable': 'ce sort se déclenche à la pioche : il ne se joue pas depuis la main.',
+  'cannot-pay-extra-cost': 'impossible de payer le coût supplémentaire (PV insuffisants ou aucune créature alliée à sacrifier).',
   'artifact-slots-full': 'Vos 2 emplacements d\'artefact sont pleins.',
   'already-activated-this-turn': 'cet artefact a déjà été utilisé ce tour-ci.'
 };
-function describeActionError(err){
+function describeActionError(err, label){
   const key = String(err);
+  if(key==='no-valid-target'){
+    if(label==='Capacité activée') return 'Aucune cible valide : l\'artefact n\'est pas utilisé.';
+    if(label==='Pouvoir de héros') return noValidTargetMessage('hero');
+    return noValidTargetMessage('card');
+  }
   return ACTION_ERROR_LABELS[key] || key;
 }
 let __actionErrorTimer = null;
@@ -5008,7 +5251,7 @@ async function runAction(label, fn){
     const res = await fn();
     if(res && res.error){
       debugLog(`${label} → ${res.error}`, 'log-error');
-      showActionError(`${label} : ${describeActionError(res.error)}`);
+      showActionError(`${label} : ${describeActionError(res.error, label)}`);
     } else if(res && res.state){
       // Applique directement l'état renvoyé par l'action elle-même — ne
       // dépend plus uniquement de la diffusion temps réel (qui met à jour

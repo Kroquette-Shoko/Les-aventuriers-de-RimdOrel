@@ -43,7 +43,7 @@ Un deck est composé de :
 | **Région** | Aucun | — | Toujours en jeu dès le début, ni jouée, ni détruite, ni ciblable. Peut **remplacer le gain de mana** de votre début de tour (voir 3.4) et peut avoir des capacités automatiques ; elle n'a pas de capacité activée. |
 | **Créature** | Oui | Force / Endurance | Peut attaquer, bloquer, mourir. Porte la majorité des mots-clés de combat (voir la section 7). |
 | **Artefact** | Oui | Usure (charges) | Reste en jeu (2 au maximum par joueur) sans combattre. Se pose en payant son coût de mana (c'est le seul moment où il en coûte), puis s'utilise gratuitement 1 fois par tour (« Utiliser : … »). Chaque utilisation, et chaque déclenchement automatique d'un effet passif, lui retire 1 charge ; quand sa dernière charge disparaît, il est détruit. Voir la section 8. |
-| **Sortilège** | Oui | — | Effet immédiat à la résolution, puis va en défausse. |
+| **Sortilège** | Oui | — | Se joue depuis la main en payant son coût. La carte est **défaussée avant** que ses effets ne se résolvent, puis ses effets s'appliquent. Voir 3.5. |
 | **Piège** | Oui | — | Posé face cachée, reste dans votre main, sans payer de mana à la pose. Armé au prochain changement de phase, il attend sa condition adverse (attaque, sort, invocation). Le coût en mana est payé uniquement au déclenchement ; si le mana manque, le Piège ne se déclenche pas et reste armé. Une fois résolu, il va en défausse. Non déclenché avant votre tour suivant : se désarme sans effet. Aucune limite au nombre de Pièges actifs ; s'ils visent le même événement, ils s'utilisent du plus ancien au plus récent, un à la fois. |
 
 ### 3.1 Cycle de vie d'un Piège
@@ -94,7 +94,7 @@ Aucun sort, effet, piège ou capacité ne peut détruire une Région, ni la pren
 
 #### Règles communes aux effets de Région
 - **Conjurer une carte** : elle va en main. Si votre main est pleine (8 cartes), la carte conjurée est **perdue** (envoyée au cimetière), exactement comme une pioche. La carte conjurée n'a **aucune restriction de classe** liée à votre deck.
-- **Conjurer une créature directement en jeu** : si votre plateau est plein (8 créatures), la créature est **perdue** ; elle ne passe pas par la main.
+- **Conjurer une créature directement en jeu** : si votre plateau est plein (8 créatures), la créature est **perdue** ; elle ne passe pas par la main. C'est la même règle que pour les Sortilèges (voir 3.5).
 - **Gain de mana vide** : suit la règle générale du mana vide (section 4) : il augmente votre maximum, mais ne peut **pas** être utilisé le tour même.
 - Le texte de l'effet affiché dans le jeu est toujours celui de la carte.
 
@@ -114,6 +114,74 @@ Elles suivent toutes les règles ci-dessus. Les textes sont ceux des cartes.
 | **Antique forge des façonneurs** | Volonté | « Le premier artefact coûte 1 de moins. » À partir de votre tour 5, 30 % de chance, au lieu de gagner du mana, d'ajouter un artefact aléatoire dans votre deck. |
 | **Sanctuaire oublié de Sarelcronix** | Crépuscule | Au début de la partie, vous gagnez 2 points de vie. À partir de votre tour 5, 30 % de chance, au lieu de gagner du mana, de gagner 2 points de vie. |
 
+### 3.5 Les Sortilèges
+
+Un Sortilège est un effet ponctuel : on le joue depuis la main, ses effets s'appliquent, puis il ne revient pas. Cette section rassemble toutes les règles qui le concernent ; le serveur de jeu les applique, le client (le plateau) et l'éditeur de cartes s'y conforment.
+
+#### Jouer un sort, pas à pas
+1. **Conditions pour le jouer** : c'est votre phase principale, vous avez assez de mana, le **coût additionnel** éventuel peut être payé (voir plus bas) et le sort est bien jouable depuis la main (voir « Sorts quand piochée »).
+2. **Choix éventuel** : certaines cartes demandent de choisir entre deux options (A ou B) avant de désigner les cibles. Les cibles demandées dépendent de l'option choisie.
+3. **Cibles** : vous désignez les cibles exigées par le sort (voir plus bas). Si une cible exigée est impossible à trouver ou invalide, **le jeu est refusé** et rien n'est dépensé.
+4. **Paiement** : mana, puis coût additionnel.
+5. **La carte est défaussée AVANT la résolution.** Le sort est déjà dans votre défausse quand ses effets se résolvent. Conséquence : un effet qui regarde votre défausse peut la voir, sauf s'il l'exclut explicitement (la « Déduction » exclut le sort lui-même de ses révélations).
+6. **Les effets se résolvent** dans l'ordre de la carte.
+
+Un Piège adverse « quand l'adversaire lance un sortilège » (par exemple « Oups ») peut **contrer** le sort : le mana et le coût additionnel sont perdus, le sort va en défausse et son effet n'a pas lieu.
+
+**Il n'y a aucune limite au nombre de sorts joués par tour** : seul votre mana limite. Un sort à 0 de coût peut être rejoué autant de fois que vous en avez.
+
+#### Ciblage et filtres
+- Un sort ne désigne que des cibles **valides**. Une cible valide respecte : le **camp** demandé (allié, ennemi ou les deux), la **catégorie** (créature, artefact, héros...) et tous les **filtres** de la carte.
+- **Filtres** : sous-type (ex. « un Dragon »), mot-clé (ex. « une créature avec Envol » pour *Chute mortelle*), statistique (ex. « Force ≤ 2 » pour *Chasser les faibles*, « Force ≥ 4 » pour *Vaincre les forts*, « Force ≤ 3 » pour *Ôter la vie*). Ces restrictions sont des **filtres de ciblage** : la cible ne convient pas = elle n'est tout simplement pas proposée (ce n'est plus une « condition » qui ferait perdre le sort).
+- **Parade** : une créature adverse protégée par Parade ne peut pas être ciblée par un sort (voir 7.7). Elle est exclue aussi des sorts de zone et des tirages au sort. Vos propres créatures Parade restent ciblables par vos sorts.
+- Un **héros** n'est une cible possible que si la catégorie du sort le permet (« héros », « joueur » ou « héros ou créature »). Un filtre (sous-type, mot-clé, statistique) exclut les héros.
+- **Aucune cible valide = refus.** Si le sort exige une cible choisie et qu'aucune cible ne convient (plateau vide, tout le monde sous Parade, filtre qui ne trouve personne...), le jeu est **refusé** (erreur `no-valid-target`) : rien n'est dépensé et la carte **reste en main**. Le client affiche « Aucune cible valide » et n'ouvre pas de ciblage vide.
+- **Cible invalide choisie = refus** (`invalid-target`) : cible hors filtre, mauvais camp, créature sous Parade, cible choisie deux fois, ou trop de cibles. Là encore, rien n'est dépensé. Le client grise les cibles interdites pour que cela n'arrive pas.
+- **Plusieurs cibles.** Certains sorts ont deux cibles distinctes (*Lancer* et *Chasse préparée* : d'abord un allié, puis un ennemi) : le client vous les demande l'une après l'autre. Quand une cible est de la forme **« X cibles »** (par exemple *Force du groupe*, 2 créatures alliées), vous choisissez **de 1 jusqu'à X cibles différentes** : le bouton « Valider » apparaît dès la première cible choisie, et la validation est automatique quand vous atteignez X. Un sort « X cibles » reste donc jouable avec moins de X candidats.
+- S'il n'y a qu'**un seul candidat** valide et que vous n'en désignez aucun, le serveur le prend d'office.
+- **Limite connue** : seules les cibles **désignées par le joueur** sont contrôlées. Les cibles aléatoires ou « toutes » ne provoquent jamais de refus : si rien n'est à toucher, le sort est joué sans effet (c'est le cas de *Simple désaccord*, *Tempête du trône*, *De feu et de cendre* option B).
+
+#### Pièges de ciblage et effets annulés
+Le Piège « si l'adversaire cible une créature alliée » (contre, redirection) peut annuler ou rediriger l'effet d'un sort sur **une cible**. Dans ce cas, **tous les effets du même sort sur cette cible** sont annulés (ou redirigés) : par exemple *Intimidation* contrée n'inflige ni dégâts ni Peureux. Les effets du sort sur **d'autres cibles** ne changent pas. Détails du déclenchement de ce Piège : voir la section 9.
+
+#### Plateau plein, main pleine, deck vide
+- **Créature conjurée « directement en jeu » par un sort, plateau plein : elle est perdue** (ni en main, ni au cimetière). Le journal l'indique : « (plateau plein : N perdus) ». C'est la même règle que pour une Région (3.4) et la même que pour la limite de 8 créatures (7.3).
+- **Changer en bonbon** et **Contrôle d'Irajani** (qui placent une créature sur **votre** plateau) sont **refusés** si votre plateau est plein (`board-full`) : rien n'est dépensé.
+- **Main pleine** (8 cartes) : toute carte qui arriverait en main est défaussée (carte conjurée, volée, renvoyée, révélée puis choisie...). Une carte **piochée** avec la main pleine est défaussée **sans** déclencher son effet « quand piochée ».
+- **Deck vide** : piocher dans un deck vide est une **défaite immédiate**, même au milieu de la résolution d'un sort (il n'y a pas de fatigue progressive).
+
+#### Coût supplémentaire
+- **Perdre des PV** (ex. *Régicide*) : le sort est **injouable si vos PV sont inférieurs ou égaux au coût** (vous ne pouvez pas vous tuer pour le jouer). Erreur `cannot-pay-extra-cost`, rien n'est dépensé.
+- **Sacrifier une créature** (ex. *Don de jaäne*) : sans créature alliée à sacrifier, le jeu est refusé (`cannot-pay-extra-cost`). Si vous avez plusieurs créatures, le jeu vous demande laquelle.
+- **Défausser une carte** : il faut une autre carte en main.
+
+#### Sorts « quand piochée »
+Quelques sorts (*Cauchemar*, *Vigueur naturelle*, *Force naturelle*, *Récompense naturelle*) se déclenchent **quand ils sont piochés**, pas quand on les joue. Ils sont **injouables depuis la main** (`not-playable`) : le client les grise et affiche « Se déclenche à la pioche ». Seule la **pioche** les déclenche ; une carte qui arrive en main autrement (conjuration, révélation, *Déduction*) ne déclenche rien. Un sort qui a **aussi** une capacité « quand cette carte entre en jeu » reste jouable.
+
+#### « Ce tour-ci », compteurs du tour
+- Un mot-clé accordé **« ce tour-ci »** disparaît à la **fin du tour courant** (voir 5 et 7.7). Un mot-clé que la créature avait déjà (de naissance ou par un octroi permanent) est conservé (ex. *Évasion d'Irajani*, *De la terre au ciel*).
+- Le compteur de morts de *Pillage de cadavre* compte les créatures mortes **pendant le tour courant**, **des deux camps**, et repart à zéro à la fin de chaque tour.
+
+#### Dégâts et perte de PV
+Une **perte de PV** (effet de dégâts marqué « perte de PV » dans l'éditeur, par exemple *Cauchemar* ou *Régicide*) retire directement des PV à un **héros** : ce n'est **pas** un dégât. Elle n'est pas augmentée par les effets qui amplifient les dégâts, et ne compte pas comme « le héros subit des dégâts ». Sur une créature, le même effet inflige des dégâts normaux.
+
+#### Soin, mana
+- **Soin du héros** : aucun plafond de PV (voir 11, point 6). Soigner une créature la ramène au plus à son Endurance de référence.
+- **Plafond de mana** : le mana maximum ne dépasse jamais **20**.
+
+#### Sorts conjurés et *Don de savoir*
+- Comportement actuel du moteur : un sort conjuré avec la destination « lancé » est **gratuit**, ses cibles sont **tirées au hasard**, et il ne compte pas comme un sort joué depuis la main.
+- ***Don de savoir*** lance **4 sortilèges** de coût **5 ou plus**, tirés au hasard ; *Don de savoir* et *Don de jaäne* sont exclus du tirage. Un **garde-fou** limite l'imbrication à **3 niveaux** : au-delà, la carte lancée est perdue (une ligne du journal le signale).
+- ***Confrontation épique*** conjure en main une créature **ou un artefact Mythique** au hasard.
+- Les révélations **aléatoires** ne proposent que des types de cartes **jouables depuis la main** (Créature, Sortilège, Artefact, Piège), jamais un Héros ni une Région. *Déduction* exclut le sort lui-même.
+- ***Chasse préparée*** : deux cibles (un allié, puis un ennemi). L'allié choisi gagne **+1/+1**, puis **combat** l'ennemi choisi.
+
+#### L'IA et les sorts
+L'IA ne joue un sort que s'il a une **cible valide** et utile (elle ne vise jamais ses propres créatures avec un effet nuisible), choisit une option A/B valide, et gère les sorts à deux cibles (*Lancer*, *Chasse préparée*).
+
+#### Interface et messages d'erreur
+Le client traduit les refus du serveur : `no-valid-target` (aucune cible valide), `target-required` (cible à désigner), `invalid-target` (cible invalide), `invalid-choice` (choix inexistant), `board-full` (plateau plein), `not-playable` (sort « quand piochée »), `cannot-pay-extra-cost` (coût supplémentaire impayable).
+
 ---
 
 ## 4. Les ressources : trois types de mana
@@ -129,7 +197,6 @@ Elles suivent toutes les règles ci-dessus. Les textes sont ceux des cartes.
 ## 5. Structure d'un tour
 
 1. **Début de tour** (dans cet ordre)
-   - Les mots-clés temporaires (« ce tour-ci ») de vos créatures sont purgés.
    - Application de la règle de mana de la Région : si ses conditions sont remplies (tour personnel atteint, puis chance), ses effets remplacent le gain normal, sinon vous gagnez le mana normal (voir 3.4) ; puis déclenchement des capacités "Quand vous gagnez un point de mana".
    - Déclenchement des capacités "Au début de votre tour" (chaque capacité d'artefact qui se résout lui retire 1 charge, voir la section 8).
    - Les cooldowns des capacités activées diminuent de 1.
@@ -148,7 +215,7 @@ Elles suivent toutes les règles ci-dessus. Les textes sont ceux des cartes.
 
 4. **Fin de tour** (dans cet ordre)
    - Déclenchement des capacités "À la fin de votre tour" (usure automatique des artefacts concernés, voir la section 8).
-   - Les bonus de Force/Endurance « jusqu'à la fin du tour » arrivent à échéance.
+   - Les bonus de Force/Endurance « jusqu'à la fin du tour » arrivent à échéance, et les mots-clés accordés « ce tour-ci » disparaissent (voir 7.7).
    - Gel et Étourdissement qui arrivent à échéance prennent fin (voir la section 6).
    - Les créatures **Fugaces** de votre plateau meurent.
    - Les cartes temporaires restant en main sortent de la partie.
@@ -243,7 +310,7 @@ Comment les valeurs changent :
 
 | Zone | Limite | Quand elle est dépassée |
 |---|---|---|
-| **Plateau** | **8 créatures** par joueur | On ne peut pas jouer une créature depuis la main (la carte reste en main, aucun mana n'est dépensé). Pour une créature créée par un effet : les copies de soi s'arrêtent à la 8e ; une carte conjurée ou récupérée « directement en jeu » va en main à la place (ou en défausse si la main est pleine) ; une copie de créature, un renvoi en jeu ou un contrôle (vol) n'ont pas lieu. |
+| **Plateau** | **8 créatures** par joueur | On ne peut pas jouer une créature depuis la main (la carte reste en main, aucun mana n'est dépensé). Pour une créature créée par un effet : les copies de soi s'arrêtent à la 8e ; une carte **conjurée** « directement en jeu » (par un sort ou une Région) est **perdue** : ni main ni défausse (voir 3.5) ; une carte **récupérée** « directement en jeu » va en main à la place (ou en défausse si la main est pleine) ; une copie de créature, un renvoi en jeu ou un contrôle (vol) n'ont pas lieu. |
 | **Main** | **8 cartes** | Toute carte qui arrive en main au-delà est **défaussée** : carte piochée (elle est perdue, sans déclencher « quand vous piochez »), carte renvoyée en main, carte volée, copiée, conjurée, récupérée depuis le deck. **Cas particulier** : une récupération depuis la **défausse** vers une main pleine n'a pas lieu, la carte reste dans la défausse. Chaque joueur commence avec 4 cartes en main. |
 | **Deck** | **30 cartes** exactement (hors Héros et Région) | **2 exemplaires** maximum d'une même carte, **1 seul** si elle porte le super-type Légendaire. Le serveur vérifie la taille et le nombre d'exemplaires au lancement d'une partie et la refuse sinon. |
 
@@ -338,7 +405,7 @@ Il y a 15 mots-clés de jeu et 3 étiquettes sans effet. Chacun n'a qu'**un seul
 
 **D'où viennent les mots-clés d'une créature ?** De la carte elle-même ; d'un octroi permanent ; d'un octroi **temporaire** (« ce tour-ci », voir ci-dessous) ; d'une aura (tant que sa source est en jeu) ; des effets « Amélioration » (un mot-clé aléatoire parmi Charge, Envol, Portée, Brutalité, Vol de vie, Initiative, Armure, Parade, Tenace, Toxique, Discret, Imparable, que la créature n'a pas déjà) et « Choix parmi 3 mots-clés » (3 mots-clés tirés parmi Charge, Envol, Portée, Brutalité, Vol de vie, Initiative, Armure, Parade, Tenace, Peureux, Protecteur, Toxique, que la créature n'a pas déjà). L'effet « Retire un mot-clé » le retire quelle que soit son origine (un mot-clé d'aura peut revenir au recalcul suivant).
 
-**Mots-clés temporaires.** Un mot-clé accordé « ce tour-ci » reste jusqu'à la **purge au début du prochain tour du propriétaire de la créature** : cette purge a lieu en tout premier au début de son tour, avant ses déclencheurs de début de tour. Une créature qui possède déjà le mot-clé (de naissance ou par un octroi permanent) ne le perd pas : seul un mot-clé réellement ajouté par l'effet temporaire est retiré.
+**Mots-clés temporaires.** Un mot-clé accordé « ce tour-ci » est retiré à la **fin du tour courant** (que ce soit le tour de son propriétaire ou celui de l'adversaire : il ne dure donc pas pendant le tour adverse suivant). Une créature qui possède déjà le mot-clé (de naissance ou par un octroi permanent) ne le perd pas : seul un mot-clé réellement ajouté par l'effet temporaire est retiré.
 
 **Charge** (`charge`) — La créature peut attaquer le tour où elle arrive en jeu. Elle a quand même le mal d'invocation (et donc la protection de Parade, si elle l'a) : Charge ne fait que l'autoriser à attaquer. L'IA en tient compte. Voir 7.4 pour les créatures créées par un effet.
 
@@ -413,7 +480,7 @@ Une capacité se lit « déclencheur → conditions → effet » (voir section 9
 | **Finale** (meurt) et « est détruite » | À la mort (7.5, étape 5). Identiques pour le moteur. Pas en cas de résurrection par Tenace. |
 | Élimine une créature | Voir 7.8 (combat, ou Combat forcé) : le tueur doit être encore en vie. |
 | Revient du cimetière | À la résurrection par Tenace. |
-| Est désignée | Quand elle est ciblée par l'un de ces effets : Dégâts, Soin, Étourdissement/Gel, Renvoi en main, Destruction, Silence, Renforcement/Affaiblissement, Octroi de mot-clé, Choix de mot-clé. |
+| Est désignée | Quand elle est ciblée par l'un de ces effets : Dégâts, Soin, Étourdissement/Gel, Renvoi en main, Destruction, Silence, Renforcement/Affaiblissement, Octroi de mot-clé, Choix de mot-clé. Un sort de zone désigne chaque créature touchée, une par une ; un artefact visé par l'un de ces effets est lui aussi « désigné ». Les effets Fixer une statistique, Vol, Transformation et Combat forcé ne comptent pas comme une désignation, pas plus que *Lancer* ni un héros visé. |
 | Début / fin de votre tour | Dans l'ordre : vos créatures (ordre du plateau), votre héros, votre région, vos artefacts (chaque capacité d'artefact résolue lui retire 1 charge, voir 8.4), vos Pièges armés. |
 | Quand une carte… (surveillance du plateau) | Voir 7.5 pour l'arrivée et la mort ; ces capacités surveillent les deux camps, le joueur n°1 d'abord. |
 
@@ -549,6 +616,7 @@ L'IA utilise désormais ses artefacts, **1 fois par tour chacun**, selon les mê
 | Au début / à la fin de votre tour | Chaque tour (pour un artefact, chaque résolution lui retire 1 charge) |
 | Quand vous gagnez un point de mana | À chaque incrément de mana (normal, fragile ou vide) |
 | **Quand vous piochez une carte** | Créature, Héros, Artefact — à chaque pioche, quelle qu'en soit la source (pour un artefact, chaque résolution lui retire 1 charge) |
+| **Quand cette carte est piochée** *(onDrawn)* | Sortilège (et les autres types) — quand **cette** carte est piochée. Pour un Sortilège qui n'a que ce déclencheur, la carte est **injouable depuis la main** (voir 3.5). Ne se produit pas pour une carte qui arrive en main autrement (conjuration, révélation) ni quand la main est pleine (la carte piochée est défaussée sans effet) |
 | Quand vous invoquez une créature du sous-type X | Quand une créature de ce sous-type arrive en jeu chez vous, quelle qu'en soit la source (main ou effet) ; le sous-type est défini carte par carte |
 | Capacité activée | Le joueur choisit de payer le coût pour déclencher l'effet (créature, Héros ; voir 7.9 pour les créatures ; une Région n'en a pas). Pour un artefact (« Utiliser : … »), aucun mana : gratuit, 1 fois par tour, 1 charge consommée (voir 8.4) |
 
@@ -563,7 +631,7 @@ L'IA utilise désormais ses artefacts, **1 fois par tour chacun**, selon les mê
 | Quand l'adversaire invoque une créature | L'adversaire joue une carte de type Créature |
 | **Quand l'adversaire joue une carte** | L'adversaire joue n'importe quelle carte, tout type confondu |
 | **À la fin du tour de l'adversaire** | Juste avant que la main ne revienne au propriétaire du Piège |
-| **Si l'adversaire cible une créature alliée** | Un sort ou un effet adverse désigne une créature du propriétaire du Piège |
+| **Si l'adversaire cible une créature alliée** | Un sort ou un effet adverse désigne une créature du propriétaire du Piège. Se déclenche aussi pour un **artefact** visé, et, pour un sort de **zone**, **une fois par créature touchée** (chaque Piège ne protège qu'une créature : 3 créatures et 1 Piège = 1 sauvée, 2 touchées). Ne se déclenche pas pour un héros visé, ni pour Fixer une statistique, Vol, Transformation, Combat forcé, ni pour *Lancer*. Si le Piège annule ou redirige l'effet, **tous les effets du même sort sur cette cible** le sont aussi (voir 3.5) |
 | **Après qu'une créature alliée survit à un combat** | Une créature du propriétaire du Piège termine un combat sans mourir |
 | **Après qu'une créature ennemie survit à un combat** | Une créature adverse termine un combat sans mourir |
 | **Avant qu'une créature alliée ne combatte** | Juste avant la résolution des dégâts d'un combat impliquant une créature alliée |
@@ -576,6 +644,8 @@ L'IA utilise désormais ses artefacts, **1 fois par tour chacun**, selon les mê
 Dégâts, Soin, Pioche, Renforcement (+Force/+Endurance — accepte aussi des valeurs **négatives**, donc peut servir de malus), Fixer les statistiques, Fixer le coût des cartes (deck ou main, vous ou l'adversaire), **Réduire le coût d'un type/sous-type de carte** (en main, dans le deck, ou les deux — filtrable par type et sous-type), Gel, Étourdir, Renvoi en main, Gain de mana (normal / vide / fragile), Recharge de mana, Réduire le coût d'activation (d'une capacité activée de la même carte), Réduction du prochain achat, Défausse, Explorer (mise en défausse depuis un deck), Destruction, Silence, Amélioration (mot-clé aléatoire), Octroi de mot-clé précis, Choix parmi 3 mots-clés, Invoquer des copies de soi, Combat forcé entre deux créatures désignées, Jet de pièce, Récupération (deck/défausse selon critère), Réveler (3 cartes **depuis votre deck, votre défausse, le deck adverse ou la défausse adverse**, choix d'une, filtrable par type/sous-type via le critère), Conjuration (carte hors deck, selon des critères ou une carte précise par son nom) — ces deux derniers peuvent avoir un effet supplémentaire appliqué à la carte obtenue (renforcement ou mot-clé).
 
 Effets propres aux artefacts : **Destruction** d'un artefact ciblé, **Retirer des utilisations** (`removeArtifactCharges`), **Ajouter des charges** (`addCharges`), **Épuiser un artefact** (`exhaustArtifact`, ignoré par le moteur), et l'option « Utilisations » de « Fixer une statistique » ou « Voler une statistique ». Voir 8.5 et 8.8 pour leur interaction avec l'usure et la destruction. L'effet « Retirer des utilisations » n'est plus nécessaire pour représenter l'usure d'un effet passif : elle est automatique.
+
+L'effet **Dégâts** peut être marqué « **perte de PV** » : sur un héros, c'est alors une perte directe de PV et non des dégâts (voir 3.5). Une **condition** « nombre de cartes d'un sous-type » peut ne pas compter les cartes **conjurées** (set « Conjuration »). Une **Conjuration** par critères peut exclure des cartes par leur nom.
 
 Les effets de Pioche et de mana (normal / vide / fragile / recharge) peuvent tous cibler **Vous**, **L'adversaire**, ou **Les deux** — pas seulement vous.
 
@@ -634,6 +704,16 @@ L'éditeur de cartes permet de configurer certaines choses que le moteur n'inter
 - **Conditions personnalisées et effets personnalisés** (texte libre) : jamais interprétables par nature, toujours considérés comme remplis / sans effet mécanique.
 - **Coût additionnel "Personnalisé"** (texte libre) : comme pour les conditions/effets personnalisés, aucune traduction mécanique possible ; toujours traité comme payable sans conséquence.
 
+**Sorts : règles décidées le 6 octobre 2026 (section 3.5).** Elles sont appliquées par le moteur serveur et par les données des cartes ; le client, l'éditeur et cette documentation ont été alignés dessus. Limites et points non tranchés relevés dans le moteur :
+- Le refus pour cible invalide ne concerne que les cibles « désignées par le joueur » (voir 13) ; les sorts lancés par *Don de savoir* gardent des cibles aléatoires.
+- *Don de la guerre* n'a aucun déclencheur défini : le moteur le traite comme jouable.
+- Une capacité « Récupération » depuis la défausse n'exclut pas le sort lui-même (seule la révélation, donc *Déduction*, l'exclut).
+- « Détruisez » met l'Endurance à un très grand négatif : une créature **Tenace** détruite revient donc (par ex. avec *Lancer* ou *Don de jaäne*). Non tranché.
+- Un sort **contré** fait perdre le mana et le coût additionnel ; il compte dans « cartes jouées ce tour ».
+- Une réduction de coût s'applique aux sorts (plancher à 0).
+- Aucun sort n'utilise l'effet Silence ; il ne touche que les créatures.
+- Deux cartes (*Vigueur naturelle* et *Récompense naturelle*) ont strictement le même effet (soin de 4 PV à toutes vos créatures).
+
 Le **coût additionnel** (sacrifice, défausse, perte de PV) est réellement vérifié et payé par le moteur pour jouer une carte, y compris pour l'IA. Pour le joueur humain, s'il y a plus d'une créature possible à sacrifier, le jeu lui demande laquelle plutôt que de choisir automatiquement (l'IA, elle, sacrifie toujours la plus faible). La défausse pioche une carte au hasard parmi les autres cartes en main.
 
 Une capacité peut avoir plusieurs déclencheurs différents en même temps sur une seule carte (ils fonctionnent en OU).
@@ -644,7 +724,7 @@ Tout le reste décrit dans ce document (mana, combat, créatures, mots-clés, Pi
 
 Cette section trace les décisions prises pendant la refonte complète du système de capacités de l'éditeur (déclencheurs, conditions, effets, cibles, mots-clés). Le moteur en applique désormais une grande partie ; l'état de chaque décision, relevé dans le code du serveur le 6 octobre 2026, est indiqué ci-dessous.
 
-**Règle générale de ciblage — non appliquée par le serveur :** la décision voulue est que, pour toute carte qui a besoin d'une cible, si aucune cible valable n'existe (ou si la sélection "Exactement X" ne peut pas être remplie), **la carte ne peut pas être jouée du tout** (un blocage en amont, au même titre que ne pas avoir assez de mana). Le serveur ne fait pas cette vérification pour les cartes jouées : la carte reste jouable et, faute de cible, l'effet est simplement ignoré. (Une éventuelle vérification côté interface n'a pas été examinée.) **Exception (nouveau) : l'utilisation d'un artefact** dont l'effet exige une cible choisie est refusée s'il n'existe aucune cible valide (`no-valid-target`, voir 8.4).
+**Règle générale de ciblage — appliquée pour les Sortilèges (serveur et client) :** pour un sort qui exige une cible **désignée par le joueur**, si aucune cible valide n'existe, **le sort ne peut pas être joué** (erreur `no-valid-target`, rien n'est dépensé, la carte reste en main) ; une cible invalide désignée est refusée (`invalid-target`). Le client n'ouvre pas de ciblage vide et n'autorise que les cibles valides (voir 3.5). **Limites :** (1) pour les Créatures, Artefacts joués depuis la main, capacités de Héros et d'autres capacités, la carte reste jouable faute de cible et l'effet est simplement ignoré ; (2) seul le mode « Désignée par le joueur » (de 1 à X cibles) est contrôlé : les modes « Jusqu'à X désignées » et « Exactement X » ne produisent pas de refus propre, ni les cibles aléatoires ou « toutes » ; (3) l'**utilisation d'un artefact** dont l'effet exige une cible choisie est refusée s'il n'existe aucune cible valide (`no-valid-target`, voir 8.4).
 
 **Règle "Regarder" (discover) — appliquée :** une carte révélée depuis un deck ou une défausse (la vôtre ou celle de l'adversaire) est **toujours retirée de sa zone d'origine**, peu importe où elle finit ensuite. On ne copie jamais la carte. Les cartes proposées mais non choisies restent dans leur zone. La main d'un joueur n'est pas une source possible dans le moteur.
 
