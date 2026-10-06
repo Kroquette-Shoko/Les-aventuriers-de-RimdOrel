@@ -1307,6 +1307,21 @@ function isStealthProtectedClient(c, ownerKey, viewerKey){
   return !!c && hasKw(c, 'stealth') && !!c.summonSick && ownerKey !== viewerKey;
 }
 
+// Étourdissement / gel : la créature « perd son prochain tour complet ». Le
+// serveur garde `stunned`/`frozen` vrais pendant tout ce tour (ce sont des
+// booléens : les règles ci-dessus n'ont pas besoin d'autre chose).
+const STATUS_DURATION_TEXT = "perd son prochain tour complet : ne peut pas attaquer ni bloquer jusqu'à la fin du prochain tour de son propriétaire";
+// Précision optionnelle, UNIQUEMENT si le serveur fournit `_stunUntilTurn`
+// (numéro de tour global, comparé à `state.turn`) : on ne dit que ce qui est
+// sûr — l'effet se termine à la fin du tour en cours quand ce tour est celui
+// du propriétaire et que `_stunUntilTurn` est atteint. Sinon : chaîne vide.
+function statusDurationNote(c, ownerKey, state){
+  if(!c || !state || !isCombatNumberLike(c._stunUntilTurn) || !isCombatNumberLike(state.turn)) return '';
+  if(state.active === ownerKey && c._stunUntilTurn === state.turn) return "Se termine à la fin de ce tour.";
+  return '';
+}
+function isCombatNumberLike(x){ return typeof x==='number' && isFinite(x); }
+
 // Serveur (doAssignBlock), dans cet ordre : déjà bloqué -> étourdie/gelée ->
 // Peureux -> attaquant Discret -> attaquant Envol (bloqueur sans Envol ni Portée).
 // Sans `attacker` : seules les raisons propres au bloqueur sont testées
@@ -2483,13 +2498,13 @@ function cardEl(card, opts={}){
     el.classList.add('is-stunned');
     const badge = nEl('div','card-status-badge');
     badge.textContent = '💫';
-    badge.title = 'Étourdie';
+    badge.title = ('Étourdie : ' + STATUS_DURATION_TEXT + '. ' + statusDurationNote(card, opts.ownerKey, S)).trim();
     el.appendChild(badge);
   } else if(inPlay && card.frozen){
     el.classList.add('is-frozen');
     const badge = nEl('div','card-status-badge');
     badge.textContent = '❄️';
-    badge.title = 'Gelée';
+    badge.title = ('Gelée : ' + STATUS_DURATION_TEXT + '. ' + statusDurationNote(card, opts.ownerKey, S)).trim();
     el.appendChild(badge);
   }
 
@@ -3243,7 +3258,7 @@ function renderLane(key, slot){
     cardWrap.className = 'card-slot';
     cardWrap.style.position = 'relative';
     cardWrap.dataset.instId = c.instId;
-    const el2 = cardEl(c, { attacking, attackSelecting, targetable, inPlay:true, unavailableReason: unavailableReasonFor(key, c), onClick: ()=>onBoardCreatureClick(key, c) });
+    const el2 = cardEl(c, { attacking, attackSelecting, targetable, inPlay:true, ownerKey:key, unavailableReason: unavailableReasonFor(key, c), onClick: ()=>onBoardCreatureClick(key, c) });
     cardWrap.appendChild(el2);
 
     // Posture de combat (état, recalculé à chaque rendu) : retrait des créatures
