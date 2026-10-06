@@ -30,7 +30,7 @@ Un deck est composé de :
 
 **Limites sur le plateau (en partie) :**
 - **8 créatures maximum** simultanément sur le champ de bataille d'un joueur.
-- **2 artefacts maximum** simultanément en jeu pour un joueur.
+- **2 artefacts maximum** simultanément en jeu pour un joueur (2 emplacements ; un 3e artefact ne peut pas être joué, voir la section 8).
 
 ---
 
@@ -41,7 +41,7 @@ Un deck est composé de :
 | **Héros** | Aucun | PV | Toujours en jeu dès le début de la partie. Porte la classe du deck, peut avoir des capacités (y compris activées). |
 | **Région** | Aucun | — | Toujours en jeu dès le début. Définit la **règle de mana** du deck (remplace ou modifie le gain normal). Peut aussi avoir des capacités. |
 | **Créature** | Oui | Force / Endurance | Peut attaquer, bloquer, mourir. Porte la majorité des mots-clés de combat (voir la section 7). |
-| **Artefact** | Oui | Usure (charges) | Reste en jeu, s'épuise après N utilisations si limité. |
+| **Artefact** | Oui | Usure (charges) | Reste en jeu (2 au maximum par joueur) sans combattre. Se pose en payant son coût de mana (c'est le seul moment où il en coûte), puis s'utilise gratuitement 1 fois par tour (« Utiliser : … »). Chaque utilisation, et chaque déclenchement automatique d'un effet passif, lui retire 1 charge ; quand sa dernière charge disparaît, il est détruit. Voir la section 8. |
 | **Sortilège** | Oui | — | Effet immédiat à la résolution, puis va en défausse. |
 | **Piège** | Oui | — | Posé face cachée, reste dans votre main, sans payer de mana à la pose. Armé au prochain changement de phase, il attend sa condition adverse (attaque, sort, invocation). Le coût en mana est payé uniquement au déclenchement ; si le mana manque, le Piège ne se déclenche pas et reste armé. Une fois résolu, il va en défausse. Non déclenché avant votre tour suivant : se désarme sans effet. Aucune limite au nombre de Pièges actifs ; s'ils visent le même événement, ils s'utilisent du plus ancien au plus récent, un à la fois. |
 
@@ -88,14 +88,14 @@ Une carte peut aussi être marquée **Foil** : purement cosmétique, elle affich
 1. **Début de tour** (dans cet ordre)
    - Les mots-clés temporaires (« ce tour-ci ») de vos créatures sont purgés.
    - Application de la règle de mana de la Région (gain normal, ou règle alternative), puis déclenchement des capacités "Quand vous gagnez un point de mana".
-   - Déclenchement des capacités "Au début de votre tour".
+   - Déclenchement des capacités "Au début de votre tour" (chaque capacité d'artefact qui se résout lui retire 1 charge, voir la section 8).
    - Les cooldowns des capacités activées diminuent de 1.
    - Pioche d'une carte.
    - Le mal d'invocation de vos créatures prend fin ; les statuts « a déjà attaqué » et « a déjà bloqué » sont réinitialisés. (Gel et Étourdissement ne se terminent pas ici : voir la section 6.)
 
 2. **Phase principale**
    - Jouer des cartes (Créatures, Sortilèges, Artefacts, Pièges) en payant leur coût.
-   - Activer des capacités activées (mana + coût additionnel éventuel).
+   - Activer des capacités activées (mana + coût additionnel éventuel ; pour un artefact : « Utiliser », gratuit, 1 fois par tour, voir la section 8).
    - Déclenchement des capacités "Quand cette carte entre en jeu" (Début) à la pose.
 
 3. **Phase de combat**
@@ -103,7 +103,7 @@ Une carte peut aussi être marquée **Foil** : purement cosmétique, elle affich
    - Voir Section 6 pour le détail du combat, et la Section 7 pour les règles complètes des créatures.
 
 4. **Fin de tour** (dans cet ordre)
-   - Déclenchement des capacités "À la fin de votre tour".
+   - Déclenchement des capacités "À la fin de votre tour" (usure automatique des artefacts concernés, voir la section 8).
    - Les bonus de Force/Endurance « jusqu'à la fin du tour » arrivent à échéance.
    - Gel et Étourdissement qui arrivent à échéance prennent fin (voir la section 6).
    - Les créatures **Fugaces** de votre plateau meurent.
@@ -352,11 +352,11 @@ La séquence générale (déclaration, blocage, résolution) est décrite en sec
 
 **Dégâts d'un sort ou d'un effet.** Ils passent par l'Armure ; « Quand cette carte subit des dégâts » se déclenche même si le coup est fatal (contrairement au combat, où il ne se déclenche que si la créature survit) ; « élimine une créature » ne se déclenche pas.
 
-**Ordre de jeu de l'IA.** L'IA attaque avec toutes ses créatures éligibles, et désigne **au plus un** bloqueur par attaquant. D'après le code serveur, elle ne déclenche pas elle-même de capacités activées.
+**Ordre de jeu de l'IA.** L'IA attaque avec toutes ses créatures éligibles, et désigne **au plus un** bloqueur par attaquant. Elle ne déclenche pas elle-même les capacités activées de ses créatures, mais elle utilise ses artefacts (1 fois par tour chacun, voir 8.7).
 
 ### 7.9 Capacités et déclencheurs d'une créature
 
-Une capacité se lit « déclencheur → conditions → effet » (voir section 8). Pour une créature en jeu, voici quand chaque déclencheur se produit exactement :
+Une capacité se lit « déclencheur → conditions → effet » (voir section 9). Pour une créature en jeu, voici quand chaque déclencheur se produit exactement :
 
 | Déclencheur | Se produit… |
 |---|---|
@@ -370,7 +370,7 @@ Une capacité se lit « déclencheur → conditions → effet » (voir section 8
 | Élimine une créature | Voir 7.8 (combat, ou Combat forcé) : le tueur doit être encore en vie. |
 | Revient du cimetière | À la résurrection par Tenace. |
 | Est désignée | Quand elle est ciblée par l'un de ces effets : Dégâts, Soin, Étourdissement/Gel, Renvoi en main, Destruction, Silence, Renforcement/Affaiblissement, Octroi de mot-clé, Choix de mot-clé. |
-| Début / fin de votre tour | Dans l'ordre : vos créatures (ordre du plateau), votre héros, votre région, vos artefacts, vos Pièges armés. |
+| Début / fin de votre tour | Dans l'ordre : vos créatures (ordre du plateau), votre héros, votre région, vos artefacts (chaque capacité d'artefact résolue lui retire 1 charge, voir 8.4), vos Pièges armés. |
 | Quand une carte… (surveillance du plateau) | Voir 7.5 pour l'arrivée et la mort ; ces capacités surveillent les deux camps, le joueur n°1 d'abord. |
 
 **Capacités activées.** Un clic du joueur, pendant sa phase principale, tant que la créature n'est pas gelée ni étourdie (le mal d'invocation n'empêche **pas** d'activer). Il faut payer le coût de mana indiqué (réductible par des effets, jamais en dessous de 0), le coût additionnel éventuel, et que le **cooldown** soit écoulé : à chaque utilisation, un compteur est posé ; il baisse de 1 au début de chaque tour de son propriétaire, et la capacité est de nouveau utilisable quand il atteint 0. Avec un cooldown de 0 la capacité peut être utilisée plusieurs fois dans le même tour.
@@ -403,7 +403,91 @@ Une capacité se lit « déclencheur → conditions → effet » (voir section 8
 
 ---
 
-## 8. Déclencheurs (triggers)
+## 8. Les artefacts
+
+*Cette section décrit les artefacts tels que les règles validées les définissent (état d'octobre 2026). Le moteur de jeu (le serveur) est modifié en parallèle pour appliquer les points marqués « nouveau » ; tant que ce n'est pas déployé, le comportement réel peut encore différer. Les points qui ne sont pas tranchés sont regroupés en 8.8.*
+
+### 8.1 Qu'est-ce qu'un artefact ?
+
+Comme pour les créatures (voir 7.1), il faut distinguer la **carte** du catalogue (dans un deck, une main ou une défausse) et l'**artefact en jeu**, un exemplaire vivant avec son propre identifiant et son propre état.
+
+Un artefact n'a ni Force ni Endurance : il ne combat pas, ne bloque pas, n'attaque pas, et n'a pas de **mal d'invocation**. Sa seule statistique est son nombre de **charges**, appelé **Usure** dans l'éditeur (de 1 à 10) et **« utilisation »** dans certains textes de cartes. Les charges se lisent sur la pastille de la carte (par exemple « 3x »). Chaque charge représente une utilisation ou un déclenchement avant que l'artefact ne disparaisse (voir 8.5).
+
+Ne pas confondre ces **charges** avec le mot-clé de créature **Charge** (voir 7.7) : ils n'ont aucun rapport.
+
+Un artefact en jeu peut être la cible d'effets (par exemple « détruisez un artefact ennemi ») ; une capacité peut aussi modifier ses charges (voir 8.8).
+
+### 8.2 Emplacements (limite)
+
+- Chaque joueur dispose de **2 emplacements d'artefact**, donc **2 artefacts en jeu au maximum**.
+- Si les 2 emplacements sont pris, un 3e artefact **ne peut pas être joué** : la carte est refusée (le serveur répond `artifact-slots-full`, et le client affiche « Vos 2 emplacements d'artefact sont pleins. »).
+- **Débordement par un effet** : si un effet crée ou copie un artefact alors que les 2 emplacements sont pris, l'artefact créé est **perdu** et rien d'autre ne se passe.
+
+### 8.3 Jouer un artefact
+
+Pour jouer un artefact depuis la main, il faut que ce soit votre **phase principale**, que vous ayez assez de **mana** (le coût de mana est payé **uniquement à la pose**), que le **coût additionnel** éventuel (voir 3.2) puisse être payé et qu'un emplacement soit libre. Il arrive alors en jeu avec toutes ses charges ; sa capacité « Début » (quand la carte entre en jeu) se résout. Les Pièges adverses « l'adversaire joue une carte » peuvent se déclencher à la pose et la contrer (voir 3.1).
+
+### 8.4 Les deux façons dont un artefact agit
+
+Un artefact peut avoir une capacité de chaque famille, les deux, ou aucune.
+
+**a) La capacité « Utiliser : … » (capacité activée, déclenchée par vous).** Règles :
+
+- **Gratuite** : elle ne coûte aucun mana. Le coût de mana n'est payé qu'à la pose (8.3).
+- **1 fois par tour et par artefact**, pendant la **phase principale du tour de son propriétaire**. Une deuxième tentative dans le même tour est refusée (`already-activated-this-turn`).
+- **Utilisable dès le tour où il est posé** (pas de mal d'invocation).
+- Chaque utilisation **consomme 1 charge**.
+- Il n'y a pas de cooldown : la limite « 1 fois par tour » en tient lieu (le cooldown décrit en 7.9 ne concerne que les créatures).
+- **Utilisation sans cible valide (nouveau)** : si l'effet exige une cible **choisie** et qu'aucune cible valide n'existe, l'utilisation est **refusée** (code serveur `no-valid-target`, message « Aucune cible valide : l'artefact n'est pas utilisé. »). Aucune charge n'est perdue et l'artefact reste utilisable ce tour-ci.
+- Côté interface, l'artefact n'est grisé « déjà utilisé ce tour-ci » que si le serveur a accepté l'utilisation ; une action refusée ne le grise pas.
+
+**b) Les effets passifs (capacités déclenchées automatiquement).** Ce sont les capacités qui se déclenchent toutes seules : « au début / à la fin de votre tour », « quand vous piochez une carte », « quand une créature ennemie attaque », « quand vous gagnez un point de mana », les surveillances du plateau, etc. (voir 9).
+
+**Usure automatique (nouveau).** Chaque fois qu'une de ces capacités déclenchées **se résout réellement**, l'artefact **perd 1 charge**. Ne comptent **pas** :
+
+- la capacité « Utiliser » (elle a sa propre charge, voir ci-dessus) ;
+- l'arrivée en jeu (« Début ») ;
+- « Quand je suis détruit ».
+
+L'effet « retirez 1 utilisation » n'est donc plus nécessaire dans le texte des cartes pour représenter l'usure (il reste disponible dans l'éditeur et le moteur pour d'autres usages, voir 8.8).
+
+**Exemple : Pacte avec Aileblanche.** Il ne perd plus de charge à chaque début de tour. Il s'use uniquement quand il se déclenche, c'est-à-dire à chaque attaque adverse qui l'active.
+
+### 8.5 Charges et destruction
+
+Un artefact est **détruit** dans deux cas (nouveau) :
+
+1. un effet le **détruit** directement ;
+2. sa **dernière charge disparaît**, que ce soit par une utilisation, par l'usure automatique ou par un effet qui retire des charges.
+
+Quand il est détruit, son « **Quand je suis détruit** » se déclenche, puis il va dans la **défausse (cimetière)** de son **propriétaire**, libérant l'emplacement.
+
+Un artefact n'est **pas** considéré comme détruit s'il est simplement **renvoyé en main**, **transformé** ou **remplacé** : son « Quand je suis détruit » ne se déclenche pas.
+
+### 8.6 Ordre des déclencheurs
+
+Pour un joueur donné, quand plusieurs cartes réagissent au même événement, ses artefacts se résolvent après ses créatures, son héros et sa région, et avant ses Pièges armés (voir 7.5, étape 3, et le point 3 de la section 11). Le joueur ne choisit pas l'ordre. Pour les capacités qui surveillent les deux camps, le joueur n°1 de la partie est traité avant le joueur n°2.
+
+### 8.7 L'adversaire contrôlé par l'IA (nouveau)
+
+L'IA utilise désormais ses artefacts, **1 fois par tour chacun**, selon les mêmes règles que le joueur (gratuit, phase principale, 1 charge par utilisation, refus si aucune cible valide).
+
+### 8.8 Ce qui n'est pas tranché ou reste tel quel
+
+- **Ordre à la dernière charge (tranché dans le moteur)** : l'effet de l'artefact se résout **complètement** ; ensuite la charge est retirée ; si elle tombe à 0, l'artefact quitte le jeu pour le cimetière, puis son « Quand je suis détruit » se résout (une seule fois). Exemple : le Tombeau de la maudite pioche d'abord, puis inflige X dégâts, X étant le nombre de cartes en main à ce moment-là. L'ordre entre « Quand je suis détruit » et les réactions d'**autres** cartes à la même destruction n'est pas précisé.
+- **Déclenchement « réel » (tranché dans le moteur)** : l'usure automatique n'a lieu que si au moins un effet de la capacité a **vraiment été appliqué**. Une condition qui échoue, ou une cible aléatoire sans candidat, n'use donc pas l'artefact. Le cas d'un effet « X % de chance » qui rate n'a pas été vérifié.
+- **Déclencheur « À chaque utilisation »** (`onUse`) : il ne retire **pas** de charge en plus de celle de l'utilisation (le moteur l'exclut explicitement de l'usure).
+- **Effet « Épuiser un artefact »** (`exhaustArtifact`, « il ne peut plus être activé ce tour-ci ») : configurable dans l'éditeur, mais **ignoré par le moteur** (voir 12).
+- **Effet « Retirer des utilisations »** (`removeArtifactCharges`) : reste utilisable. Si ce retrait fait tomber l'artefact à 0, il est détruit (règle 8.5, point 2).
+- **Effet « Ajouter des charges »** (`addCharges`) et **« Fixer les utilisations »** (option de « Fixer une statistique ») : configurables dans l'éditeur ; les règles validées ne disent rien de plus. En particulier, **fixer les utilisations à 0** : on ne précise pas si l'artefact est alors détruit (par analogie avec 8.5, ce serait logique, mais ce n'est pas écrit). Il n'y a pas non plus de nombre maximum de charges précisé.
+- **« Voler une statistique » (Utilisation)** : peut mettre les charges d'un artefact à 0 ; même question : destruction ou non, non précisée.
+- **Réduire le coût d'activation** : sans effet utile sur un artefact, puisque son utilisation est gratuite.
+- **Artefacts renvoyés en main ou copiés** : les règles validées ne détaillent pas le nombre de charges de la carte qui revient en main ou de la copie (on suppose les charges d'origine, comme une carte neuve).
+- **Utiliser une capacité de Héros ou de Région** : inchangé (elles gardent leur coût en mana et leur éventuel cooldown) ; seul l'artefact est gratuit et limité à une fois par tour.
+
+---
+
+## 9. Déclencheurs (triggers)
 
 | Déclencheur | Se produit... |
 |---|---|
@@ -416,12 +500,15 @@ Une capacité se lit « déclencheur → conditions → effet » (voir section 8
 | Quand cette carte élimine une créature | Chez la créature qui met sa cible à 0 PV au combat (attaque ou blocage) ou par « Combat forcé », **si elle est encore en vie** à la fin de l'échange (voir 7.8) |
 | Quand cette carte revient du cimetière | Réapparition d'elle-même par Tenace |
 | Quand vous ramenez une créature de la défausse | Chaque fois qu'une carte (de n'importe quel type) est récupérée depuis votre défausse |
-| À chaque utilisation | Artefacts, à chaque activation |
-| Au début / à la fin de votre tour | Chaque tour |
+| À chaque utilisation *(onUse)* | Artefacts : à chaque utilisation de l'artefact. Il ne retire pas de charge en plus de celle de l'utilisation (voir 8.8) |
+| Quand je suis détruit *(onDestroyed)* | Artefacts : quand un effet le détruit ou que sa dernière charge disparaît (voir 8.5). Ne retire pas de charge |
+| Au début / à la fin de votre tour | Chaque tour (pour un artefact, chaque résolution lui retire 1 charge) |
 | Quand vous gagnez un point de mana | À chaque incrément de mana (normal, fragile ou vide) |
-| **Quand vous piochez une carte** | Créature, Héros, Artefact — à chaque pioche, quelle qu'en soit la source |
+| **Quand vous piochez une carte** | Créature, Héros, Artefact — à chaque pioche, quelle qu'en soit la source (pour un artefact, chaque résolution lui retire 1 charge) |
 | Quand vous invoquez une créature du sous-type X | Quand une créature de ce sous-type arrive en jeu chez vous, quelle qu'en soit la source (main ou effet) ; le sous-type est défini carte par carte |
-| Capacité activée | Le joueur choisit de payer le coût pour déclencher l'effet (créature, artefact, Région ; voir 7.9 pour les créatures) |
+| Capacité activée | Le joueur choisit de payer le coût pour déclencher l'effet (créature, Région, Héros ; voir 7.9 pour les créatures). Pour un artefact (« Utiliser : … »), aucun mana : gratuit, 1 fois par tour, 1 charge consommée (voir 8.4) |
+
+**Artefacts et usure.** Pour un artefact, tout déclencheur ci-dessus qui se résout réellement lui retire 1 charge, sauf « Début » (arrivée en jeu), « Quand je suis détruit » et la capacité « Utiliser » (qui a sa propre charge). Détails en 8.4.
 
 **Déclencheurs réservés aux Pièges :**
 
@@ -440,9 +527,11 @@ Une capacité se lit « déclencheur → conditions → effet » (voir section 8
 
 ---
 
-## 9. Effets disponibles
+## 10. Effets disponibles
 
 Dégâts, Soin, Pioche, Renforcement (+Force/+Endurance — accepte aussi des valeurs **négatives**, donc peut servir de malus), Fixer les statistiques, Fixer le coût des cartes (deck ou main, vous ou l'adversaire), **Réduire le coût d'un type/sous-type de carte** (en main, dans le deck, ou les deux — filtrable par type et sous-type), Gel, Étourdir, Renvoi en main, Gain de mana (normal / vide / fragile), Recharge de mana, Réduire le coût d'activation (d'une capacité activée de la même carte), Réduction du prochain achat, Défausse, Explorer (mise en défausse depuis un deck), Destruction, Silence, Amélioration (mot-clé aléatoire), Octroi de mot-clé précis, Choix parmi 3 mots-clés, Invoquer des copies de soi, Combat forcé entre deux créatures désignées, Jet de pièce, Récupération (deck/défausse selon critère), Réveler (3 cartes **depuis votre deck, votre défausse, le deck adverse ou la défausse adverse**, choix d'une, filtrable par type/sous-type via le critère), Conjuration (carte hors deck, selon des critères ou une carte précise par son nom) — ces deux derniers peuvent avoir un effet supplémentaire appliqué à la carte obtenue (renforcement ou mot-clé).
+
+Effets propres aux artefacts : **Destruction** d'un artefact ciblé, **Retirer des utilisations** (`removeArtifactCharges`), **Ajouter des charges** (`addCharges`), **Épuiser un artefact** (`exhaustArtifact`, ignoré par le moteur), et l'option « Utilisations » de « Fixer une statistique » ou « Voler une statistique ». Voir 8.5 et 8.8 pour leur interaction avec l'usure et la destruction. L'effet « Retirer des utilisations » n'est plus nécessaire pour représenter l'usure d'un effet passif : elle est automatique.
 
 Les effets de Pioche et de mana (normal / vide / fragile / recharge) peuvent tous cibler **Vous**, **L'adversaire**, ou **Les deux** — pas seulement vous.
 
@@ -452,11 +541,11 @@ Les capacités peuvent avoir des **conditions** (santé du héros, taille de mai
 
 ---
 
-## 10. Points secondaires — tranchés par défaut
+## 11. Points secondaires — tranchés par défaut
 
 1. **Mana vide** : augmente le maximum de façon permanente pour le reste de la partie.
 2. **Armure** : absorbe le premier dégât positif subi, qu'il vienne du combat, d'un sort ou d'un effet de dégâts. Elle ne protège ni de la destruction directe, ni du sacrifice, ni des malus d'Endurance, ni du Gel/de l'Étourdissement (voir 7.7).
-3. **Déclencheurs simultanés** : le joueur ne choisit pas l'ordre. Pour un joueur donné, ses créatures se résolvent dans l'ordre de leur plateau, puis son héros, sa région, ses artefacts et ses Pièges armés. Pour les capacités qui surveillent les deux camps (et pour les morts simultanées), le moteur traite d'abord le joueur n°1 de la partie, puis le joueur n°2, que ce soit son tour ou non.
+3. **Déclencheurs simultanés** : le joueur ne choisit pas l'ordre (artefacts : voir 8.6). Pour un joueur donné, ses créatures se résolvent dans l'ordre de leur plateau, puis son héros, sa région, ses artefacts et ses Pièges armés. Pour les capacités qui surveillent les deux camps (et pour les morts simultanées), le moteur traite d'abord le joueur n°1 de la partie, puis le joueur n°2, que ce soit son tour ou non.
 4. **Sous-types et Régions** : seul le Héros impose la classe du deck. Une Région ne peut pas imposer de classe, mais rien n'empêche qu'une future carte le fasse si besoin s'en fait sentir.
 5. **Blocage multiple** : plusieurs bloqueurs peuvent bloquer un même attaquant, et chacun subit alors un combat complet ; en revanche un bloqueur ne peut bloquer qu'**un seul** attaquant par tour (voir Section 6). Une exception à cette dernière règle pourra exister via un effet de carte précis ; elle n'est pas implémentée.
 6. **Pas de PV maximum** : les Points de Vie du héros n'ont aucun plafond. Soigner un héros déjà à sa valeur de départ (ou au-delà) l'augmente quand même — il n'y a pas de "vie maximale" qui bloquerait le soin, contrairement à ce que ferait un `Math.min(hp, maxHp)` classique.
@@ -465,7 +554,7 @@ Ces points décrivent le comportement du moteur actuel.
 
 ---
 
-## 11. Écarts connus entre l'éditeur et le moteur de jeu
+## 12. Écarts connus entre l'éditeur et le moteur de jeu
 
 L'éditeur de cartes permet de configurer certaines choses que le moteur n'interprète pas (ou pas entièrement). Cette section garde une trace fidèle de l'état réel, relevé dans le code du serveur de jeu (le moteur déployé) le 6 octobre 2026. L'ancien `spellcraft-prototype.html` n'est plus la référence du moteur.
 
@@ -475,7 +564,7 @@ L'éditeur de cartes permet de configurer certaines choses que le moteur n'inter
 - **Surveillance « Quand un joueur révèle »** (`watchReveal`) : jamais déclenchée. À côté, « Quand vous découvrez une carte » (`watchDiscovered`) l'est quand le joueur choisit une carte révélée, et « Quand une carte arrive après avoir été révélée » (`watchAfterReveal`) l'est par la Conjuration et le Vol de carte.
 - **« Quand vous défaussez une carte depuis votre main »** (`onHandDiscard`) : déclenché uniquement par l'effet « Défausser » (pas par le coût additionnel « défausser », ni par une main pleine).
 
-**Déclencheurs qui fonctionnent**, y compris pour les cartes déjà en jeu : toutes les capacités **activées** (créatures, artefacts, Région, pouvoir du Héros) ; à l'utilisation d'un artefact (`onUse`) ; **tous les déclencheurs de Pièges** (y compris « si l'adversaire cible une créature alliée », « après qu'une créature alliée / ennemie survit à un combat », « avant qu'une créature alliée ne combatte » et « si une créature alliée est bloquée ») ; ainsi que l'entrée en jeu, le retour du cimetière, début/fin de tour, attaque, blocage, dégâts, soin, mort, élimination d'une cible, gain de mana, pioche, invocation d'un sous-type précis, début de partie, et les déclencheurs de surveillance du plateau (hors `watchReveal`). Le moment exact de chaque déclencheur de créature est décrit en 7.9.
+**Déclencheurs qui fonctionnent**, y compris pour les cartes déjà en jeu : toutes les capacités **activées** (créatures, artefacts, Région, pouvoir du Héros) ; à l'utilisation d'un artefact (`onUse`, voir 8.8 pour son lien avec les charges) ; **tous les déclencheurs de Pièges** (y compris « si l'adversaire cible une créature alliée », « après qu'une créature alliée / ennemie survit à un combat », « avant qu'une créature alliée ne combatte » et « si une créature alliée est bloquée ») ; ainsi que l'entrée en jeu, le retour du cimetière, début/fin de tour, attaque, blocage, dégâts, soin, mort, élimination d'une cible, gain de mana, pioche, invocation d'un sous-type précis, début de partie, et les déclencheurs de surveillance du plateau (hors `watchReveal`). Le moment exact de chaque déclencheur de créature est décrit en 7.9.
 
 **Effets non pris en charge :**
 - **Épuiser un artefact** (`exhaustArtifact`) : configurable dans l'éditeur, mais ignoré par le moteur.
@@ -504,13 +593,13 @@ Le **coût additionnel** (sacrifice, défausse, perte de PV) est réellement vé
 
 Une capacité peut avoir plusieurs déclencheurs différents en même temps sur une seule carte (ils fonctionnent en OU).
 
-Tout le reste décrit dans ce document (mana, combat, créatures, mots-clés, Pièges, effets listés en section 9 hors les exceptions ci-dessus) est réellement implémenté et appliqué par le moteur.
+Tout le reste décrit dans ce document (mana, combat, créatures, mots-clés, Pièges, effets listés en section 10 hors les exceptions ci-dessus) est réellement implémenté et appliqué par le moteur. Exception : les règles d'artefact marquées « nouveau » en section 8 (usure automatique, destruction à la dernière charge, refus `no-valid-target`, usage par l'IA) sont en cours d'application dans le moteur ; tant qu'elles ne sont pas déployées, le comportement réel peut différer.
 
-## 12. Refonte des capacités (2026) — décisions de conception
+## 13. Refonte des capacités (2026) — décisions de conception
 
 Cette section trace les décisions prises pendant la refonte complète du système de capacités de l'éditeur (déclencheurs, conditions, effets, cibles, mots-clés). Le moteur en applique désormais une grande partie ; l'état de chaque décision, relevé dans le code du serveur le 6 octobre 2026, est indiqué ci-dessous.
 
-**Règle générale de ciblage — non appliquée par le serveur :** la décision voulue est que, pour toute carte qui a besoin d'une cible, si aucune cible valable n'existe (ou si la sélection "Exactement X" ne peut pas être remplie), **la carte ne peut pas être jouée du tout** (un blocage en amont, au même titre que ne pas avoir assez de mana). Le serveur ne fait pas cette vérification : la carte reste jouable et, faute de cible, l'effet est simplement ignoré. (Une éventuelle vérification côté interface n'a pas été examinée.)
+**Règle générale de ciblage — non appliquée par le serveur :** la décision voulue est que, pour toute carte qui a besoin d'une cible, si aucune cible valable n'existe (ou si la sélection "Exactement X" ne peut pas être remplie), **la carte ne peut pas être jouée du tout** (un blocage en amont, au même titre que ne pas avoir assez de mana). Le serveur ne fait pas cette vérification pour les cartes jouées : la carte reste jouable et, faute de cible, l'effet est simplement ignoré. (Une éventuelle vérification côté interface n'a pas été examinée.) **Exception (nouveau) : l'utilisation d'un artefact** dont l'effet exige une cible choisie est refusée s'il n'existe aucune cible valide (`no-valid-target`, voir 8.4).
 
 **Règle "Regarder" (discover) — appliquée :** une carte révélée depuis un deck ou une défausse (la vôtre ou celle de l'adversaire) est **toujours retirée de sa zone d'origine**, peu importe où elle finit ensuite. On ne copie jamais la carte. Les cartes proposées mais non choisies restent dans leur zone. La main d'un joueur n'est pas une source possible dans le moteur.
 

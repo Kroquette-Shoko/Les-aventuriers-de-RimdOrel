@@ -2184,7 +2184,7 @@ function buildTriggerEntryBox(te, tIdx, totalCount, availableTriggers, onRemove)
     const arow = document.createElement('div');
     arow.className='ability-row';
     if(currentType==='Artefact'){
-      arow.innerHTML = `<div class="hint" style="margin:0;">Un artefact activable est toujours gratuit et utilisable une seule fois par tour — pas de coût en mana ni de temps de recharge à régler.</div>`;
+      arow.innerHTML = `<div class="hint" style="margin:0;">Un artefact activable est toujours gratuit et utilisable une seule fois par tour — pas de coût en mana ni de temps de recharge à régler. Chaque utilisation consomme 1 charge.</div>`;
     } else {
       arow.innerHTML = `
         <div class="field"><label class="mini-field">Coût en mana</label>

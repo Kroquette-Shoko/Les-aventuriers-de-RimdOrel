@@ -2357,6 +2357,7 @@ function buildNewCardEl(card, size, effectiveCostOverride, opts={}){
     wf.appendChild(nImg('images/card/icon/bubble/artefact.png'));
     const t = nEl('div','nstat-txt'); t.textContent = (card.charges ?? 0)+'x';
     wf.appendChild(t);
+    wf.title = "Charges restantes : chaque utilisation retire 1 charge, et chaque déclenchement d'un effet passif aussi. À 0, l'artefact est détruit.";
     root.appendChild(wf);
   }
   if(isHero){
@@ -4956,7 +4957,10 @@ const ACTION_ERROR_LABELS = {
   'pending-sacrifice-choice': 'choisis d\'abord la créature à sacrifier.',
   'cannot-block': 'cette créature ne peut pas bloquer (étourdie, gelée, Peureuse ou a déjà bloqué).',
   'attacker-not-declared': 'cet attaquant n\'est pas déclaré ce tour.',
-  'attacker-gone': 'cet attaquant n\'est plus en jeu.'
+  'attacker-gone': 'cet attaquant n\'est plus en jeu.',
+  'no-valid-target': 'Aucune cible valide : l\'artefact n\'est pas utilisé.',
+  'artifact-slots-full': 'Vos 2 emplacements d\'artefact sont pleins.',
+  'already-activated-this-turn': 'cet artefact a déjà été utilisé ce tour-ci.'
 };
 function describeActionError(err){
   const key = String(err);

@@ -93,6 +93,7 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
       <li><a href="#mana">Le mana</a></li>
       <li><a href="#types">Les types de cartes</a></li>
       <li><a href="#creatures">Les créatures</a></li>
+      <li><a href="#artefacts">Les artefacts</a></li>
       <li><a href="#combat">Le combat</a></li>
       <li><a href="#motscles">Les mots-clés</a></li>
       <li><a href="#pieges">Les pièges</a></li>
@@ -124,12 +125,12 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
       <h2>3. Déroulé d'un tour</h2>
       <p>Un tour se déroule toujours dans le même ordre :</p>
       <ol class="steps">
-        <li><strong>Début de tour</strong> — les mots-clés temporaires de vos créatures sont purgés, votre mana maximum augmente de 1 (jusqu'à 20), votre mana disponible est rechargé à ce maximum, les capacités "Au début de votre tour" se déclenchent, vous piochez une carte, puis le mal d'invocation de vos créatures prend fin.</li>
-        <li><strong>Phase principale</strong> — vous pouvez, dans l'ordre que vous voulez et autant de fois que votre mana le permet : jouer des cartes de votre main (créatures, sortilèges, artefacts, pièges), activer les capacités activables de vos créatures/artefacts/région déjà en jeu, et utiliser le pouvoir de votre héros (une fois par tour).</li>
+        <li><strong>Début de tour</strong> — les mots-clés temporaires de vos créatures sont purgés, votre mana maximum augmente de 1 (jusqu'à 20), votre mana disponible est rechargé à ce maximum, les capacités "Au début de votre tour" se déclenchent (chaque effet d'artefact qui se résout lui retire 1 charge), vous piochez une carte, puis le mal d'invocation de vos créatures prend fin.</li>
+        <li><strong>Phase principale</strong> — vous pouvez, dans l'ordre que vous voulez et autant de fois que votre mana le permet : jouer des cartes de votre main (créatures, sortilèges, artefacts, pièges), activer les capacités activables de vos créatures et de votre région déjà en jeu, utiliser vos artefacts (gratuit, 1 fois par tour chacun), et utiliser le pouvoir de votre héros (une fois par tour).</li>
         <li><strong>Déclaration des attaquants</strong> — vous désignez les créatures qui attaquent ce tour-ci (celles qui n'ont pas le mal d'invocation, ne sont ni gelées ni étourdies, et ne sont pas Protecteur).</li>
         <li><strong>Blocage</strong> — l'adversaire désigne ses bloqueurs : un attaquant peut être bloqué par plusieurs créatures, mais chaque bloqueur ne bloque qu'un seul attaquant. Un attaquant non bloqué touche directement le héros.</li>
         <li><strong>Résolution du combat</strong> — chaque combat est résolu immédiatement quand le bloqueur est désigné : les dégâts sont appliqués simultanément des deux côtés (attaquant ↔ bloqueur) et les créatures à 0 PV ou moins meurent.</li>
-        <li><strong>Fin de tour</strong> — les capacités "À la fin de votre tour" se déclenchent, les bonus de Force/Endurance "jusqu'à la fin du tour" expirent, les Gels et Étourdissements arrivés à échéance se terminent, les créatures Fugaces meurent, et la main passe à l'adversaire.</li>
+        <li><strong>Fin de tour</strong> — les capacités "À la fin de votre tour" se déclenchent (chaque effet d'artefact qui se résout lui retire 1 charge), les bonus de Force/Endurance "jusqu'à la fin du tour" expirent, les Gels et Étourdissements arrivés à échéance se terminent, les créatures Fugaces meurent, et la main passe à l'adversaire.</li>
       </ol>
     </section>
 
@@ -149,9 +150,9 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
         <div class="cardtype"><h4>Héros</h4><p>Vous en avez un seul, choisi à la construction du deck. Il porte vos PV et un pouvoir unique, utilisable une fois par tour.</p></div>
         <div class="cardtype"><h4>Région</h4><p>Une seule également. Elle influence la façon dont vous gagnez du mana (bonus fragile, remplacement du gain normal...) et peut avoir ses propres capacités.</p></div>
         <div class="cardtype"><h4>Créature</h4><p>A une Force (dégâts infligés au combat) et des PV. Peut attaquer et bloquer. Nouvellement arrivée, elle a le <em>mal d'invocation</em> et ne peut pas attaquer ce tour-ci (sauf mot-clé Charge). Voir la section 6.</p></div>
-        <div class="cardtype"><h4>Artefact</h4><p>Reste en jeu sans combattre. Offre en général une capacité passive ou activable. Peut avoir des charges limitées.</p></div>
+        <div class="cardtype"><h4>Artefact</h4><p>Reste en jeu sans combattre (2 emplacements maximum). Son coût de mana se paie à la pose ; il s'utilise ensuite gratuitement 1 fois par tour. Chaque utilisation et chaque effet passif déclenché lui retire 1 charge ; à 0, il est détruit. Voir la section 7.</p></div>
         <div class="cardtype"><h4>Sortilège</h4><p>Effet ponctuel résolu immédiatement, puis la carte part en défausse. Souvent, demande une cible.</p></div>
-        <div class="cardtype"><h4>Piège</h4><p>Se pose face cachée, sans effet immédiat et sans payer de mana. Se déclenche automatiquement plus tard, dès que sa condition est remplie ; son coût en mana est alors payé (voir section 9).</p></div>
+        <div class="cardtype"><h4>Piège</h4><p>Se pose face cachée, sans effet immédiat et sans payer de mana. Se déclenche automatiquement plus tard, dès que sa condition est remplie ; son coût en mana est alors payé (voir section 10).</p></div>
       </div>
       <p class="dim" style="margin-top:12px;">Chaque carte a aussi une <strong>classe</strong> (Aube, Crépuscule, Volonté, Prima, Arcane ou Neutre) qui la relie à une couleur/identité de jeu, et une <strong>rareté</strong> (Basique, Commune, Rare, Épique, Mythique) qui influence surtout la collection et le craft, pas les règles elles-mêmes.</p>
     </section>
@@ -193,8 +194,40 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
       </table>
     </section>
 
+    <section id="artefacts">
+      <h2>7. Les artefacts</h2>
+      <h3>Ce qu'est un artefact</h3>
+      <p>Un artefact reste en jeu sans combattre : il n'a ni Force, ni Endurance, et pas de mal d'invocation. Sa seule statistique est son nombre de <strong>charges</strong> (aussi appelées « utilisations » ou « usure »), affiché sur la pastille de la carte. Quand sa dernière charge disparaît, l'artefact est détruit. Ces charges n'ont aucun rapport avec le mot-clé Charge des créatures.</p>
+
+      <h3>Emplacements</h3>
+      <ul>
+        <li>Vous avez <strong>2 emplacements d'artefact</strong> : 2 artefacts en jeu au maximum.</li>
+        <li>Si les 2 sont pris, vous <strong>ne pouvez pas jouer</strong> un 3e artefact : la carte est refusée.</li>
+        <li>Si un effet crée ou copie un artefact alors que vos 2 emplacements sont pris, cet artefact est <strong>perdu</strong>, sans autre conséquence.</li>
+      </ul>
+
+      <h3>Jouer et utiliser un artefact</h3>
+      <p>Le <strong>coût de mana</strong> d'un artefact se paie uniquement quand vous le jouez, pendant votre phase principale. Ensuite, sa capacité <strong>« Utiliser : … »</strong> est <strong>gratuite</strong> :</p>
+      <ul>
+        <li>1 fois par tour et par artefact, pendant la phase principale de <strong>votre</strong> tour ;</li>
+        <li>utilisable dès le tour où il est posé ;</li>
+        <li>chaque utilisation <strong>consomme 1 charge</strong>.</li>
+      </ul>
+      <p>Si l'effet de l'artefact demande une cible que vous choisissez et qu'<strong>aucune cible valide n'existe</strong>, l'utilisation est refusée (« Aucune cible valide : l'artefact n'est pas utilisé. ») : vous ne perdez aucune charge et pouvez réessayer plus tard dans le tour.</p>
+
+      <h3>Usure automatique des effets passifs</h3>
+      <p>Les capacités qui se déclenchent toutes seules (début ou fin de tour, « quand vous piochez », « quand une créature adverse attaque »…) usent l'artefact : <strong>chaque fois que l'une d'elles se résout réellement, l'artefact perd 1 charge</strong>. Ne comptent pas : la capacité « Utiliser » (elle a déjà sa propre charge), l'arrivée en jeu, et « Quand je suis détruit ».</p>
+      <div class="callout">Exemple : <strong>Pacte avec Aileblanche</strong> ne perd plus de charge à chaque début de tour. Il s'use uniquement quand il se déclenche, c'est-à-dire à chaque attaque adverse.</div>
+
+      <h3>Destruction</h3>
+      <p>Un artefact est <strong>détruit</strong> quand un effet le détruit, ou quand sa dernière charge disparaît (par une utilisation ou par l'usure). Son « Quand je suis détruit » se déclenche, puis il va dans la défausse de son propriétaire. Un artefact simplement renvoyé en main, transformé ou remplacé n'est pas considéré comme détruit.</p>
+
+      <h3>Adversaire contrôlé par l'IA</h3>
+      <p>L'IA utilise ses artefacts, 1 fois par tour chacun, selon les mêmes règles que vous.</p>
+    </section>
+
     <section id="combat">
-      <h2>7. Le combat</h2>
+      <h2>8. Le combat</h2>
       <h3>Attaquer</h3>
       <p>Une seule fois par tour, en phase de déclaration des attaquants, vous choisissez quelles créatures attaquent : celles qui ne sont ni gelées, ni étourdies, ni Protecteur, qui n'ont pas déjà attaqué et qui n'ont pas le mal d'invocation (sauf Charge). Toutes visent le héros adverse. Une créature qui n'est pas bloquée lui inflige sa Force directement, à la fin du blocage.</p>
       <h3>Bloquer</h3>
@@ -206,7 +239,7 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
     </section>
 
     <section id="motscles">
-      <h2>8. Les mots-clés</h2>
+      <h2>9. Les mots-clés</h2>
       <h3>Mots-clés de combat</h3>
       <table class="kw">
         <tr><th>Mot-clé</th><th>Effet</th></tr>
@@ -238,7 +271,7 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
     </section>
 
     <section id="pieges">
-      <h2>9. Les pièges</h2>
+      <h2>10. Les pièges</h2>
       <p>Un piège se pose face cachée, sans effet immédiat. Sa condition de déclenchement (écrite sur la carte, ex. "quand une créature ennemie attaque") est surveillée en permanence :</p>
       <ul>
         <li><strong>À la pose</strong>, aucun mana n'est vérifié ni dépensé : la carte reste simplement dans votre main, face cachée.</li>
@@ -253,7 +286,7 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
     </section>
 
     <section id="declencheurs">
-      <h2>10. Lire une capacité de carte</h2>
+      <h2>11. Lire une capacité de carte</h2>
       <p>Une capacité de carte se lit toujours ainsi : <strong>« Déclencheur → (Condition) → Effet »</strong>. Le déclencheur dit <em>quand</em> l'effet se produit. Voici les familles de déclencheurs les plus courantes que vous croiserez sur les cartes :</p>
 
       <div class="trigger-cat">
@@ -295,14 +328,14 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
 
       <div class="trigger-cat">
         <h4>Capacité activée</h4>
-        <p class="dim">Certaines créatures, artefacts ou régions ont une capacité que <strong>vous</strong> déclenchez volontairement en cliquant dessus, en payant un coût de mana indiqué sur la carte (parfois limitée à une fois par tour, ou à un nombre de charges).</p>
+        <p class="dim">Certaines créatures ou régions ont une capacité que <strong>vous</strong> déclenchez volontairement en cliquant dessus, en payant un coût de mana indiqué sur la carte (avec parfois un temps de recharge). Les artefacts ont la leur, « Utiliser : … » : elle est gratuite, limitée à une fois par tour, et consomme 1 charge (voir la section 7).</p>
       </div>
 
       <div class="callout">Plusieurs déclencheurs sur une même capacité (« Début OU Assaut », par exemple) fonctionnent en <strong>OU</strong> : n'importe lequel des deux suffit à déclencher l'effet, une seule fois — ce n'est pas une condition qui exige les deux à la fois.</div>
     </section>
 
     <section id="fin">
-      <h2>11. Fin de partie</h2>
+      <h2>12. Fin de partie</h2>
       <p>La partie se termine dès que l'une de ces conditions survient :</p>
       <ul>
         <li>Les PV d'un héros tombent à 0 ou moins → son adversaire gagne.</li>
