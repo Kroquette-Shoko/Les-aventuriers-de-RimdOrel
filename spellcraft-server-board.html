@@ -273,7 +273,17 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
    donc celui de l'écran). La transition n'est posée en ligne que si le retrait
    change (durée via cms(), aucune en Instantané). */
 .ncard.is-withdrawn{translate:0 var(--withdraw-y,16px);}
+/* Flèche rouge clignotante sur un attaquant déclaré non bloqué : au-dessus (ma
+   créature) ou en dessous (créature adverse), sans capter les clics. */
+.ncard .attacker-arrow{position:absolute;left:50%;width:26px;height:30px;margin-left:-13px;z-index:12;pointer-events:none;
+  animation:attacker-arrow-blink-kf .9s ease-in-out infinite;filter:drop-shadow(0 0 5px var(--blood)) drop-shadow(0 1px 2px rgba(0,0,0,.9));}
+.ncard .attacker-arrow svg{display:block;fill:var(--blood);stroke:#ffd0d0;stroke-width:2;}
+.ncard .attacker-arrow.is-above{bottom:100%;margin-bottom:-6px;}
+.ncard .attacker-arrow.is-below{top:100%;margin-top:-6px;transform:rotate(180deg);}
+.ncard .attacker-arrow.is-static{animation:none;opacity:1;}
+@keyframes attacker-arrow-blink-kf{0%,100%{opacity:1;}50%{opacity:.2;}}
 @media (prefers-reduced-motion: reduce){
+  .ncard .attacker-arrow{animation:none;opacity:1;}
   .ncard.is-withdrawn{transition:none !important;}
 }
 .card-unavailable-badge{position:absolute;bottom:2px;left:2px;z-index:11;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1;background:rgba(23,19,37,.9);border:1.5px solid #bbb;box-shadow:0 1px 4px rgba(0,0,0,.7);cursor:help;}
@@ -3087,7 +3097,7 @@ function renderArtifactStack(key, slot){
   }
 }
 
-// ---------------- Posture de combat : retrait persistant ----------------
+// ---------------- Posture de combat : retrait persistant + flèche d'attaquant ----------------
 // ÉTAT VISUEL (pas une animation) recalculé à chaque rendu à partir de l'état S :
 //  - EN RETRAIT (classe .is-withdrawn) : légèrement décalée vers l'arrière de
 //    sa ligne, pour repérer d'un coup d'œil ce qui n'est plus actif :
@@ -3095,7 +3105,15 @@ function renderArtifactStack(key, slot){
 //      * un bloqueur qui a DÉJÀ BLOQUÉ (ne peut plus bloquer).
 //    Reste en retrait jusqu'à la fin du tour (voir les champs ci-dessous).
 //    « Arrière » : ma ligne (en bas) -> vers le bas ; ligne adverse (en haut) -> vers le haut.
+//  - FLÈCHE ROUGE CLIGNOTANTE (.attacker-arrow) : sur chaque attaquant déclaré et
+//    encore NON bloqué, donc encore un danger. Au-dessus de mes créatures, en
+//    dessous de celles de l'adversaire (elle pointe vers le camp visé). Elle
+//    DISPARAÎT dès que l'attaquant est bloqué (il passe alors en retrait : un
+//    seul signal à la fois, la flèche = danger, le retrait = neutralisé).
 // Champs lus (état serveur, aucune modification serveur) :
+//  - S.phase === 'declareBlockersMe' et S.active : combat en cours (seule phase
+//    où des attaquants sont « déclarés » dans l'état) ;
+//  - S[camp].attackers : instId des attaquants déclarés (vidé à la fin du blocage) ;
 //  - créature.hasBeenBlocked : attaquant bloqué PENDANT le combat en cours (le
 //    serveur le remet à false dès doFinishBlocking) ;
 //  - S.__combatEvents (blockResolved, avec .turn = S.turn et .attackerInstId) :
@@ -3110,6 +3128,7 @@ function renderArtifactStack(key, slot){
 // <combat-posture>
 const WITHDRAW_OFFSET_PX = 16;        // décalage vers l'arrière (px, échelle 1920×1080 du plateau)
 const WITHDRAW_TRANSITION_MS = 220;   // apparition/disparition douce du retrait (passée dans cms() ; 0 en Instantané)
+const ATTACKER_ARROW_BLINK_MS = 900;  // période du clignotement de la flèche rouge (fixe en Instantané)
 
 // Contexte de décision pour UNE ligne (camp `ownerKey`), lu dans l'état.
 function combatPostureCtx(state, ownerKey){
@@ -3131,13 +3150,23 @@ function combatPostureCtx(state, ownerKey){
 function wasBlockedThisTurn(c, ctx){
   return !!(c && (c.hasBeenBlocked === true || ctx.blockedAttackerIds.has(c.instId)));
 }
+// Attaquant déclaré du combat EN COURS (jamais pendant le choix des attaquants :
+// la phase est alors 'main', le contour doré de sélection existe déjà).
+function isDeclaredAttacker(c, ctx){
+  return !!c && ctx.phase==='declareBlockersMe' && ctx.ownerKey===ctx.activeKey && ctx.attackerIds.has(c.instId);
+}
 // En retrait : attaquant bloqué (un survivant le reste jusqu'à la fin du tour) ou bloqueur ayant bloqué.
 function isWithdrawn(c, ctx){
   if(!c) return false;
   return c.hasBlockedThisTurn === true || wasBlockedThisTurn(c, ctx);
 }
-// Direction du retrait selon le camp (isMine : ma ligne, en bas).
+// Flèche rouge : attaquant déclaré du combat en cours, pas (encore) bloqué.
+function showAttackerArrow(c, ctx){
+  return isDeclaredAttacker(c, ctx) && !wasBlockedThisTurn(c, ctx);
+}
+// Direction du retrait / position de la flèche selon le camp (isMine : ma ligne, en bas).
 function withdrawDirection(isMine){ return isMine ? 'down' : 'up'; }
+function attackerArrowPlacement(isMine){ return isMine ? 'above' : 'below'; }
 // </combat-posture>
 
 // Dernier état de retrait RENDU, par créature : sert uniquement à savoir si un
@@ -3165,13 +3194,25 @@ function applyWithdrawState(el, instId, withdrawn, isMine){
     el.classList.toggle('is-withdrawn', withdrawn);
   }
 }
+// Flèche rouge clignotante (SVG en ligne, aucune image). Enfant de la carte :
+// elle suit donc son clone d'animation de charge (retiré par stripPostureFromGhost).
+function buildAttackerArrowEl(isMine){
+  const a = document.createElement('div');
+  a.className = 'attacker-arrow is-' + attackerArrowPlacement(isMine) + (combatInstant() ? ' is-static' : '');
+  a.style.animationDuration = ATTACKER_ARROW_BLINK_MS+'ms';
+  a.setAttribute('aria-hidden', 'true');
+  a.innerHTML = '<svg viewBox="0 0 40 48" width="100%" height="100%"><path d="M20 2 L38 24 H27 V46 H13 V24 H2 Z" stroke-linejoin="round"/></svg>';
+  return a;
+}
 // Un clone d'animation (charge, mort) est placé à la position VISIBLE réelle
-// (getBoundingClientRect, retrait compris) : il ne doit donc pas se décaler une 2e fois.
+// (getBoundingClientRect, retrait compris) : il ne doit donc ni se décaler une
+// 2e fois, ni emporter la flèche.
 function stripPostureFromGhost(ghost){
   if(!ghost) return ghost;
   ghost.classList.remove('is-withdrawn');
   ghost.style.translate = 'none';
   ghost.style.transition = 'none';
+  ghost.querySelectorAll('.attacker-arrow').forEach(n=>n.remove());
   return ghost;
 }
 
@@ -3197,8 +3238,9 @@ function renderLane(key, slot){
     cardWrap.appendChild(el2);
 
     // Posture de combat (état, recalculé à chaque rendu) : retrait des créatures
-    // bloquées / bloqueuses.
+    // bloquées / bloqueuses + flèche rouge sur les attaquants encore dangereux.
     applyWithdrawState(el2, c.instId, isWithdrawn(c, postureCtx), isMine);
+    if(showAttackerArrow(c, postureCtx)) el2.appendChild(buildAttackerArrowEl(isMine));
 
     // Bloqueur ayant bloqué : le retrait porte maintenant l'information, on ne
     // l'atténue plus (ancienne opacité .5) ; la pastille 🛡 reste, pour les deux camps.
