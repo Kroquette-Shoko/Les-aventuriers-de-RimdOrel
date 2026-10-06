@@ -4872,9 +4872,16 @@ function renderEmoteGrid(){
     grid.appendChild(img);
   });
 }
+// Succès secret "Trop expressif" — émotes envoyées sur CETTE partie, comptées
+// côté client (la partie dure le temps de cette page). Le mécanisme « pic »
+// côté serveur (progress_achievement_peak) ne garde que le record : pas besoin
+// de remise à zéro explicite, une nouvelle page = un nouveau compteur.
+let __emotesSentThisMatch = 0;
 async function uiSendEmote(emote){
   const res = await gsSendEmote(emote.image, emote.label||'');
-  if(res && res.error){ console.error('Émote → ' + res.error); alert("L'émote n'a pas pu être envoyée : " + res.error); }
+  if(res && res.error){ console.error('Émote → ' + res.error); alert("L'émote n'a pas pu être envoyée : " + res.error); return; }
+  __emotesSentThisMatch++;
+  try{ await sb.rpc('progress_achievement_peak', { p_condition_type: 'emotes_single_match_max', p_value: __emotesSentThisMatch }); }catch(e){ /* un succès raté ne doit jamais gêner la partie */ }
 }
 // Reçue via le canal de diffusion de la partie (broadcast, event 'emote')
 // — le payload transporte directement l'image, l'info-bulle et le camp de

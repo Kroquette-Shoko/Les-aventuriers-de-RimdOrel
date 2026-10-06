@@ -540,7 +540,11 @@ function renderBrunoLine(){
   // immédiat arrivait donc sans utilisateur connecté côté serveur et ne
   // s'enregistrait jamais. On attend que la session soit prête.
   __spellcraftAuthReadyForBruno.then(()=>{
-    try{ sb.rpc('mark_bruno_line_seen', { p_line_index: idx }); }catch(e){ /* jamais bloquant */ }
+    // « await » indispensable : un appel sb.rpc(...) n'est envoyé au serveur que
+    // lorsqu'on l'attend (ou qu'on lui chaîne .then) ; sans cela la réplique
+    // n'était JAMAIS enregistrée et le succès « Habitué de la boutique »
+    // ne progressait pas.
+    (async()=>{ try{ await sb.rpc('mark_bruno_line_seen', { p_line_index: idx }); }catch(e){ /* jamais bloquant */ } })();
   });
 }
 function showBrunoThanks(){
