@@ -265,6 +265,17 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .ncard .nstat-txt.n-up{color:#8df0b0;text-shadow:0 0 2px #000,0 1px 3px #000,0 0 6px rgba(0,0,0,.9);}
 .ncard .nstat-txt.n-down{color:#ffa3a3;text-shadow:0 0 2px #000,0 1px 3px #000,0 0 6px rgba(0,0,0,.9);}
 .ncard.is-unavailable{opacity:.55;outline:2px dashed rgba(220,220,220,.55);outline-offset:-2px;}
+/* Posture de combat (voir « Posture de combat » dans le script). Retrait : décalage
+   vers l'arrière de la ligne via la propriété `translate` (indépendante de
+   `transform`) ; la valeur signée --withdraw-y est posée en ligne par le script
+   d'après WITHDRAW_OFFSET_PX (bas pour ma ligne, haut pour l'adverse : la carte
+   est dans un .card-slot déjà retourné sur la ligne adverse, son « bas » est
+   donc celui de l'écran). La transition n'est posée en ligne que si le retrait
+   change (durée via cms(), aucune en Instantané). */
+.ncard.is-withdrawn{translate:0 var(--withdraw-y,16px);}
+@media (prefers-reduced-motion: reduce){
+  .ncard.is-withdrawn{transition:none !important;}
+}
 .card-unavailable-badge{position:absolute;bottom:2px;left:2px;z-index:11;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;line-height:1;background:rgba(23,19,37,.9);border:1.5px solid #bbb;box-shadow:0 1px 4px rgba(0,0,0,.7);cursor:help;}
 .card-status-badge{position:absolute;bottom:2px;right:2px;z-index:11;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;line-height:1;background:rgba(23,19,37,.9);border:1.5px solid var(--gold);box-shadow:0 1px 4px rgba(0,0,0,.7);cursor:help;}
 .zzz{position:absolute;top:2px;right:3px;display:flex;align-items:flex-end;z-index:4;pointer-events:none;}
@@ -3076,11 +3087,100 @@ function renderArtifactStack(key, slot){
   }
 }
 
+// ---------------- Posture de combat : retrait persistant ----------------
+// ÉTAT VISUEL (pas une animation) recalculé à chaque rendu à partir de l'état S :
+//  - EN RETRAIT (classe .is-withdrawn) : légèrement décalée vers l'arrière de
+//    sa ligne, pour repérer d'un coup d'œil ce qui n'est plus actif :
+//      * un attaquant qui a été BLOQUÉ (plus un danger) ;
+//      * un bloqueur qui a DÉJÀ BLOQUÉ (ne peut plus bloquer).
+//    Reste en retrait jusqu'à la fin du tour (voir les champs ci-dessous).
+//    « Arrière » : ma ligne (en bas) -> vers le bas ; ligne adverse (en haut) -> vers le haut.
+// Champs lus (état serveur, aucune modification serveur) :
+//  - créature.hasBeenBlocked : attaquant bloqué PENDANT le combat en cours (le
+//    serveur le remet à false dès doFinishBlocking) ;
+//  - S.__combatEvents (blockResolved, avec .turn = S.turn et .attackerInstId) :
+//    mémoire « cet attaquant a été bloqué ce tour », qui survit à la fin du
+//    combat (c'est ce qui garde un survivant en retrait jusqu'à la fin du tour) ;
+//  - créature.hasBlockedThisTurn : bloqueur ayant bloqué (remis à false par le
+//    serveur au début du tour de son propriétaire).
+// Limite connue : les événements sont limités aux 60 derniers côté serveur ;
+// un champ serveur dédié (ex. attacker.wasBlockedThisTurn, remis à zéro avec
+// hasAttacked) rendrait ce repli inutile — non implémenté (consigne).
+// Fonctions pures entre les marqueurs : testées sous Node (aucun accès DOM/global).
+// <combat-posture>
+const WITHDRAW_OFFSET_PX = 16;        // décalage vers l'arrière (px, échelle 1920×1080 du plateau)
+const WITHDRAW_TRANSITION_MS = 220;   // apparition/disparition douce du retrait (passée dans cms() ; 0 en Instantané)
+
+// Contexte de décision pour UNE ligne (camp `ownerKey`), lu dans l'état.
+function combatPostureCtx(state, ownerKey){
+  const st = state || {};
+  const owner = st[ownerKey] || {};
+  const blocked = new Set();
+  (Array.isArray(st.__combatEvents) ? st.__combatEvents : []).forEach(e=>{
+    if(e && e.combatEvent==='blockResolved' && e.turn===st.turn && e.attackerInstId) blocked.add(e.attackerInstId);
+  });
+  return {
+    ownerKey,
+    phase: st.phase,
+    activeKey: st.active,
+    attackerIds: new Set(Array.isArray(owner.attackers) ? owner.attackers : []),
+    blockedAttackerIds: blocked
+  };
+}
+// Cette créature (attaquante) a-t-elle été bloquée pendant ce tour ?
+function wasBlockedThisTurn(c, ctx){
+  return !!(c && (c.hasBeenBlocked === true || ctx.blockedAttackerIds.has(c.instId)));
+}
+// En retrait : attaquant bloqué (un survivant le reste jusqu'à la fin du tour) ou bloqueur ayant bloqué.
+function isWithdrawn(c, ctx){
+  if(!c) return false;
+  return c.hasBlockedThisTurn === true || wasBlockedThisTurn(c, ctx);
+}
+// Direction du retrait selon le camp (isMine : ma ligne, en bas).
+function withdrawDirection(isMine){ return isMine ? 'down' : 'up'; }
+// </combat-posture>
+
+// Dernier état de retrait RENDU, par créature : sert uniquement à savoir si un
+// changement vient d'avoir lieu (pour la transition douce). Une créature
+// inconnue (nouvelle, ou premier rendu) apparaît directement dans son état.
+const __withdrawnRendered = new Map();
+// Pose le retrait sur l'élément .ncard d'une créature en jeu. Le DOM étant
+// reconstruit à chaque rendu, la classe vient toujours de l'état ; seule la
+// transition est animée : départ dans l'ancien état puis bascule à l'image
+// suivante. Propriété CSS `translate` (indépendante de `transform`, utilisé par
+// les animations de charge et le survol).
+function applyWithdrawState(el, instId, withdrawn, isMine){
+  const sign = withdrawDirection(isMine)==='down' ? 1 : -1;
+  el.style.setProperty('--withdraw-y', (sign*WITHDRAW_OFFSET_PX)+'px');
+  const had = __withdrawnRendered.get(instId);
+  __withdrawnRendered.set(instId, withdrawn);
+  let reduced = false; // prefers-reduced-motion : pas de transition
+  try { reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch(e){}
+  const dur = reduced ? 0 : cms(WITHDRAW_TRANSITION_MS);
+  if(had!==undefined && had!==withdrawn && dur>0){
+    el.classList.toggle('is-withdrawn', had);
+    el.style.transition = `translate ${dur}ms ease-out`;
+    requestAnimationFrame(()=>requestAnimationFrame(()=>el.classList.toggle('is-withdrawn', withdrawn)));
+  } else {
+    el.classList.toggle('is-withdrawn', withdrawn);
+  }
+}
+// Un clone d'animation (charge, mort) est placé à la position VISIBLE réelle
+// (getBoundingClientRect, retrait compris) : il ne doit donc pas se décaler une 2e fois.
+function stripPostureFromGhost(ghost){
+  if(!ghost) return ghost;
+  ghost.classList.remove('is-withdrawn');
+  ghost.style.translate = 'none';
+  ghost.style.transition = 'none';
+  return ghost;
+}
+
 // key = camp réel serveur, slot = 'p1'/'p2' pour l'affichage (moi en bas, adversaire en haut)
 function renderLane(key, slot){
   const el = document.getElementById(`lane-${slot}`);
   el.innerHTML = '';
   const p = S[key];
+  const postureCtx = combatPostureCtx(S, key);
   (p.board||[]).slice(0,8).forEach(c=>{
     const isMine = key===MY_KEY;
     const attackSelecting = isMine && UI.selectingAttackers && UI.selectedAttackers.includes(c.instId);
@@ -3096,8 +3196,13 @@ function renderLane(key, slot){
     const el2 = cardEl(c, { attacking, attackSelecting, targetable, inPlay:true, unavailableReason: unavailableReasonFor(key, c), onClick: ()=>onBoardCreatureClick(key, c) });
     cardWrap.appendChild(el2);
 
-    if(isMine && c.hasBlockedThisTurn){
-      el2.style.opacity = '.5';
+    // Posture de combat (état, recalculé à chaque rendu) : retrait des créatures
+    // bloquées / bloqueuses.
+    applyWithdrawState(el2, c.instId, isWithdrawn(c, postureCtx), isMine);
+
+    // Bloqueur ayant bloqué : le retrait porte maintenant l'information, on ne
+    // l'atténue plus (ancienne opacité .5) ; la pastille 🛡 reste, pour les deux camps.
+    if(c.hasBlockedThisTurn){
       const tag = document.createElement('div');
       tag.style.cssText = 'position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:12px;z-index:5;';
       tag.textContent = '🛡';
@@ -3585,8 +3690,6 @@ const ANIM_LUNGE_CHARGE_MS = 200;  // course jusqu'au centre de la cible
 const ANIM_IMPACT_HOLD_MS  = 130;  // arrêt à l'impact (laisse voir le choc, flash et chiffres)
 const ANIM_LUNGE_RETURN_MS = 270;  // retour à sa place
 //   => une charge dure 750 ms (480 ms avant), dont 130 ms d'arrêt à l'impact.
-const ANIM_RECOIL_MS = 300;        // petit recul final des deux créatures ayant combattu
-const ANIM_RECOIL_PX = 16;         // amplitude du recul (pixels d'écran)
 const ANIM_IMPACT_FX_MS = 450;     // anneau + éclat de lumière à l'impact
 const ANIM_ARROW_LEAD_MS = 200;    // la flèche attaquant -> cible s'affiche seule avant que la charge parte
 
@@ -3680,7 +3783,7 @@ function snapshotBoardForDeathAnim(){
   document.querySelectorAll('[data-instid]').forEach(el=>{
     const id = el.getAttribute('data-instid');
     if(!id || snap[id]) return;
-    snap[id] = { rect: el.getBoundingClientRect(), clone: el.cloneNode(true) };
+    snap[id] = { rect: el.getBoundingClientRect(), clone: stripPostureFromGhost(el.cloneNode(true)) };
   });
   return snap;
 }
@@ -3874,7 +3977,7 @@ function playKeywordBadgeChanges(plan){
 // est masqué le temps de l'animation ; la fonction renvoyée retire le clone et
 // le rend visible (idempotente, enregistrée pour une interruption de la file).
 function makeCombatGhost(el, rect){
-  const ghost = el.cloneNode(true);
+  const ghost = stripPostureFromGhost(el.cloneNode(true));
   ghost.style.position = 'fixed';
   ghost.style.left = rect.left+'px';
   ghost.style.top = rect.top+'px';
@@ -3891,31 +3994,28 @@ function makeCombatGhost(el, rect){
 }
 // Anime une charge de combat : recul d'élan, course jusqu'au CENTRE de la cible
 // en passant par-dessus elle (façon MTG Arena), ARRÊT à l'impact, retour à sa
-// place, puis éventuellement un petit recul. Durées : constantes ANIM_* ci-dessus.
+// place. Durées : constantes ANIM_* ci-dessus. (Le « recul » des créatures
+// bloquées / bloqueuses n'est plus une animation : c'est un état visuel
+// persistant, voir « Posture de combat » : is-withdrawn.)
 // Retourne une Promise résolue à la fin, pour pouvoir être mise en file (voir
 // queueCombatAnim) plutôt que jouée immédiatement.
 // `opts` (tous facultatifs) :
-//  - onImpact : appelé à l'arrivée sur la cible (son, flash, chiffres, tremblement) ;
-//  - recoilPx : amplitude du recul final de cette carte (0 ou absent = pas de recul) ;
-//  - onRecoilStart : appelé quand la carte est revenue à sa place et que le recul
-//    commence (sert à faire reculer l'autre créature en même temps).
+//  - onImpact : appelé à l'arrivée sur la cible (son, flash, chiffres, tremblement).
 function lungeToward(el, targetEl, opts){
   opts = (opts && typeof opts==='object') ? opts : {};
   if(!el || !targetEl) return Promise.resolve();
   const windup = cms(ANIM_LUNGE_WINDUP_MS), charge = cms(ANIM_LUNGE_CHARGE_MS);
   const hold = cms(ANIM_IMPACT_HOLD_MS), ret = cms(ANIM_LUNGE_RETURN_MS);
   if(!(windup+charge+hold+ret)){ if(opts.onImpact) opts.onImpact(); return Promise.resolve(); } // instantané : pas de mouvement
-  const recoilMs = opts.recoilPx ? cms(ANIM_RECOIL_MS) : 0;
   const a = el.getBoundingClientRect(), b = targetEl.getBoundingClientRect();
   const dx = (b.left+b.width/2) - (a.left+a.width/2);
   const dy = (b.top+b.height/2) - (a.top+a.height/2);
   const len = Math.hypot(dx,dy) || 1;
   const ux = dx/len, uy = dy/len;
-  const tImpact = windup+charge, tHoldEnd = tImpact+hold, tHome = tHoldEnd+ret, total = tHome+recoilMs;
+  const tImpact = windup+charge, tHoldEnd = tImpact+hold, tHome = tHoldEnd+ret, total = tHome;
 
   const { ghost, restore } = makeCombatGhost(el, a);
   if(opts.onImpact) combatTimeout(opts.onImpact, tImpact);
-  if(opts.onRecoilStart) combatTimeout(opts.onRecoilStart, tHome);
   return new Promise(resolve=>{
     const done = ()=>{ restore(); resolve(); };
     if(ghost.animate){
@@ -3931,44 +4031,11 @@ function lungeToward(el, targetEl, opts){
         { transform:hit, offset:tHoldEnd/total, easing:'ease-in-out' }, // arrêt à l'impact
         { transform:'translate(0,0) scale(1)', offset:tHome/total }
       ];
-      if(recoilMs){
-        // petit recul à l'opposé de la cible, puis retour à la place exacte
-        frames[4].easing = 'ease-out';
-        frames.push({ transform:`translate(${-ux*opts.recoilPx}px, ${-uy*opts.recoilPx}px) scale(1)`, offset:(tHome+recoilMs*0.4)/total, easing:'ease-in-out' });
-        frames.push({ transform:'translate(0,0) scale(1)', offset:1 });
-      } else {
-        frames[4].offset = 1;
-      }
       const anim = ghost.animate(frames, { duration: total });
       anim.onfinish = done;
       anim.oncancel = done;
     } else {
       setTimeout(done, total);
-    }
-  });
-}
-// Petit recul d'une créature (bloqueur) à l'opposé de `fromEl` (l'attaquant) :
-// aller-retour de ANIM_RECOIL_PX sur un clone, sans toucher à la carte réelle.
-function recoilAway(el, fromEl){
-  const dur = cms(ANIM_RECOIL_MS);
-  if(!el || !fromEl || !dur) return Promise.resolve();
-  const a = fromEl.getBoundingClientRect(), b = el.getBoundingClientRect();
-  let dx = (b.left+b.width/2) - (a.left+a.width/2), dy = (b.top+b.height/2) - (a.top+a.height/2);
-  const len = Math.hypot(dx,dy);
-  if(len<1){ dx = 0; dy = -1; } else { dx /= len; dy /= len; } // même place : on recule vers le haut
-  const { ghost, restore } = makeCombatGhost(el, b);
-  return new Promise(resolve=>{
-    const done = ()=>{ restore(); resolve(); };
-    if(ghost.animate){
-      const anim = ghost.animate([
-        { transform:'translate(0,0)', offset:0, easing:'ease-out' },
-        { transform:`translate(${dx*ANIM_RECOIL_PX}px, ${dy*ANIM_RECOIL_PX}px)`, offset:0.4, easing:'ease-in-out' },
-        { transform:'translate(0,0)', offset:1 }
-      ], { duration: dur });
-      anim.onfinish = done;
-      anim.oncancel = done;
-    } else {
-      setTimeout(done, dur);
     }
   });
 }
@@ -4173,16 +4240,11 @@ function playCombatStrike(attackerInstId, blockerInstId, outcome){
     const o = Object.assign({}, outcome || {});
     if(!isCombatNumber(o.dmgToBlocker)) o.dmgToBlocker = domAtk(attEl);
     if(!isCombatNumber(o.dmgToAttacker)) o.dmgToAttacker = domAtk(blkEl);
-    // Recul final des DEUX créatures une fois le choc résolu — sauf celle qui
-    // meurt (elle se dissout juste après, voir playCardDeathAnim). Mort lue dans
-    // l'événement (avant résurrection Implacable : une créature ressuscitée ne
-    // recule pas non plus, prudence) ou, à défaut, dans l'état précédent/courant.
-    let blockerRecoil = Promise.resolve();
+    // Pas de recul en fin de coup : le retrait des créatures bloquées / bloqueuses
+    // est un état persistant, posé par le rendu au dégel (voir « Posture de combat »).
     return arrowThenLunge(attEl, blkEl, {
-      onImpact: ()=>applyBlockImpact(attEl, blkEl, o),
-      recoilPx: o.attackerDied ? 0 : ANIM_RECOIL_PX,
-      onRecoilStart: ()=>{ if(!o.blockerDied) blockerRecoil = recoilAway(blkEl, attEl); }
-    }).then(()=>blockerRecoil).then(cleanup);
+      onImpact: ()=>applyBlockImpact(attEl, blkEl, o)
+    }).then(cleanup);
   });
 }
 
