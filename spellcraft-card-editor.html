@@ -1852,6 +1852,14 @@ function buildTargetsSectionUI(ab, targetsArray, choiceKey, heading){
       subField.appendChild(subInp); trow.appendChild(subField);
     }
 
+    if(tgt.targetCategory==='creature' || tgt.targetCategory==='hero_creature'){
+      trow.appendChild(makeSelectField('Mot-clé requis (optionnel)', [{key:'',label:'Aucun'}, ...KEYWORDS.map(k=>({key:k.key,label:k.label}))], tgt.keywordFilter||'', v=>{ tgt.keywordFilter=v; onFormChange(); }));
+      const kwNote = document.createElement('div');
+      kwNote.style.cssText = 'font-size:10.5px;color:var(--parchment-dim);margin-top:2px;flex-basis:100%;';
+      kwNote.textContent = "Filtre de ciblage : seules les créatures qui ont ce mot-clé peuvent être choisies (ex : Chute mortelle → Envol). Un sort qui exige une cible alors qu'aucune n'est valide est refusé : il reste en main et rien n'est dépensé. Une créature adverse protégée par Parade n'est jamais ciblable par un sort.";
+      trow.appendChild(kwNote);
+    }
+
     if(tgt.targetCategory && tgt.targetCategory.startsWith('card_in_')){
       const cfToggle = document.createElement('label');
       cfToggle.className='evolve-toggle';
@@ -2178,6 +2186,15 @@ function buildTriggerEntryBox(te, tIdx, totalCount, availableTriggers, onRemove)
     tBox.appendChild(awrow);
   }
 
+  if(currentType==='Sortilège' && (te.trigger==='onPlay' || te.trigger==='onDrawn')){
+    const spNote = document.createElement('div');
+    spNote.style.cssText = 'font-size:10.5px;color:var(--parchment-dim);margin-top:4px;';
+    spNote.textContent = te.trigger==='onDrawn'
+      ? "Sort « quand piochée » : il se déclenche à la pioche et ne peut pas être joué depuis la main (le client le grise, le serveur refuse). S'il a aussi une capacité « quand cette carte entre en jeu », il reste jouable."
+      : "Sort joué depuis la main : la carte est défaussée avant la résolution de ses effets. Pas de limite de sorts par tour. Si une cible désignée est exigée et qu'aucune n'est valide, le jeu est refusé (carte gardée en main, rien de dépensé).";
+    tBox.appendChild(spNote);
+  }
+
   if(currentType==='Région' && (te.trigger==='startOfTurn' || te.trigger==='startOfTurnX')){
     const mrToggle = document.createElement('label');
     mrToggle.className='evolve-toggle';
@@ -2366,6 +2383,11 @@ function rebuildAbilitiesUI(){
         row.appendChild(makeCondSelectField(cond, 'owner', [['self','Vous'],['enemy','Adversaire']], 'self', 'Qui'));
         row.appendChild(makeCondSelectField(cond, 'subtypeCardType', [['creature','Créature'],['artifact','Artefact'],['sortilege','Sortilège'],['piege','Piège'],['any','Peu importe']], 'creature', 'Type de carte'));
         row.appendChild(makeCondSelectField(cond, 'subtypeZone', [['board','En jeu'],['hand','En main'],['discard','En défausse']], 'board', 'Zone'));
+        const exConjToggle = document.createElement('label');
+        exConjToggle.className='evolve-toggle';
+        exConjToggle.innerHTML = `<input type="checkbox" ${cond.excludeConjuration?'checked':''}> Ne pas compter les cartes conjurées (set « Conjuration »)`;
+        exConjToggle.querySelector('input').onchange=(e)=>{ cond.excludeConjuration=e.target.checked; onFormChange(); };
+        row.appendChild(exConjToggle);
         const subField = document.createElement('div');
         subField.className='field';
         subField.innerHTML = `<label class="mini-field">Sous-type</label>`;
@@ -2701,6 +2723,14 @@ function buildEffectRow(ab, eff, choiceKey){
     }
   }
 
+  if(eff.effectType==='damage'){
+    const llToggle = document.createElement('label');
+    llToggle.className='evolve-toggle';
+    llToggle.innerHTML = `<input type="checkbox" ${eff.lifeLoss?'checked':''}> Perte de PV (et non dégâts) — un héros visé perd directement des PV : ce n'est pas amplifié par « Augmente les dégâts ». Sur une créature, ce sont des dégâts normaux.`;
+    llToggle.querySelector('input').onchange=(e)=>{ eff.lifeLoss=e.target.checked; onFormChange(); };
+    row.appendChild(llToggle);
+  }
+
   if(eff.effectType==='buff' || eff.effectType==='weaken'){
     const rsToggle = document.createElement('label');
     rsToggle.className='evolve-toggle';
@@ -2855,6 +2885,24 @@ function buildEffectRow(ab, eff, choiceKey){
       legToggle.querySelector('input').onchange = (e)=>{ eff.conjureLegendaryOnly=e.target.checked; onFormChange(); };
       legField.appendChild(legToggle);
       row.appendChild(legField);
+
+      const exField = document.createElement('div');
+      exField.className='field'; exField.style.flexBasis='100%';
+      exField.innerHTML = `<label class="mini-field">Cartes exclues (optionnel) — un nom exact par ligne</label>`;
+      const exArea = document.createElement('textarea');
+      exArea.rows = 2; exArea.placeholder = 'Ex : Don de savoir';
+      exArea.value = (eff.conjureExcludeNames||[]).join('\n');
+      exArea.oninput = ()=>{
+        const names = exArea.value.split('\n').map(x=>x.trim()).filter(Boolean);
+        if(names.length) eff.conjureExcludeNames = names; else delete eff.conjureExcludeNames;
+        onFormChange();
+      };
+      exField.appendChild(exArea);
+      const exNote = document.createElement('div');
+      exNote.style.cssText = 'font-size:10.5px;color:var(--parchment-dim);margin-top:2px;';
+      exNote.textContent = "Ces cartes ne seront jamais tirées au sort par cette conjuration (utile pour qu'un sort ne se relance pas lui-même ou ne boucle pas). Une créature conjurée directement en jeu alors que le plateau est plein est perdue (ni main ni défausse).";
+      exField.appendChild(exNote);
+      row.appendChild(exField);
 
       row.appendChild(buildNumericFilterField(eff, 'conjureCostMode', 'conjureCostValue', 'Coût'));
       row.appendChild(buildNumericFilterField(eff, 'conjureAtkMode', 'conjureAtkValue', 'Force'));
@@ -3528,7 +3576,8 @@ function targetPhrase(t){
 
   const subtypeSuffix = t.subtypeFilter ? ` ${t.subtypeFilter}` : '';
   const zoneTypeSuffix = (t.zoneTypeFilterEnabled && t.zoneTypeFilter) ? ` ${t.zoneTypeFilter.toLowerCase()}` : '';
-  const attackedLastTurnSuffix = t.attackedLastTurnFilter ? ' ayant attaqué au tour précédent' : '';
+  const attackedLastTurnSuffix = (t.attackedLastTurnFilter ? ' ayant attaqué au tour précédent' : '')
+    + (t.keywordFilter ? ` ayant ${(KEYWORDS.find(k=>k.key===t.keywordFilter)||{}).label||t.keywordFilter}` : '');
 
   if(t.selectionMode==='strongest' || t.selectionMode==='mostEnduring'){
     const statLabel = t.selectionMode==='strongest' ? 'la plus forte' : 'la plus endurante';
@@ -3562,6 +3611,7 @@ function buildEffectClause(eff, ab){
     case 'damage': {
       const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic');
       const isNum = eff.valueMode==='fixed';
+      if(eff.lifeLoss) return `faites perdre ${val} PV à ${targetPhrase(resolvedTarget)}`;
       return `infligez ${val} ${isNum ? plural(eff.valueFixed,'dégât','dégâts') : 'dégâts'} à ${targetPhrase(resolvedTarget)}`;
     }
     case 'heal': {
@@ -3921,6 +3971,7 @@ function conjureClause(eff){
   const rarityPhrase = (eff.conjureRarity && eff.conjureRarity!=='any') ? ` de rareté ${eff.conjureRarity}` : '';
   const keywordPhrase = eff.conjureKeyword ? ` avec ${(KEYWORDS.find(k=>k.key===eff.conjureKeyword)||{}).label||eff.conjureKeyword}` : '';
   const legendaryPhrase = eff.conjureLegendaryOnly ? ' de super-type Légendaire' : '';
+  const excludePhrase = (eff.conjureExcludeNames && eff.conjureExcludeNames.length) ? ` (hors ${eff.conjureExcludeNames.map(n=>'"'+n+'"').join(', ')})` : '';
   const filters = [
     numericFilterPhrase(eff, 'conjureCostMode', 'conjureCostValue', 'coût'),
     numericFilterPhrase(eff, 'conjureAtkMode', 'conjureAtkValue', 'Force'),
@@ -3928,7 +3979,7 @@ function conjureClause(eff){
   ].filter(Boolean);
   const filterPhrase = filters.length ? ` (${filters.join(', ')})` : '';
   const article = qty>1 ? `${qty} ` : 'un(e) ';
-  return `${ownerVerb} ${article}${typesPhrase}${classPhrase}${subtypePhrase}${setPhrase}${rarityPhrase}${keywordPhrase}${legendaryPhrase}${filterPhrase}${destPhrase}${followUpClause(eff)}`;
+  return `${ownerVerb} ${article}${typesPhrase}${classPhrase}${subtypePhrase}${setPhrase}${rarityPhrase}${keywordPhrase}${legendaryPhrase}${filterPhrase}${excludePhrase}${destPhrase}${followUpClause(eff)}`;
 }
 
 function condValueText(cond){
@@ -3975,7 +4026,7 @@ function conditionClause(cond){
       const zoneLabel = {board:'en jeu',hand:'en main',discard:'en défausse'}[cond.subtypeZone||'board'];
       const comp = {atLeast:'au moins',atMost:'au plus',exactly:'exactement'}[cond.compareMode||'atLeast'];
       const who = cond.owner==='enemy' ? "l'adversaire a" : 'vous avez';
-      return `${who} ${comp} ${condValueText(cond)} ${typeLabel} ${zoneLabel} du sous-type ${cond.subtype||'?'}`;
+      return `${who} ${comp} ${condValueText(cond)} ${typeLabel} ${zoneLabel} du sous-type ${cond.subtype||'?'}${cond.excludeConjuration ? ' (hors cartes conjurées)' : ''}`;
     }
     case 'statCompare': {
       const statLabel = cond.statType==='endurance' ? 'endurance' : 'force';
