@@ -2133,6 +2133,16 @@ function onStateUpdate(state){
     debugLog("En attente d'un adversaire pour démarrer la partie...", 'log-ok');
     return;
   }
+  // Anti-« retour en arrière » : l'état arrive par trois chemins (réponse de
+  // l'action, signal temps réel, resynchro toutes les 6 s) et une réponse
+  // lancée plus tôt peut arriver APRÈS une plus récente. Le serveur numérote
+  // chaque sauvegarde (__rev) : on ignore tout état plus ancien que celui déjà
+  // affiché ou déjà mis en attente pendant une animation.
+  {
+    const rev = (state.__rev|0);
+    const known = Math.max((S && S.__rev)|0, (__pendingStateWhileAnimating && __pendingStateWhileAnimating.__rev)|0);
+    if(rev < known){ return; }
+  }
   // Une animation de combat est en cours (voir queueCombatAnim) : re-rendre
   // maintenant reconstruirait la carte en plein vol et la ferait
   // réapparaître à sa position d'origine, PENDANT que son clone animé
