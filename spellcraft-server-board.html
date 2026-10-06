@@ -1049,7 +1049,7 @@ const KEYWORD_DESCRIPTIONS = {
   lifesteal: "Chaque point de dégât qu'elle inflige soigne d'autant votre héros.",
   initiative: "Frappe la première lors d'un combat. Si ce premier coup suffit à tuer sa cible, elle ne subit aucun dégât en retour.",
   armor: "Ignore entièrement la première fois qu'elle devrait subir des dégâts.",
-  stealth: "Ne peut pas être ciblée par un sortilège pendant le tour où elle arrive en jeu.",
+  stealth: "Ne peut pas être ciblée par l'adversaire jusqu'au début du prochain tour de son propriétaire.",
   relentless: "À sa mort, revient automatiquement en jeu une fois — sans le mot-clé Tenace la seconde fois.",
   fearful: "Ne peut jamais bloquer une créature adverse.",
   protecteur: "Ne peut jamais attaquer.",
@@ -1062,8 +1062,8 @@ const KEYWORD_DESCRIPTIONS = {
   final: "Étiquette pour les cartes liées à la fin d'une partie ou d'un tour (sans effet de jeu)."
 };
 // Un mot-clé peut être présent sur une carte sans que son effet ne soit
-// actif en ce moment précis (ex. Parade ne protège que le tour où la
-// créature arrive en jeu). Cette fonction dit si l'icône/la bulle doit
+// actif en ce moment précis (ex. Parade ne protège que jusqu'au début du
+// prochain tour du propriétaire). Cette fonction dit si l'icône/la bulle doit
 // être affichée MAINTENANT pour une créature en jeu ; hors plateau (main,
 // aperçu générique), on montre tout — il n'y a pas encore d'état "actif".
 function isKeywordActiveNow(k, card, inPlay){
