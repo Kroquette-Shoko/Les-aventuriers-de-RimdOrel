@@ -1298,6 +1298,15 @@ function reasonCannotAttack(c){
 }
 function canAttackClient(c){ return reasonCannotAttack(c) === null; }
 
+// Parade (serveur : isStealthProtected) : la créature n'est protégée que contre
+// l'ADVERSAIRE de son propriétaire, tant qu'elle est « summonSick » (jusqu'au
+// début du prochain tour de son propriétaire). Mes propres créatures Parade
+// restent donc ciblables par mes sorts. `ownerKey` = camp de la créature,
+// `viewerKey` = camp de celui qui cible (moi).
+function isStealthProtectedClient(c, ownerKey, viewerKey){
+  return !!c && hasKw(c, 'stealth') && !!c.summonSick && ownerKey !== viewerKey;
+}
+
 // Serveur (doAssignBlock), dans cet ordre : déjà bloqué -> étourdie/gelée ->
 // Peureux -> attaquant Discret -> attaquant Envol (bloqueur sans Envol ni Portée).
 // Sans `attacker` : seules les raisons propres au bloqueur sont testées
@@ -3397,7 +3406,7 @@ function isValidPendingTarget(key, c){
   const oppKey = MY_KEY==='p1' ? 'p2' : 'p1';
   const allowed = eff.targetOwner==='ally' ? [MY_KEY] : eff.targetOwner==='any' ? [MY_KEY, oppKey] : [oppKey];
   if(!allowed.includes(key)) return false;
-  if(c.keywords?.includes('stealth') && c.summonSick) return false;
+  if(isStealthProtectedClient(c, key, MY_KEY)) return false; // Parade : protège seulement contre l'adversaire
   return true;
 }
 function isValidPendingHeroTarget(key){
