@@ -1721,7 +1721,11 @@ function renderGameLog(){
         // au moment du choc, dans playCombatStrike.
         const blockEv = takeCombatEvent(newCombatEvents, 'blockResolved',
           e=>e.attackerInstId===attackerInstId && e.blockerInstId===blockerInstId);
-        playCombatStrike(attackerInstId, blockerInstId, resolveBlockOutcome(blockEv, PREV_S, S, attackerInstId, blockerInstId));
+        // Combat annulé (un piège type « Frappe préventive » a éliminé une des
+        // deux créatures avant l'affrontement) : aucun choc à animer.
+        if(!(blockEv && blockEv.combatCancelled)){
+          playCombatStrike(attackerInstId, blockerInstId, resolveBlockOutcome(blockEv, PREV_S, S, attackerInstId, blockerInstId));
+        }
       } else if(entry.raw.includes('perdu') && entry.raw.includes('point')){
         // dégâts non bloqués au héros : popup + son selon l'ampleur, et
         // chaque attaquant se rue vers le héros (même animation que pour
