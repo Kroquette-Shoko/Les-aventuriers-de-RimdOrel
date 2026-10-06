@@ -281,14 +281,19 @@ async function openEditPanel(){
   const { data: unlocked } = await sb.from('user_achievements').select('achievement_id').eq('user_id', MY_USER_ID).eq('completed', true);
   ALL_ACHIEVEMENTS = achievements || [];
   UNLOCKED_ACHIEVEMENT_IDS = (unlocked||[]).map(u=>u.achievement_id);
-  SELECTED_ACHIEVEMENTS = [];
+  // On repart des badges ACTUELLEMENT mis en avant (et non d'une liste vide) :
+  // sinon, enregistrer le panneau sans toucher aux badges (ex. pour changer
+  // seulement l'avatar ou le titre) envoyait « aucun badge » au serveur et
+  // effaçait ceux déjà enregistrés. Seuls les badges encore débloqués sont gardés.
+  SELECTED_ACHIEVEMENTS = ((LAST_PROFILE && LAST_PROFILE.featuredAchievements) || [])
+    .map(f => f && f.id).filter(id => id && UNLOCKED_ACHIEVEMENT_IDS.includes(id)).slice(0,5);
   SELECTED_TITLE = (LAST_PROFILE && LAST_PROFILE.equippedTitleAchievementId) || null;
 
   const achWrap = document.getElementById('achievement-choices');
   achWrap.innerHTML = ALL_ACHIEVEMENTS.map(a=>{
     const isUnlocked = UNLOCKED_ACHIEVEMENT_IDS.includes(a.id);
     return `
-      <div class="achievement-choice${isUnlocked?'':' disabled'}" data-id="${escapeHtmlProfile(a.id)}"
+      <div class="achievement-choice${isUnlocked?'':' disabled'}${SELECTED_ACHIEVEMENTS.includes(a.id)?' selected':''}" data-id="${escapeHtmlProfile(a.id)}"
            style="${a.image_url?`background-image:url('${a.image_url.replace(/'/g,"")}')`:''}"
            title="${escapeHtmlProfile(a.name)}${isUnlocked?'':' (non débloqué)'}"></div>
     `;
@@ -335,7 +340,9 @@ function closeEditPanel(){
 async function saveProfileCustomization(){
   const statusEl = document.getElementById('edit-status');
   statusEl.textContent = 'Enregistrement...';
-  const res = await gsUpdateProfileCustomization(SELECTED_AVATAR, SELECTED_ACHIEVEMENTS, SELECTED_TITLE);
+  const res = await gsUpdateProfileCustomization(SELECTED_AVATAR, SELECTED_ACHIEVEMENTS, SELECTED_TITLE,
+    // variante (m/f) conservée tant que le titre n'a pas changé
+    (LAST_PROFILE && LAST_PROFILE.equippedTitleAchievementId === SELECTED_TITLE) ? (LAST_PROFILE.equippedTitleVariant || null) : null);
   if(res.error){ statusEl.textContent = 'Erreur : ' + res.error; return; }
   statusEl.textContent = 'Enregistré !';
   await loadAndRenderProfile();
