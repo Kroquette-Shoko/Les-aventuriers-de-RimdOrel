@@ -25,8 +25,8 @@ Un deck est composé de :
 
 **Règles de copies :**
 - **2 exemplaires maximum** par carte.
-- **1 seul exemplaire** pour les cartes de rareté **Légendaire**.
-- La rareté **Basique** ne bénéficie d'aucun passe-droit particulier : elle reste soumise aux mêmes règles de classe et de copies que n'importe quelle autre rareté. C'est une catégorie de rareté comme les autres (voir 3.2), pas un pool universel indépendant du deck.
+- **1 seul exemplaire** pour les cartes portant le super-type **Légendaire** (case à cocher dans l'éditeur, indépendante de la rareté).
+- La rareté **Basique** ne bénéficie d'aucun passe-droit particulier : elle reste soumise aux mêmes règles de classe et de copies que n'importe quelle autre rareté. C'est une catégorie de rareté comme les autres (voir 3.3), pas un pool universel indépendant du deck.
 
 **Limites sur le plateau (en partie) :**
 - **8 créatures maximum** simultanément sur le champ de bataille d'un joueur.
@@ -40,7 +40,7 @@ Un deck est composé de :
 |---|---|---|---|
 | **Héros** | Aucun | PV | Toujours en jeu dès le début de la partie. Porte la classe du deck, peut avoir des capacités (y compris activées). |
 | **Région** | Aucun | — | Toujours en jeu dès le début. Définit la **règle de mana** du deck (remplace ou modifie le gain normal). Peut aussi avoir des capacités. |
-| **Créature** | Oui | Force / Endurance | Peut attaquer, bloquer, mourir. Porte la majorité des mots-clés de combat. |
+| **Créature** | Oui | Force / Endurance | Peut attaquer, bloquer, mourir. Porte la majorité des mots-clés de combat (voir la section 7). |
 | **Artefact** | Oui | Usure (charges) | Reste en jeu, s'épuise après N utilisations si limité. |
 | **Sortilège** | Oui | — | Effet immédiat à la résolution, puis va en défausse. |
 | **Piège** | Oui | — | Posé face cachée, reste dans votre main, sans payer de mana à la pose. Armé au prochain changement de phase, il attend sa condition adverse (attaque, sort, invocation). Le coût en mana est payé uniquement au déclenchement ; si le mana manque, le Piège ne se déclenche pas et reste armé. Une fois résolu, il va en défausse. Non déclenché avant votre tour suivant : se désarme sans effet. Aucune limite au nombre de Pièges actifs ; s'ils visent le même événement, ils s'utilisent du plus ancien au plus récent, un à la fois. |
@@ -67,7 +67,7 @@ En plus de son coût de mana, une Créature, un Sortilège, un Artefact ou un Pi
 
 ### 3.3 Rareté et présentation
 
-Cinq raretés existent, de la plus commune à la plus rare : **Basique, Commune, Rare, Épique, Légendaire**. Seule la Légendaire a un effet de règle (1 exemplaire max) ; les autres n'influencent que la copie autorisée (2 par défaut) et l'affichage (couleur de la gemme de rareté).
+Cinq raretés existent, de la plus commune à la plus rare : **Basique, Commune, Rare, Épique, Mythique**. Elles n'influencent que l'affichage (couleur de la gemme de rareté) et les filtres de certains effets. Le **super-type Légendaire** est un réglage à part, indépendant de la rareté : c'est lui (et non la rareté) qui limite la carte à 1 exemplaire par deck.
 
 Une carte peut aussi être marquée **Foil** : purement cosmétique, elle affiche un reflet arc-en-ciel qui balaie la carte au survol de la souris ou automatiquement toutes les 10 secondes. Aucun effet sur les règles.
 
@@ -85,12 +85,13 @@ Une carte peut aussi être marquée **Foil** : purement cosmétique, elle affich
 
 ## 5. Structure d'un tour
 
-1. **Début de tour**
-   - Application de la règle de mana de la Région (gain normal, ou règle alternative).
-   - Déclenchement des capacités "Au début de votre tour" et "Quand vous gagnez un point de mana".
-   - Pioche d'une carte.
-   - Les créatures gelées se dégèlent ; les créatures étourdies redeviennent actives ; le statut "attaque déjà faite ce tour" est réinitialisé.
+1. **Début de tour** (dans cet ordre)
+   - Les mots-clés temporaires (« ce tour-ci ») de vos créatures sont purgés.
+   - Application de la règle de mana de la Région (gain normal, ou règle alternative), puis déclenchement des capacités "Quand vous gagnez un point de mana".
+   - Déclenchement des capacités "Au début de votre tour".
    - Les cooldowns des capacités activées diminuent de 1.
+   - Pioche d'une carte.
+   - Le mal d'invocation de vos créatures prend fin ; les statuts « a déjà attaqué » et « a déjà bloqué » sont réinitialisés. (Gel et Étourdissement ne se terminent pas ici : voir la section 6.)
 
 2. **Phase principale**
    - Jouer des cartes (Créatures, Sortilèges, Artefacts, Pièges) en payant leur coût.
@@ -98,77 +99,329 @@ Une carte peut aussi être marquée **Foil** : purement cosmétique, elle affich
    - Déclenchement des capacités "Quand cette carte entre en jeu" (Début) à la pose.
 
 3. **Phase de combat**
-   - Chaque créature non étourdie, non gelée et n'ayant pas la maladie d'invocation (sauf **Charge**) peut attaquer une fois.
-   - Voir Section 6 pour le détail du combat.
+   - Chaque créature non étourdie, non gelée, sans Protecteur et n'ayant pas le mal d'invocation (sauf **Charge**) peut attaquer une fois.
+   - Voir Section 6 pour le détail du combat, et la Section 7 pour les règles complètes des créatures.
 
-4. **Fin de tour**
+4. **Fin de tour** (dans cet ordre)
    - Déclenchement des capacités "À la fin de votre tour".
-   - Les mots-clés octroyés "ce tour-ci seulement" expirent.
-   - Les effets de **Protection** ("jusqu'à votre prochain tour") expirent au *prochain* tour du joueur qui en bénéficie, pas à la fin du tour en cours — à vérifier selon la carte.
+   - Les bonus de Force/Endurance « jusqu'à la fin du tour » arrivent à échéance.
+   - Gel et Étourdissement qui arrivent à échéance prennent fin (voir la section 6).
+   - Les créatures **Fugaces** de votre plateau meurent.
+   - Les cartes temporaires restant en main sortent de la partie.
 
 ---
 
 ## 6. Le combat
 
-**Séquence confirmée :**
+**Séquence (telle que le moteur l'exécute) :**
 
-1. **Déclaration des attaquants** — Le joueur actif choisit, parmi ses créatures éligibles (ni gelée, ni étourdie, ni sous le coup de la maladie d'invocation sauf **Charge**), lesquelles attaquent. Toutes les créatures déclarées attaquent le **héros adverse** par défaut (il n'y a pas de ciblage individuel de créature à la déclaration).
-   - Si aucune créature n'attaque, la phase de combat est entièrement sautée : pas de déclencheurs, pas de blocage, on passe directement à la fin du tour.
-2. **Déclenchement** — Les capacités "Quand cette créature attaque" de tous les attaquants déclarés se déclenchent (dans l'ordre choisi par leur contrôleur si plusieurs).
-3. **Déclaration des bloqueurs** — Le joueur défenseur choisit, pour chacune de ses créatures disponibles (ni gelée, ni étourdie), si elle bloque un attaquant et lequel.
-   - Une créature avec **Vol** ne peut être bloquée que par une créature ayant **Vol** ou **Portée**.
-   - *Par défaut : un bloqueur ne peut intercepter qu'un seul attaquant, et un attaquant ne peut être intercepté que par un seul bloqueur* (pas de gang-up ni de blocage multiple). À corriger si tu veux permettre les blocages groupés.
-4. **Résolution des dégâts** — Simultanée pour tous les combats :
-   - Attaquant bloqué : l'attaquant et le bloqueur s'infligent mutuellement des dégâts égaux à leur Force.
-   - **Initiative** : si la créature avec Initiative inflige des dégâts fatals à sa cible avant l'échange normal, elle ne subit aucun dégât en retour.
-   - **Perçant** : si les dégâts de l'attaquant dépassent l'Endurance restante du bloqueur, l'excédent est infligé au héros adverse.
+1. **Déclaration des attaquants** — Une seule fois par tour, le joueur actif choisit, parmi ses créatures éligibles, lesquelles attaquent. Est éligible une créature ni gelée, ni étourdie, sans **Protecteur**, qui n'a pas déjà attaqué ce tour-ci et qui n'a pas le mal d'invocation (sauf **Charge**). Toutes les créatures déclarées attaquent le **héros adverse** par défaut (il n'y a pas de ciblage individuel de créature à la déclaration). Une fois la déclaration faite, même vide, on ne peut plus en refaire une ce tour-ci.
+   - Si aucune créature n'attaque, la phase de combat est entièrement sautée : pas de déclencheurs, pas de blocage, on reste en phase principale.
+2. **Déclenchement** — Pour chaque attaquant, dans l'ordre de la déclaration, la capacité "Quand cette créature attaque" (Assaut) se déclenche. Puis, une seule fois, les Pièges adverses « une créature ennemie attaque » peuvent se déclencher.
+3. **Déclaration des bloqueurs** — Le défenseur désigne ses bloqueurs un par un (le blocage est limité à 45 secondes ; passé ce délai, il se termine avec les blocages déjà faits). Pour qu'un bloqueur soit accepté :
+   - l'attaquant doit avoir été déclaré ce tour-ci et être toujours en jeu ;
+   - le bloqueur ne doit être ni gelé, ni étourdi, ni **Peureux**, et ne doit pas avoir déjà bloqué ce tour-ci (un bloqueur ne bloque qu'**un seul** attaquant par tour) ;
+   - l'attaquant ne doit pas être **Discret** ;
+   - si l'attaquant a **Envol**, le bloqueur doit avoir **Envol** ou **Portée**.
+   - Un attaquant peut être bloqué par **plusieurs** bloqueurs. Le mal d'invocation n'empêche pas de bloquer.
+4. **Résolution des dégâts** — **Chaque combat est résolu immédiatement**, au moment où le bloqueur est assigné (il n'y a pas de résolution simultanée à la fin du blocage) :
+   - Attaquant bloqué : l'attaquant et le bloqueur s'infligent mutuellement des dégâts égaux à leur Force. Avec plusieurs bloqueurs, l'attaquant inflige **toute** sa Force à **chaque** bloqueur, et chaque bloqueur inflige la sienne à l'attaquant : chaque bloqueur subit donc un combat complet.
+   - **Initiative** : si une seule des deux créatures a Initiative, elle frappe en premier ; si sa cible survit, elle riposte, sinon elle ne subit aucun dégât en retour. Si les deux ou aucune n'ont Initiative, les coups sont simultanés.
+   - **Brutalité** : un attaquant bloqué fait passer au héros adverse l'excédent de ses dégâts par rapport aux PV restants du ou des bloqueurs (avant le coup). Détails en 7.7.
    - **Vol de vie** : la créature qui inflige des dégâts (attaque ou blocage) soigne son propre héros d'autant.
-   - **Armure** : absorbe la première fois qu'une créature subit des dégâts (combat ou effet), puis se consomme définitivement pour cette carte.
-   - Attaquant non bloqué : dégâts pleins au héros adverse.
-5. **Résolution des morts** — Toute créature ayant subi des dégâts ≥ son Endurance meurt : déclenche Finale et "Quand cette carte est détruite" si pertinent ; déclenche "Quand cette carte élimine une créature" chez qui l'a tuée.
-6. **Fin du combat.**
+   - **Toxique** : une créature à qui une créature Toxique inflige au moins 1 dégât au combat meurt (un coup absorbé par l'Armure ou de Force 0 n'a pas cet effet).
+   - **Armure** : absorbe le premier dégât positif subi, quelle qu'en soit la source, une seule fois (voir 7.7).
+5. **Fin du blocage** — Quand le défenseur termine son blocage, chaque attaquant resté non bloqué inflige toute sa Force au héros adverse (et déclenche « a infligé des blessures au héros »). Les excédents de Brutalité passent alors aussi au héros.
+6. **Résolution des morts** — Après chaque combat, toute créature dont l'Endurance courante est ≤ 0 meurt (voir 7.5) : Tenace, Finale et "Quand cette carte est détruite" selon le cas. "Quand cette carte élimine une créature" se déclenche chez la créature qui a mis sa cible à 0 PV **à condition qu'elle soit encore en vie à la fin de l'échange** (si les deux meurent, aucune des deux ne le déclenche).
+7. **Fin du combat** — la partie revient en phase principale (le joueur actif peut encore jouer des cartes, mais ne peut plus attaquer ce tour-ci).
 
 **Statuts temporaires** (infligés par des effets, pas des mots-clés intrinsèques) :
-- **Gel** : ne peut pas attaquer lors du prochain tour du contrôleur.
-- **Étourdi** : ne peut ni attaquer ni bloquer lors du prochain tour du contrôleur.
+- **Gel** et **Étourdissement** : deux noms pour **le même effet**. La créature perd son prochain tour complet : tant que l'état dure, elle ne peut pas bloquer, pas attaquer, pas activer ses capacités (ses capacités qui se déclenchent toutes seules continuent de fonctionner). L'état disparaît à la **fin** du tour concerné, jamais au début :
+  - posé sur une créature **pendant le tour de son adversaire** (le cas courant : vous gelez une créature ennemie pendant votre tour) : elle ne bloque plus pendant le reste de ce tour, elle n'attaque pas à son prochain tour, l'état se termine à la fin de ce prochain tour, et elle peut de nouveau bloquer ensuite ;
+  - posé sur une créature **pendant le tour de son propre propriétaire** : l'état dure jusqu'à la fin de son **prochain** tour (elle ne bloque donc pas pendant le tour adverse intermédiaire, et n'attaque pas à son tour suivant) ;
+  - un nouvel effet sur une créature déjà gelée ou étourdie ne raccourcit jamais l'état : l'échéance la plus lointaine est conservée.
 
-**Mots-clés de combat :**
+**Mots-clés de combat** (résumé ; les règles complètes sont en 7.7) :
 
 | Mot-clé | Effet |
 |---|---|
-| **Charge** | Peut attaquer le tour où elle arrive en jeu (ignore la maladie d'invocation). |
-| **Vol** | Ne peut être bloquée que par des créatures ayant Vol ou Portée. |
-| **Portée** | Peut bloquer les créatures volantes sans avoir elle-même Vol. |
-| **Perçant** | Si les dégâts infligés dépassent l'Endurance du bloqueur, l'excédent passe au héros adverse. |
+| **Charge** | Peut attaquer le tour où elle arrive en jeu (ignore le mal d'invocation). |
+| **Envol** | Ne peut être bloquée que par des créatures ayant Envol ou Portée. |
+| **Portée** | Peut bloquer les créatures avec Envol sans avoir elle-même Envol. |
+| **Brutalité** | Bloquée, elle fait passer au héros adverse l'excédent de ses dégâts par rapport aux PV restants du ou des bloqueurs. |
 | **Vol de vie** | Les dégâts infligés par cette créature soignent son héros d'autant. |
-| **Initiative** | Frappe avant son adversaire ; si elle élimine sa cible au moment de l'initiative, elle ne subit aucun dégât en retour. |
-| **Protection** | Jusqu'au prochain tour du contrôleur, ne peut pas être ciblée par l'adversaire. *(Réellement appliqué : une créature protégée est exclue du ciblage adverse, y compris pour l'IA.)* |
-| **Armure** | Annule la première fois qu'elle subit des dégâts, combat ou effet confondus (usage unique, se "consomme"). |
-| **Furtif** | Ne peut pas être la cible d'un **sort** adverse avant d'avoir attaqué au moins une fois (les pouvoirs de héros ne sont pas concernés). *(Réellement appliqué, y compris pour l'IA.)* |
-| **Tenace** | Quand elle meurt, revient en jeu une fois (puis perd Tenace). |
-| **Peureux** | Ne peut jamais être désignée comme bloqueur. |
+| **Initiative** | Frappe avant son adversaire ; si elle élimine sa cible avec ce premier coup, elle ne subit aucun dégât en retour. |
+| **Armure** | Absorbe le premier dégât positif qu'elle subit (combat, sort ou effet), une seule fois, sans jamais se réarmer. |
+| **Parade** | Tant qu'elle a le mal d'invocation (jusqu'au début du prochain tour de son propriétaire), l'adversaire ne peut pas la cibler. |
+| **Tenace** | Quand elle meurt, revient une fois à pleine Endurance (puis perd Tenace). |
+| **Peureux** | Ne peut jamais bloquer. |
+| **Protecteur** | Ne peut jamais attaquer. |
+| **Toxique** | Toute créature à qui elle inflige des dégâts de combat meurt. |
+| **Discret** | Ne peut pas être bloquée. |
+| **Imparable** | Aucun piège ne se déclenche à cause d'un événement qui la concerne. |
+| **Fugace** | Meurt à la fin du tour de son propriétaire. |
+
+Trois étiquettes (**Assaut**, **Début**, **Final**) existent aussi sous forme de mots-clés, mais elles n'ont aucun effet de jeu (voir 7.7).
 
 ---
 
-## 7. Déclencheurs (triggers)
+## 7. Les créatures
+
+*Cette section décrit les créatures exactement comme le moteur de jeu (le serveur) les traite, d'après un relevé du code déployé au 6 octobre 2026. Quand le texte dit « le moteur », c'est ce comportement réel, pas une intention de design. Elle sert de référence unique ; les sections 3 et 6 n'en donnent que des résumés.*
+
+### 7.1 Qu'est-ce qu'une créature ?
+
+Il faut distinguer deux choses :
+
+- **La carte du catalogue** : la « carte papier » créée dans l'éditeur. Elle porte un nom, un coût, une **Force** et une **Endurance** (ses PV), des mots-clés, des sous-types, des capacités, une classe, une rareté, éventuellement le super-type Légendaire, un visuel. Tant qu'elle est dans un deck, dans une main ou dans une défausse, c'est une carte : elle ne combat pas, elle ne peut pas être blessée.
+- **La créature en jeu** : quand la carte arrive sur le plateau, le moteur en fabrique un **exemplaire vivant**, avec son propre identifiant et son propre état (PV restants, bonus reçus, états subis, mots-clés gagnés ou perdus…). Deux exemplaires d'une même carte sur le plateau sont deux créatures indépendantes : blesser l'une ne touche pas l'autre.
+
+Une créature en jeu quitte le plateau par sa **mort** (elle va dans la défausse de son propriétaire), par un **renvoi en main**, par une **transformation** (elle est remplacée par une autre créature) ou par un **contrôle** (elle passe du côté de l'adversaire). Elle n'est jamais « la carte du catalogue » : ce qui lui arrive ne modifie pas le catalogue.
+
+### 7.2 Statistiques
+
+Une créature en jeu a trois niveaux de valeurs :
+
+- **Valeurs de base** : la Force et l'Endurance imprimées sur la carte du catalogue.
+- **Valeurs de référence** : base + bonus de Force/Endurance reçus. Elles servent de **plafond de soin** et de PV de retour pour Tenace.
+- **Valeurs courantes** : ce qui compte vraiment en partie. La **Force courante** est ce que la créature inflige ; l'**Endurance courante** (ses PV restants) est ce qu'elle peut encore encaisser. Les dégâts baissent uniquement l'Endurance courante.
+
+Comment les valeurs changent :
+
+- **Bonus permanent** (+X Force / +Y Endurance) : s'ajoute à la fois à la référence et au courant, et reste tant que la créature est sur le plateau. Un malus (valeur négative) fonctionne de la même façon ; la Force ne descend jamais sous 0 ; une Endurance qui tombe à 0 ou moins tue la créature (l'Armure n'y change rien).
+- **Bonus temporaire** : « jusqu'à la fin de ce tour » (il s'arrête à la fin du tour en cours) ou « jusqu'à la fin du prochain tour » (il s'arrête à la fin du tour suivant, quel qu'en soit le joueur : lancé pendant votre tour, il dure donc jusqu'à la fin du tour de l'adversaire). À l'échéance, Force et Endurance baissent d'autant ; l'Endurance courante baisse aussi, donc une créature blessée peut mourir à ce moment-là.
+- **Aura** : bonus donné par une capacité continue d'une autre carte (« tant que cette carte est en jeu… »). Il s'ajoute aux valeurs **courantes** seulement. Le moteur retire puis recalcule toutes les auras à des moments précis (après qu'une carte est jouée, à la fin du blocage, au début d'un tour), pas instantanément après chaque événement : une aura peut donc rester un court instant après la disparition de sa source. Quand une aura disparaît, l'Endurance courante baisse d'autant (la créature peut mourir). Une aura d'Endurance ne relève pas le plafond de soin.
+- **Soin** : l'Endurance courante devient le plus petit de (plafond, Endurance courante + soin). Un soin qui n'ajoute rien (créature déjà au plafond) ne déclenche rien.
+- **Effets qui fixent ou déplacent des statistiques** : « Fixer une statistique » ne modifie que les valeurs courantes ; « Échanger Force et Endurance » échange la référence et le courant ; « Voler une statistique » met la statistique de la cible à 0 (une cible dont l'Endurance est volée meurt) et l'ajoute aux valeurs courantes du receveur ; « Évolution » ajoute ses bonus aux valeurs courantes.
+- **Mort** : dès que l'Endurance courante est **0 ou moins**, la créature meurt (voir 7.5). Le moteur vérifie cela après chaque combat et après chaque effet.
+
+### 7.3 Limites
+
+| Zone | Limite | Quand elle est dépassée |
+|---|---|---|
+| **Plateau** | **8 créatures** par joueur | On ne peut pas jouer une créature depuis la main (la carte reste en main, aucun mana n'est dépensé). Pour une créature créée par un effet : les copies de soi s'arrêtent à la 8e ; une carte conjurée ou récupérée « directement en jeu » va en main à la place (ou en défausse si la main est pleine) ; une copie de créature, un renvoi en jeu ou un contrôle (vol) n'ont pas lieu. |
+| **Main** | **8 cartes** | Toute carte qui arrive en main au-delà est **défaussée** : carte piochée (elle est perdue, sans déclencher « quand vous piochez »), carte renvoyée en main, carte volée, copiée, conjurée, récupérée depuis le deck. **Cas particulier** : une récupération depuis la **défausse** vers une main pleine n'a pas lieu, la carte reste dans la défausse. Chaque joueur commence avec 4 cartes en main. |
+| **Deck** | **30 cartes** exactement (hors Héros et Région) | **2 exemplaires** maximum d'une même carte, **1 seul** si elle porte le super-type Légendaire. Le serveur vérifie la taille et le nombre d'exemplaires au lancement d'une partie et la refuse sinon. |
+
+### 7.4 Jetons et invocations
+
+Le jeu n'a pas de type « jeton » : toute créature créée par un effet est une créature ordinaire, issue d'une carte du catalogue (ou d'une créature déjà en jeu). Les effets qui créent une créature sont :
+
+- **Invoquer des copies de cette carte** : chaque copie reprend les valeurs de référence actuelles de la créature d'origine (bonus permanents compris), sans dégâts ni états ;
+- **Conjuration** et **Récupération** avec la destination « directement en jeu » (la variante « en jeu et attaquante » de la Conjuration ajoute la créature aux attaquants du tour, sans mal d'invocation et sans déclencher d'Assaut) ;
+- **Copie** d'une créature ciblée ;
+- **Transformation** et **Évolution** avec transformation (la créature d'origine est remplacée) ;
+- **Renvoi en jeu d'une créature détruite le tour dernier**.
+
+Règles communes à toutes ces créatures :
+
+- elles arrivent **sans payer de coût**, avec Force et Endurance courantes égales à leur référence ;
+- elles ont le **mal d'invocation**, sauf si elles ont **Charge** (dans ce cas elles ne l'ont pas du tout, et donc pas non plus la protection de Parade) ;
+- elles déclenchent « Quand une créature arrive en jeu (quelle que soit la source) » et « Quand vous invoquez une créature du sous-type X » ;
+- elles **ne déclenchent pas** leur propre capacité « Début » (« quand cette carte entre en jeu » ne concerne que la carte jouée depuis la main), ni « Quand une créature est jouée (depuis la main) », ni les Pièges de l'adversaire « l'adversaire invoque une créature » ou « joue une carte », ni les bonus « chaque créature jouée ce tour-ci » ;
+- exception : les copies créées par « Invoquer des copies de cette carte » ne déclenchent **aucun** effet d'arrivée, pas même « quand une créature arrive en jeu ».
+
+### 7.5 Cycle de vie d'une créature
+
+#### Étape 1 : dans la main
+
+Une créature en main est une carte (voir 7.1). Elle reste en main tant qu'elle n'est pas jouée ; elle n'en sort que par le jeu, une défausse, un vol de carte ou la fin de la partie. Les capacités « Quand cette carte est piochée » s'appliquent à elle dès la pioche.
+
+#### Étape 2 : être jouée
+
+Pour jouer une créature depuis la main, il faut que ce soit votre phase principale, que vous ayez assez de mana (coût réduit ou augmenté par les effets en cours, jamais en dessous de 0), qu'il reste de la place sur le plateau (moins de 8 créatures), que le coût additionnel éventuel puisse être payé, et que la cible éventuellement désignée pour la capacité « Début » soit valable (une cible refusée annule la pose). Le moteur paie alors le coût additionnel (sacrifice, défausse, PV), puis le mana (le mana normal d'abord, le mana fragile ensuite), et la carte quitte la main.
+
+#### Étape 3 : l'arrivée, dans l'ordre exact
+
+1. Les **Pièges** de l'adversaire « l'adversaire invoque une créature » puis « l'adversaire joue une carte » peuvent se déclencher (du plus ancien au plus récent). Si l'un d'eux **contre** la carte, la créature va directement en défausse et n'arrive jamais en jeu (le mana et le coût additionnel sont perdus). Une créature **Imparable** ne déclenche aucun piège.
+2. La créature entre sur le plateau, **à la suite des autres** (l'ordre du plateau compte pour l'ordre des déclencheurs). Elle a le **mal d'invocation**, même avec Charge.
+3. Les bonus « chaque créature jouée ce tour-ci » en attente s'appliquent (bonus permanents).
+4. Les effets « sur la prochaine carte jouée » en attente s'appliquent.
+5. Les capacités « Quand une créature est jouée (depuis la main) » se déclenchent, chez les deux joueurs (selon que chaque capacité surveille ses créatures alliées ou ennemies).
+6. Les capacités « Quand une créature arrive en jeu » se déclenchent, chez les deux joueurs, puis « Quand vous invoquez une créature du sous-type X » chez son propriétaire (ses créatures en jeu, y compris la nouvelle, puis son héros, sa région, ses artefacts, ses Pièges armés).
+7. La capacité « **Début** » de la créature elle-même se résout (avec les cibles choisies à la pose).
+8. Les créatures mortes en chemin sont retirées, puis les **auras** sont recalculées : la nouvelle créature ne reçoit donc ses bonus d'aura qu'**après** tous ces déclencheurs.
+
+Quand plusieurs cartes réagissent au même événement, le moteur ne laisse **pas** le joueur choisir l'ordre : pour les capacités qui surveillent les deux camps, il traite d'abord le **joueur n°1** de la partie, puis le joueur n°2 ; pour un joueur donné, ses créatures dans l'ordre de son plateau, puis son héros, sa région, ses artefacts et ses Pièges armés.
+
+#### Étape 4 : sur le plateau
+
+La créature peut attaquer (section 6), bloquer, activer ses capacités et subir des effets. Les compteurs suivants sont tenus : « a déjà attaqué » (remis à zéro au début du tour de son propriétaire), « a déjà bloqué » (remis à zéro au début du tour de son propriétaire, ce qui limite un bloqueur à un seul attaquant par tour de l'adversaire), « mal d'invocation » (voir 7.6).
+
+#### Étape 5 : la mort
+
+Le moteur contrôle les morts après chaque combat et chaque effet, pour les deux joueurs (le joueur n°1 d'abord). Pour chaque créature dont l'Endurance courante est ≤ 0 :
+
+1. **Si elle a Tenace**, elle ne meurt pas : voir « Résurrection » ci-dessous.
+2. Sinon, elle **quitte le plateau** et va dans la **défausse** de son propriétaire, remise en ordre : les bonus temporaires, les mots-clés d'aura et temporaires et les états (Gel, Étourdissement, mal d'invocation, Armure utilisée) sont effacés, et ses PV sont remis au plafond. Ses **bonus permanents**, son éventuel **Silence** et les mots-clés qu'elle avait perdus (Tenace consommée comprise) restent sur la carte en défausse.
+3. Si elle attaquait avec **Brutalité**, l'excédent est infligé au héros adverse **avant** ses déclencheurs de mort.
+4. Les déclencheurs se résolvent, dans cet ordre pour chaque morte : « **Finale** » (quand cette créature meurt), « quand cette carte est détruite » (le moteur les traite exactement de la même façon : une carte qui a les deux les déclenche les deux), puis « quand une carte meurt » chez toutes les cartes qui surveillent les morts.
+
+Cela vaut pour toutes les causes de mort : dégâts, Destruction, sacrifice (effet ou coût additionnel), mort Fugace, malus d'Endurance, disparition d'une aura… Parmi ces causes, seuls les dégâts peuvent être absorbés par l'Armure (voir 7.7). Quand plusieurs créatures meurent en même temps, elles sont toutes retirées du plateau d'abord, les Tenaces reviennent (« Quand cette carte revient du cimetière » se déclenche), puis les Finales se résolvent créature par créature.
+
+#### Résurrection (Tenace)
+
+Une créature Tenace dont l'Endurance courante tombe à 0 ou moins ne quitte pas le plateau : elle perd Tenace, son Endurance courante est remise à son plafond (Endurance de référence), et elle garde sa place, ses bonus, ses états et son Armure déjà utilisée. Ce n'est pas une mort : ni « Finale » ni « est détruite » ne se déclenchent, la créature n'est pas comptée comme morte ce tour-ci ; c'est « Quand cette carte revient du cimetière » qui se déclenche. Tenace n'agit qu'une fois. Elle ne protège de rien d'autre que d'une Endurance à 0 : elle sauve aussi d'une Destruction ou d'un sacrifice, et même d'un Fugace (la créature survit une fois à la fin du tour).
+
+#### Retour depuis la défausse
+
+Quand un effet récupère une créature depuis la défausse (en main ou en jeu), c'est la carte **telle qu'elle est morte** : bonus permanents, Silence et mots-clés perdus compris. Elle repart avec ses PV au plafond, sans état, sans bonus temporaire ni d'aura. « Renvoyer en jeu une créature détruite le tour dernier » (créatures mortes depuis le début de votre tour précédent) la remet en jeu d'après son état au moment de sa mort.
+
+#### Autres sorties du plateau
+
+- **Retour en main** : voir 7.10. Pas de mort, pas de Finale.
+- **Contrôle** : voir 7.10.
+
+### 7.6 États
+
+| État | Il commence | Il se termine | Effet |
+|---|---|---|---|
+| **Mal d'invocation** | À l'arrivée de la créature (jouée depuis la main : toujours ; créée par un effet : sauf si elle a Charge) | Au **début du prochain tour de son propriétaire**, après ses capacités de début de tour et sa pioche | Ne peut pas attaquer (sauf **Charge**). N'empêche **ni de bloquer, ni d'activer ses capacités**. Active la protection de **Parade**. |
+| **Gel** / **Étourdissement** | Quand un effet les pose | À la **fin** du tour concerné (voir 6) | Ne peut ni bloquer, ni attaquer, ni activer ses capacités. |
+| **Silence** | Quand un effet le pose | Jamais : ne disparaît que si la créature quitte le plateau | Voir ci-dessous. |
+
+**Gel et Étourdissement** sont **un seul et même état** : seule l'étiquette change. Leurs durées exactes sont décrites en section 6.
+
+**Silence.** Le Silence **retire tous les mots-clés et toutes les capacités** de la créature : mots-clés de la carte, mots-clés temporaires, capacités (y compris continues, donc plus d'aura émise), effet « Début », effet d'arrivée et doublements de déclencheurs. Il **ne modifie ni ses PV ni sa Force** : pas de soin, et les dégâts subis, les bonus (Évolution, « fixer une statistique », « voler une statistique », renforcements) et les malus sont conservés. L'Armure déjà utilisée et les états (Gel…) ne sont pas touchés.
+- Le Silence dure **tant que la créature est en jeu** ; une créature silencée qui meurt reste silencée en défausse (et si elle est récupérée depuis la défausse, elle le reste).
+- Une créature silencée **continue de bénéficier des auras des autres cartes** (bonus de stats et mots-clés d'aura, recalculés normalement) ; en revanche elle n'émet plus aucune aura, puisqu'elle n'a plus de capacité.
+- Une créature silencée qui est **renvoyée en main** redevient une carte neuve, normale.
+- L'ancien réglage de l'éditeur (« capacités », « bonus de stats », « les deux ») n'a plus d'effet côté moteur : les trois, et l'absence de réglage, font la même chose (retirer mots-clés et capacités, ne pas toucher aux statistiques).
+
+### 7.7 Les mots-clés
+
+Il y a 15 mots-clés de jeu et 3 étiquettes sans effet. Chacun n'a qu'**un seul nom officiel** (la « clé » entre parenthèses est le nom interne utilisé par l'éditeur et le moteur). Une créature peut en cumuler plusieurs.
+
+**D'où viennent les mots-clés d'une créature ?** De la carte elle-même ; d'un octroi permanent ; d'un octroi **temporaire** (« ce tour-ci », voir ci-dessous) ; d'une aura (tant que sa source est en jeu) ; des effets « Amélioration » (un mot-clé aléatoire parmi Charge, Envol, Portée, Brutalité, Vol de vie, Initiative, Armure, Parade, Tenace, Toxique, Discret, Imparable, que la créature n'a pas déjà) et « Choix parmi 3 mots-clés » (3 mots-clés tirés parmi Charge, Envol, Portée, Brutalité, Vol de vie, Initiative, Armure, Parade, Tenace, Peureux, Protecteur, Toxique, que la créature n'a pas déjà). L'effet « Retire un mot-clé » le retire quelle que soit son origine (un mot-clé d'aura peut revenir au recalcul suivant).
+
+**Mots-clés temporaires.** Un mot-clé accordé « ce tour-ci » reste jusqu'à la **purge au début du prochain tour du propriétaire de la créature** : cette purge a lieu en tout premier au début de son tour, avant ses déclencheurs de début de tour. Une créature qui possède déjà le mot-clé (de naissance ou par un octroi permanent) ne le perd pas : seul un mot-clé réellement ajouté par l'effet temporaire est retiré.
+
+**Charge** (`charge`) — La créature peut attaquer le tour où elle arrive en jeu. Elle a quand même le mal d'invocation (et donc la protection de Parade, si elle l'a) : Charge ne fait que l'autoriser à attaquer. L'IA en tient compte. Voir 7.4 pour les créatures créées par un effet.
+
+**Envol** (`flying`) — Une créature avec Envol ne peut être bloquée que par une créature qui a **Envol** ou **Portée**. Envol ne limite pas les créatures qu'elle-même peut bloquer.
+
+**Portée** (`reach`) — La créature peut bloquer une créature avec Envol sans avoir elle-même Envol.
+
+**Brutalité** (`pierce`) — Ne joue que quand la créature **attaque** et est **bloquée**. Le moteur retient, pour chaque bloqueur, ses **PV restants avant le coup** (au plus 1 par bloqueur si l'attaquante est aussi Toxique). L'**excédent** = Force de l'attaquante − somme de ces PV ; s'il est positif, il est infligé au héros adverse. Il est infligé à la fin du blocage si l'attaquante est toujours en jeu, ou immédiatement à sa mort si elle est morte au combat (avant ses déclencheurs de mort). Si l'Armure d'un bloqueur absorbe le coup, ce bloqueur n'entre pas dans le calcul : s'il est le seul bloqueur, aucun excédent ne passe. L'excédent est un dégât ordinaire au héros ; il ne déclenche pas Vol de vie. Un attaquant non bloqué inflige de toute façon toute sa Force au héros.
+
+**Vol de vie** (`lifesteal`) — Chaque fois que la créature inflige des dégâts au combat à une créature (coup non absorbé), son propriétaire soigne son héros du **montant des dégâts infligés** (pas seulement des PV réellement retirés). Une attaquante non bloquée soigne son héros de sa Force. Aucun effet pour les dégâts de sorts et d'effets, ni pour un « Combat forcé ». Un héros à qui un effet interdit de se soigner ne gagne rien.
+
+**Initiative** (`initiative`) — Au combat, si **une seule** des deux créatures a Initiative, elle frappe d'abord ; si sa cible a encore des PV après ce coup elle riposte, sinon elle ne subit **aucun** dégât. Si les deux ou aucune n'ont Initiative, les coups sont simultanés. Si le premier coup est absorbé par l'Armure, la cible survit et riposte normalement. Vaut pour l'attaquante comme pour la bloqueuse, combat par combat.
+
+**Armure** (`armor`) — Absorbe le **premier dégât positif** subi, **quelle qu'en soit la source** : combat, sort, jet de pièce, « Combat forcé », second coup de « Détruit la cible puis inflige sa Force ». Le coup est entièrement annulé : aucune perte de PV, pas de déclencheur « subit des dégâts », pas d'effet de Toxique ni de Vol de vie de l'adversaire pour ce coup. Elle ne sert qu'**une seule fois** : une fois utilisée, elle ne se réarme jamais tant que la créature reste en jeu (même si Tenace la ramène, même si elle perd puis regagne le mot-clé). Un coup de Force 0 ne la consomme pas. L'Armure **n'arrête pas** : la Destruction, le sacrifice, la mort Fugace, les malus d'Endurance, « fixer une statistique », « voler une statistique », l'échange Force/Endurance, la disparition d'une aura, l'expiration d'un bonus temporaire, le Gel/Étourdissement, le Silence ni le renvoi en main.
+
+**Parade** (`stealth`) — Tant que la créature a le mal d'invocation (de son arrivée **jusqu'au début du prochain tour de son propriétaire**), l'**adversaire** ne peut pas la cibler : ni en la désignant, ni par ciblage automatique ou aléatoire, ni par un effet de zone (elle est simplement exclue de ses cibles possibles : sorts, capacités, pouvoirs de héros, Pièges). Les effets de son **propriétaire** peuvent la cibler. Elle peut attaquer (avec Charge), bloquer et combattre normalement. Remarque : un effet qui vise « la créature qui a déclenché l'événement » (par exemple celle qui vient de bloquer) ne vérifie pas la Parade.
+
+**Tenace** (`relentless`) — Voir « Résurrection » en 7.5 : une fois, au lieu de mourir, la créature reste en jeu à pleine Endurance et perd Tenace.
+
+**Peureux** (`fearful`) — La créature ne peut jamais être désignée comme bloqueur (l'IA ne la désigne jamais non plus).
+
+**Protecteur** (`protecteur`) — La créature ne peut jamais attaquer, même avec Charge. Elle peut bloquer et activer ses capacités. Sans rapport avec l'ancien mot-clé « Protection » (voir 7.11).
+
+**Toxique** (`toxic`) — Quand la créature inflige au moins 1 dégât de combat à une autre créature, celle-ci meurt, quels que soient ses PV restants. Un coup absorbé par l'Armure ne tue pas. Ne vaut pas pour les héros, ni pour les sorts, ni pour un « Combat forcé ».
+
+**Discret** (`discret`) — La créature ne peut pas être bloquée.
+
+**Imparable** (`imparable`) — Aucun piège (de n'importe quel joueur) ne se déclenche à cause d'un événement qui concerne cette créature : son invocation (donc ni « l'adversaire invoque une créature » ni « l'adversaire joue une carte »), le fait qu'elle soit **ciblée**, **bloquée**, qu'elle **combatte** ou qu'elle **survive à un combat**. Attention : la déclaration d'attaque (« une créature ennemie attaque ») ne désigne aucune créature en particulier, et les Pièges qui s'y déclenchent ne sont donc pas empêchés par Imparable.
+
+**Fugace** (`fugace`) — La créature meurt à la **fin du tour de son propriétaire** (après ses déclencheurs de fin de tour et l'expiration de ses bonus temporaires). Elle compte comme morte ; sa Finale se déclenche. Seule Tenace peut la sauver une fois.
+
+**Étiquettes sans effet de jeu** : **Assaut** (`assault`), **Début** (`debut`), **Final** (`final`). Ces trois mots-clés ne font rien par eux-mêmes ; ils servent de marqueur pour qu'une autre carte puisse repérer ce type de carte (filtres de Conjuration, de Récupération, de Révélation…). Ne pas les confondre avec les noms courts de déclencheurs **Début** (quand la carte entre en jeu), **Assaut** (quand la créature attaque) et **Finale** (quand elle meurt), qui s'affichent sur les cartes.
+
+### 7.8 Combat des créatures
+
+La séquence générale (déclaration, blocage, résolution) est décrite en section 6. Voici les règles précises qui s'y ajoutent.
+
+**Pour chaque bloqueur assigné, dans cet ordre :**
+1. l'attaquant est marqué « bloqué » et le bloqueur « a bloqué » ;
+2. les Pièges du joueur attaquant « une créature alliée est bloquée » peuvent se déclencher ;
+3. les capacités « Quand cette créature a été bloquée » (de l'attaquant) puis « Quand cette créature a bloqué » (du bloqueur) se déclenchent ;
+4. les Pièges « avant qu'une créature alliée ne combatte » peuvent se déclencher (d'abord pour l'attaquant, puis pour le bloqueur) ;
+5. l'échange de dégâts a lieu (Initiative, Armure, Toxique, Vol de vie, Brutalité : voir 7.7) ;
+6. « Quand cette carte subit des dégâts » se déclenche pour chaque créature qui a perdu des PV **et survit** ;
+7. « Quand cette carte élimine une créature » se déclenche pour chaque créature qui a mis sa cible à 0 PV **et qui est encore en vie après l'échange** (même si la victime revient grâce à Tenace) ;
+8. les morts sont résolues tout de suite (7.5). Si l'attaquant est mort, il ne peut plus recevoir de bloqueur.
+
+**Plusieurs bloqueurs sur un attaquant** : les étapes ci-dessus se répètent pour chaque bloqueur, l'un après l'autre. L'attaquant inflige toute sa Force à chacun ; il subit les dégâts de chacun, et peut donc mourir avant d'avoir « affronté » tous les bloqueurs (les suivants ne peuvent alors plus être assignés).
+
+**À la fin du blocage** : dans l'ordre de la déclaration, chaque attaquant resté non bloqué inflige sa Force au héros adverse, puis se déclenche « Quand cette créature a infligé des blessures au héros adverse » et son Vol de vie ; ensuite viennent les excédents de Brutalité ; puis les Pièges « une créature alliée / ennemie survit à un combat » ; puis les morts ; enfin le recalcul des auras.
+
+**Dégâts amplifiés.** Certains effets augmentent les dégâts de combat entre créatures (« Augmente les dégâts de votre camp ») : ce bonus s'applique aux coups entre créatures, pas aux dégâts infligés au héros.
+
+**Combat forcé (effet).** Les deux créatures s'infligent mutuellement leur Force actuelle, en même temps. Seule l'**Armure** compte : ni Initiative, ni Toxique, ni Vol de vie, ni Brutalité, ni Pièges de combat, ni « subit des dégâts ». « Élimine une créature » se déclenche chez la créature qui a tué l'autre en survivant.
+
+**Dégâts d'un sort ou d'un effet.** Ils passent par l'Armure ; « Quand cette carte subit des dégâts » se déclenche même si le coup est fatal (contrairement au combat, où il ne se déclenche que si la créature survit) ; « élimine une créature » ne se déclenche pas.
+
+**Ordre de jeu de l'IA.** L'IA attaque avec toutes ses créatures éligibles, et désigne **au plus un** bloqueur par attaquant. D'après le code serveur, elle ne déclenche pas elle-même de capacités activées.
+
+### 7.9 Capacités et déclencheurs d'une créature
+
+Une capacité se lit « déclencheur → conditions → effet » (voir section 8). Pour une créature en jeu, voici quand chaque déclencheur se produit exactement :
+
+| Déclencheur | Se produit… |
+|---|---|
+| **Début** (entre en jeu) | Quand la carte est **jouée depuis la main** (7.5, étape 3). Pas pour une créature créée par un effet. |
+| **Assaut** (attaque) | Quand elle est déclarée attaquante (dans l'ordre de la déclaration). |
+| Est bloquée / a bloqué | À chaque bloqueur assigné, avant l'échange de dégâts. |
+| A infligé des blessures au héros adverse | À la fin du blocage, pour chaque attaquant non bloqué. |
+| Subit des dégâts | Combat : seulement si elle survit. Sort ou effet de dégâts : à chaque dégât non absorbé, même fatal (sauf jet de pièce et « Combat forcé », qui ne le déclenchent pas). Jamais si l'Armure absorbe. |
+| Est soignée | Seulement si le soin lui a réellement rendu des PV. |
+| **Finale** (meurt) et « est détruite » | À la mort (7.5, étape 5). Identiques pour le moteur. Pas en cas de résurrection par Tenace. |
+| Élimine une créature | Voir 7.8 (combat, ou Combat forcé) : le tueur doit être encore en vie. |
+| Revient du cimetière | À la résurrection par Tenace. |
+| Est désignée | Quand elle est ciblée par l'un de ces effets : Dégâts, Soin, Étourdissement/Gel, Renvoi en main, Destruction, Silence, Renforcement/Affaiblissement, Octroi de mot-clé, Choix de mot-clé. |
+| Début / fin de votre tour | Dans l'ordre : vos créatures (ordre du plateau), votre héros, votre région, vos artefacts, vos Pièges armés. |
+| Quand une carte… (surveillance du plateau) | Voir 7.5 pour l'arrivée et la mort ; ces capacités surveillent les deux camps, le joueur n°1 d'abord. |
+
+**Capacités activées.** Un clic du joueur, pendant sa phase principale, tant que la créature n'est pas gelée ni étourdie (le mal d'invocation n'empêche **pas** d'activer). Il faut payer le coût de mana indiqué (réductible par des effets, jamais en dessous de 0), le coût additionnel éventuel, et que le **cooldown** soit écoulé : à chaque utilisation, un compteur est posé ; il baisse de 1 au début de chaque tour de son propriétaire, et la capacité est de nouveau utilisable quand il atteint 0. Avec un cooldown de 0 la capacité peut être utilisée plusieurs fois dans le même tour.
+
+**Plusieurs déclencheurs sur une même capacité** fonctionnent en **OU** : l'un d'eux suffit, une seule fois.
+
+### 7.10 Copies et transformations
+
+- **Retour en main (renvoi)** : la créature quitte le plateau **sans mourir** (pas de Finale) et revient en main sous la forme d'une **carte neuve, comme dans le catalogue** : sa rareté, son super-type Légendaire et son visuel sont conservés ; les bonus, le Silence, les mots-clés gagnés ou perdus, les dégâts et les états sont effacés. Si la main est pleine (8), la carte va en défausse. Si la carte est introuvable dans le catalogue, le moteur se rabat sur les valeurs actuelles de la créature.
+- **Contrôle (vol de créature)** : la créature passe sur le plateau de l'adversaire de son propriétaire (il faut qu'il y ait de la place). C'est la **même** créature : elle garde bonus, dégâts, mots-clés, Silence et Armure utilisée. Le mal d'invocation lui est **remis**, même si elle a Charge (donc la Parade s'applique de nouveau) ; ses statuts « a attaqué » et « a bloqué » sont remis à zéro. Elle ne déclenche aucun effet d'arrivée. Attention : le code teste « mal d'invocation **ou** Charge » pour autoriser l'attaque : une créature volée qui a Charge **peut donc quand même attaquer** tout de suite.
+- **Copie** : copie une carte ou une créature vers le deck, la main ou le plateau. La copie reprend les valeurs de **référence** actuelles, les mots-clés et les capacités actuels (Silence compris), sans dégâts ni états. Sur le plateau, elle suit les règles de 7.4.
+- **Invocation de copies de soi** : voir 7.4.
+- **Transformation** : la créature est **remplacée** par une carte neuve du catalogue (précise, ou tirée au hasard) : plus aucun bonus ni état. La nouvelle créature se place à la fin du plateau, arrive selon les règles de 7.4 (mal d'invocation sauf Charge, pas de « Début »).
+- **Évolution** : peut transformer la créature (comme ci-dessus), puis ajouter un bonus de Force/Endurance (valeurs courantes) et/ou un mot-clé.
+
+### 7.11 Glossaire et anciens noms
+
+| Nom actuel | Ancien nom ou usage | Remarque |
+|---|---|---|
+| **Envol** | Vol | |
+| **Brutalité** | Perçant | |
+| **Parade** | Furtif | L'ancien Furtif visait seulement les sorts et durait jusqu'à la première attaque ; Parade vise tout ciblage adverse et dure jusqu'à la fin du mal d'invocation. |
+| **Tenace** | « Implacable » | |
+| **Mal d'invocation** | « Fatigue d'invocation », « maladie d'invocation » | Règle automatique, pas un mot-clé. |
+| *(retiré)* | **Protection** (« ne peut pas être ciblée jusqu'au prochain tour ») | N'existe plus. À ne pas confondre avec **Protecteur** (« ne peut pas attaquer »), qui n'a aucun rapport. |
+| **Assaut**, **Début**, **Final** | « Assault » (orthographe anglaise visible dans l'éditeur) | Étiquettes sans effet de jeu (7.7). |
+| **Gel**, **Étourdissement** | | Même effet, deux noms. |
+| **Endurance** | PV d'une créature | Les PV du Héros s'appellent « PV ». |
+| **Rareté** | Basique, Commune, Rare, Épique, Mythique | **Légendaire** est un super-type distinct. |
+
+---
+
+## 8. Déclencheurs (triggers)
 
 | Déclencheur | Se produit... |
 |---|---|
 | Au début de la partie | Une fois, à la mise en jeu du Héros/Région |
-| Début *(onPlay)* | Quand la carte entre en jeu |
+| Début *(onPlay)* | Quand la carte est jouée depuis la main (une créature créée par un effet ne le déclenche pas) ; pour un Piège, quand il est armé |
 | Quand cette créature attaque | À chaque attaque déclarée |
-| Quand cette carte subit des dégâts | À chaque fois qu'elle encaisse des dégâts |
-| Finale *(onDeath)* | Quand la créature meurt (dégâts fatals) |
-| Quand cette carte est détruite | Quand un effet la détruit spécifiquement |
-| Quand cette carte élimine une créature | Après un kill en combat ou par effet |
-| Quand cette carte revient du cimetière | Réapparition d'elle-même (ex. via Tenace) |
-| Quand vous ramenez une créature de la défausse | Chaque fois que *n'importe quelle* créature revient de votre défausse (récupération, effet...) |
+| Quand cette carte subit des dégâts | Quand elle perd des PV : au combat seulement si elle survit ; par un sort ou un effet de dégâts même si le coup est fatal ; jamais si l'Armure absorbe le coup (voir 7.9) |
+| Finale *(onDeath)* | Quand la créature meurt (Endurance ≤ 0, quelle qu'en soit la cause) ; pas en cas de résurrection par Tenace |
+| Quand cette carte est détruite | Exactement comme Finale, à chaque mort : le moteur ne les distingue pas |
+| Quand cette carte élimine une créature | Chez la créature qui met sa cible à 0 PV au combat (attaque ou blocage) ou par « Combat forcé », **si elle est encore en vie** à la fin de l'échange (voir 7.8) |
+| Quand cette carte revient du cimetière | Réapparition d'elle-même par Tenace |
+| Quand vous ramenez une créature de la défausse | Chaque fois qu'une carte (de n'importe quel type) est récupérée depuis votre défausse |
 | À chaque utilisation | Artefacts, à chaque activation |
 | Au début / à la fin de votre tour | Chaque tour |
 | Quand vous gagnez un point de mana | À chaque incrément de mana (normal, fragile ou vide) |
 | **Quand vous piochez une carte** | Créature, Héros, Artefact — à chaque pioche, quelle qu'en soit la source |
-| Quand vous invoquez une créature du sous-type X | Paramétré : le sous-type est défini carte par carte |
-| Capacité activée | Le joueur choisit de payer le coût pour déclencher l'effet |
+| Quand vous invoquez une créature du sous-type X | Quand une créature de ce sous-type arrive en jeu chez vous, quelle qu'en soit la source (main ou effet) ; le sous-type est défini carte par carte |
+| Capacité activée | Le joueur choisit de payer le coût pour déclencher l'effet (créature, artefact, Région ; voir 7.9 pour les créatures) |
 
 **Déclencheurs réservés aux Pièges :**
 
@@ -187,7 +440,7 @@ Une carte peut aussi être marquée **Foil** : purement cosmétique, elle affich
 
 ---
 
-## 8. Effets disponibles
+## 9. Effets disponibles
 
 Dégâts, Soin, Pioche, Renforcement (+Force/+Endurance — accepte aussi des valeurs **négatives**, donc peut servir de malus), Fixer les statistiques, Fixer le coût des cartes (deck ou main, vous ou l'adversaire), **Réduire le coût d'un type/sous-type de carte** (en main, dans le deck, ou les deux — filtrable par type et sous-type), Gel, Étourdir, Renvoi en main, Gain de mana (normal / vide / fragile), Recharge de mana, Réduire le coût d'activation (d'une capacité activée de la même carte), Réduction du prochain achat, Défausse, Explorer (mise en défausse depuis un deck), Destruction, Silence, Amélioration (mot-clé aléatoire), Octroi de mot-clé précis, Choix parmi 3 mots-clés, Invoquer des copies de soi, Combat forcé entre deux créatures désignées, Jet de pièce, Récupération (deck/défausse selon critère), Réveler (3 cartes **depuis votre deck, votre défausse, le deck adverse ou la défausse adverse**, choix d'une, filtrable par type/sous-type via le critère), Conjuration (carte hors deck, selon des critères ou une carte précise par son nom) — ces deux derniers peuvent avoir un effet supplémentaire appliqué à la carte obtenue (renforcement ou mot-clé).
 
@@ -199,65 +452,74 @@ Les capacités peuvent avoir des **conditions** (santé du héros, taille de mai
 
 ---
 
-## 9. Points secondaires — tranchés par défaut
+## 10. Points secondaires — tranchés par défaut
 
 1. **Mana vide** : augmente le maximum de façon permanente pour le reste de la partie.
-2. **Armure** : protège contre les dégâts, qu'ils viennent du combat ou d'un effet — pas contre le Gel/l'Étourdissement (statuts différents, non liés aux dégâts).
-3. **Déclencheurs simultanés** : résolus dans l'ordre choisi par le joueur à qui appartiennent les cartes concernées ; si les deux joueurs ont des déclencheurs en même temps, le joueur actif résout les siens en premier.
+2. **Armure** : absorbe le premier dégât positif subi, qu'il vienne du combat, d'un sort ou d'un effet de dégâts. Elle ne protège ni de la destruction directe, ni du sacrifice, ni des malus d'Endurance, ni du Gel/de l'Étourdissement (voir 7.7).
+3. **Déclencheurs simultanés** : le joueur ne choisit pas l'ordre. Pour un joueur donné, ses créatures se résolvent dans l'ordre de leur plateau, puis son héros, sa région, ses artefacts et ses Pièges armés. Pour les capacités qui surveillent les deux camps (et pour les morts simultanées), le moteur traite d'abord le joueur n°1 de la partie, puis le joueur n°2, que ce soit son tour ou non.
 4. **Sous-types et Régions** : seul le Héros impose la classe du deck. Une Région ne peut pas imposer de classe, mais rien n'empêche qu'une future carte le fasse si besoin s'en fait sentir.
-5. **Blocage multiple** : par défaut, un bloqueur = un attaquant (voir Section 6). Dis-moi si tu veux permettre les blocages groupés (plusieurs bloqueurs sur un attaquant, ou un bloqueur qui "déborde" sur plusieurs attaquants).
+5. **Blocage multiple** : plusieurs bloqueurs peuvent bloquer un même attaquant, et chacun subit alors un combat complet ; en revanche un bloqueur ne peut bloquer qu'**un seul** attaquant par tour (voir Section 6). Une exception à cette dernière règle pourra exister via un effet de carte précis ; elle n'est pas implémentée.
 6. **Pas de PV maximum** : les Points de Vie du héros n'ont aucun plafond. Soigner un héros déjà à sa valeur de départ (ou au-delà) l'augmente quand même — il n'y a pas de "vie maximale" qui bloquerait le soin, contrairement à ce que ferait un `Math.min(hp, maxHp)` classique.
 
-Si l'un de ces choix ne te convient pas, dis-le et je corrige avant de passer au code.
+Ces points décrivent le comportement du moteur actuel.
 
 ---
 
-## 10. Écarts connus entre l'éditeur et le moteur de jeu
+## 11. Écarts connus entre l'éditeur et le moteur de jeu
 
-L'éditeur de cartes permet de configurer davantage de choses que ce que `spellcraft-prototype.html` sait actuellement interpréter en partie réelle. Un audit complet (comparant précisément le code de l'éditeur à celui du moteur) a été fait et un grand lot de déclencheurs a été branché suite à cet audit. Cette section garde une trace fidèle de ce qui reste manquant :
+L'éditeur de cartes permet de configurer certaines choses que le moteur n'interprète pas (ou pas entièrement). Cette section garde une trace fidèle de l'état réel, relevé dans le code du serveur de jeu (le moteur déployé) le 6 octobre 2026. L'ancien `spellcraft-prototype.html` n'est plus la référence du moteur.
 
-**Déclencheurs de carte encore non câblés :**
-- **Créature** : `activated` (une créature n'a pas de bouton pour activer une capacité en jeu, contrairement au héros). `onDestroyed` se déclenche désormais exactement comme `onDeath` (aucune distinction entre les deux, par choix).
-- **Héros** : `onKill` (le héros ne "tue" jamais directement dans le système actuel).
-- **Région** : `onDestroyed`, `activated` (pas d'interface pour activer une région).
-- **Artefact** : `onUse`/`activated` (pas de bouton d'activation pour un artefact déjà en jeu — seul son tick automatique en début de tour fonctionne).
-- **Piège** : `onOpponentTargetsAlly`, `onAllySurvivesCombat`, `onEnemySurvivesCombat`, `beforeAllyFights` (nécessiteraient de la chirurgie plus fine dans la résolution du ciblage et du combat). Les six autres déclencheurs de Piège fonctionnent.
+**Déclencheurs de carte non câblés :**
+- **Héros** : `onKill` (le héros ne « tue » jamais directement : ce déclencheur n'est jamais appelé).
+- **Région** : `onDestroyed` (une Région n'est jamais détruite).
+- **Surveillance « Quand un joueur révèle »** (`watchReveal`) : jamais déclenchée. À côté, « Quand vous découvrez une carte » (`watchDiscovered`) l'est quand le joueur choisit une carte révélée, et « Quand une carte arrive après avoir été révélée » (`watchAfterReveal`) l'est par la Conjuration et le Vol de carte.
+- **« Quand vous défaussez une carte depuis votre main »** (`onHandDiscard`) : déclenché uniquement par l'effet « Défausser » (pas par le coût additionnel « défausser », ni par une main pleine).
 
-**Tous les autres déclencheurs fonctionnent réellement**, y compris pour les créatures/héros/artefacts déjà en jeu (ce qui n'était pas le cas avant ce lot de correctifs) : à l'entrée en jeu, revient du cimetière (soi-même via Tenace, ou récupéré par un effet), début/fin de tour, attaque, subit des dégâts, élimine une cible, gain de mana, pioche, invocation d'un sous-type précis, début de partie, capacité activée (héros).
+**Déclencheurs qui fonctionnent**, y compris pour les cartes déjà en jeu : toutes les capacités **activées** (créatures, artefacts, Région, pouvoir du Héros) ; à l'utilisation d'un artefact (`onUse`) ; **tous les déclencheurs de Pièges** (y compris « si l'adversaire cible une créature alliée », « après qu'une créature alliée / ennemie survit à un combat », « avant qu'une créature alliée ne combatte » et « si une créature alliée est bloquée ») ; ainsi que l'entrée en jeu, le retour du cimetière, début/fin de tour, attaque, blocage, dégâts, soin, mort, élimination d'une cible, gain de mana, pioche, invocation d'un sous-type précis, début de partie, et les déclencheurs de surveillance du plateau (hors `watchReveal`). Le moment exact de chaque déclencheur de créature est décrit en 7.9.
 
-**Effets encore non câblés :**
-- **Fixer le coût des cartes, Réduire le coût d'activation, Réveler depuis une source autre que votre propre deck** : configurables dans l'éditeur, pas encore interprétés par le moteur.
-- **Invoquer des copies de cette carte** : fonctionne, mais seulement comme capacité "à l'entrée en jeu" d'une Créature — ne fonctionnerait pas utilisé ailleurs (sortilège, pouvoir de héros).
-- **Effets Contrer, Rediriger une cible, Désarmer les pièges adverses, Voler du mana** : évoqués par certaines cartes de référence, pas encore des effets utilisables dans le système actuel.
+**Effets non pris en charge :**
+- **Épuiser un artefact** (`exhaustArtifact`) : configurable dans l'éditeur, mais ignoré par le moteur.
+- **Effets personnalisés** (texte libre) : jamais interprétables par nature, toujours sans effet mécanique.
+
+**Effets qui fonctionnent avec une limite :**
+- **Fixer une statistique, y compris le coût** : fonctionne sur une créature ou un artefact **en jeu**. Sur une carte en main ou dans le deck, « Fixer le coût » n'a aucun effet (on peut en revanche réduire le coût d'une carte précise avec « Réduire le coût », ou fixer Force/Endurance d'un groupe de cartes en main ou en deck).
+- **Invoquer des copies de cette carte** : la créature qui porte la capacité (ou la créature ciblée) sert de modèle ; sans modèle, l'effet ne fait rien (voir 7.4).
+- **Réveler** : fonctionne depuis votre deck, votre défausse, le deck adverse ou la défausse adverse, ou depuis une liste de cartes nommées. Le choix se fait parmi 3 cartes au plus, la carte choisie va en main (la destination « directement en jeu » n'existe pas pour Réveler) et elle est retirée de sa zone d'origine.
+- **Réduire le coût d'activation** : réduit le coût d'activation de la carte qui porte la capacité.
+- **Sacrifice (effet)** : sacrifie une créature **tirée au hasard** parmi celles du camp visé (la cible désignée n'est pas utilisée).
+
+**Effets qui fonctionnent :**
+- **Contrer** : annule la carte jouée par l'adversaire (elle va en défausse, son effet n'a pas lieu).
+- **Rediriger une cible** : remplace la cible d'un effet adverse visant une créature alliée par une autre cible.
+- **Désarmer les pièges adverses** : tous les Pièges posés de l'adversaire redeviennent des cartes normales en main.
+- **Voler du mana** : pendant X tours, au début de son tour, l'adversaire perd X mana (le normal d'abord, puis le fragile) et vous le recevez en mana fragile.
 
 **Autres écarts :**
 - **Condition "mana ne vient pas de la région"** : non interprétable sans suivre la provenance exacte de chaque point de mana dépensé ; toujours considérée comme remplie par défaut.
-- **Effet alternatif des Régions** (% de chance de faire autre chose que du mana) : le jet de probabilité n'est pas branché, et l'"autre chose" est en texte libre, donc pas structurée pour être exécutée automatiquement.
+- **Remplacement du gain de mana d'une Région** : fonctionne (si les conditions de la capacité, y compris « X % de chance », sont remplies, ses effets remplacent le gain normal ; sinon le gain normal a lieu). Seul un effet « autre chose » écrit en texte libre n'est pas exécutable.
 - **Conditions personnalisées et effets personnalisés** (texte libre) : jamais interprétables par nature, toujours considérés comme remplis / sans effet mécanique.
 - **Coût additionnel "Personnalisé"** (texte libre) : comme pour les conditions/effets personnalisés, aucune traduction mécanique possible ; toujours traité comme payable sans conséquence.
 
 Le **coût additionnel** (sacrifice, défausse, perte de PV) est réellement vérifié et payé par le moteur pour jouer une carte, y compris pour l'IA. Pour le joueur humain, s'il y a plus d'une créature possible à sacrifier, le jeu lui demande laquelle plutôt que de choisir automatiquement (l'IA, elle, sacrifie toujours la plus faible). La défausse pioche une carte au hasard parmi les autres cartes en main.
 
-Une capacité peut désormais avoir plusieurs déclencheurs différents en même temps sur une seule carte (avant ce lot de correctifs, une carte de type Créature/Héros/Région/Artefact ne pouvait avoir qu'une seule capacité réellement interprétée par le moteur, même si l'éditeur en acceptait plusieurs).
+Une capacité peut avoir plusieurs déclencheurs différents en même temps sur une seule carte (ils fonctionnent en OU).
 
-Tout le reste décrit dans ce document (mana, combat, mots-clés, Pièges, effets listés en section 8 hors les exceptions ci-dessus) est réellement implémenté et appliqué par le moteur.
+Tout le reste décrit dans ce document (mana, combat, créatures, mots-clés, Pièges, effets listés en section 9 hors les exceptions ci-dessus) est réellement implémenté et appliqué par le moteur.
 
-## 11. Refonte des capacités (2026) — décisions de conception
+## 12. Refonte des capacités (2026) — décisions de conception
 
-Cette section trace les décisions prises pendant la refonte complète du système de capacités de l'éditeur (déclencheurs, conditions, effets, cibles, mots-clés), pour ne pas les perdre avant l'implémentation côté moteur. **Rien ci-dessous n'est encore câblé dans `spellcraft-prototype.html`** — uniquement dans l'éditeur pour l'instant.
+Cette section trace les décisions prises pendant la refonte complète du système de capacités de l'éditeur (déclencheurs, conditions, effets, cibles, mots-clés). Le moteur en applique désormais une grande partie ; l'état de chaque décision, relevé dans le code du serveur le 6 octobre 2026, est indiqué ci-dessous.
 
-**Règle générale de ciblage (important, pas encore appliquée dans le moteur) :** pour toute carte qui a besoin d'une cible, si aucune cible valable n'existe (ou si la sélection "Exactement X" ne peut pas être remplie), **la carte ne peut pas être jouée du tout** — ce n'est pas un échec partiel à la résolution, c'est un blocage en amont, au même titre que ne pas avoir assez de mana. Il faudra vérifier la disponibilité de cibles valables AVANT de permettre de jouer la carte, pas après.
+**Règle générale de ciblage — non appliquée par le serveur :** la décision voulue est que, pour toute carte qui a besoin d'une cible, si aucune cible valable n'existe (ou si la sélection "Exactement X" ne peut pas être remplie), **la carte ne peut pas être jouée du tout** (un blocage en amont, au même titre que ne pas avoir assez de mana). Le serveur ne fait pas cette vérification : la carte reste jouable et, faute de cible, l'effet est simplement ignoré. (Une éventuelle vérification côté interface n'a pas été examinée.)
 
-**Règle "Regarder" (discover) :** une carte "regardée" depuis le deck, la défausse, ou la main d'un joueur est **toujours retirée de sa zone d'origine**, peu importe où elle finit ensuite (main, jeu...). On ne copie jamais la carte — elle change de zone, elle n'existe jamais à deux endroits en même temps.
+**Règle "Regarder" (discover) — appliquée :** une carte révélée depuis un deck ou une défausse (la vôtre ou celle de l'adversaire) est **toujours retirée de sa zone d'origine**, peu importe où elle finit ensuite. On ne copie jamais la carte. Les cartes proposées mais non choisies restent dans leur zone. La main d'un joueur n'est pas une source possible dans le moteur.
 
-**Cas particulier de la règle générale de ciblage :** si un effet "Regarder N cartes" porte sur une zone qui contient moins de N cartes (ex : regarder 3 cartes de la défausse alors qu'il n'y en a que 2, ou 0), l'effet ne peut pas se jouer — même conséquence que l'absence de cible valable : la carte entière ne peut pas être jouée.
+**Cas particulier de la règle générale de ciblage — non appliqué :** si un effet "Regarder N cartes" porte sur une zone qui contient moins de N cartes, le moteur propose simplement les cartes disponibles (jusqu'à 3) et ne fait rien s'il n'y en a aucune ; la carte reste jouable.
 
-**Sous-type vide :** dans une condition/cible qui filtre par sous-type, laisser le champ vide signifie "sans sous-type" (aucun sous-type sur la carte), pas "n'importe quel sous-type".
+**Sous-type vide — non appliqué :** la décision voulue est que, dans une condition/cible qui filtre par sous-type, un champ vide signifie "sans sous-type". Dans le moteur, un sous-type vide dans un filtre de cible signifie "pas de filtre" (n'importe quel sous-type), et dans une condition de comptage il ne correspond à aucune carte.
 
-**Mot-clé Protection retiré**, remplacé par Protecteur (ne peut pas attaquer), qui n'a aucun rapport avec l'ancien Protection (ne peut pas être ciblée par un sort).
+**Mot-clé Protection retiré — appliqué :** il n'existe plus dans le moteur. Il est remplacé par Protecteur (ne peut pas attaquer), qui n'a aucun rapport avec l'ancien Protection (ne peut pas être ciblée par un sort). Protecteur et Toxique sont câblés.
 
-**"Mal d'invocation"** est le nom officiel donné à la règle déjà existante (créature sans Charge ne peut pas agir le tour où elle arrive) — reste une règle automatique, pas un mot-clé à cocher sur une carte ; a seulement besoin d'une vraie animation (Zzz).
+**"Mal d'invocation" — appliqué :** nom officiel de la règle (créature sans Charge ne peut pas attaquer le tour où elle arrive) ; c'est une règle automatique, pas un mot-clé à cocher sur une carte. L'animation (Zzz) existe côté interface.
 
-**Sacrifice en tant qu'effet** (`sacrificeEffect`) est distinct du coût additionnel "sacrifier une créature" pour jouer une carte — l'un est un coût à payer avant de jouer la carte, l'autre est une conséquence de la capacité elle-même une fois déclenchée.
-
-**À faire côté moteur (pas encore fait) :** `spellcraft-prototype.html` a encore toute la logique mécanique de l'ancien mot-clé Protection (y compris une carte de démonstration, "Garde Protégée", qui l'utilise) — à retirer/remplacer par Protecteur et Toxique quand on câblera les mots-clés côté moteur. Idem pour tous les autres points listés ci-dessus : rien de tout ça n'est encore interprété par le moteur, uniquement configurable dans l'éditeur.
+**Sacrifice en tant qu'effet** (`sacrificeEffect`) est distinct du coût additionnel "sacrifier une créature" pour jouer une carte — l'un est un coût à payer avant de jouer la carte, l'autre est une conséquence de la capacité elle-même une fois déclenchée. Dans le moteur, l'effet sacrifie une créature tirée au hasard dans le camp visé.

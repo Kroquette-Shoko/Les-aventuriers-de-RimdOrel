@@ -92,6 +92,7 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
       <li><a href="#tour">Déroulé d'un tour</a></li>
       <li><a href="#mana">Le mana</a></li>
       <li><a href="#types">Les types de cartes</a></li>
+      <li><a href="#creatures">Les créatures</a></li>
       <li><a href="#combat">Le combat</a></li>
       <li><a href="#motscles">Les mots-clés</a></li>
       <li><a href="#pieges">Les pièges</a></li>
@@ -123,12 +124,12 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
       <h2>3. Déroulé d'un tour</h2>
       <p>Un tour se déroule toujours dans le même ordre :</p>
       <ol class="steps">
-        <li><strong>Début de tour</strong> — votre mana maximum augmente de 1 (jusqu'à 20), votre mana disponible est rechargé à ce maximum, vous piochez une carte, et les capacités "Au début de votre tour" se déclenchent.</li>
+        <li><strong>Début de tour</strong> — les mots-clés temporaires de vos créatures sont purgés, votre mana maximum augmente de 1 (jusqu'à 20), votre mana disponible est rechargé à ce maximum, les capacités "Au début de votre tour" se déclenchent, vous piochez une carte, puis le mal d'invocation de vos créatures prend fin.</li>
         <li><strong>Phase principale</strong> — vous pouvez, dans l'ordre que vous voulez et autant de fois que votre mana le permet : jouer des cartes de votre main (créatures, sortilèges, artefacts, pièges), activer les capacités activables de vos créatures/artefacts/région déjà en jeu, et utiliser le pouvoir de votre héros (une fois par tour).</li>
-        <li><strong>Déclaration des attaquants</strong> — vous désignez les créatures qui attaquent ce tour-ci (celles qui n'ont pas de fatigue d'invocation et ne sont pas endormies/étourdies).</li>
-        <li><strong>Blocage</strong> — l'adversaire désigne, pour chaque attaquant, une créature de son plateau pour le bloquer (ou laisse passer, auquel cas les dégâts touchent son héros directement).</li>
-        <li><strong>Résolution du combat</strong> — les dégâts sont appliqués simultanément des deux côtés d'un affrontement (attaquant ↔ bloqueur), les créatures à 0 PV ou moins meurent.</li>
-        <li><strong>Fin de tour</strong> — les capacités "À la fin de votre tour" se déclenchent, les effets temporaires ("ce tour-ci") expirent, les créatures Fugaces meurent, et la main passe à l'adversaire.</li>
+        <li><strong>Déclaration des attaquants</strong> — vous désignez les créatures qui attaquent ce tour-ci (celles qui n'ont pas le mal d'invocation, ne sont ni gelées ni étourdies, et ne sont pas Protecteur).</li>
+        <li><strong>Blocage</strong> — l'adversaire désigne ses bloqueurs : un attaquant peut être bloqué par plusieurs créatures, mais chaque bloqueur ne bloque qu'un seul attaquant. Un attaquant non bloqué touche directement le héros.</li>
+        <li><strong>Résolution du combat</strong> — chaque combat est résolu immédiatement quand le bloqueur est désigné : les dégâts sont appliqués simultanément des deux côtés (attaquant ↔ bloqueur) et les créatures à 0 PV ou moins meurent.</li>
+        <li><strong>Fin de tour</strong> — les capacités "À la fin de votre tour" se déclenchent, les bonus de Force/Endurance "jusqu'à la fin du tour" expirent, les Gels et Étourdissements arrivés à échéance se terminent, les créatures Fugaces meurent, et la main passe à l'adversaire.</li>
       </ol>
     </section>
 
@@ -147,58 +148,97 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
       <div class="cardtype-grid">
         <div class="cardtype"><h4>Héros</h4><p>Vous en avez un seul, choisi à la construction du deck. Il porte vos PV et un pouvoir unique, utilisable une fois par tour.</p></div>
         <div class="cardtype"><h4>Région</h4><p>Une seule également. Elle influence la façon dont vous gagnez du mana (bonus fragile, remplacement du gain normal...) et peut avoir ses propres capacités.</p></div>
-        <div class="cardtype"><h4>Créature</h4><p>A une Force (dégâts infligés au combat) et des PV. Peut attaquer et bloquer. Nouvellement arrivée, elle a la <em>fatigue d'invocation</em> et ne peut pas attaquer ce tour-ci (sauf mot-clé Charge).</p></div>
+        <div class="cardtype"><h4>Créature</h4><p>A une Force (dégâts infligés au combat) et des PV. Peut attaquer et bloquer. Nouvellement arrivée, elle a le <em>mal d'invocation</em> et ne peut pas attaquer ce tour-ci (sauf mot-clé Charge). Voir la section 6.</p></div>
         <div class="cardtype"><h4>Artefact</h4><p>Reste en jeu sans combattre. Offre en général une capacité passive ou activable. Peut avoir des charges limitées.</p></div>
         <div class="cardtype"><h4>Sortilège</h4><p>Effet ponctuel résolu immédiatement, puis la carte part en défausse. Souvent, demande une cible.</p></div>
-        <div class="cardtype"><h4>Piège</h4><p>Se pose face cachée, sans effet immédiat et sans payer de mana. Se déclenche automatiquement plus tard, dès que sa condition est remplie ; son coût en mana est alors payé (voir section 8).</p></div>
+        <div class="cardtype"><h4>Piège</h4><p>Se pose face cachée, sans effet immédiat et sans payer de mana. Se déclenche automatiquement plus tard, dès que sa condition est remplie ; son coût en mana est alors payé (voir section 9).</p></div>
       </div>
       <p class="dim" style="margin-top:12px;">Chaque carte a aussi une <strong>classe</strong> (Aube, Crépuscule, Volonté, Prima, Arcane ou Neutre) qui la relie à une couleur/identité de jeu, et une <strong>rareté</strong> (Basique, Commune, Rare, Épique, Mythique) qui influence surtout la collection et le craft, pas les règles elles-mêmes.</p>
     </section>
 
+    <section id="creatures">
+      <h2>6. Les créatures</h2>
+      <h3>Carte et créature en jeu</h3>
+      <p>Une <strong>carte</strong> de créature (dans un deck, une main ou une défausse) ne combat pas. Quand elle arrive sur le plateau, elle devient une <strong>créature en jeu</strong> : un exemplaire vivant qui a ses propres PV restants, ses propres bonus et ses propres états. Deux exemplaires de la même carte sont deux créatures indépendantes. Une créature quitte le plateau en <strong>mourant</strong> (elle va dans la défausse), en étant <strong>renvoyée en main</strong>, <strong>transformée</strong> ou <strong>volée</strong> par l'adversaire.</p>
+
+      <h3>Statistiques</h3>
+      <ul>
+        <li><strong>Force</strong> : les dégâts qu'elle inflige. <strong>Endurance</strong> : ses PV. Elle meurt dès que son Endurance tombe à <strong>0 ou moins</strong>.</li>
+        <li>Les <strong>bonus permanents</strong> restent tant qu'elle est en jeu ; les <strong>bonus temporaires</strong> (« jusqu'à la fin de ce tour », « jusqu'à la fin du prochain tour ») disparaissent à l'échéance, et si la créature était blessée elle peut en mourir. Les <strong>auras</strong> durent tant que la carte qui les donne est en jeu.</li>
+        <li>Un <strong>soin</strong> ne peut pas dépasser l'Endurance de référence de la créature (sa valeur imprimée plus ses bonus).</li>
+        <li>Un malus ne descend jamais la Force sous 0 ; une Endurance réduite à 0 par un malus tue la créature.</li>
+      </ul>
+
+      <h3>Limites</h3>
+      <ul>
+        <li><strong>8 créatures</strong> maximum sur votre plateau. Plateau plein : vous ne pouvez plus jouer de créature depuis la main, et les créatures créées par un effet ne sont pas créées (une carte conjurée ou récupérée « en jeu » va alors en main).</li>
+        <li><strong>8 cartes</strong> maximum en main. Une carte qui arrive en main au-delà est <strong>défaussée</strong> (carte piochée, renvoyée, volée, conjurée…). Exception : une carte récupérée depuis la défausse reste dans la défausse si la main est pleine.</li>
+        <li><strong>Deck de 30 cartes</strong> : 2 exemplaires maximum d'une même carte, <strong>1 seul</strong> pour une carte de super-type Légendaire.</li>
+      </ul>
+
+      <h3>Arrivée en jeu</h3>
+      <p>Quand vous jouez une créature depuis la main, dans cet ordre : les pièges adverses « l'adversaire invoque une créature » peuvent se déclencher (et la contrer : elle va alors en défausse) ; la créature entre sur le plateau avec le <strong>mal d'invocation</strong> ; les capacités « quand une créature est jouée » puis « quand une créature arrive en jeu » se déclenchent ; enfin sa propre capacité <strong>Début</strong> se résout. Ses bonus d'aura ne s'appliquent qu'après tout cela.</p>
+      <p class="dim">Une créature créée par un effet (conjuration, copie, transformation…) n'a pas de coût à payer, ne déclenche pas son propre Début ni les pièges « l'adversaire invoque une créature », mais déclenche « quand une créature arrive en jeu ». Elle a le mal d'invocation, sauf si elle a Charge.</p>
+
+      <h3>Mort et résurrection</h3>
+      <p>Quand une créature meurt, elle va dans la défausse de son propriétaire ; sa capacité <strong>Finale</strong> se déclenche (« est détruite » se déclenche de la même façon). Une créature <strong>Tenace</strong> ne meurt pas une première fois : elle reste en jeu à pleine Endurance et perd Tenace. Quand plusieurs créatures meurent en même temps, leurs capacités se résolvent d'abord pour le joueur n°1 de la partie, puis pour le joueur n°2 : l'ordre n'est pas choisi.</p>
+      <p>Si une créature est <strong>renvoyée en main</strong>, elle revient comme une carte neuve : bonus, Silence et états effacés (elle redevient normale). Si elle est <strong>volée</strong>, elle passe du côté de l'adversaire avec ses bonus et ses blessures, et retrouve le mal d'invocation.</p>
+
+      <h3>États d'une créature</h3>
+      <table class="kw">
+        <tr><th>État</th><th>Durée et effet</th></tr>
+        <tr><td class="kwname">Mal d'invocation</td><td>De son arrivée jusqu'au début du prochain tour de son propriétaire. Elle ne peut pas attaquer (sauf Charge), mais elle peut bloquer et activer ses capacités.</td></tr>
+        <tr><td class="kwname">Gel / Étourdissement</td><td>Un seul et même effet. La créature perd son prochain tour complet : elle ne peut ni bloquer, ni attaquer, ni activer ses capacités. L'état disparaît à la <em>fin</em> de ce tour. Posé sur une créature ennemie pendant votre tour : elle ne bloque plus ce tour-ci, n'attaque pas à son tour, et est libérée à la fin de son tour. Posé sur votre propre créature pendant votre tour : jusqu'à la fin de votre prochain tour.</td></tr>
+        <tr><td class="kwname">Silence</td><td>Retire tous les mots-clés et toutes les capacités de la créature. Ne modifie ni ses PV ni sa Force (aucun soin, bonus et dégâts conservés). Dure tant qu'elle est en jeu ; une créature renvoyée en main redevient normale.</td></tr>
+      </table>
+    </section>
+
     <section id="combat">
-      <h2>6. Le combat</h2>
+      <h2>7. Le combat</h2>
       <h3>Attaquer</h3>
-      <p>En phase de déclaration des attaquants, vous choisissez quelles créatures (sans fatigue d'invocation, sans être étourdies) attaquent. Une créature qui n'est pas bloquée inflige sa Force directement au héros adverse.</p>
+      <p>Une seule fois par tour, en phase de déclaration des attaquants, vous choisissez quelles créatures attaquent : celles qui ne sont ni gelées, ni étourdies, ni Protecteur, qui n'ont pas déjà attaqué et qui n'ont pas le mal d'invocation (sauf Charge). Toutes visent le héros adverse. Une créature qui n'est pas bloquée lui inflige sa Force directement, à la fin du blocage.</p>
       <h3>Bloquer</h3>
-      <p>L'adversaire assigne, à chacun de vos attaquants, au plus une de ses créatures pour le bloquer (une créature bloqueuse ne peut bloquer qu'un seul attaquant). L'attaquant et le bloqueur s'infligent alors mutuellement des dégâts égaux à leur Force.</p>
+      <p>L'adversaire désigne ses bloqueurs un par un. Un attaquant peut être bloqué par <strong>plusieurs</strong> bloqueurs ; en revanche un bloqueur ne peut bloquer qu'<strong>un seul</strong> attaquant par tour. Il faut que l'attaquant ait été déclaré ce tour-ci et soit toujours en jeu, que le bloqueur ne soit ni gelé, ni étourdi, ni Peureux, que l'attaquant ne soit pas Discret, et qu'un attaquant avec Envol soit bloqué par une créature avec Envol ou Portée. Le mal d'invocation n'empêche pas de bloquer.</p>
       <h3>Résolution des dégâts</h3>
-      <p>Une créature meurt dès que ses PV tombent à 0 ou moins. Sauf mot-clé particulier (Brutalité, Toxique, Initiative...), les dégâts d'un combat sont simultanés : deux créatures qui s'affrontent peuvent mourir toutes les deux.</p>
-      <div class="callout warn"><strong>À retenir :</strong> plusieurs mots-clés de combat (Envol, Discret, Peureux, Protecteur...) changent qui peut attaquer, bloquer, ou être bloqué — voir la section suivante.</div>
+      <p><strong>Chaque combat est résolu immédiatement</strong>, au moment où le bloqueur est désigné. L'attaquant et le bloqueur s'infligent mutuellement des dégâts égaux à leur Force ; avec plusieurs bloqueurs, l'attaquant inflige toute sa Force à <em>chacun</em>, et chacun lui inflige la sienne. Sauf mot-clé particulier (Initiative, Toxique, Armure…), les dégâts d'un combat sont simultanés : deux créatures qui s'affrontent peuvent mourir toutes les deux. Une créature meurt dès que ses PV tombent à 0 ou moins.</p>
+      <p>Quand l'adversaire a fini de bloquer, chaque attaquant resté non bloqué inflige sa Force au héros adverse, puis les excédents de Brutalité passent au héros.</p>
+      <div class="callout warn"><strong>À retenir :</strong> plusieurs mots-clés de combat (Envol, Discret, Peureux, Protecteur...) changent qui peut attaquer, bloquer, ou être bloqué — voir la section suivante. « Quand cette créature élimine une créature » ne se déclenche que si la créature qui a tué sa cible est encore en vie à la fin de l'échange.</div>
     </section>
 
     <section id="motscles">
-      <h2>7. Les mots-clés</h2>
+      <h2>8. Les mots-clés</h2>
       <h3>Mots-clés de combat</h3>
       <table class="kw">
         <tr><th>Mot-clé</th><th>Effet</th></tr>
-        <tr><td class="kwname">Charge</td><td>Peut attaquer dès le tour où elle arrive en jeu, sans attendre le tour suivant.</td></tr>
-        <tr><td class="kwname">Envol</td><td>Ne peut être bloquée que par des créatures qui ont elles-mêmes le Vol ou la Portée.</td></tr>
+        <tr><td class="kwname">Charge</td><td>Peut attaquer dès le tour où elle arrive en jeu, malgré le mal d'invocation.</td></tr>
+        <tr><td class="kwname">Envol</td><td>Ne peut être bloquée que par des créatures qui ont elles-mêmes Envol ou Portée.</td></tr>
         <tr><td class="kwname">Portée</td><td>Peut bloquer une créature avec Envol, sans avoir elle-même ce mot-clé.</td></tr>
-        <tr><td class="kwname">Brutalité</td><td>Si les dégâts qu'elle inflige dépassent les PV de sa cible, l'excédent est reporté directement sur le héros adverse.</td></tr>
-        <tr><td class="kwname">Vol de vie</td><td>Chaque point de dégât qu'elle inflige soigne d'autant votre héros.</td></tr>
-        <tr><td class="kwname">Initiative</td><td>Frappe la première lors d'un combat. Si ce premier coup suffit à tuer sa cible, elle ne subit aucun dégât en retour.</td></tr>
-        <tr><td class="kwname">Armure</td><td>Ignore entièrement la première fois qu'elle devrait subir des dégâts.</td></tr>
-        <tr><td class="kwname">Parade</td><td>Ne peut pas être ciblée par un sortilège pendant le tour où elle arrive en jeu.</td></tr>
-        <tr><td class="kwname">Tenace</td><td>À sa mort, revient automatiquement en jeu une fois — sans le mot-clé Tenace la seconde fois.</td></tr>
+        <tr><td class="kwname">Brutalité</td><td>Quand elle attaque et est bloquée, l'excédent de ses dégâts par rapport aux PV restants du ou des bloqueurs (avant le coup) est infligé directement au héros adverse. Un bloqueur dont l'Armure absorbe le coup n'est pas compté.</td></tr>
+        <tr><td class="kwname">Vol de vie</td><td>Chaque point de dégât qu'elle inflige au combat soigne d'autant votre héros.</td></tr>
+        <tr><td class="kwname">Initiative</td><td>Frappe la première lors d'un combat. Si ce premier coup tue sa cible, elle ne subit aucun dégât en retour.</td></tr>
+        <tr><td class="kwname">Armure</td><td>Absorbe entièrement le premier dégât positif qu'elle subit, quelle qu'en soit la source (combat, sort, effet), une seule fois : elle ne se réarme jamais. Elle n'arrête ni la destruction directe, ni le sacrifice, ni les malus d'Endurance.</td></tr>
+        <tr><td class="kwname">Parade</td><td>Jusqu'au début du prochain tour de son propriétaire (tant qu'elle a le mal d'invocation), l'adversaire ne peut pas la cibler, ni par choix, ni par ciblage automatique ou aléatoire, ni par un effet de zone. Les effets de son propriétaire peuvent la cibler.</td></tr>
+        <tr><td class="kwname">Tenace</td><td>La première fois qu'elle devrait mourir, elle reste en jeu à pleine Endurance et perd Tenace.</td></tr>
         <tr><td class="kwname">Peureux</td><td>Ne peut jamais bloquer une créature adverse.</td></tr>
         <tr><td class="kwname">Protecteur</td><td>Ne peut jamais attaquer.</td></tr>
-        <tr><td class="kwname">Toxique</td><td>Toute créature à qui elle inflige des dégâts au combat meurt, peu importe ses PV restants.</td></tr>
+        <tr><td class="kwname">Toxique</td><td>Toute créature à qui elle inflige au moins 1 dégât au combat meurt, peu importe ses PV restants (un coup absorbé par l'Armure ne tue pas).</td></tr>
         <tr><td class="kwname">Discret</td><td>Ne peut jamais être bloquée.</td></tr>
-        <tr><td class="kwname">Imparable</td><td>Ne peut pas être ciblée par un piège.</td></tr>
-        <tr><td class="kwname">Fugace</td><td>Meurt automatiquement à la fin du tour où elle est en jeu.</td></tr>
+        <tr><td class="kwname">Imparable</td><td>Aucun piège ne se déclenche à cause d'un événement qui la concerne (invocation, ciblage, blocage, combat).</td></tr>
+        <tr><td class="kwname">Fugace</td><td>Meurt automatiquement à la fin du tour de son propriétaire.</td></tr>
       </table>
       <h3>Étiquettes de suivi (sans effet de jeu direct)</h3>
-      <p class="dim">Ces mots-clés ne font rien par eux-mêmes — ils servent de marqueur pour qu'une autre carte puisse repérer précisément ce type de carte (par exemple via une conjuration ciblée).</p>
+      <p class="dim">Ces mots-clés ne font rien par eux-mêmes — ils servent de marqueur pour qu'une autre carte puisse repérer précisément ce type de carte (par exemple via une conjuration ciblée). Ne pas les confondre avec les noms courts de déclencheurs Début, Assaut et Finale affichés sur les cartes.</p>
       <table class="kw">
         <tr><th>Étiquette</th><th>Sens</th></tr>
         <tr><td class="kwname">Assaut</td><td>Cartes liées au thème de l'attaque/l'agression.</td></tr>
         <tr><td class="kwname">Début</td><td>Cartes liées au tout début d'une partie ou d'un tour.</td></tr>
         <tr><td class="kwname">Final</td><td>Cartes liées à la fin d'une partie ou d'un tour.</td></tr>
       </table>
+      <p class="dim" style="margin-top:12px;">Anciens noms : Vol est devenu Envol, Perçant est devenu Brutalité, Furtif est devenu Parade, « Implacable » est devenu Tenace. L'ancien mot-clé Protection n'existe plus (ne pas le confondre avec Protecteur).</p>
     </section>
 
     <section id="pieges">
-      <h2>8. Les pièges</h2>
+      <h2>9. Les pièges</h2>
       <p>Un piège se pose face cachée, sans effet immédiat. Sa condition de déclenchement (écrite sur la carte, ex. "quand une créature ennemie attaque") est surveillée en permanence :</p>
       <ul>
         <li><strong>À la pose</strong>, aucun mana n'est vérifié ni dépensé : la carte reste simplement dans votre main, face cachée.</li>
@@ -213,7 +253,7 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
     </section>
 
     <section id="declencheurs">
-      <h2>9. Lire une capacité de carte</h2>
+      <h2>10. Lire une capacité de carte</h2>
       <p>Une capacité de carte se lit toujours ainsi : <strong>« Déclencheur → (Condition) → Effet »</strong>. Le déclencheur dit <em>quand</em> l'effet se produit. Voici les familles de déclencheurs les plus courantes que vous croiserez sur les cartes :</p>
 
       <div class="trigger-cat">
@@ -262,7 +302,7 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
     </section>
 
     <section id="fin">
-      <h2>10. Fin de partie</h2>
+      <h2>11. Fin de partie</h2>
       <p>La partie se termine dès que l'une de ces conditions survient :</p>
       <ul>
         <li>Les PV d'un héros tombent à 0 ou moins → son adversaire gagne.</li>

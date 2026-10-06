@@ -1,3 +1,5 @@
+> **Document obsolète.** Ce document décrit un état antérieur du projet (prototype local `spellcraft-prototype.html` comme moteur, ancien schéma d'`Ability`). Le moteur de jeu actuel est le serveur de jeu (fonction Supabase) ; pour les règles telles que le moteur les applique, voir `spellcraft-regles.md`. Ne pas s'y fier pour intervenir sur le code sans le recouper avec le code réel.
+
 # Spellcraft — Architecture technique
 
 Ce document est la contrepartie technique de `spellcraft-regles.md` : il décrit comment le code est organisé, pas comment le jeu se joue. Destiné à toute personne (développeur ou future session) qui doit intervenir sur le code.

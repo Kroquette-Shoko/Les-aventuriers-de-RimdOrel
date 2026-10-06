@@ -297,6 +297,65 @@ function setSfxVolumeLevel(v){
   try { localStorage.setItem('sfxVolumeLevel', sfxVolumeLevel); } catch(e){}
 }
 
+/* ---------- Animations de combat : vitesse et bouton « Passer » ----------
+   Deux réglages de la modale d'options (section « Combat »), mémorisés dans
+   localStorage (toujours en try/catch : il peut être indisponible, le réglage
+   vaut alors pour la session seulement). Lus par spellcraft-server-board.html.
+   - Vitesse : 'normal' (1x), 'fast' (2x, durées divisées par 2), 'instant'
+     (animations de combat ignorées, état final rendu directement).
+     Jamais choisie + préférence système « réduire les animations » : 'fast'.
+   - Bouton Passer : affiche un bouton pour terminer la file d'animations.
+   La page est prévenue d'un changement par l'événement window
+   'sc-combat-options-changed'. */
+// <combat-speed>
+const SC_COMBAT_SPEED_MODES = ['normal','fast','instant'];
+// Mode effectif : valeur mémorisée si valide, sinon Rapide si l'utilisateur
+// demande moins d'animations (prefers-reduced-motion), sinon Normale.
+function scResolveCombatSpeedMode(stored, prefersReducedMotion){
+  if(SC_COMBAT_SPEED_MODES.includes(stored)) return stored;
+  return prefersReducedMotion ? 'fast' : 'normal';
+}
+// Coefficient de vitesse : 1 (normale), 2 (rapide), Infinity (instantanée).
+function scCombatSpeedFactor(mode){ return mode==='fast' ? 2 : mode==='instant' ? Infinity : 1; }
+// Durée de référence (vitesse normale) -> durée réelle ; 0 en mode instantané.
+function scScaleMs(ms, mode){
+  const f = scCombatSpeedFactor(mode);
+  return f===Infinity ? 0 : Math.round(ms / f);
+}
+// </combat-speed>
+let __scCombatSpeedMode = null, __scShowSkipButton = null;
+function scGetCombatSpeedMode(){
+  if(__scCombatSpeedMode===null){
+    let stored = null, reduced = false;
+    try { stored = localStorage.getItem('combatAnimSpeed'); } catch(e){}
+    try { reduced = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches); } catch(e){}
+    __scCombatSpeedMode = scResolveCombatSpeedMode(stored, reduced);
+  }
+  return __scCombatSpeedMode;
+}
+function scNotifyCombatOptionsChanged(){
+  try { window.dispatchEvent(new CustomEvent('sc-combat-options-changed')); } catch(e){}
+}
+function scSetCombatSpeedMode(mode){
+  if(!SC_COMBAT_SPEED_MODES.includes(mode)) return;
+  __scCombatSpeedMode = mode;
+  try { localStorage.setItem('combatAnimSpeed', mode); } catch(e){}
+  scNotifyCombatOptionsChanged();
+}
+function scGetShowSkipButton(){
+  if(__scShowSkipButton===null){
+    let v = false;
+    try { v = localStorage.getItem('combatShowSkipButton') === 'true'; } catch(e){}
+    __scShowSkipButton = v;
+  }
+  return __scShowSkipButton;
+}
+function scSetShowSkipButton(on){
+  __scShowSkipButton = !!on;
+  try { localStorage.setItem('combatShowSkipButton', on ? 'true' : 'false'); } catch(e){}
+  scNotifyCombatOptionsChanged();
+}
+
 // Certains sfx sont en .mp3 (premiers ajoutés), les plus récents en .ogg.
 const SFX_OGG_FILES = new Set([
   'card-play-1','card-play-2','card-play-3','card-play-4',
@@ -335,8 +394,19 @@ function playSfx(key, volume=0.6){
     const ext = SFX_OGG_FILES.has(file) ? 'ogg' : SFX_WAV_FILES.has(file) ? 'wav' : 'mp3';
     const audio = new Audio(`sfx/${file}.${ext}`);
     audio.volume = volume * sfxVolumeLevel;
-    audio.play().catch(()=>{});
+    // Mémorisé le temps de la lecture pour pouvoir tout couper (stopAllSfx).
+    __activeSfx.add(audio);
+    const forget = ()=>__activeSfx.delete(audio);
+    audio.addEventListener('ended', forget);
+    audio.addEventListener('error', forget);
+    audio.play().catch(forget);
   }catch(e){}
+}
+const __activeSfx = new Set();
+// Coupe tous les effets sonores en cours (bouton « Passer » des animations de combat).
+function stopAllSfx(){
+  __activeSfx.forEach(a=>{ try{ a.pause(); }catch(e){} });
+  __activeSfx.clear();
 }
 
 let currentMusicAudio = null;
@@ -545,12 +615,13 @@ function injectOptionsMenu(){
     #sc-options-gear .sc-gear-icon{width:65px;height:65px;background-color:var(--parchment, #fff);-webkit-mask-image:url('images/gear.png');mask-image:url('images/gear.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;pointer-events:none;}
     #sc-options-modal{display:none;position:fixed;top:96px;right:10px;z-index:99999;
       background:var(--bg-panel, #0f0c14);border:1px solid var(--gold, #d4af37);border-radius:12px;padding:16px 18px;width:230px;
-      box-shadow:0 12px 34px rgba(0,0,0,.6);font-family:'Inter',sans-serif;color:var(--parchment, #f2ead2);}
+      box-shadow:0 12px 34px rgba(0,0,0,.6);font-family:'Inter',sans-serif;color:var(--parchment, #f2ead2);max-height:calc(100vh - 110px);overflow-y:auto;}
     #sc-options-modal.show{display:block;}
     #sc-options-modal .sc-opt-title{font-family:'Cinzel',serif;font-weight:700;color:var(--gold, #d4af37);margin-bottom:12px;font-size:14px;}
     #sc-options-modal label.sc-opt-label{display:block;font-size:11.5px;color:var(--parchment-dim, #c8beb0);margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px;}
     #sc-options-modal input[type=range]{width:100%;margin-bottom:14px;accent-color:var(--gold, #d4af37);}
     #sc-options-modal .sc-opt-mute{display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer;padding-top:2px;border-top:1px solid rgba(212,175,55,.2);padding-top:10px;}
+    #sc-options-modal select{width:100%;margin-bottom:12px;padding:5px 6px;font-size:12.5px;color:inherit;background:rgba(0,0,0,.35);border:1px solid rgba(212,175,55,.35);border-radius:6px;}
     #sc-options-modal .sc-opt-hub{display:block;margin-top:10px;padding-top:10px;border-top:1px solid rgba(212,175,55,.2);font-size:12.5px;font-weight:700;color:var(--gold, #d4af37);text-decoration:none;text-align:center;}
     #sc-options-modal .sc-opt-hub:hover{text-decoration:underline;}
     #sc-options-gear.sc-options-inline{position:static;width:38px;height:38px;box-shadow:none;}
@@ -599,6 +670,16 @@ function injectOptionsMenu(){
     <label class="sc-opt-mute">
       <input type="checkbox" id="sc-mute-checkbox" ${sfxMuted?'checked':''}> Tout couper
     </label>
+    <div class="sc-opt-title" style="margin-top:14px;">Combat</div>
+    <label class="sc-opt-label" for="sc-combat-speed-select">Vitesse des animations de combat</label>
+    <select id="sc-combat-speed-select">
+      <option value="normal">Normale (×1)</option>
+      <option value="fast">Rapide (×2)</option>
+      <option value="instant">Instantanée (sans animation)</option>
+    </select>
+    <label class="sc-opt-mute">
+      <input type="checkbox" id="sc-combat-skip-checkbox"> Afficher un bouton Passer pendant les animations
+    </label>
     ${onHubPage ? '' : '<a class="sc-opt-hub" href="spellcraft-hub.html">🏠 Menu principal</a>'}
   `;
 
@@ -641,6 +722,12 @@ function injectOptionsMenu(){
   document.getElementById('sc-music-vol-slider').oninput = (e)=>setMusicVolumeLevel(e.target.value/100);
   document.getElementById('sc-sfx-vol-slider').oninput = (e)=>setSfxVolumeLevel(e.target.value/100);
   document.getElementById('sc-mute-checkbox').onchange = (e)=>setSfxMuted(e.target.checked);
+  const combatSpeedSelect = document.getElementById('sc-combat-speed-select');
+  const combatSkipCheckbox = document.getElementById('sc-combat-skip-checkbox');
+  combatSpeedSelect.value = scGetCombatSpeedMode();
+  combatSkipCheckbox.checked = scGetShowSkipButton();
+  combatSpeedSelect.onchange = (e)=>scSetCombatSpeedMode(e.target.value);
+  combatSkipCheckbox.onchange = (e)=>scSetShowSkipButton(e.target.checked);
   modal.querySelectorAll('.sc-theme-swatch').forEach(btn=>{
     btn.onclick = ()=>{
       const id = btn.dataset.theme;
