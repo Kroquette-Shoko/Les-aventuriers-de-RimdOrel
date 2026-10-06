@@ -1114,7 +1114,17 @@ function creatureStatInfo(card, base, turn){
 // (buildNewCardEl : nkeyword-assault / nkeyword-final, au-dessus de la gemme
 // de rareté). Ils figuraient AUSSI dans la pile de badges (KEYWORD_ICON_FILES) :
 // la même information sortait deux fois. On les retire de la pile.
-const KEYWORDS_DRAWN_BY_CARD_FRAME = ['assault', 'final'];
+//
+// Images réellement présentes dans le dépôt : images/kw-assaut.png et
+// images/kw-final.png (les mêmes fichiers que KEYWORD_ICON_FILES). Le dossier
+// images/card/icon/keyword/ n'a jamais existé : l'ancien chemin donnait un
+// 404 et l'icône n'apparaissait donc nulle part. (attack.png, lui, est la
+// bulle de force « épées croisées » des créatures, pas l'icône du mot-clé.)
+const CARD_FRAME_KEYWORD_ICONS = {
+  assault: `images/${KEYWORD_ICON_FILES.assault}`,
+  final:   `images/${KEYWORD_ICON_FILES.final}`
+};
+const KEYWORDS_DRAWN_BY_CARD_FRAME = Object.keys(CARD_FRAME_KEYWORD_ICONS);
 
 // Mots-clés dont un badge est affiché MAINTENANT dans la pile d'une créature
 // en jeu (sans doublon, ordre de la carte conservé).
@@ -2332,10 +2342,10 @@ function buildNewCardEl(card, size, effectiveCostOverride, opts={}){
   // au-dessus de la gemme de rareté.
   const kw = card.keywords || [];
   if(!isHero && size==='small' && kw.includes('assault')){
-    root.appendChild(nImg('images/card/icon/keyword/assaut.png', 'nkeyword-icon nkeyword-assault'));
+    root.appendChild(nImg(CARD_FRAME_KEYWORD_ICONS.assault, 'nkeyword-icon nkeyword-assault'));
   }
   if(!isHero && size==='small' && kw.includes('final')){
-    root.appendChild(nImg('images/card/icon/keyword/final.png', 'nkeyword-icon nkeyword-final'));
+    root.appendChild(nImg(CARD_FRAME_KEYWORD_ICONS.final, 'nkeyword-icon nkeyword-final'));
   }
 
   return root;
