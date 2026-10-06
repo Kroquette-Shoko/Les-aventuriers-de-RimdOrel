@@ -408,20 +408,20 @@ Une capacité se lit « déclencheur → conditions → effet » (voir section 8
 | Déclencheur | Se produit... |
 |---|---|
 | Au début de la partie | Une fois, à la mise en jeu du Héros/Région |
-| Début *(onPlay)* | Quand la carte entre en jeu |
+| Début *(onPlay)* | Quand la carte est jouée depuis la main (une créature créée par un effet ne le déclenche pas) ; pour un Piège, quand il est armé |
 | Quand cette créature attaque | À chaque attaque déclarée |
-| Quand cette carte subit des dégâts | À chaque fois qu'elle encaisse des dégâts |
-| Finale *(onDeath)* | Quand la créature meurt (dégâts fatals) |
-| Quand cette carte est détruite | Quand un effet la détruit spécifiquement |
-| Quand cette carte élimine une créature | Après un kill en combat ou par effet |
-| Quand cette carte revient du cimetière | Réapparition d'elle-même (ex. via Tenace) |
-| Quand vous ramenez une créature de la défausse | Chaque fois que *n'importe quelle* créature revient de votre défausse (récupération, effet...) |
+| Quand cette carte subit des dégâts | Quand elle perd des PV : au combat seulement si elle survit ; par un sort ou un effet de dégâts même si le coup est fatal ; jamais si l'Armure absorbe le coup (voir 7.9) |
+| Finale *(onDeath)* | Quand la créature meurt (Endurance ≤ 0, quelle qu'en soit la cause) ; pas en cas de résurrection par Tenace |
+| Quand cette carte est détruite | Exactement comme Finale, à chaque mort : le moteur ne les distingue pas |
+| Quand cette carte élimine une créature | Chez la créature qui met sa cible à 0 PV au combat (attaque ou blocage) ou par « Combat forcé », **si elle est encore en vie** à la fin de l'échange (voir 7.8) |
+| Quand cette carte revient du cimetière | Réapparition d'elle-même par Tenace |
+| Quand vous ramenez une créature de la défausse | Chaque fois qu'une carte (de n'importe quel type) est récupérée depuis votre défausse |
 | À chaque utilisation | Artefacts, à chaque activation |
 | Au début / à la fin de votre tour | Chaque tour |
 | Quand vous gagnez un point de mana | À chaque incrément de mana (normal, fragile ou vide) |
 | **Quand vous piochez une carte** | Créature, Héros, Artefact — à chaque pioche, quelle qu'en soit la source |
-| Quand vous invoquez une créature du sous-type X | Paramétré : le sous-type est défini carte par carte |
-| Capacité activée | Le joueur choisit de payer le coût pour déclencher l'effet |
+| Quand vous invoquez une créature du sous-type X | Quand une créature de ce sous-type arrive en jeu chez vous, quelle qu'en soit la source (main ou effet) ; le sous-type est défini carte par carte |
+| Capacité activée | Le joueur choisit de payer le coût pour déclencher l'effet (créature, artefact, Région ; voir 7.9 pour les créatures) |
 
 **Déclencheurs réservés aux Pièges :**
 
@@ -455,62 +455,71 @@ Les capacités peuvent avoir des **conditions** (santé du héros, taille de mai
 ## 10. Points secondaires — tranchés par défaut
 
 1. **Mana vide** : augmente le maximum de façon permanente pour le reste de la partie.
-2. **Armure** : protège contre les dégâts, qu'ils viennent du combat ou d'un effet — pas contre le Gel/l'Étourdissement (statuts différents, non liés aux dégâts).
-3. **Déclencheurs simultanés** : résolus dans l'ordre choisi par le joueur à qui appartiennent les cartes concernées ; si les deux joueurs ont des déclencheurs en même temps, le joueur actif résout les siens en premier.
+2. **Armure** : absorbe le premier dégât positif subi, qu'il vienne du combat, d'un sort ou d'un effet de dégâts. Elle ne protège ni de la destruction directe, ni du sacrifice, ni des malus d'Endurance, ni du Gel/de l'Étourdissement (voir 7.7).
+3. **Déclencheurs simultanés** : le joueur ne choisit pas l'ordre. Pour un joueur donné, ses créatures se résolvent dans l'ordre de leur plateau, puis son héros, sa région, ses artefacts et ses Pièges armés. Pour les capacités qui surveillent les deux camps (et pour les morts simultanées), le moteur traite d'abord le joueur n°1 de la partie, puis le joueur n°2, que ce soit son tour ou non.
 4. **Sous-types et Régions** : seul le Héros impose la classe du deck. Une Région ne peut pas imposer de classe, mais rien n'empêche qu'une future carte le fasse si besoin s'en fait sentir.
-5. **Blocage multiple** : par défaut, un bloqueur = un attaquant (voir Section 6). Dis-moi si tu veux permettre les blocages groupés (plusieurs bloqueurs sur un attaquant, ou un bloqueur qui "déborde" sur plusieurs attaquants).
+5. **Blocage multiple** : plusieurs bloqueurs peuvent bloquer un même attaquant, et chacun subit alors un combat complet ; en revanche un bloqueur ne peut bloquer qu'**un seul** attaquant par tour (voir Section 6). Une exception à cette dernière règle pourra exister via un effet de carte précis ; elle n'est pas implémentée.
 6. **Pas de PV maximum** : les Points de Vie du héros n'ont aucun plafond. Soigner un héros déjà à sa valeur de départ (ou au-delà) l'augmente quand même — il n'y a pas de "vie maximale" qui bloquerait le soin, contrairement à ce que ferait un `Math.min(hp, maxHp)` classique.
 
-Si l'un de ces choix ne te convient pas, dis-le et je corrige avant de passer au code.
+Ces points décrivent le comportement du moteur actuel.
 
 ---
 
 ## 11. Écarts connus entre l'éditeur et le moteur de jeu
 
-L'éditeur de cartes permet de configurer davantage de choses que ce que `spellcraft-prototype.html` sait actuellement interpréter en partie réelle. Un audit complet (comparant précisément le code de l'éditeur à celui du moteur) a été fait et un grand lot de déclencheurs a été branché suite à cet audit. Cette section garde une trace fidèle de ce qui reste manquant :
+L'éditeur de cartes permet de configurer certaines choses que le moteur n'interprète pas (ou pas entièrement). Cette section garde une trace fidèle de l'état réel, relevé dans le code du serveur de jeu (le moteur déployé) le 6 octobre 2026. L'ancien `spellcraft-prototype.html` n'est plus la référence du moteur.
 
-**Déclencheurs de carte encore non câblés :**
-- **Créature** : `activated` (une créature n'a pas de bouton pour activer une capacité en jeu, contrairement au héros). `onDestroyed` se déclenche désormais exactement comme `onDeath` (aucune distinction entre les deux, par choix).
-- **Héros** : `onKill` (le héros ne "tue" jamais directement dans le système actuel).
-- **Région** : `onDestroyed`, `activated` (pas d'interface pour activer une région).
-- **Artefact** : `onUse`/`activated` (pas de bouton d'activation pour un artefact déjà en jeu — seul son tick automatique en début de tour fonctionne).
-- **Piège** : `onOpponentTargetsAlly`, `onAllySurvivesCombat`, `onEnemySurvivesCombat`, `beforeAllyFights` (nécessiteraient de la chirurgie plus fine dans la résolution du ciblage et du combat). Les six autres déclencheurs de Piège fonctionnent.
+**Déclencheurs de carte non câblés :**
+- **Héros** : `onKill` (le héros ne « tue » jamais directement : ce déclencheur n'est jamais appelé).
+- **Région** : `onDestroyed` (une Région n'est jamais détruite).
+- **Surveillance « Quand un joueur révèle »** (`watchReveal`) : jamais déclenchée. À côté, « Quand vous découvrez une carte » (`watchDiscovered`) l'est quand le joueur choisit une carte révélée, et « Quand une carte arrive après avoir été révélée » (`watchAfterReveal`) l'est par la Conjuration et le Vol de carte.
+- **« Quand vous défaussez une carte depuis votre main »** (`onHandDiscard`) : déclenché uniquement par l'effet « Défausser » (pas par le coût additionnel « défausser », ni par une main pleine).
 
-**Tous les autres déclencheurs fonctionnent réellement**, y compris pour les créatures/héros/artefacts déjà en jeu (ce qui n'était pas le cas avant ce lot de correctifs) : à l'entrée en jeu, revient du cimetière (soi-même via Tenace, ou récupéré par un effet), début/fin de tour, attaque, subit des dégâts, élimine une cible, gain de mana, pioche, invocation d'un sous-type précis, début de partie, capacité activée (héros).
+**Déclencheurs qui fonctionnent**, y compris pour les cartes déjà en jeu : toutes les capacités **activées** (créatures, artefacts, Région, pouvoir du Héros) ; à l'utilisation d'un artefact (`onUse`) ; **tous les déclencheurs de Pièges** (y compris « si l'adversaire cible une créature alliée », « après qu'une créature alliée / ennemie survit à un combat », « avant qu'une créature alliée ne combatte » et « si une créature alliée est bloquée ») ; ainsi que l'entrée en jeu, le retour du cimetière, début/fin de tour, attaque, blocage, dégâts, soin, mort, élimination d'une cible, gain de mana, pioche, invocation d'un sous-type précis, début de partie, et les déclencheurs de surveillance du plateau (hors `watchReveal`). Le moment exact de chaque déclencheur de créature est décrit en 7.9.
 
-**Effets encore non câblés :**
-- **Fixer le coût des cartes, Réduire le coût d'activation, Réveler depuis une source autre que votre propre deck** : configurables dans l'éditeur, pas encore interprétés par le moteur.
-- **Invoquer des copies de cette carte** : fonctionne, mais seulement comme capacité "à l'entrée en jeu" d'une Créature — ne fonctionnerait pas utilisé ailleurs (sortilège, pouvoir de héros).
-- **Effets Contrer, Rediriger une cible, Désarmer les pièges adverses, Voler du mana** : évoqués par certaines cartes de référence, pas encore des effets utilisables dans le système actuel.
+**Effets non pris en charge :**
+- **Épuiser un artefact** (`exhaustArtifact`) : configurable dans l'éditeur, mais ignoré par le moteur.
+- **Effets personnalisés** (texte libre) : jamais interprétables par nature, toujours sans effet mécanique.
+
+**Effets qui fonctionnent avec une limite :**
+- **Fixer une statistique, y compris le coût** : fonctionne sur une créature ou un artefact **en jeu**. Sur une carte en main ou dans le deck, « Fixer le coût » n'a aucun effet (on peut en revanche réduire le coût d'une carte précise avec « Réduire le coût », ou fixer Force/Endurance d'un groupe de cartes en main ou en deck).
+- **Invoquer des copies de cette carte** : la créature qui porte la capacité (ou la créature ciblée) sert de modèle ; sans modèle, l'effet ne fait rien (voir 7.4).
+- **Réveler** : fonctionne depuis votre deck, votre défausse, le deck adverse ou la défausse adverse, ou depuis une liste de cartes nommées. Le choix se fait parmi 3 cartes au plus, la carte choisie va en main (la destination « directement en jeu » n'existe pas pour Réveler) et elle est retirée de sa zone d'origine.
+- **Réduire le coût d'activation** : réduit le coût d'activation de la carte qui porte la capacité.
+- **Sacrifice (effet)** : sacrifie une créature **tirée au hasard** parmi celles du camp visé (la cible désignée n'est pas utilisée).
+
+**Effets qui fonctionnent :**
+- **Contrer** : annule la carte jouée par l'adversaire (elle va en défausse, son effet n'a pas lieu).
+- **Rediriger une cible** : remplace la cible d'un effet adverse visant une créature alliée par une autre cible.
+- **Désarmer les pièges adverses** : tous les Pièges posés de l'adversaire redeviennent des cartes normales en main.
+- **Voler du mana** : pendant X tours, au début de son tour, l'adversaire perd X mana (le normal d'abord, puis le fragile) et vous le recevez en mana fragile.
 
 **Autres écarts :**
 - **Condition "mana ne vient pas de la région"** : non interprétable sans suivre la provenance exacte de chaque point de mana dépensé ; toujours considérée comme remplie par défaut.
-- **Effet alternatif des Régions** (% de chance de faire autre chose que du mana) : le jet de probabilité n'est pas branché, et l'"autre chose" est en texte libre, donc pas structurée pour être exécutée automatiquement.
+- **Remplacement du gain de mana d'une Région** : fonctionne (si les conditions de la capacité, y compris « X % de chance », sont remplies, ses effets remplacent le gain normal ; sinon le gain normal a lieu). Seul un effet « autre chose » écrit en texte libre n'est pas exécutable.
 - **Conditions personnalisées et effets personnalisés** (texte libre) : jamais interprétables par nature, toujours considérés comme remplis / sans effet mécanique.
 - **Coût additionnel "Personnalisé"** (texte libre) : comme pour les conditions/effets personnalisés, aucune traduction mécanique possible ; toujours traité comme payable sans conséquence.
 
 Le **coût additionnel** (sacrifice, défausse, perte de PV) est réellement vérifié et payé par le moteur pour jouer une carte, y compris pour l'IA. Pour le joueur humain, s'il y a plus d'une créature possible à sacrifier, le jeu lui demande laquelle plutôt que de choisir automatiquement (l'IA, elle, sacrifie toujours la plus faible). La défausse pioche une carte au hasard parmi les autres cartes en main.
 
-Une capacité peut désormais avoir plusieurs déclencheurs différents en même temps sur une seule carte (avant ce lot de correctifs, une carte de type Créature/Héros/Région/Artefact ne pouvait avoir qu'une seule capacité réellement interprétée par le moteur, même si l'éditeur en acceptait plusieurs).
+Une capacité peut avoir plusieurs déclencheurs différents en même temps sur une seule carte (ils fonctionnent en OU).
 
-Tout le reste décrit dans ce document (mana, combat, mots-clés, Pièges, effets listés en section 9 hors les exceptions ci-dessus) est réellement implémenté et appliqué par le moteur.
+Tout le reste décrit dans ce document (mana, combat, créatures, mots-clés, Pièges, effets listés en section 9 hors les exceptions ci-dessus) est réellement implémenté et appliqué par le moteur.
 
 ## 12. Refonte des capacités (2026) — décisions de conception
 
-Cette section trace les décisions prises pendant la refonte complète du système de capacités de l'éditeur (déclencheurs, conditions, effets, cibles, mots-clés), pour ne pas les perdre avant l'implémentation côté moteur. **Rien ci-dessous n'est encore câblé dans `spellcraft-prototype.html`** — uniquement dans l'éditeur pour l'instant.
+Cette section trace les décisions prises pendant la refonte complète du système de capacités de l'éditeur (déclencheurs, conditions, effets, cibles, mots-clés). Le moteur en applique désormais une grande partie ; l'état de chaque décision, relevé dans le code du serveur le 6 octobre 2026, est indiqué ci-dessous.
 
-**Règle générale de ciblage (important, pas encore appliquée dans le moteur) :** pour toute carte qui a besoin d'une cible, si aucune cible valable n'existe (ou si la sélection "Exactement X" ne peut pas être remplie), **la carte ne peut pas être jouée du tout** — ce n'est pas un échec partiel à la résolution, c'est un blocage en amont, au même titre que ne pas avoir assez de mana. Il faudra vérifier la disponibilité de cibles valables AVANT de permettre de jouer la carte, pas après.
+**Règle générale de ciblage — non appliquée par le serveur :** la décision voulue est que, pour toute carte qui a besoin d'une cible, si aucune cible valable n'existe (ou si la sélection "Exactement X" ne peut pas être remplie), **la carte ne peut pas être jouée du tout** (un blocage en amont, au même titre que ne pas avoir assez de mana). Le serveur ne fait pas cette vérification : la carte reste jouable et, faute de cible, l'effet est simplement ignoré. (Une éventuelle vérification côté interface n'a pas été examinée.)
 
-**Règle "Regarder" (discover) :** une carte "regardée" depuis le deck, la défausse, ou la main d'un joueur est **toujours retirée de sa zone d'origine**, peu importe où elle finit ensuite (main, jeu...). On ne copie jamais la carte — elle change de zone, elle n'existe jamais à deux endroits en même temps.
+**Règle "Regarder" (discover) — appliquée :** une carte révélée depuis un deck ou une défausse (la vôtre ou celle de l'adversaire) est **toujours retirée de sa zone d'origine**, peu importe où elle finit ensuite. On ne copie jamais la carte. Les cartes proposées mais non choisies restent dans leur zone. La main d'un joueur n'est pas une source possible dans le moteur.
 
-**Cas particulier de la règle générale de ciblage :** si un effet "Regarder N cartes" porte sur une zone qui contient moins de N cartes (ex : regarder 3 cartes de la défausse alors qu'il n'y en a que 2, ou 0), l'effet ne peut pas se jouer — même conséquence que l'absence de cible valable : la carte entière ne peut pas être jouée.
+**Cas particulier de la règle générale de ciblage — non appliqué :** si un effet "Regarder N cartes" porte sur une zone qui contient moins de N cartes, le moteur propose simplement les cartes disponibles (jusqu'à 3) et ne fait rien s'il n'y en a aucune ; la carte reste jouable.
 
-**Sous-type vide :** dans une condition/cible qui filtre par sous-type, laisser le champ vide signifie "sans sous-type" (aucun sous-type sur la carte), pas "n'importe quel sous-type".
+**Sous-type vide — non appliqué :** la décision voulue est que, dans une condition/cible qui filtre par sous-type, un champ vide signifie "sans sous-type". Dans le moteur, un sous-type vide dans un filtre de cible signifie "pas de filtre" (n'importe quel sous-type), et dans une condition de comptage il ne correspond à aucune carte.
 
-**Mot-clé Protection retiré**, remplacé par Protecteur (ne peut pas attaquer), qui n'a aucun rapport avec l'ancien Protection (ne peut pas être ciblée par un sort).
+**Mot-clé Protection retiré — appliqué :** il n'existe plus dans le moteur. Il est remplacé par Protecteur (ne peut pas attaquer), qui n'a aucun rapport avec l'ancien Protection (ne peut pas être ciblée par un sort). Protecteur et Toxique sont câblés.
 
-**"Mal d'invocation"** est le nom officiel donné à la règle déjà existante (créature sans Charge ne peut pas agir le tour où elle arrive) — reste une règle automatique, pas un mot-clé à cocher sur une carte ; a seulement besoin d'une vraie animation (Zzz).
+**"Mal d'invocation" — appliqué :** nom officiel de la règle (créature sans Charge ne peut pas attaquer le tour où elle arrive) ; c'est une règle automatique, pas un mot-clé à cocher sur une carte. L'animation (Zzz) existe côté interface.
 
-**Sacrifice en tant qu'effet** (`sacrificeEffect`) est distinct du coût additionnel "sacrifier une créature" pour jouer une carte — l'un est un coût à payer avant de jouer la carte, l'autre est une conséquence de la capacité elle-même une fois déclenchée.
-
-**À faire côté moteur (pas encore fait) :** `spellcraft-prototype.html` a encore toute la logique mécanique de l'ancien mot-clé Protection (y compris une carte de démonstration, "Garde Protégée", qui l'utilise) — à retirer/remplacer par Protecteur et Toxique quand on câblera les mots-clés côté moteur. Idem pour tous les autres points listés ci-dessus : rien de tout ça n'est encore interprété par le moteur, uniquement configurable dans l'éditeur.
+**Sacrifice en tant qu'effet** (`sacrificeEffect`) est distinct du coût additionnel "sacrifier une créature" pour jouer une carte — l'un est un coût à payer avant de jouer la carte, l'autre est une conséquence de la capacité elle-même une fois déclenchée. Dans le moteur, l'effet sacrifie une créature tirée au hasard dans le camp visé.
