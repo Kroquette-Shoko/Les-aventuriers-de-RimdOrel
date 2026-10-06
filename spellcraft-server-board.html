@@ -4915,7 +4915,9 @@ let ACTION_IN_FLIGHT = false;
 // sans ça, une action refusée par le serveur paraissait « ne rien faire »).
 const ACTION_ERROR_LABELS = {
   'pending-sacrifice-choice': 'choisis d\'abord la créature à sacrifier.',
-  'cannot-block': 'cette créature est étourdie ou gelée et ne peut pas agir.'
+  'cannot-block': 'cette créature ne peut pas bloquer (étourdie, gelée, Peureuse ou a déjà bloqué).',
+  'attacker-not-declared': 'cet attaquant n\'est pas déclaré ce tour.',
+  'attacker-gone': 'cet attaquant n\'est plus en jeu.'
 };
 function describeActionError(err){
   const key = String(err);
