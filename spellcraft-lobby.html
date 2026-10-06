@@ -250,9 +250,14 @@ const LAST_DECK_STORAGE_KEY = 'spellcraft-last-used-deck-id';
 
 function deckSummaryLobby(d, collection){
   const hero = collection.find(c=>c.id===d.heroId);
-  const region = collection.find(c=>c.id===d.regionId);
+  const chosenRegion = collection.find(c=>c.id===d.regionId);
+  // Région absente ou invalide (introuvable, mauvais type, mauvaise classe) :
+  // la Côte de Rimd'Orël est utilisée par défaut, comme côté serveur.
+  const regionOk = isRegionValidForHero(chosenRegion, hero);
+  const region = regionOk ? chosenRegion : collection.find(c=>c.id===DEFAULT_REGION_ID);
   const total = (d.cards||[]).reduce((s,c)=>s+c.count,0);
-  return { hero, region, total, valid: !!hero && !!region && total>0 };
+  // La région n'est plus obligatoire pour lancer une partie.
+  return { hero, region, regionIsDefault: !regionOk, total, valid: !!hero && total>0 };
 }
 
 async function initLobby(){
@@ -319,6 +324,7 @@ function renderDeckGrid(){
         <div class="db-hero" style="${heroImg?`background-image:url('${heroImg.replace(/'/g,"")}')`:''}"></div>
       </div>
       <div class="db-name-below">${escapeHtmlLobby(d.name||'Deck sans nom')}</div>
+      <div class="db-region-below" style="font-size:11px;opacity:.75;text-align:center;">${escapeHtmlLobby((sum.region && sum.region.name) || "Côte de Rimd'Orël")}${sum.regionIsDefault ? ' (défaut)' : ''}</div>
     `;
     wrap.onclick = ()=>{ CHOSEN_DECK_ID = d.id; renderDeckGrid(); updateActionButtons(); };
     grid.appendChild(wrap);

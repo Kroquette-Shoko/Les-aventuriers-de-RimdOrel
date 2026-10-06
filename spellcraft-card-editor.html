@@ -846,11 +846,17 @@ const WATCH_TRIGGERS = ['watchPlay','watchArrival','watchDeath','watchAttack','w
 const TRIGGERS_BY_TYPE = {
   'Créature': ['onPlay','onAttack','onBlocked','onWasBlocked','onDealtHeroDamage','onDamaged','onHealed','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
   'Héros':    ['gameStart','onPlay','onDamaged','onHealed','onKill','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
-  'Région':   ['gameStart','onPlay','onDestroyed','onReturnFromGraveyard','manaAlternative','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
+  // Une Région n'est jamais jouée, détruite, ni ramenée du cimetière, et n'a
+  // pas de capacité activée : ces déclencheurs ne sont pas proposés ici.
+  'Région':   ['gameStart','manaAlternative','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS],
   'Artefact': ['onPlay','onUse','onDestroyed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
   'Sortilège':['onPlay','onDrawn'],
   'Piège':    ['onOpponentAttack','onOpponentSpell','onOpponentPlayCreature','onOpponentPlayArtifact','onOpponentPlayCard','onOpponentEndTurn','onOpponentTargetsAlly','onAllySurvivesCombat','onEnemySurvivesCombat','beforeAllyFights','onAllyBlocked','onDestroyed','gameStart','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS]
 };
+
+// Déclencheurs que le moteur n'applique jamais à une Région (voir règles §
+// Régions) : utilisés pour avertir si une ancienne carte en contient encore.
+const REGION_FORBIDDEN_TRIGGERS = ['onPlay','onDestroyed','onReturnFromGraveyard','activated'];
 
 const TRIGGER_TEXT = {
   usedXTimes: 'Après avoir utilisé cette capacité X fois',
@@ -2249,10 +2255,14 @@ function rebuildAbilitiesUI(){
   const availableTriggers = TRIGGERS_BY_TYPE[currentType] || [];
   const isSpellLike = currentType==='Sortilège';
 
+  let regionConverted = 0;
   abilities.forEach((ab, idx)=>{
     if(!ab.kind) ab.kind = 'triggered';
     if(!ab.triggers || ab.triggers.length===0) ab.triggers = [ blankTriggerEntry() ];
-    ab.triggers.forEach(te=>{ if(!te.trigger || !availableTriggers.includes(te.trigger)) te.trigger = availableTriggers[0]; });
+    ab.triggers.forEach(te=>{
+      if(currentType==='Région' && REGION_FORBIDDEN_TRIGGERS.includes(te.trigger)) regionConverted++;
+      if(!te.trigger || !availableTriggers.includes(te.trigger)) te.trigger = availableTriggers[0];
+    });
 
     const box = document.createElement('div');
     box.className = 'ability-card';
@@ -2634,6 +2644,16 @@ function rebuildAbilitiesUI(){
 
   if(abilities.length===0){
     list.innerHTML = `<div class="empty-state">Aucune capacité. Clique sur "+ Ajouter une capacité" pour commencer.</div>`;
+  }
+
+  if(currentType==='Région'){
+    // Note permanente + avertissement si d'anciens déclencheurs viennent d'être remplacés.
+    const note = document.createElement('div');
+    note.className = 'hint';
+    note.style.cssText = 'margin:0 0 10px;padding:8px 10px;border:1px solid var(--gold, #d4af37);border-radius:8px;';
+    note.innerHTML = `<strong>Région :</strong> une Région n'est jamais jouée, détruite, ciblée ni ramenée du cimetière, et n'a pas de capacité activée. Seuls les déclencheurs « Au début de la partie », « Remplace le gain de mana » (début de tour), de tour, et les capacités continues sont pris en compte par le jeu.`
+      + (regionConverted ? `<br><strong style="color:var(--red, #e66);">${regionConverted} déclencheur(s) non autorisé(s) pour une Région (Début, détruite, retour du cimetière ou capacité activée) ont été remplacés par « Au début de la partie » : vérifie et corrige la capacité avant d'enregistrer.</strong>` : '');
+    list.prepend(note);
   }
 }
 

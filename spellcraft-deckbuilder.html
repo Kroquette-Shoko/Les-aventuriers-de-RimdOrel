@@ -911,8 +911,7 @@ function getFilteredSortedCollection(){
     if(currentDeck && deckBuildStep){
       if(deckBuildStep==='region'){
         if(c.type!=='Région') return false;
-        const hero = deckHeroCard();
-        return !hero || c.class===hero.class || c.class===hero.classSecondary || c.class==='Neutre';
+        return isRegionValidForHero(c, deckHeroCard());
       }
       if(deckBuildStep==='cards'){
         if(c.type==='Héros' || c.type==='Région') return false;
@@ -2162,6 +2161,19 @@ async function confirmBulkDisenchant(){
   renderBinder();
 }
 
+// Région facultative : on passe à l'étape suivante sans région ; le serveur
+// (et le lobby) utilisent alors la Côte de Rimd'Orël par défaut.
+function skipRegionStep(){
+  if(!currentDeck || deckBuildStep!=='region') return;
+  currentDeck.regionId = null;
+  deckBuildStep = 'cards';
+  flashSaved('✓ Aucune région choisie : la Côte de Rimd\'Orël sera utilisée');
+  currentPage = 0;
+  renderDeckPanel();
+  renderWizardHint();
+  renderBinder('spread');
+}
+
 function wizardBack(){
   if(!currentDeck) return;
   if(deckBuildStep==='region'){ deckBuildStep='hero'; currentDeck.heroId=null; }
@@ -2178,9 +2190,10 @@ function renderWizardHint(){
   if(!el) return;
   if(!currentDeck || !deckBuildStep){ el.style.display='none'; return; }
   el.style.display='flex';
-  const labels = { hero:'Étape 1/3 — Choisis ton Héros', region:'Étape 2/3 — Choisis ta Région (de ta classe ou Neutre)', cards:'Étape 3/3 — Construis ton deck (30 cartes)' };
+  const labels = { hero:'Étape 1/3 — Choisis ton Héros', region:'Étape 2/3 — Choisis ta Région (de ta classe ou Neutre) — facultatif : sans choix, la Côte de Rimd\'Orël est utilisée', cards:'Étape 3/3 — Construis ton deck (30 cartes)' };
   const showBack = deckBuildStep==='region' || deckBuildStep==='cards';
-  el.innerHTML = `${showBack?'<button class="btn small" onclick="wizardBack()">← Retour</button>':''}<span>${labels[deckBuildStep]}</span>`;
+  const skipBtn = deckBuildStep==='region' ? '<button class="btn small" onclick="skipRegionStep()">Utiliser la Côte de Rimd\'Orël (défaut) →</button>' : '';
+  el.innerHTML = `${showBack?'<button class="btn small" onclick="wizardBack()">← Retour</button>':''}<span>${labels[deckBuildStep]}</span>${skipBtn}`;
 }
 
 /* ============================================================
@@ -2248,7 +2261,6 @@ function onDeckNameChange(){
 async function saveDeck(){
   if(!currentDeck) return;
   if(!currentDeck.heroId){ flashError('Choisis un Héros avant de sauvegarder.'); return; }
-  if(!currentDeck.regionId){ flashError('Choisis une Région avant de sauvegarder.'); return; }
   const res = await saveUserDeck(currentDeck);
   if(res.error){ flashError('Erreur : ' + res.error); return; }
   currentDeck.id = res.id;
@@ -2309,13 +2321,18 @@ function renderDeckPanel(){
   }
 
   const regionSlot = document.getElementById('region-slot');
-  const regionCard = currentDeck.regionId ? cardById(currentDeck.regionId) : null;
-  if(regionCard){
+  const chosenRegion = currentDeck.regionId ? (cardById(currentDeck.regionId) || allCardsCache.find(c=>c.id===currentDeck.regionId)) : null;
+  const regionOk = isRegionValidForHero(chosenRegion, heroCard);
+  if(chosenRegion && regionOk){
     regionSlot.classList.add('set');
-    regionSlot.innerHTML = `<div id="hero-mini" style="color:var(--green);">${escapeHtml(regionCard.name[0]||'R')}</div><span>${escapeHtml(regionCard.name)}</span>`;
+    regionSlot.innerHTML = `<div id="hero-mini" style="color:var(--green);">${escapeHtml(chosenRegion.name[0]||'R')}</div><span>${escapeHtml(chosenRegion.name)}</span>`;
   } else {
-    regionSlot.classList.remove('set');
-    regionSlot.textContent = 'Clique une carte Région dans le classeur pour la définir';
+    // Aucune région, ou région invalide (introuvable, mauvais type, mauvaise classe) : Côte par défaut.
+    const defRegion = allCardsCache.find(c=>c.id===DEFAULT_REGION_ID);
+    const defName = defRegion ? defRegion.name : "Côte de Rimd'Orël";
+    const why = currentDeck.regionId ? 'région choisie invalide' : 'aucune région choisie';
+    regionSlot.classList.add('set');
+    regionSlot.innerHTML = `<div id="hero-mini" style="color:var(--green);">${escapeHtml(defName[0]||'R')}</div><span>${escapeHtml(defName)} <em style="opacity:.7;">(par défaut — ${why})</em></span>`;
   }
 
   populateDeckCardBackSelect();
