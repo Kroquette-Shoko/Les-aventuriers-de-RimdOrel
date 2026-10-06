@@ -1841,6 +1841,19 @@ function renderGameLog(){
     const isMe = entry.ownerKey===MY_KEY;
     const line = document.createElement('div');
     line.className = 'journal-entry';
+    // Entrées de région : le texte vient toujours de la carte (nom + effets du
+    // serveur), jamais d'un libellé figé côté client. Si le nom manque, on le
+    // relit sur la région du joueur concerné ; si l'entrée n'a ni nom ni
+    // effet lisible, on affiche une phrase neutre plutôt que « undefined ».
+    const isRegionKind = typeof entry.kind==='string' && entry.kind.indexOf('region')===0;
+    if(!entry.raw && !entry.cardName && isRegionKind){
+      const rp = S[entry.ownerKey];
+      if(rp && rp.region && rp.region.name){ entry.cardName = rp.region.name; if(!entry.cardId) entry.cardId = rp.region.id; }
+    }
+    if(!entry.raw && !entry.cardName){
+      const plain = (typeof entry.text==='string' && entry.text) || (typeof entry.message==='string' && entry.message) || '';
+      entry.raw = plain || (isRegionKind ? '{who} : une région se déclenche.' : '');
+    }
     if(entry.raw){
       // message de combat : {who} est remplacé, et si des créatures sont
       // listées, tout le texte devient survolable — surbrillance sur
@@ -1852,7 +1865,7 @@ function renderGameLog(){
         line.onmouseleave = onJournalEffectLeave;
       }
     } else {
-      const nameSpan = `<span class="card-name-ref" data-cardid="${entry.cardId||''}">"${escapeHtmlGS(entry.cardName)}"</span>`;
+      const nameSpan = `<span class="card-name-ref" data-cardid="${escapeHtmlGS(String(entry.cardId||''))}">"${escapeHtmlGS(String(entry.cardName||''))}"</span>`;
       // Une phrase d'en-tête distincte par catégorie — validées ensemble,
       // voir la conversation sur la refonte du journal.
       const headerPhrase = ({
@@ -1866,8 +1879,14 @@ function renderGameLog(){
         artifact_trigger: `La capacité de ${nameSpan} se déclenche.`,
         region_trigger: isMe ? `La capacité de votre région ${nameSpan} se déclenche.` : `La capacité de la région adverse ${nameSpan} se déclenche.`,
         region_activate: isMe ? `Vous activez la capacité de votre région ${nameSpan}.` : `L'adversaire active la capacité de sa région ${nameSpan}.`,
-      })[entry.kind] || `${who} joue ${nameSpan}.`;
-      const effects = entry.effects || [];
+        // La région remplace le gain de mana du début de tour (le texte précis
+        // de l'effet suit, fourni par le serveur) :
+        region_replace: isMe ? `Votre région ${nameSpan} remplace votre gain de mana.` : `La région adverse ${nameSpan} remplace son gain de mana.`,
+      })[entry.kind] || (isRegionKind
+        ? (isMe ? `La capacité de votre région ${nameSpan} se déclenche.` : `La capacité de la région adverse ${nameSpan} se déclenche.`)
+        : `${who} joue ${nameSpan}.`);
+      // On ignore les effets sans texte (évite « Vous undefined. »).
+      const effects = (entry.effects || []).filter(e=>e && typeof e.text==='string' && e.text.trim());
       const header = document.createElement('div');
       header.className = 'journal-entry-card';
       if(effects.length <= 1){

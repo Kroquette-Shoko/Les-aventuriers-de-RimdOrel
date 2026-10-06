@@ -14,12 +14,13 @@ Chaque joueur incarne un **Héros** avec des Points de Vie. Un joueur perd la pa
 
 Un deck est composé de :
 - **1 Héros** (obligatoire, hors des 30 cartes)
-- **1 Région** (obligatoire, hors des 30 cartes) — définit la règle de gain de mana du joueur
+- **1 Région** (hors des 30 cartes) — elle peut remplacer le gain de mana du joueur (voir 3.4). Elle est facultative : sans Région (ou avec une Région invalide), la **Côte de Rimd'Orël** est utilisée.
 - **30 cartes** (Créatures, Sortilèges, Pièges, Artefacts)
 
 **Règles de classe :**
 - Le Héros impose une **classe** au deck (Aube, Crépuscule, Volonté, Prima, Arcane).
 - Seules les cartes de cette classe, ou de la classe **Neutre**, sont autorisées par défaut.
+- La **Région** suit la même idée : elle doit être de la classe du Héros (ou de sa classe secondaire), ou Neutre (voir 3.4). Elle n'entre pas dans le plafond des cartes d'une autre classe d'une règle multi-classe.
 - Un Héros peut porter une **règle multi-classe** optionnelle : "Autorise jusqu'à X cartes [de tel type précis, ou toutes] d'une autre classe précise." Cette règle est réellement appliquée par le deckbuilder : au-delà du plafond X, ou hors du type autorisé si un type est précisé, la carte est refusée.
 - Une carte peut avoir une **classe secondaire** (carte bicolore). Elle compte comme appartenant aux deux classes pour la règle de deckbuilding.
 
@@ -39,7 +40,7 @@ Un deck est composé de :
 | Type | Coût de mana | Statistiques | Comportement |
 |---|---|---|---|
 | **Héros** | Aucun | PV | Toujours en jeu dès le début de la partie. Porte la classe du deck, peut avoir des capacités (y compris activées). |
-| **Région** | Aucun | — | Toujours en jeu dès le début. Définit la **règle de mana** du deck (remplace ou modifie le gain normal). Peut aussi avoir des capacités. |
+| **Région** | Aucun | — | Toujours en jeu dès le début, ni jouée, ni détruite, ni ciblable. Peut **remplacer le gain de mana** de votre début de tour (voir 3.4) et peut avoir des capacités automatiques ; elle n'a pas de capacité activée. |
 | **Créature** | Oui | Force / Endurance | Peut attaquer, bloquer, mourir. Porte la majorité des mots-clés de combat (voir la section 7). |
 | **Artefact** | Oui | Usure (charges) | Reste en jeu (2 au maximum par joueur) sans combattre. Se pose en payant son coût de mana (c'est le seul moment où il en coûte), puis s'utilise gratuitement 1 fois par tour (« Utiliser : … »). Chaque utilisation, et chaque déclenchement automatique d'un effet passif, lui retire 1 charge ; quand sa dernière charge disparaît, il est détruit. Voir la section 8. |
 | **Sortilège** | Oui | — | Effet immédiat à la résolution, puis va en défausse. |
@@ -71,13 +72,55 @@ Cinq raretés existent, de la plus commune à la plus rare : **Basique, Commune,
 
 Une carte peut aussi être marquée **Foil** : purement cosmétique, elle affiche un reflet arc-en-ciel qui balaie la carte au survol de la souris ou automatiquement toutes les 10 secondes. Aucun effet sur les règles.
 
+### 3.4 Les Régions
+
+#### En deux phrases
+Votre **Région** est une carte qui reste toujours en jeu, à côté de votre Héros. À chaque début de tour, vous gagnez normalement du mana ; certaines Régions donnent en plus une **chance** (30 %, 40 %...) de faire autre chose **à la place** de ce gain de mana : conjurer une carte, gagner de la vie, infliger des dégâts, etc.
+
+#### Choisir sa Région
+- Un deck a **une** Région, choisie en plus de ses 30 cartes. Elle n'est pas obligatoire.
+- **Classe :** une Région n'est utilisable que si sa classe est celle du Héros du deck (ou sa classe secondaire), ou **Neutre**. Le deckbuilder ne propose que ces Régions, et le serveur le vérifie aussi au lancement de la partie.
+- **Région par défaut :** si le deck n'a pas de Région, ou si la Région choisie est invalide (introuvable, pas de type Région, mauvaise classe), la **Côte de Rimd'Orël** est utilisée à la place. Cela n'empêche pas de lancer la partie : le deckbuilder et l'écran de lancement présentent la Côte comme Région du deck.
+
+#### Quand une Région se déclenche
+- Le **compteur de tours** d'une Région est celui de **votre propre tour** : « à partir du tour 5 » signifie « à partir de **votre** 5e tour », et non du 5e tour de la partie. Le joueur qui joue en second n'est donc pas désavantagé : son 1er tour est aussi son tour n°1. Cela vaut pour « À partir du tour X » (`turnAtLeast`) comme pour « Au début de votre tour X » (`startOfTurnX`, exactement ce tour-là). Chaque joueur a son compteur et son propre tirage de chance.
+- **Remplacement du gain de mana.** Au début de votre tour, si les conditions de la Région sont remplies (tour personnel atteint, puis tirage de la chance), ses effets ont lieu **à la place** du gain de mana normal : vous ne gagnez pas le mana du tour. Si la condition n'est pas remplie ou si le tirage échoue, vous gagnez le mana normal. L'ordre exact est décrit à la section 5.
+- **Début de partie** (`gameStart`, « Au début de la partie ») : se déclenche une seule fois, à la **fin du 2e mulligan du joueur n°1, puis pour le joueur n°2**, avant le gain de mana du tout premier tour. Pendant le mulligan, les effets de début de partie n'ont donc pas encore eu lieu.
+- **Tout premier tour du premier joueur :** il ne pioche pas, et ses capacités « Au début de votre tour » (celles de sa Région comprises) ne se déclenchent pas, car le moteur ne lance pas de « début de tour » à cet instant. Seul le gain de mana de ce tour a lieu ; la Région pourrait le remplacer si sa condition était remplie, mais aucune Région actuelle ne le peut au tour 1 (leurs seuils sont au tour 3 ou plus). Le joueur n°2 a, lui, un début de tour complet à son premier tour.
+- Une Région n'a pas de « Début » (elle n'est jamais jouée depuis la main), de « Quand je suis détruite » ni de « retour du cimetière », et **pas de capacité activée** : l'éditeur ne propose pas ces options pour une Région.
+
+#### Une Région ne peut jamais être détruite ni ciblée
+Aucun sort, effet, piège ou capacité ne peut détruire une Région, ni la prendre pour cible (renvoyer, copier, voler, silencer...). *À venir :* de futurs effets pourront augmenter la chance de déclenchement d'une Région ou la remplacer ; ils ne sont pas encore définis.
+
+#### Règles communes aux effets de Région
+- **Conjurer une carte** : elle va en main. Si votre main est pleine (8 cartes), la carte conjurée est **perdue** (envoyée au cimetière), exactement comme une pioche. La carte conjurée n'a **aucune restriction de classe** liée à votre deck.
+- **Conjurer une créature directement en jeu** : si votre plateau est plein (8 créatures), la créature est **perdue** ; elle ne passe pas par la main.
+- **Gain de mana vide** : suit la règle générale du mana vide (section 4) : il augmente votre maximum, mais ne peut **pas** être utilisé le tour même.
+- Le texte de l'effet affiché dans le jeu est toujours celui de la carte.
+
+#### Les 10 Régions
+Elles suivent toutes les règles ci-dessus. Les textes sont ceux des cartes.
+
+| Région | Classe | Effet exact |
+|---|---|---|
+| **Côte de Rimd'Orël** (Région par défaut) | Neutre | Vous gagnez 1 mana au début de votre tour. Aucune chance, aucun remplacement. |
+| **Conduit de Clébreaux** | Prima | À partir de votre tour 6, 30 % de chance, au lieu de gagner du mana, d'infliger **3 points de dégâts répartis au hasard** : chaque point est lancé sur une cible tirée au hasard parmi les créatures adverses et le héros adverse. Une même cible peut recevoir plusieurs points. |
+| **Château des Arlow** | Aube | À partir de votre tour 5, 30 % de chance, au lieu de gagner du mana, de conjurer une créature Aube de coût 2 ou moins et de lui donner +1/+1. |
+| **Cimetière oublié** | Crépuscule | À partir de votre tour 4, 30 % de chance, au lieu de gagner du mana, de donner +1/+0 **de façon permanente** à chaque créature que vous jouez ce tour-ci. |
+| **Sentier de la gloire** | Volonté | À partir de votre tour 5, 30 % de chance, au lieu de gagner du mana, de donner **Parade** et +1/+1 à la première créature que vous jouez ce tour-ci. L'effet en attente disparaît en fin de tour s'il n'a pas servi ; le bonus de statistiques, lui, reste **permanent** sur la créature. |
+| **Bibliothèque cachée de Sareldacroix** | Arcane | À partir de votre tour 6, 30 % de chance, au lieu de gagner du mana, de conjurer un sortilège qui coûte 6 ou moins. |
+| **La forêt des immensités** | Prima | À partir de votre tour 6, 30 % de chance, au lieu de gagner du mana, de gagner 1 mana par créature que vous avez en jeu, pour ce tour. |
+| **Village kobold** | Neutre | Au début de votre tour 3 (exactement), 40 % de chance de conjurer un « Kobold » directement en jeu (perdu si le plateau est plein), puis de gagner 1 mana vide (non utilisable ce tour-ci), au lieu du gain de mana normal. |
+| **Antique forge des façonneurs** | Volonté | « Le premier artefact coûte 1 de moins. » À partir de votre tour 5, 30 % de chance, au lieu de gagner du mana, d'ajouter un artefact aléatoire dans votre deck. |
+| **Sanctuaire oublié de Sarelcronix** | Crépuscule | Au début de la partie, vous gagnez 2 points de vie. À partir de votre tour 5, 30 % de chance, au lieu de gagner du mana, de gagner 2 points de vie. |
+
 ---
 
 ## 4. Les ressources : trois types de mana
 
-1. **Mana normal** — gagné automatiquement chaque tour (sauf règle de Région différente). Se réinitialise chaque tour. **Dépensé en premier.**
+1. **Mana normal** — gagné automatiquement chaque tour (sauf si votre Région le remplace ce tour-là, voir 3.4). Se réinitialise chaque tour. **Dépensé en premier.**
 2. **Mana fragile** — obtenu via un effet ponctuel. Reste disponible tant qu'il n'est pas dépensé (ne se réinitialise pas, ne se perd pas en fin de tour). **Dépensé en second**, après le mana normal.
-3. **Mana vide** — augmente le mana **maximum** du joueur, mais pas le mana disponible ce tour-ci. Se comporte ensuite comme du mana normal les tours suivants (fait partie du total rechargé chaque tour). **Dépensé en dernier** parmi les mana disponibles au moment de payer un coût, si un choix doit être fait.
+3. **Mana vide** — augmente le mana **maximum** du joueur, mais pas le mana disponible ce tour-ci. Se comporte ensuite comme du mana normal les tours suivants (fait partie du total rechargé chaque tour). **Dépensé en dernier** parmi les mana disponibles au moment de payer un coût, si un choix doit être fait. Cette règle générale s'applique aussi au mana vide donné par une Région (par exemple le Village kobold) : il n'est pas utilisable le tour où il est gagné.
 
 > **Point à trancher :** Le mana vide, une fois gagné, augmente-t-il le max *pour toujours*, ou seulement le temps de la partie en cours (ce qui est de toute façon le cas, aucune persistance entre parties) ? Je pars du principe qu'il s'ajoute au maximum de façon permanente pour le reste de la partie.
 
@@ -87,11 +130,12 @@ Une carte peut aussi être marquée **Foil** : purement cosmétique, elle affich
 
 1. **Début de tour** (dans cet ordre)
    - Les mots-clés temporaires (« ce tour-ci ») de vos créatures sont purgés.
-   - Application de la règle de mana de la Région (gain normal, ou règle alternative), puis déclenchement des capacités "Quand vous gagnez un point de mana".
+   - Application de la règle de mana de la Région : si ses conditions sont remplies (tour personnel atteint, puis chance), ses effets remplacent le gain normal, sinon vous gagnez le mana normal (voir 3.4) ; puis déclenchement des capacités "Quand vous gagnez un point de mana".
    - Déclenchement des capacités "Au début de votre tour" (chaque capacité d'artefact qui se résout lui retire 1 charge, voir la section 8).
    - Les cooldowns des capacités activées diminuent de 1.
    - Pioche d'une carte.
    - Le mal d'invocation de vos créatures prend fin ; les statuts « a déjà attaqué » et « a déjà bloqué » sont réinitialisés. (Gel et Étourdissement ne se terminent pas ici : voir la section 6.)
+   - *Tout premier tour du premier joueur :* il ne pioche pas, et seul le gain de mana de ce tour a lieu (voir 3.4) : ses capacités « Au début de votre tour » ne se déclenchent pas.
 
 2. **Phase principale**
    - Jouer des cartes (Créatures, Sortilèges, Artefacts, Pièges) en payant leur coût.
@@ -483,7 +527,7 @@ L'IA utilise désormais ses artefacts, **1 fois par tour chacun**, selon les mê
 - **« Voler une statistique » (Utilisation)** : peut mettre les charges d'un artefact à 0 ; même question : destruction ou non, non précisée.
 - **Réduire le coût d'activation** : sans effet utile sur un artefact, puisque son utilisation est gratuite.
 - **Artefacts renvoyés en main ou copiés** : les règles validées ne détaillent pas le nombre de charges de la carte qui revient en main ou de la copie (on suppose les charges d'origine, comme une carte neuve).
-- **Utiliser une capacité de Héros ou de Région** : inchangé (elles gardent leur coût en mana et leur éventuel cooldown) ; seul l'artefact est gratuit et limité à une fois par tour.
+- **Utiliser une capacité de Héros** : inchangé (elle garde son coût en mana et son éventuel cooldown) ; seul l'artefact est gratuit et limité à une fois par tour. Une Région n'a pas de capacité activée (voir 3.4).
 
 ---
 
@@ -491,7 +535,7 @@ L'IA utilise désormais ses artefacts, **1 fois par tour chacun**, selon les mê
 
 | Déclencheur | Se produit... |
 |---|---|
-| Au début de la partie | Une fois, à la mise en jeu du Héros/Région |
+| Au début de la partie | Une fois, à la fin du 2e mulligan du joueur n°1 puis pour le joueur n°2, avant le gain de mana du 1er tour (Héros, Région ; voir 3.4) |
 | Début *(onPlay)* | Quand la carte est jouée depuis la main (une créature créée par un effet ne le déclenche pas) ; pour un Piège, quand il est armé |
 | Quand cette créature attaque | À chaque attaque déclarée |
 | Quand cette carte subit des dégâts | Quand elle perd des PV : au combat seulement si elle survit ; par un sort ou un effet de dégâts même si le coup est fatal ; jamais si l'Armure absorbe le coup (voir 7.9) |
@@ -506,7 +550,7 @@ L'IA utilise désormais ses artefacts, **1 fois par tour chacun**, selon les mê
 | Quand vous gagnez un point de mana | À chaque incrément de mana (normal, fragile ou vide) |
 | **Quand vous piochez une carte** | Créature, Héros, Artefact — à chaque pioche, quelle qu'en soit la source (pour un artefact, chaque résolution lui retire 1 charge) |
 | Quand vous invoquez une créature du sous-type X | Quand une créature de ce sous-type arrive en jeu chez vous, quelle qu'en soit la source (main ou effet) ; le sous-type est défini carte par carte |
-| Capacité activée | Le joueur choisit de payer le coût pour déclencher l'effet (créature, Région, Héros ; voir 7.9 pour les créatures). Pour un artefact (« Utiliser : … »), aucun mana : gratuit, 1 fois par tour, 1 charge consommée (voir 8.4) |
+| Capacité activée | Le joueur choisit de payer le coût pour déclencher l'effet (créature, Héros ; voir 7.9 pour les créatures ; une Région n'en a pas). Pour un artefact (« Utiliser : … »), aucun mana : gratuit, 1 fois par tour, 1 charge consommée (voir 8.4) |
 
 **Artefacts et usure.** Pour un artefact, tout déclencheur ci-dessus qui se résout réellement lui retire 1 charge, sauf « Début » (arrivée en jeu), « Quand je suis détruit » et la capacité « Utiliser » (qui a sa propre charge). Détails en 8.4.
 
@@ -546,7 +590,7 @@ Les capacités peuvent avoir des **conditions** (santé du héros, taille de mai
 1. **Mana vide** : augmente le maximum de façon permanente pour le reste de la partie.
 2. **Armure** : absorbe le premier dégât positif subi, qu'il vienne du combat, d'un sort ou d'un effet de dégâts. Elle ne protège ni de la destruction directe, ni du sacrifice, ni des malus d'Endurance, ni du Gel/de l'Étourdissement (voir 7.7).
 3. **Déclencheurs simultanés** : le joueur ne choisit pas l'ordre (artefacts : voir 8.6). Pour un joueur donné, ses créatures se résolvent dans l'ordre de leur plateau, puis son héros, sa région, ses artefacts et ses Pièges armés. Pour les capacités qui surveillent les deux camps (et pour les morts simultanées), le moteur traite d'abord le joueur n°1 de la partie, puis le joueur n°2, que ce soit son tour ou non.
-4. **Sous-types et Régions** : seul le Héros impose la classe du deck. Une Région ne peut pas imposer de classe, mais rien n'empêche qu'une future carte le fasse si besoin s'en fait sentir.
+4. **Sous-types et Régions** : le Héros impose la classe du deck. Une Région doit être de la classe du Héros (ou de sa classe secondaire) ou Neutre ; une Région d'une autre classe est refusée par le deckbuilder et par le serveur, et la Côte de Rimd'Orël la remplace (voir 3.4). Une Région n'impose elle-même aucune classe aux cartes de votre deck ni aux cartes qu'elle conjure.
 5. **Blocage multiple** : plusieurs bloqueurs peuvent bloquer un même attaquant, et chacun subit alors un combat complet ; en revanche un bloqueur ne peut bloquer qu'**un seul** attaquant par tour (voir Section 6). Une exception à cette dernière règle pourra exister via un effet de carte précis ; elle n'est pas implémentée.
 6. **Pas de PV maximum** : les Points de Vie du héros n'ont aucun plafond. Soigner un héros déjà à sa valeur de départ (ou au-delà) l'augmente quand même — il n'y a pas de "vie maximale" qui bloquerait le soin, contrairement à ce que ferait un `Math.min(hp, maxHp)` classique.
 
@@ -560,11 +604,11 @@ L'éditeur de cartes permet de configurer certaines choses que le moteur n'inter
 
 **Déclencheurs de carte non câblés :**
 - **Héros** : `onKill` (le héros ne « tue » jamais directement : ce déclencheur n'est jamais appelé).
-- **Région** : `onDestroyed` (une Région n'est jamais détruite).
+- **Région** : `onPlay`, `onDestroyed` et `onReturnFromGraveyard` : sans effet (une Région n'est jamais jouée, détruite ni ramenée du cimetière) ; l'éditeur ne les propose plus pour une Région.
 - **Surveillance « Quand un joueur révèle »** (`watchReveal`) : jamais déclenchée. À côté, « Quand vous découvrez une carte » (`watchDiscovered`) l'est quand le joueur choisit une carte révélée, et « Quand une carte arrive après avoir été révélée » (`watchAfterReveal`) l'est par la Conjuration et le Vol de carte.
 - **« Quand vous défaussez une carte depuis votre main »** (`onHandDiscard`) : déclenché uniquement par l'effet « Défausser » (pas par le coût additionnel « défausser », ni par une main pleine).
 
-**Déclencheurs qui fonctionnent**, y compris pour les cartes déjà en jeu : toutes les capacités **activées** (créatures, artefacts, Région, pouvoir du Héros) ; à l'utilisation d'un artefact (`onUse`, voir 8.8 pour son lien avec les charges) ; **tous les déclencheurs de Pièges** (y compris « si l'adversaire cible une créature alliée », « après qu'une créature alliée / ennemie survit à un combat », « avant qu'une créature alliée ne combatte » et « si une créature alliée est bloquée ») ; ainsi que l'entrée en jeu, le retour du cimetière, début/fin de tour, attaque, blocage, dégâts, soin, mort, élimination d'une cible, gain de mana, pioche, invocation d'un sous-type précis, début de partie, et les déclencheurs de surveillance du plateau (hors `watchReveal`). Le moment exact de chaque déclencheur de créature est décrit en 7.9.
+**Déclencheurs qui fonctionnent**, y compris pour les cartes déjà en jeu : toutes les capacités **activées** (créatures, artefacts, pouvoir du Héros ; pas les Régions, qui n'en ont pas) ; à l'utilisation d'un artefact (`onUse`, voir 8.8 pour son lien avec les charges) ; **tous les déclencheurs de Pièges** (y compris « si l'adversaire cible une créature alliée », « après qu'une créature alliée / ennemie survit à un combat », « avant qu'une créature alliée ne combatte » et « si une créature alliée est bloquée ») ; ainsi que l'entrée en jeu, le retour du cimetière, début/fin de tour, attaque, blocage, dégâts, soin, mort, élimination d'une cible, gain de mana, pioche, invocation d'un sous-type précis, début de partie, et les déclencheurs de surveillance du plateau (hors `watchReveal`). Le moment exact de chaque déclencheur de créature est décrit en 7.9.
 
 **Effets non pris en charge :**
 - **Épuiser un artefact** (`exhaustArtifact`) : configurable dans l'éditeur, mais ignoré par le moteur.
@@ -586,6 +630,7 @@ L'éditeur de cartes permet de configurer certaines choses que le moteur n'inter
 **Autres écarts :**
 - **Condition "mana ne vient pas de la région"** : non interprétable sans suivre la provenance exacte de chaque point de mana dépensé ; toujours considérée comme remplie par défaut.
 - **Remplacement du gain de mana d'une Région** : fonctionne (si les conditions de la capacité, y compris « X % de chance », sont remplies, ses effets remplacent le gain normal ; sinon le gain normal a lieu). Seul un effet « autre chose » écrit en texte libre n'est pas exécutable.
+- **Régions : règles décidées le 6 octobre 2026, à vérifier côté serveur.** Les règles de la section 3.4 (tours personnels, classe vérifiée par le serveur, Côte de Rimd'Orël par défaut, Régions jamais ciblées ni détruites, conjuration perdue si main ou plateau plein, Conduit de Clébreaux réparti au hasard, Sentier de la gloire avec Parade et fin de tour, Cimetière oublié permanent, Village kobold en jeu puis mana vide) sont la décision de conception. Leur application dans le moteur serveur est en cours, menée séparément de la mise à jour du client, de l'éditeur et de cette documentation ; au dernier relevé du moteur (avant cette décision), le serveur ne vérifiait pas la classe de la Région, n'avait pas de Région par défaut, ne remettait pas à zéro l'effet du Sentier de la gloire en fin de tour, et n'écrivait aucune entrée de journal pour un remplacement du gain de mana. Tant que le déploiement n'est pas confirmé, le comportement réel peut différer de la section 3.4.
 - **Conditions personnalisées et effets personnalisés** (texte libre) : jamais interprétables par nature, toujours considérés comme remplis / sans effet mécanique.
 - **Coût additionnel "Personnalisé"** (texte libre) : comme pour les conditions/effets personnalisés, aucune traduction mécanique possible ; toujours traité comme payable sans conséquence.
 

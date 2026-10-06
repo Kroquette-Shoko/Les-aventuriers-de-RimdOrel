@@ -159,6 +159,21 @@ async function setUserCardQuantity(cardId, quantity){
   return { ok: true };
 }
 
+/* Région par défaut : utilisée quand un deck n'a pas de région, ou une
+   région invalide (introuvable, mauvais type, mauvaise classe). Le serveur
+   applique la même règle ; le client ne fait que la présenter. */
+const DEFAULT_REGION_ID = 'card_1784494729484_94'; // Côte de Rimd'Orël
+
+/* Une région est valide pour un deck si c'est une carte de type Région dont
+   la classe est celle du héros (ou sa classe secondaire) ou Neutre. */
+function isRegionValidForHero(region, hero){
+  if(!region || region.type !== 'Région') return false;
+  if(!hero) return true;
+  return region.class === 'Neutre'
+    || region.class === hero.class
+    || (!!hero.classSecondary && region.class === hero.classSecondary);
+}
+
 /* ============================================================
    DECKS SAUVEGARDÉS (liés au compte)
    ============================================================

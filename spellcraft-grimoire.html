@@ -113,10 +113,10 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
     <section id="mise-en-place">
       <h2>2. Mise en place d'une partie</h2>
       <ol class="steps">
-        <li>Chaque joueur choisit un <strong>deck</strong> (héros + région + cartes).</li>
+        <li>Chaque joueur choisit un <strong>deck</strong> (héros + région + cartes). La région est facultative : sans région (ou avec une région invalide), la <strong>Côte de Rimd'Orël</strong> est utilisée.</li>
         <li>Les decks sont mélangés, chacun pioche une <strong>main de départ de 4 cartes</strong>.</li>
         <li><strong>Mulligan</strong> : avant que la partie ne commence vraiment, chaque joueur peut renvoyer autant de cartes qu'il le souhaite parmi ces 4 — elles sont mélangées dans le deck et remplacées par de nouvelles cartes piochées au hasard.</li>
-        <li>Une fois les deux joueurs prêts, la partie démarre : le premier joueur actif est désigné, et le premier tour commence.</li>
+        <li>Une fois les deux joueurs prêts, la partie démarre : les effets « Au début de la partie » (par exemple ceux d'une région) se déclenchent alors, pour le joueur n°1 puis pour le joueur n°2, le premier joueur actif est désigné, et le premier tour commence. Le tout premier tour du premier joueur n'a pas de pioche ni de capacités « Au début de votre tour ».</li>
       </ol>
       <div class="callout">Le mulligan sert à se débarrasser d'une main trop chère à jouer (que des cartes à 5-6 mana, par exemple) sans pénalité — vous ne savez juste pas à l'avance ce que vous repiocherez à la place.</div>
     </section>
@@ -125,8 +125,8 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
       <h2>3. Déroulé d'un tour</h2>
       <p>Un tour se déroule toujours dans le même ordre :</p>
       <ol class="steps">
-        <li><strong>Début de tour</strong> — les mots-clés temporaires de vos créatures sont purgés, votre mana maximum augmente de 1 (jusqu'à 20), votre mana disponible est rechargé à ce maximum, les capacités "Au début de votre tour" se déclenchent (chaque effet d'artefact qui se résout lui retire 1 charge), vous piochez une carte, puis le mal d'invocation de vos créatures prend fin.</li>
-        <li><strong>Phase principale</strong> — vous pouvez, dans l'ordre que vous voulez et autant de fois que votre mana le permet : jouer des cartes de votre main (créatures, sortilèges, artefacts, pièges), activer les capacités activables de vos créatures et de votre région déjà en jeu, utiliser vos artefacts (gratuit, 1 fois par tour chacun), et utiliser le pouvoir de votre héros (une fois par tour).</li>
+        <li><strong>Début de tour</strong> — les mots-clés temporaires de vos créatures sont purgés, votre mana maximum augmente de 1 (jusqu'à 20), votre mana disponible est rechargé à ce maximum (sauf si votre région <a href="#regions">remplace ce gain de mana</a> ce tour-là), les capacités "Au début de votre tour" se déclenchent (chaque effet d'artefact qui se résout lui retire 1 charge), vous piochez une carte, puis le mal d'invocation de vos créatures prend fin.</li>
+        <li><strong>Phase principale</strong> — vous pouvez, dans l'ordre que vous voulez et autant de fois que votre mana le permet : jouer des cartes de votre main (créatures, sortilèges, artefacts, pièges), activer les capacités activables de vos créatures déjà en jeu, utiliser vos artefacts (gratuit, 1 fois par tour chacun), et utiliser le pouvoir de votre héros (une fois par tour).</li>
         <li><strong>Déclaration des attaquants</strong> — vous désignez les créatures qui attaquent ce tour-ci (celles qui n'ont pas le mal d'invocation, ne sont ni gelées ni étourdies, et ne sont pas Protecteur).</li>
         <li><strong>Blocage</strong> — l'adversaire désigne ses bloqueurs : un attaquant peut être bloqué par plusieurs créatures, mais chaque bloqueur ne bloque qu'un seul attaquant. Un attaquant non bloqué touche directement le héros.</li>
         <li><strong>Résolution du combat</strong> — chaque combat est résolu immédiatement quand le bloqueur est désigné : les dégâts sont appliqués simultanément des deux côtés (attaquant ↔ bloqueur) et les créatures à 0 PV ou moins meurent.</li>
@@ -139,7 +139,8 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
       <p>Le mana sert à payer le coût des cartes et des capacités activées. Il existe deux réserves, qui se cumulent :</p>
       <ul>
         <li><strong>Mana normal</strong> — votre réserve principale. Son maximum augmente de 1 chaque tour (jusqu'à 20), et elle se recharge intégralement à son maximum au début de chaque tour.</li>
-        <li><strong>Mana fragile</strong> — un bonus ponctuel accordé par certains effets ou par votre région. Il s'ajoute par-dessus le mana normal.</li>
+        <li><strong>Mana fragile</strong> — un bonus ponctuel accordé par certains effets. Il s'ajoute par-dessus le mana normal.</li>
+        <li><strong>Mana vide</strong> — augmente votre mana <em>maximum</em> mais pas le mana disponible ce tour-ci : il ne devient utilisable qu'à partir du tour suivant.</li>
       </ul>
       <p class="dim">Quand vous payez un coût, le mana normal est toujours dépensé en premier ; le mana fragile ne sert que pour le complément si le normal ne suffit pas.</p>
     </section>
@@ -148,13 +149,38 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
       <h2>5. Les types de cartes</h2>
       <div class="cardtype-grid">
         <div class="cardtype"><h4>Héros</h4><p>Vous en avez un seul, choisi à la construction du deck. Il porte vos PV et un pouvoir unique, utilisable une fois par tour.</p></div>
-        <div class="cardtype"><h4>Région</h4><p>Une seule également. Elle influence la façon dont vous gagnez du mana (bonus fragile, remplacement du gain normal...) et peut avoir ses propres capacités.</p></div>
+        <div class="cardtype"><h4>Région</h4><p>Une seule également, toujours en jeu : elle ne se joue pas, ne peut jamais être détruite ni ciblée. Certaines régions ont une chance de remplacer votre gain de mana par un autre effet. Voir <a href="#regions">les régions en détail</a>.</p></div>
         <div class="cardtype"><h4>Créature</h4><p>A une Force (dégâts infligés au combat) et des PV. Peut attaquer et bloquer. Nouvellement arrivée, elle a le <em>mal d'invocation</em> et ne peut pas attaquer ce tour-ci (sauf mot-clé Charge). Voir la section 6.</p></div>
         <div class="cardtype"><h4>Artefact</h4><p>Reste en jeu sans combattre (2 emplacements maximum). Son coût de mana se paie à la pose ; il s'utilise ensuite gratuitement 1 fois par tour. Chaque utilisation et chaque effet passif déclenché lui retire 1 charge ; à 0, il est détruit. Voir la section 7.</p></div>
         <div class="cardtype"><h4>Sortilège</h4><p>Effet ponctuel résolu immédiatement, puis la carte part en défausse. Souvent, demande une cible.</p></div>
         <div class="cardtype"><h4>Piège</h4><p>Se pose face cachée, sans effet immédiat et sans payer de mana. Se déclenche automatiquement plus tard, dès que sa condition est remplie ; son coût en mana est alors payé (voir section 10).</p></div>
       </div>
       <p class="dim" style="margin-top:12px;">Chaque carte a aussi une <strong>classe</strong> (Aube, Crépuscule, Volonté, Prima, Arcane ou Neutre) qui la relie à une couleur/identité de jeu, et une <strong>rareté</strong> (Basique, Commune, Rare, Épique, Mythique) qui influence surtout la collection et le craft, pas les règles elles-mêmes.</p>
+      <h3 id="regions">Les régions en détail</h3>
+      <p>Votre <strong>région</strong> reste toujours en jeu à côté de votre héros. Chaque début de tour, vous gagnez normalement votre mana ; certaines régions donnent en plus une <strong>chance</strong> de faire autre chose <strong>à la place</strong> de ce gain de mana : conjurer une carte, gagner de la vie, infliger des dégâts...</p>
+      <ul>
+        <li><strong>Choix au deck</strong> — une seule région, hors des 30 cartes, facultative. Sans région, ou avec une région invalide (introuvable, mauvais type, mauvaise classe), la <strong>Côte de Rimd'Orël</strong> est utilisée.</li>
+        <li><strong>Classe</strong> — une région n'est utilisable que si elle est de la classe de votre héros (ou de sa classe secondaire), ou <strong>Neutre</strong>. Le deckbuilder ne propose que celles-là, et le serveur le vérifie aussi.</li>
+        <li><strong>Tours personnels</strong> — « à partir du tour 5 » veut dire à partir de <em>votre</em> 5<sup>e</sup> tour, pas du 5<sup>e</sup> tour de la partie. Chaque joueur a son propre compteur et son propre tirage.</li>
+        <li><strong>Remplacement du gain de mana</strong> — si les conditions sont remplies (tour atteint, puis chance), l'effet de la région a lieu à la place du gain de mana du tour. Sinon, vous gagnez votre mana normalement.</li>
+        <li><strong>Jamais détruite, jamais ciblée</strong> — aucun effet ne peut détruire une région ni la prendre pour cible. De futurs effets (chance accrue, remplacement de la région) sont envisagés, mais pas encore définis.</li>
+        <li><strong>Pas de capacité activée</strong> — on ne clique jamais sur une région : tout se fait automatiquement.</li>
+        <li><strong>Cartes conjurées</strong> — une carte conjurée par une région va en main ; si votre main est pleine (8), elle est perdue (au cimetière), comme une pioche. Une créature conjurée directement en jeu est perdue si votre plateau est plein. Aucune restriction de classe ne s'applique à la carte conjurée.</li>
+        <li><strong>Début de partie</strong> — les effets « Au début de la partie » se déclenchent une seule fois, à la fin du mulligan.</li>
+      </ul>
+      <table class="kw">
+        <tr><th>Région</th><th>Classe</th><th>Effet</th></tr>
+        <tr><td class="kwname">Côte de Rimd'Orël</td><td>Neutre</td><td>Région par défaut : vous gagnez 1 mana au début de votre tour.</td></tr>
+        <tr><td class="kwname">Conduit de Clébreaux</td><td>Prima</td><td>À partir de votre tour 6, 30&nbsp;% de chance, à la place du gain de mana, d'infliger 3 points de dégâts répartis au hasard : chaque point touche une cible tirée au hasard parmi les créatures adverses et le héros adverse (une cible peut en recevoir plusieurs).</td></tr>
+        <tr><td class="kwname">Château des Arlow</td><td>Aube</td><td>À partir de votre tour 5, 30&nbsp;% de chance, à la place du gain de mana, de conjurer une créature Aube de coût 2 ou moins avec +1/+1.</td></tr>
+        <tr><td class="kwname">Cimetière oublié</td><td>Crépuscule</td><td>À partir de votre tour 4, 30&nbsp;% de chance, à la place du gain de mana, de donner +1/+0 permanent à chaque créature que vous jouez ce tour-ci.</td></tr>
+        <tr><td class="kwname">Sentier de la gloire</td><td>Volonté</td><td>À partir de votre tour 5, 30&nbsp;% de chance, à la place du gain de mana, de donner Parade et +1/+1 à la première créature que vous jouez ce tour-ci. L'effet non utilisé disparaît en fin de tour ; le bonus de stats reste permanent.</td></tr>
+        <tr><td class="kwname">Bibliothèque cachée de Sareldacroix</td><td>Arcane</td><td>À partir de votre tour 6, 30&nbsp;% de chance, à la place du gain de mana, de conjurer un sortilège qui coûte 6 ou moins.</td></tr>
+        <tr><td class="kwname">La forêt des immensités</td><td>Prima</td><td>À partir de votre tour 6, 30&nbsp;% de chance, à la place du gain de mana, de gagner 1 mana par créature que vous avez en jeu, pour ce tour.</td></tr>
+        <tr><td class="kwname">Village kobold</td><td>Neutre</td><td>Au début de votre tour 3, 40&nbsp;% de chance de conjurer un « Kobold » directement en jeu (perdu si le plateau est plein), puis de gagner 1 mana vide (utilisable à partir du tour suivant), à la place du gain de mana.</td></tr>
+        <tr><td class="kwname">Antique forge des façonneurs</td><td>Volonté</td><td>« Le premier artefact coûte 1 de moins. » À partir de votre tour 5, 30&nbsp;% de chance, à la place du gain de mana, d'ajouter un artefact aléatoire dans votre deck.</td></tr>
+        <tr><td class="kwname">Sanctuaire oublié de Sarelcronix</td><td>Crépuscule</td><td>Au début de la partie, vous gagnez 2 points de vie. À partir de votre tour 5, 30&nbsp;% de chance, à la place du gain de mana, de gagner 2 points de vie.</td></tr>
+      </table>
     </section>
 
     <section id="creatures">
@@ -328,7 +354,7 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
 
       <div class="trigger-cat">
         <h4>Capacité activée</h4>
-        <p class="dim">Certaines créatures ou régions ont une capacité que <strong>vous</strong> déclenchez volontairement en cliquant dessus, en payant un coût de mana indiqué sur la carte (avec parfois un temps de recharge). Les artefacts ont la leur, « Utiliser : … » : elle est gratuite, limitée à une fois par tour, et consomme 1 charge (voir la section 7).</p>
+        <p class="dim">Certaines créatures ont une capacité que <strong>vous</strong> déclenchez volontairement en cliquant dessus, en payant un coût de mana indiqué sur la carte (avec parfois un temps de recharge). Les artefacts ont la leur, « Utiliser : … » : elle est gratuite, limitée à une fois par tour, et consomme 1 charge (voir la section 7).</p>
       </div>
 
       <div class="callout">Plusieurs déclencheurs sur une même capacité (« Début OU Assaut », par exemple) fonctionnent en <strong>OU</strong> : n'importe lequel des deux suffit à déclencher l'effet, une seule fois — ce n'est pas une condition qui exige les deux à la fois.</div>
