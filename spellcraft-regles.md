@@ -282,11 +282,11 @@ Quand un effet récupère une créature depuis la défausse (en main ou en jeu),
 
 **Gel et Étourdissement** sont **un seul et même état** : seule l'étiquette change. Leurs durées exactes sont décrites en section 6.
 
-**Silence.** Selon son réglage (capacités, bonus de stats, ou les deux — « les deux » par défaut) :
-- le réglage **capacités** retire tous les mots-clés (y compris ceux de la carte), les mots-clés temporaires, toutes les capacités et l'effet « Début ». Les bonus de Force/Endurance, l'Armure déjà utilisée et les états (Gel…) ne sont pas touchés ;
-- le réglage **bonus de stats** (ou **les deux**) remet les valeurs **courantes** égales aux valeurs de **référence** : cela efface les dégâts subis (la créature est entièrement soignée), les statistiques « fixées », volées ou ajoutées par Évolution, et la part d'aura (qui revient au prochain recalcul si sa source est toujours là). Les bonus permanents et temporaires déjà inclus dans la référence **restent**.
-- Les mots-clés et bonus d'**aura** reviennent au prochain recalcul si la source de l'aura est toujours en jeu.
-- Une créature silencée qui revient en main (renvoi) redevient une carte neuve ; une créature silencée qui meurt reste silencée en défausse.
+**Silence.** Le Silence **retire tous les mots-clés et toutes les capacités** de la créature : mots-clés de la carte, mots-clés temporaires, capacités (y compris continues, donc plus d'aura émise), effet « Début », effet d'arrivée et doublements de déclencheurs. Il **ne modifie ni ses PV ni sa Force** : pas de soin, et les dégâts subis, les bonus (Évolution, « fixer une statistique », « voler une statistique », renforcements) et les malus sont conservés. L'Armure déjà utilisée et les états (Gel…) ne sont pas touchés.
+- Le Silence dure **tant que la créature est en jeu** ; une créature silencée qui meurt reste silencée en défausse (et si elle est récupérée depuis la défausse, elle le reste).
+- Une créature silencée **continue de bénéficier des auras des autres cartes** (bonus de stats et mots-clés d'aura, recalculés normalement) ; en revanche elle n'émet plus aucune aura, puisqu'elle n'a plus de capacité.
+- Une créature silencée qui est **renvoyée en main** redevient une carte neuve, normale.
+- L'ancien réglage de l'éditeur (« capacités », « bonus de stats », « les deux ») n'a plus d'effet côté moteur : les trois, et l'absence de réglage, font la même chose (retirer mots-clés et capacités, ne pas toucher aux statistiques).
 
 ### 7.7 Les mots-clés
 
