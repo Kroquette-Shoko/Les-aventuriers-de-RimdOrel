@@ -474,7 +474,7 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .mulligan-confirm-btn{background:var(--arcane);color:#fff;border:none;border-radius:10px;padding:12px 28px;font-family:'Cinzel',serif;font-weight:700;cursor:pointer;font-size:14px;margin-top:8px;}
 
 /* ===== Écran d'annonce de match (joueur vs adversaire) ===== */
-#match-announce-overlay{position:fixed;inset:0;background:#0b0905;display:none;z-index:70;opacity:0;transition:opacity .45s ease;overflow:hidden;}
+#match-announce-overlay{position:fixed;inset:0;background:#0b0905;display:none;z-index:70;opacity:0;transition:opacity .3s ease;overflow:hidden;}
 #match-announce-overlay.show{display:block;}
 #match-announce-overlay.visible{opacity:1;}
 .ma-side{position:absolute;inset:0;}
@@ -1351,6 +1351,53 @@ function reasonCannotBlockAny(c, attackers){
   if(attackers.some(a=>canBlockClient(c, a))) return null;
   return 'ne peut bloquer aucun des attaquants (Discret ou Envol)';
 }
+
+// ---- Résolution automatique du combat (lecture fluide) ----
+// Le serveur peut exposer des booléens `canAttack` / `canBlock` dans la vue
+// d'état (sur le joueur, ou à la racine, éventuellement par camp). Noms
+// prévus, non confirmés : on les lit s'ils existent, sinon on calcule la
+// valeur côté client avec les règles ci-dessus (miroir du serveur).
+// Règle de prudence : le client ne cache JAMAIS une action que le serveur
+// autoriserait — on ne masque que si le serveur ne dit pas « oui » ET que le
+// calcul client dit « non ». En cas de doute, le bouton reste affiché.
+function pickServerFlag(state, myKey, name){
+  if(!state) return undefined;
+  const me = state[myKey];
+  if(me && typeof me[name]==='boolean') return me[name];
+  const top = state[name];
+  if(typeof top==='boolean') return top;
+  if(top && typeof top==='object' && typeof top[myKey]==='boolean') return top[myKey];
+  return undefined;
+}
+// Au moins une de mes créatures peut attaquer maintenant (calcul client).
+function clientCanAttack(board){ return (board||[]).some(c=>canAttackClient(c)); }
+// Au moins une de mes créatures peut bloquer au moins un des attaquants
+// (calcul client). `attackers` vide/inconnu : on teste seulement les raisons
+// propres au bloqueur.
+function clientCanBlock(defBoard, attackers){
+  const atk = (attackers||[]).filter(Boolean);
+  return (defBoard||[]).some(c=>{
+    if(reasonCannotBlock(c)) return false;
+    if(!atk.length) return true;
+    return atk.some(a=>canBlockClient(c, a));
+  });
+}
+// Faut-il proposer l'étape de combat ? (ne renvoie false que si le serveur ne
+// dit pas « oui » et que le calcul client dit « non »)
+function shouldOfferCombat(state, myKey){
+  if(pickServerFlag(state, myKey, 'canAttack') === true) return true;
+  const me = state && state[myKey];
+  return clientCanAttack(me && me.board);
+}
+// Même principe pour le blocage : faux uniquement si aucune créature ne peut
+// bloquer selon le client ET que le serveur ne dit pas « oui ».
+function shouldOfferBlock(state, myKey, oppKey){
+  if(pickServerFlag(state, myKey, 'canBlock') === true) return true;
+  if(!state || !state[myKey] || !state[oppKey]) return true; // doute : on laisse
+  const atkBoard = state[oppKey].board || [];
+  const attackers = (state[oppKey].attackers||[]).map(id=>atkBoard.find(c=>c.instId===id)).filter(Boolean);
+  return clientCanBlock(state[myKey].board, attackers);
+}
 // </combat-rules>
 function escapeHtmlGS(s){ return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
@@ -2064,6 +2111,44 @@ function entryAnimatesBoardCombat(entry){
 // ===== Écran d'annonce de match =====
 let __matchAnnounceActive = false;
 let __matchAnnounceDone = false;
+
+// Catalogue : UNE seule lecture par chargement du plateau. La promesse est
+// partagée entre l'écran d'annonce (cadrage des héros / avatars), les aperçus
+// au survol du journal et l'animation de révélation 3D. Lancé dès initFromUrl
+// (donc en parallèle de la connexion) ; une réponse vide ou en erreur n'est
+// pas mémorisée, pour qu'un appel ultérieur puisse retenter.
+let __catalogPromise = null;
+function getCatalogOnce(){
+  if(!__catalogPromise){
+    __catalogPromise = Promise.resolve().then(()=>loadAllCardsAcrossSets()).then(cards=>{
+      const list = Array.isArray(cards) ? cards : [];
+      if(!list.length){ __catalogPromise = null; return list; }
+      const lookup = {};
+      list.forEach(c=>{ lookup[c.id] = c; });
+      JOURNAL_CARD_LOOKUP = lookup;
+      return list;
+    }).catch(()=>{ __catalogPromise = null; return []; });
+  }
+  return __catalogPromise;
+}
+
+// Durées de l'écran d'annonce (ms) : fondu d'entrée + maintien + fondu de
+// sortie = 8 s au total (avant : 450 + 11100 + 450 = 12 s ; tous les temps
+// ont été réduits dans le même rapport 2/3). Fonction pure (testée sous Node).
+// <match-announce-timings>
+const MATCH_ANNOUNCE_TOTAL_MS = 8000;
+const MATCH_ANNOUNCE_FADE_MS = 300;
+// Délai maximal pendant lequel on attend le catalogue et les profils avant
+// d'afficher l'écran (au-delà, il s'affiche avec les infos déjà connues et
+// se complète dès que les données arrivent).
+const MATCH_ANNOUNCE_DATA_WAIT_MS = 600;
+function matchAnnounceTimings(total, fade){
+  total = total==null ? MATCH_ANNOUNCE_TOTAL_MS : total;
+  fade = fade==null ? MATCH_ANNOUNCE_FADE_MS : fade;
+  const hold = Math.max(0, total - 2*fade);
+  return { fadeIn: fade, hold, fadeOut: fade, total: fade + hold + fade };
+}
+// </match-announce-timings>
 const MATCH_ANNOUNCE_CLASS_ACCENT = {
   'Aube':'#D4AF37', 'Crépuscule':'#5B3A8E', 'Volonté':'#8B2E3C', 'Prima':'#1F6F54', 'Arcane':'#2C4A7C', 'Neutre':'#6b6b6b'
 };
@@ -2072,8 +2157,11 @@ function matchAnnounceEscapeHtml(s){ return (s||'').replace(/[&<>"']/g, c => ({'
 // Construit les infos d'affichage d'un camp à partir de l'état de jeu (hero,
 // dos de carte, nom de deck — déjà connus côté client) et, si ce n'est pas
 // l'IA, du profil du joueur (titre équipé, badges mis en avant, avatar,
-// pseudo) — récupéré via gsGetProfile, comme sur la page de profil.
-async function buildMatchAnnounceSide(playerState, heroCollection, side){
+// pseudo) — récupéré via gsGetProfile (voir fetchMatchAnnounceProfile),
+// comme sur la page de profil. Fonction synchrone : le profil (ou null) et le
+// catalogue (ou null) sont fournis par l'appelant, ce qui permet de lancer
+// leurs chargements en parallèle et de construire une version de base sans eux.
+function buildMatchAnnounceSide(playerState, heroCollection, side, profile){
   const accent = MATCH_ANNOUNCE_CLASS_ACCENT[playerState?.hero?.class] || MATCH_ANNOUNCE_CLASS_ACCENT.Neutre;
   // Cadrage dédié à l'écran d'annonce, réglé par héros ET par côté dans l'éditeur
   // de cartes (onglet "Cadrage héros — écran d'annonce") — indépendant du cadrage
@@ -2111,7 +2199,6 @@ async function buildMatchAnnounceSide(playerState, heroCollection, side){
   };
   if(playerState?.isAI || !playerState?.userId) return info;
   try{
-    const profile = await gsGetProfile(playerState.userId);
     if(profile && !profile.error){
       info.name = profile.username || info.name;
       info.title = profile.equippedTitle || null;
@@ -2124,6 +2211,11 @@ async function buildMatchAnnounceSide(playerState, heroCollection, side){
     }
   }catch(e){ /* un profil indisponible ne doit jamais bloquer le lancement de la partie */ }
   return info;
+}
+// Profil d'un camp pour l'annonce (null pour l'IA / en cas d'échec). Ne rejette jamais.
+function fetchMatchAnnounceProfile(playerState){
+  if(!playerState || playerState.isAI || !playerState.userId) return Promise.resolve(null);
+  return Promise.resolve().then(()=>gsGetProfile(playerState.userId)).catch(()=>null);
 }
 
 function matchAnnounceSideHtml(side, info){
@@ -2145,17 +2237,8 @@ function matchAnnounceSideHtml(side, info){
     </div>`;
 }
 
-function playMatchAnnouncement(state){
-  const el = document.getElementById('match-announce-overlay');
-  // Le catalogue (pour résoudre un avatar "héros") est chargé une seule fois
-  // puis réutilisé pour les deux camps.
-  return loadAllCardsAcrossSets().catch(()=>[]).then(collection=>{
-    return Promise.all([
-      buildMatchAnnounceSide(state[MY_KEY], collection, 'left'),
-      buildMatchAnnounceSide(state[OPP_KEY], collection, 'right')
-    ]);
-  }).then(([myInfo, oppInfo])=>{
-    el.innerHTML = `
+function matchAnnounceHtml(myInfo, oppInfo){
+  return `
       <div class="ma-side ma-side-left" style="background:linear-gradient(145deg, ${myInfo.accent} 0%, #241a10 55%, #120d08 100%);">
         ${myInfo.heroImage ? `<div class="ma-side-bg" style="background-image:url('${myInfo.heroImage.replace(/'/g,'')}');background-size:${myInfo.heroImageZoom>100?myInfo.heroImageZoom+'%':'cover'};background-position:${myInfo.heroImageX}% ${myInfo.heroImageY}%;${myInfo.heroImageMirror?'transform:scaleX(-1);':''}"></div>` : ''}
       </div>
@@ -2169,19 +2252,59 @@ function playMatchAnnouncement(state){
       ${matchAnnounceSideHtml('left', myInfo)}
       ${matchAnnounceSideHtml('right', oppInfo)}
     `;
-    el.classList.add('show');
-    return new Promise(resolve=>{
-      // fondu d'entrée, puis maintien, puis fondu de sortie — 12s au total.
-      requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ el.classList.add('visible'); }); });
+}
+
+async function playMatchAnnouncement(state){
+  const el = document.getElementById('match-announce-overlay');
+  const T = matchAnnounceTimings();
+  const myState = state[MY_KEY], oppState = state[OPP_KEY];
+  // Catalogue (promesse partagée, déjà en cours depuis initFromUrl) et profils
+  // des deux joueurs : lancés ensemble, en parallèle.
+  const dataP = Promise.all([
+    getCatalogOnce(),
+    fetchMatchAnnounceProfile(myState),
+    fetchMatchAnnounceProfile(oppState)
+  ]);
+  const buildAll = (collection, pMy, pOpp)=>[
+    buildMatchAnnounceSide(myState, collection, 'left', pMy),
+    buildMatchAnnounceSide(oppState, collection, 'right', pOpp)
+  ];
+  // On attend les données au plus MATCH_ANNOUNCE_DATA_WAIT_MS : si elles sont
+  // là, l'écran s'affiche complet d'emblée ; sinon il s'affiche tout de suite
+  // avec les infos de l'état (héros, deck) et se complète à l'arrivée des
+  // données — les chargements ne retardent plus l'annonce.
+  let waitTimer = null;
+  const early = await Promise.race([
+    dataP,
+    new Promise(r=>{ waitTimer = setTimeout(()=>r(null), MATCH_ANNOUNCE_DATA_WAIT_MS); })
+  ]);
+  clearTimeout(waitTimer);
+  let infos = early ? buildAll(early[0], early[1], early[2]) : buildAll(null, null, null);
+  let running = true;
+  el.style.transitionDuration = T.fadeIn + 'ms';
+  el.innerHTML = matchAnnounceHtml(infos[0], infos[1]);
+  el.classList.add('show');
+  if(!early){
+    dataP.then(([collection, pMy, pOpp])=>{
+      if(!running) return;
+      const full = buildAll(collection, pMy, pOpp);
+      el.innerHTML = matchAnnounceHtml(full[0], full[1]);
+    }).catch(()=>{});
+  }
+  return new Promise(resolve=>{
+    // fondu d'entrée, puis maintien, puis fondu de sortie — 8 s au total
+    // (compté à partir de l'affichage de l'écran, pas du chargement).
+    requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ el.classList.add('visible'); }); });
+    setTimeout(()=>{
+      el.style.transitionDuration = T.fadeOut + 'ms';
+      el.classList.remove('visible');
       setTimeout(()=>{
-        el.classList.remove('visible');
-        setTimeout(()=>{
-          el.classList.remove('show');
-          el.innerHTML = '';
-          resolve();
-        }, 450);
-      }, 11550);
-    });
+        running = false;
+        el.classList.remove('show');
+        el.innerHTML = '';
+        resolve();
+      }, T.fadeOut);
+    }, T.fadeIn + T.hold);
   });
 }
 // Compare l'état mana avant/après pour jouer le bon son de gain — un même
@@ -2253,7 +2376,12 @@ function onStateUpdate(state){
   // l'état le plus récent reçu entre-temps.
   if(!__matchAnnounceDone && !__matchAnnounceActive && state.p2){
     __matchAnnounceActive = true;
-    playMatchAnnouncement(state).then(()=>{
+    playMatchAnnouncement(state).catch(e=>{
+      // Une erreur d'affichage de l'annonce ne doit jamais bloquer la partie.
+      debugLog("Annonce de match → " + (e && e.message || e), 'log-error');
+      const ov = document.getElementById('match-announce-overlay');
+      if(ov){ ov.classList.remove('show','visible'); ov.innerHTML = ''; }
+    }).then(()=>{
       __matchAnnounceActive = false;
       __matchAnnounceDone = true;
       finishStateUpdateTail(S);
@@ -2769,7 +2897,14 @@ function showCardPreviewHover(card, ev, inPlay){
     moveHeroPreview(ev);
     // Cartes liées à ce héros — chargées à la demande (pas de catalogue
     // complet préchargé côté client) puis ajoutées à côté une fois prêtes.
-    loadCardsLinkedToHero(card.name).then(linked=>{
+    // Si le catalogue est déjà en mémoire (getCatalogOnce), on le filtre au
+    // lieu de relire la base à chaque survol de héros (même critère exact que
+    // loadCardsLinkedToHero : champ "hero" égal au nom).
+    const catalogLoaded = JOURNAL_CARD_LOOKUP && Object.keys(JOURNAL_CARD_LOOKUP).length > 0;
+    (catalogLoaded
+      ? Promise.resolve(Object.values(JOURNAL_CARD_LOOKUP).filter(c=>c && c.hero === card.name))
+      : loadCardsLinkedToHero(card.name)
+    ).then(linked=>{
       // La souris a peut-être déjà quitté, ou survolé autre chose entre-
       // temps : on ignore ce résultat périmé plutôt que de l'ajouter au
       // mauvais aperçu.
@@ -2839,6 +2974,9 @@ function showCardPreviewHover(card, ev, inPlay){
 
 function render(){
   if(!S) return;
+  // Écran d'annonce en cours : le plateau (et surtout le mulligan) ne doit
+  // pas apparaître avant la fin de l'annonce — finishStateUpdateTail re-rend.
+  if(__matchAnnounceActive) return;
   // Plateau gelé pendant une animation de combat : on note qu'il faudra
   // re-rendre (fait par unfreezeBoardRender à la fin de la file).
   if(__boardRenderFrozen){ __boardRenderDirty = true; return; }
@@ -5013,7 +5151,12 @@ function renderPhaseBar(){
 
   if(!myTurn){
     if(S.phase==='declareBlockersMe'){
+      // Normalement le serveur résout seul la phase quand je ne peux pas
+      // bloquer (on n'arrive alors jamais ici). Si l'état est resté en
+      // attente de blocage (ancienne partie, serveur non à jour), l'ancien
+      // bouton reste affiché : on ne cache jamais une action possible.
       btn.textContent = 'Passer (fin du blocage)';
+      if(!shouldOfferBlock(S, MY_KEY, OPP_KEY)) btn.title = 'Aucune de vos créatures ne peut bloquer';
       btn.onclick = uiFinishBlocking;
       phaseKey = 'block-pass';
     } else {
@@ -5024,9 +5167,18 @@ function renderPhaseBar(){
     btn.textContent = "En attente du blocage adverse...";
     btn.disabled = true;
   } else if(UI.selectingAttackers){
-    btn.textContent = UI.selectedAttackers.length ? `Valider ${UI.selectedAttackers.length} attaquant(s)` : "Passer l'attaque";
-    btn.onclick = uiConfirmAttackers;
-    phaseKey = 'attack-confirm';
+    if(UI.selectedAttackers.length){
+      btn.textContent = `Valider ${UI.selectedAttackers.length} attaquant(s)`;
+      btn.onclick = uiConfirmAttackers;
+      phaseKey = 'attack-confirm';
+    } else {
+      // Aucun attaquant choisi : inutile de passer par « Passer l'attaque »
+      // puis « Fin de tour » — un seul clic termine le tour (le serveur
+      // n'exige pas attackPhaseDone pour finir un tour).
+      btn.textContent = 'Fin de tour';
+      btn.onclick = ()=>{ UI.selectingAttackers = false; UI.selectedAttackers = []; uiEndTurn(); };
+      phaseKey = 'end-turn';
+    }
     // Le bouton "Tout sélectionner" (et "Annuler") passe sous le bouton
     // d'attaque, dans un empilement vertical plutôt qu'à côté.
     const selectAll = document.createElement('button');
@@ -5046,11 +5198,28 @@ function renderPhaseBar(){
     stack.appendChild(btn);
     stack.appendChild(subRow);
     bar.appendChild(stack);
-  } else if(S.phase==='main' && !me.attackPhaseDone){
-    btn.textContent = '⚔ Passer au combat';
+  } else if(S.phase==='main' && !me.attackPhaseDone && shouldOfferCombat(S, MY_KEY)){
+    // Au moins une créature peut attaquer : « Combat », et « Fin de tour »
+    // reste utilisable directement (sans passer par le combat).
+    btn.textContent = '⚔ Combat';
     btn.onclick = ()=>{ UI.selectingAttackers = true; UI.selectedAttackers = []; render(); };
     phaseKey = 'to-combat';
-  } else if(S.phase==='main' && me.attackPhaseDone){
+    const endNow = document.createElement('button');
+    endNow.className = 'phase-btn secondary small';
+    endNow.textContent = 'Fin de tour';
+    endNow.onclick = uiEndTurn;
+    const subRow = document.createElement('div');
+    subRow.className = 'phase-bar-subrow';
+    subRow.appendChild(endNow);
+    const stack = document.createElement('div');
+    stack.className = 'phase-bar-stack';
+    stack.appendChild(btn);
+    stack.appendChild(subRow);
+    bar.appendChild(stack);
+  } else if(S.phase==='main'){
+    // Combat déjà fait, OU aucune créature ne peut attaquer (mal d'invocation,
+    // étourdie, plateau vide...) : la phase de combat est sautée, un seul
+    // bouton « Fin de tour », disponible tout de suite.
     btn.textContent = 'Fin de tour';
     btn.onclick = uiEndTurn;
     phaseKey = 'end-turn';
@@ -5418,10 +5587,8 @@ async function initFromUrl(){
   // carte au survol dans le journal, ET à l'animation de révélation 3D
   // d'une carte jouée (qui relit ce tableau au moment où elle s'exécute,
   // voir plus haut — c'est pour ça qu'elle n'a pas besoin d'attendre ici).
-  loadAllCardsAcrossSets().then(cards=>{
-    JOURNAL_CARD_LOOKUP = {};
-    cards.forEach(c=>{ JOURNAL_CARD_LOOKUP[c.id] = c; });
-  });
+  // Même promesse que l'écran d'annonce (getCatalogOnce) : une seule lecture.
+  getCatalogOnce();
   afterConnected(null);
 }
 initSpellcraftAuth().then(initFromUrl);

@@ -211,6 +211,7 @@ Le client traduit les refus du serveur : `no-valid-target` (aucune cible valide)
 
 3. **Phase de combat**
    - Chaque créature non étourdie, non gelée, sans Protecteur et n'ayant pas le mal d'invocation (sauf **Charge**) peut attaquer une fois.
+   - **Résolution automatique** : si aucune de vos créatures ne peut attaquer (mal d'invocation sans Charge, gel, étourdissement, Protecteur, déjà attaqué, plateau vide), la phase de combat est sautée : l'interface ne propose plus que « Fin de tour ». Quand une créature peut attaquer, le bouton « Fin de tour » reste utilisable directement, sans passer par le combat.
    - Voir Section 6 pour le détail du combat, et la Section 7 pour les règles complètes des créatures.
 
 4. **Fin de tour** (dans cet ordre)
@@ -243,6 +244,7 @@ Le client traduit les refus du serveur : `no-valid-target` (aucune cible valide)
    - **Toxique** : une créature à qui une créature Toxique inflige au moins 1 dégât au combat meurt (un coup absorbé par l'Armure ou de Force 0 n'a pas cet effet).
    - **Armure** : absorbe le premier dégât positif subi, quelle qu'en soit la source, une seule fois (voir 7.7).
 5. **Fin du blocage** — Quand le défenseur termine son blocage, chaque attaquant resté non bloqué inflige toute sa Force au héros adverse (et déclenche « a infligé des blessures au héros »). Les excédents de Brutalité passent alors aussi au héros.
+   - **Blessures directes automatiques** : si le défenseur n'a aucune créature capable de bloquer (aucun bloqueur légal pour les attaquants déclarés : gelées, étourdies, Peureux, déjà bloqué, Envol / Discret des attaquants), il n'y a pas d'attente de blocage : le moteur passe directement à cette étape et les attaquants non bloqués infligent leur Force au héros, avec les mêmes événements que si le défenseur avait passé.
 6. **Résolution des morts** — Après chaque combat, toute créature dont l'Endurance courante est ≤ 0 meurt (voir 7.5) : Tenace, Finale et "Quand cette carte est détruite" selon le cas. "Quand cette carte élimine une créature" se déclenche chez la créature qui a mis sa cible à 0 PV **à condition qu'elle soit encore en vie à la fin de l'échange** (si les deux meurent, aucune des deux ne le déclenche).
 7. **Fin du combat** — la partie revient en phase principale (le joueur actif peut encore jouer des cartes, mais ne peut plus attaquer ce tour-ci).
 
