@@ -272,9 +272,8 @@
 
 /* ---------- déchirure du paquet à l'ouverture ---------- */
 /* Le paquet tremble, puis se déchire en deux moitiés qui s'écartent, avec
-   un éclat de lumière dont la couleur dépend de la plus haute rareté
-   obtenue (voir boosterTearColor) : bleu (Rare), violet (Épique), doré/
-   orange (Mythique ou Légendaire) — neutre sinon. */
+   un éclat de lumière doré neutre, identique pour tous les boosters
+   (voir boosterTearColor) pour ne pas spoiler le contenu. */
 @keyframes pack-shake{
   0%,100%{transform:translateX(0) rotate(0);}
   15%{transform:translateX(-6px) rotate(-3deg);}
@@ -312,7 +311,7 @@
 .flip-front .ncard{transform:scale(0.8667);}
 
 /* ---------- lueur selon la rareté, au moment où la carte se retourne ---------- */
-/* Même code couleur que la déchirure du paquet (boosterTearColor) : bleu
+/* Code couleur par carte, visible seulement une fois retournée : bleu
    (Rare), violet (Épique), doré/orange (Mythique ou Légendaire). Un premier
    éclat plus fort à l'instant du flip, puis un pulse doux en continu tant
    que la carte reste retournée.
@@ -1233,7 +1232,7 @@ async function openBoosterAnimation(boosterImageUrl, cardsResult){
   packStage.onclick = () => {
     packStage.onclick = null;
     hint.style.display = 'none';
-    const tier = boosterTearColor(cardsResult, fullCards);
+    const tier = boosterTearColor();
     playPackTearAnimation(packStage, tier).then(()=>{
       packStage.style.display = 'none';
       packStage.style.visibility = '';
@@ -1243,9 +1242,8 @@ async function openBoosterAnimation(boosterImageUrl, cardsResult){
 }
 
 // Palier de rareté d'une carte — 'legendary' regroupe Mythique ET Légendaire
-// (comme demandé), utilisé à la fois pour la couleur de la déchirure du
-// paquet et pour la lueur de chaque carte à son retournement, pour rester
-// cohérent visuellement d'un bout à l'autre de l'ouverture.
+// (comme demandé), utilisé pour la lueur de chaque carte à son retournement
+// (la déchirure du paquet, elle, est neutre pour ne rien spoiler).
 function cardRarityTier(full){
   if(!full) return null;
   if(full.isLegendary || full.rarity==='Mythique') return 'legendary';
@@ -1257,20 +1255,11 @@ function cardRarityTierClass(full){
   const tier = cardRarityTier(full);
   return tier ? `tier-${tier}` : null;
 }
-// Couleur de l'éclat de déchirure selon la plus haute rareté obtenue dans
-// CE booster — bleu (Rare), violet (Épique), doré/orange (Mythique ou
-// Légendaire), neutre sinon.
-function boosterTearColor(cardsResult, fullCards){
-  let best = null; // null < 'rare' < 'epic' < 'legendary'
-  const rank = { rare:1, epic:2, legendary:3 };
-  (cardsResult||[]).forEach(res=>{
-    const tier = cardRarityTier(fullCards[res.card_id] || { rarity: res.rarity });
-    if(tier && (!best || rank[tier] > rank[best])) best = tier;
-  });
-  if(best==='legendary') return { color:'#ffdd7a', color2:'#ff8c1a' }; // doré → orange
-  if(best==='epic') return { color:'#b98bff', color2:'#6b2fd6' };      // violet
-  if(best==='rare') return { color:'#7ec4ff', color2:'#1c5fd6' };      // bleu
-  return { color:'#d4af37', color2:'#8a6d1a' };                        // doré neutre (par défaut)
+// Couleur de l'éclat de déchirure : volontairement IDENTIQUE pour tous les
+// boosters (doré neutre), afin de ne pas révéler la plus haute rareté
+// contenue avant que le joueur ait retourné ses cartes.
+function boosterTearColor(){
+  return { color:'#d4af37', color2:'#8a6d1a' };
 }
 
 // Le paquet tremble, puis se déchire en deux moitiés qui s'écartent en
