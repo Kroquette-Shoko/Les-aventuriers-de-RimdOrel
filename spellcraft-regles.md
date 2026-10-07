@@ -712,7 +712,8 @@ L'éditeur de cartes permet de configurer certaines choses que le moteur n'inter
 - Le refus pour cible invalide ne concerne que les cibles « désignées par le joueur » (voir 13) ; les sorts lancés par *Don de savoir* gardent des cibles aléatoires.
 - *Don de la guerre* n'a aucun déclencheur défini : le moteur le traite comme jouable.
 - Une capacité « Récupération » depuis la défausse n'exclut pas le sort lui-même (seule la révélation, donc *Déduction*, l'exclut).
-- « Détruisez » met l'Endurance à un très grand négatif : une créature **Tenace** détruite revient donc (par ex. avec *Lancer* ou *Don de jaäne*). Non tranché.
+- « Détruisez » met l'Endurance à un très grand négatif : une créature **Tenace** détruite revient donc (par ex. avec *Lancer* ou *Don de jaäne*). **Décidé le 7 octobre 2026 : c'est voulu.** Tenace protège de toutes les causes de mort, destruction directe comprise.
+- **Décidé le 7 octobre 2026 (comportement actuel confirmé) :** piocher dans un deck vide reste une défaite immédiate (pas de fatigue) ; le soin du héros n'a pas de plafond de PV ; il n'y a aucune limite de sorts par tour. Ces trois règles ne sont plus « à trancher ».
 - Un sort **contré** fait perdre le mana et le coût additionnel ; il compte dans « cartes jouées ce tour ».
 - Une réduction de coût s'applique aux sorts (plancher à 0).
 - Aucun sort n'utilise l'effet Silence ; il ne touche que les créatures.
