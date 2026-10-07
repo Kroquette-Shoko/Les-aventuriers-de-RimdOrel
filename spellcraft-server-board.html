@@ -506,6 +506,10 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .ma-block-right{left:78%;}
 .ma-cardback{width:clamp(74px,9.5vw,135px);height:clamp(103px,13.3vw,188px);border-radius:10px;box-shadow:0 8px 22px rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;background-size:cover;background-position:center;}
 .ma-name{font-family:'Cinzel',serif;color:#f1e6c8;font-size:clamp(19px,2.5vw,35px);font-weight:700;letter-spacing:.5px;text-shadow:0 2px 8px rgba(0,0,0,.7);text-align:center;}
+.ma-name-link{color:inherit;text-decoration:none;cursor:pointer;}
+.ma-name-link:hover,.ma-name-link:focus-visible{text-decoration:underline;}
+#match-announce-overlay.show{cursor:pointer;}
+.ma-skip-hint{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:6;pointer-events:none;font-size:12px;letter-spacing:.5px;color:rgba(241,230,200,.55);text-shadow:0 1px 4px rgba(0,0,0,.8);}
 .ma-deckname{font-style:italic;color:rgba(241,230,200,.65);font-size:clamp(10px,1.25vw,17px);text-align:center;}
 .ma-avatar{width:clamp(65px,8.4vw,120px);height:clamp(65px,8.4vw,120px);border-radius:50%;margin-top:5px;box-shadow:0 5px 15px rgba(0,0,0,.6);background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;}
 .ma-title{font-family:'Cinzel',serif;font-size:clamp(9px,1.17vw,16px);letter-spacing:1.2px;text-transform:uppercase;margin-top:2px;}
@@ -1373,10 +1377,16 @@ function pickServerFlag(state, myKey, name){
 function clientCanAttack(board){ return (board||[]).some(c=>canAttackClient(c)); }
 // Au moins une de mes créatures peut bloquer au moins un des attaquants
 // (calcul client). `attackers` vide/inconnu : on teste seulement les raisons
-// propres au bloqueur.
-function clientCanBlock(defBoard, attackers){
+// propres au bloqueur. `usedBlockerIds` (Set facultatif d'instId) : bloqueurs
+// qui ont déjà bloqué ce tour d'après le journal d'événements, au cas où le
+// drapeau hasBlockedThisTurn ne serait pas exposé par le serveur. Multi-bloc :
+// un bloqueur LIBRE peut encore bloquer un attaquant déjà bloqué (le serveur ne
+// l'interdit pas) ; seuls comptent l'état du bloqueur et les restrictions de
+// l'attaquant.
+function clientCanBlock(defBoard, attackers, usedBlockerIds){
   const atk = (attackers||[]).filter(Boolean);
   return (defBoard||[]).some(c=>{
+    if(usedBlockerIds && usedBlockerIds.has(c.instId)) return false;
     if(reasonCannotBlock(c)) return false;
     if(!atk.length) return true;
     return atk.some(a=>canBlockClient(c, a));
@@ -1396,9 +1406,83 @@ function shouldOfferBlock(state, myKey, oppKey){
   if(!state || !state[myKey] || !state[oppKey]) return true; // doute : on laisse
   const atkBoard = state[oppKey].board || [];
   const attackers = (state[oppKey].attackers||[]).map(id=>atkBoard.find(c=>c.instId===id)).filter(Boolean);
-  return clientCanBlock(state[myKey].board, attackers);
+  return clientCanBlock(state[myKey].board, attackers, blockersAlreadyUsed(state, myKey));
+}
+// Bloqueurs de `myKey` ayant déjà bloqué pendant ce tour d'après les événements
+// blockResolved (S.__combatEvents, 60 derniers côté serveur) — complète le
+// drapeau hasBlockedThisTurn de la créature.
+function blockersAlreadyUsed(state, myKey){
+  const used = new Set();
+  (Array.isArray(state && state.__combatEvents) ? state.__combatEvents : []).forEach(e=>{
+    if(e && e.combatEvent==='blockResolved' && e.turn===state.turn && e.ownerKey===myKey && e.blockerInstId) used.add(e.blockerInstId);
+  });
+  return used;
+}
+// Attaquants déclarés par `oppKey` et encore en jeu (objets).
+function liveDeclaredAttackers(state, oppKey){
+  const opp = state && state[oppKey];
+  if(!opp) return [];
+  const board = opp.board || [];
+  return (opp.attackers||[]).map(id=>board.find(c=>c && c.instId===id)).filter(Boolean);
+}
+// Blocage automatique : la phase de blocage en attente n'a plus d'intérêt (plus
+// aucun attaquant en jeu, ou plus aucun de mes bloqueurs libres ne peut bloquer
+// un attaquant restant). Le serveur à jour la termine seul dans la même réponse
+// que le dernier blocage ; ce calcul sert au masquage de l'ancien bouton et au
+// repli pour un serveur plus ancien. Prudent : jamais si le serveur dit
+// canBlock=true, ni pendant un choix en attente.
+function blockPhaseNeedsAutoFinish(state, myKey, oppKey){
+  if(!state || state.gameOver || state.phase!=='declareBlockersMe' || state.active!==oppKey) return false;
+  if(!state[myKey] || !state[oppKey]) return false;
+  if(state.pendingDiscover || state.pendingKeywordChoice || state.pendingSacrifice) return false;
+  if(pickServerFlag(state, myKey, 'canBlock') === true) return false;
+  const atk = liveDeclaredAttackers(state, oppKey);
+  if(!atk.length) return true;
+  return !clientCanBlock(state[myKey].board, atk, blockersAlreadyUsed(state, myKey));
+}
+// Identifiant d'une phase de blocage (verrou « une seule fois »).
+function blockPhaseKey(state, oppKey){
+  return String(state && state.turn) + '|' + String(state && state.active) + '|' + ((state && state[oppKey] && state[oppKey].attackers) || []).slice().sort().join(',');
 }
 // </combat-rules>
+
+// ---- Séquencement des actions adverses (tour de l'IA) ----
+// Le serveur joue tout le tour de l'IA en UNE réponse : état final (attaquants
+// déjà désignés, phase de blocage) + journal. Le client rejoue le journal dans
+// la file d'animations ; pour garder l'ordre chronologique, l'affichage des
+// attaquants est RETENU jusqu'à la fin des révélations/capacités, puis une
+// courte pause (COMBAT_PRE_ATTACK_PAUSE_MS, passée dans cms()) précède leur
+// désignation. Fonctions pures entre les marqueurs (testées sous Node).
+// <combat-sequencing>
+const COMBAT_PRE_ATTACK_PAUSE_MS = 350; // pause entre la dernière carte jouée et la désignation des attaquants
+const BLOCK_AUTO_FINISH_DELAY_MS = 400; // beat avant la fin automatique du blocage (serveur ancien)
+// Cette entrée de journal joue-t-elle une animation de CARTE/capacité (révélation
+// 3D, flèche d'effet, mort) dans la file ? Indépendant de la vitesse : l'appelant
+// teste combatInstant().
+function entryQueuesCardAnimation(entry){
+  if(!entry || entry.raw) return false;
+  if(entry.deadInstId) return true;
+  if(!entry.cardName) return false;
+  if(entry.kind==='play' || entry.kind==='trap') return true;
+  return (entry.effects||[]).some(eff=>eff && (eff.targetInstIds||[]).length>0);
+}
+// Faut-il retenir l'affichage des attaquants adverses derrière la file ?
+// Oui si l'état reçu est ma phase de blocage ET que le lot contient une animation.
+function shouldHoldCombatReveal(state, myKey, oppKey, batchAnimates){
+  if(!batchAnimates || !state || state.gameOver) return false;
+  if(state.phase!=='declareBlockersMe' || state.active!==oppKey) return false;
+  const opp = state[oppKey];
+  return !!(opp && Array.isArray(opp.attackers) && opp.attackers.length>0);
+}
+// Vue « avant désignation des attaquants » : même état, mais sans attaquants
+// déclarés et en phase principale — la flèche rouge, la surbrillance et le
+// bouton de blocage dépendent de ces deux champs. Copie superficielle.
+function combatHeldView(state, oppKey){
+  const held = Object.assign({}, state, { phase:'main' });
+  held[oppKey] = Object.assign({}, state[oppKey], { attackers:[] });
+  return held;
+}
+// </combat-sequencing>
 function escapeHtmlGS(s){ return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
 
 // ---------------- Mise à l'échelle du plateau ----------------
@@ -2133,11 +2217,14 @@ function getCatalogOnce(){
 }
 
 // Durées de l'écran d'annonce (ms) : fondu d'entrée + maintien + fondu de
-// sortie = 8 s au total (avant : 450 + 11100 + 450 = 12 s ; tous les temps
-// ont été réduits dans le même rapport 2/3). Fonction pure (testée sous Node).
+// sortie = 6 s au total (avant : 8 s = 300 + 7400 + 300 ; encore avant 12 s).
+// Les trois temps sont réduits dans le même rapport 3/4 (225 + 5550 + 225).
+// Un clic n'importe où passe l'écran (fondu de sortie court, SKIP_FADE_MS).
+// Fonction pure (testée sous Node).
 // <match-announce-timings>
-const MATCH_ANNOUNCE_TOTAL_MS = 8000;
-const MATCH_ANNOUNCE_FADE_MS = 300;
+const MATCH_ANNOUNCE_TOTAL_MS = 6000;
+const MATCH_ANNOUNCE_FADE_MS = 225;
+const MATCH_ANNOUNCE_SKIP_FADE_MS = 200;
 // Délai maximal pendant lequel on attend le catalogue et les profils avant
 // d'afficher l'écran (au-delà, il s'affiche avec les infos déjà connues et
 // se complète dès que les données arrivent).
@@ -2192,6 +2279,8 @@ function buildMatchAnnounceSide(playerState, heroCollection, side, profile){
     heroImageX, heroImageY, heroImageZoom, heroImageMirror,
     cardBackUrl: playerState?.cardBackUrl || null,
     deckName: playerState?.deckName || null,
+    isAI: !!playerState?.isAI,
+    userId: (!playerState?.isAI && playerState?.userId) ? String(playerState.userId) : null,
     name: playerState?.isAI ? 'Intelligence artificielle' : 'Joueur',
     title: null,
     avatarUrl: null,
@@ -2218,6 +2307,21 @@ function fetchMatchAnnounceProfile(playerState){
   return Promise.resolve().then(()=>gsGetProfile(playerState.userId)).catch(()=>null);
 }
 
+// Nom du joueur : lien vers sa page de profil (nouvel onglet, lecture seule :
+// spellcraft-profile.html?uid=… affiche le profil d'un autre joueur sans le
+// bouton d'édition). L'IA n'a pas de profil : texte simple avec info-bulle.
+// Pure (testée sous Node).
+function matchAnnounceProfileUrl(userId){
+  return userId ? 'spellcraft-profile.html?uid=' + encodeURIComponent(userId) : null;
+}
+function matchAnnounceNameHtml(info){
+  const name = matchAnnounceEscapeHtml(info.name);
+  const url = matchAnnounceProfileUrl(info.userId);
+  if(url) return `<div class="ma-name"><a class="ma-name-link" href="${url}" target="_blank" rel="noopener" title="Voir le profil de ${name}">${name}</a></div>`;
+  if(info.isAI) return `<div class="ma-name" title="Adversaire IA">${name}</div>`;
+  return `<div class="ma-name">${name}</div>`;
+}
+
 function matchAnnounceSideHtml(side, info){
   const badgesHtml = Array.from({length:5}).map((_,i)=>{
     const b = info.badges[i];
@@ -2229,7 +2333,7 @@ function matchAnnounceSideHtml(side, info){
   return `
     <div class="ma-block ma-block-${side}">
       <div class="ma-cardback" style="border:2px solid ${info.accent};background-color:#1a1510;${info.cardBackUrl ? `background-image:url('${info.cardBackUrl.replace(/'/g,'')}')` : `background:linear-gradient(160deg, ${info.accent}55, #1a1510 70%);`}"></div>
-      <div class="ma-name">${matchAnnounceEscapeHtml(info.name)}</div>
+      ${matchAnnounceNameHtml(info)}
       ${deckNameHtml}
       <div class="ma-avatar" style="border:3px solid ${info.accent};${info.avatarUrl ? `background-image:url('${info.avatarUrl.replace(/'/g,'')}')` : `background:radial-gradient(circle at 35% 30%, ${info.accent}, #1a1510);`}"></div>
       ${titleHtml}
@@ -2251,6 +2355,7 @@ function matchAnnounceHtml(myInfo, oppInfo){
       <div class="ma-vs-badge" style="border:3px solid #D4AF37;"><span style="color:#D4AF37;">VS</span></div>
       ${matchAnnounceSideHtml('left', myInfo)}
       ${matchAnnounceSideHtml('right', oppInfo)}
+      <div class="ma-skip-hint">Cliquez n'importe où pour passer</div>
     `;
 }
 
@@ -2292,19 +2397,37 @@ async function playMatchAnnouncement(state){
     }).catch(()=>{});
   }
   return new Promise(resolve=>{
-    // fondu d'entrée, puis maintien, puis fondu de sortie — 8 s au total
-    // (compté à partir de l'affichage de l'écran, pas du chargement).
-    requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ el.classList.add('visible'); }); });
-    setTimeout(()=>{
-      el.style.transitionDuration = T.fadeOut + 'ms';
+    // fondu d'entrée, puis maintien, puis fondu de sortie — 6 s au total
+    // (compté à partir de l'affichage de l'écran, pas du chargement). Un clic
+    // n'importe où (hors lien vers un profil) saute directement au fondu de
+    // sortie court. `ending` garantit qu'on ne sort qu'UNE fois : une seule
+    // résolution de la promesse (donc une seule suite : mulligan, rendu...),
+    // et aucun minuteur ne survit à la fin.
+    let ending = false, holdTimer = null, endTimer = null;
+    const finish = ()=>{
+      clearTimeout(holdTimer); clearTimeout(endTimer);
+      running = false;
+      el.onclick = null;
+      el.classList.remove('show','visible');
+      el.innerHTML = '';
+      resolve();
+    };
+    const startFadeOut = (fadeMs)=>{
+      if(ending) return;
+      ending = true;
+      clearTimeout(holdTimer);
+      el.style.transitionDuration = fadeMs + 'ms';
       el.classList.remove('visible');
-      setTimeout(()=>{
-        running = false;
-        el.classList.remove('show');
-        el.innerHTML = '';
-        resolve();
-      }, T.fadeOut);
-    }, T.fadeIn + T.hold);
+      endTimer = setTimeout(finish, fadeMs);
+    };
+    el.onclick = (ev)=>{
+      // Clic sur le nom d'un joueur : le lien s'ouvre dans un nouvel onglet,
+      // l'écran et la partie ne sont pas touchés.
+      if(ev.target && ev.target.closest && ev.target.closest('a.ma-name-link')) return;
+      startFadeOut(MATCH_ANNOUNCE_SKIP_FADE_MS);
+    };
+    requestAnimationFrame(()=>{ requestAnimationFrame(()=>{ if(!ending) el.classList.add('visible'); }); });
+    holdTimer = setTimeout(()=>startFadeOut(T.fadeOut), T.fadeIn + T.hold);
   });
 }
 // Compare l'état mana avant/après pour jouer le bon son de gain — un même
@@ -2397,13 +2520,28 @@ function finishStateUpdateTail(state){
   // Si ce lot contient une animation de combat, on garde l'ancien plateau à
   // l'écran jusqu'à la fin de la file (voir "Gel du rendu"). L'aperçu
   // (commit=false) ne marque rien comme vu : renderGameLog s'en charge.
-  if(!__boardRenderFrozen && getNewGameLogEntries(false).some(entryAnimatesBoardCombat)){
+  // Barrière du tour adverse : si l'état reçu est ma phase de blocage et que le
+  // lot contient des animations de cartes/capacités, le plateau est gelé aussi
+  // (les attaquants désignés ne doivent pas apparaître avant la fin des
+  // révélations) ; une étape de fin de file affiche ensuite les cartes jouées,
+  // marque une courte pause, puis la libération montre les attaquants.
+  const newEntries = getNewGameLogEntries(false);
+  const holdAttackers = !combatInstant() &&
+    shouldHoldCombatReveal(state, MY_KEY, OPP_KEY, newEntries.some(entryQueuesCardAnimation));
+  if(!__boardRenderFrozen && (newEntries.some(entryAnimatesBoardCombat) || holdAttackers)){
     freezeBoardRender();
   }
   render(); // sans effet si le plateau est gelé (voir render)
   renderGameLog();
+  if(holdAttackers && __boardRenderFrozen && (__combatAnimPlaying || __combatAnimQueue.length)){
+    queueCombatAnim(()=>{
+      renderHeldCombatView();
+      return new Promise(resolve=>{ combatTimeout(resolve, cms(COMBAT_PRE_ATTACK_PAUSE_MS)); });
+    });
+  }
   // Gel demandé mais rien n'est finalement parti dans la file : on affiche.
   if(__boardRenderFrozen && !__combatAnimPlaying && !__combatAnimQueue.length) unfreezeBoardRender();
+  maybeAutoFinishBlocking();
 
   // Diagnostic temporaire : affiche les traces envoyées par le serveur
   // (voir recalculateContinuousEffects côté serveur) pour repérer où une
@@ -2425,8 +2563,78 @@ function finishStateUpdateTail(state){
   // conflit avec son propre clic ("une action est déjà en cours").
   const activeIsAI = S[S.active] && S[S.active].isAI;
   if(activeIsAI && !S.gameOver && S.phase==='main' && !ACTION_IN_FLIGHT){
-    setTimeout(()=>{ uiProcessAi(); }, 700);
+    scheduleAiTurn();
   }
+}
+// Tour de l'IA : 700 ms de « réflexion » (cms : réduit en Rapide, nul en
+// Instantané), mais jamais tant qu'une animation tourne encore (révélations de
+// MES dernières actions) ni pendant une autre action. Un seul minuteur à la fois.
+let __aiTurnTimer = null;
+function scheduleAiTurn(){
+  if(__aiTurnTimer) return;
+  const attempt = ()=>{
+    __aiTurnTimer = null;
+    if(!S || S.gameOver || S.phase!=='main' || !(S[S.active] && S[S.active].isAI)) return; // plus d'actualité
+    if(__matchAnnounceActive || __combatAnimPlaying || __combatAnimQueue.length || ACTION_IN_FLIGHT){
+      __aiTurnTimer = setTimeout(attempt, 150);
+      return;
+    }
+    uiProcessAi();
+  };
+  __aiTurnTimer = setTimeout(attempt, cms(700));
+}
+
+// Vue intermédiaire du plateau pendant la pause avant la désignation des
+// attaquants : S est remplacé le temps d'un rendu par combatHeldView(S) (cartes
+// jouées visibles, aucun attaquant, phase principale). S reste l'état réel
+// ensuite ; le gel est conservé (la libération de la file rend l'état final).
+function renderHeldCombatView(){
+  if(!S) return;
+  const real = S, wasFrozen = __boardRenderFrozen;
+  try{
+    S = combatHeldView(real, OPP_KEY);
+    __boardRenderFrozen = false;
+    render();
+  } catch(e){
+    console.error('Vue intermédiaire du combat', e);
+  } finally {
+    S = real;
+    __boardRenderFrozen = wasFrozen;
+    __boardRenderDirty = false;
+  }
+}
+
+// Blocage automatique, repli pour un serveur plus ancien : phase de blocage en
+// attente alors qu'aucun de mes bloqueurs libres ne peut bloquer (ou plus aucun
+// attaquant en jeu) -> on envoie finishBlocking UNE fois par phase, après la
+// fin des animations. L'erreur « wrong-phase » (le serveur a déjà fini) est
+// ignorée. En cas d'échec réel, l'ancien bouton « Passer » redevient visible.
+const __autoFinish = { key:null, status:null, timer:null }; // status : 'sending' | 'settled'
+function autoFinishPending(){
+  if(!S || !blockPhaseNeedsAutoFinish(S, MY_KEY, OPP_KEY)) return false;
+  const key = blockPhaseKey(S, OPP_KEY);
+  return !(__autoFinish.key===key && __autoFinish.status==='settled');
+}
+function maybeAutoFinishBlocking(){
+  if(!S || !blockPhaseNeedsAutoFinish(S, MY_KEY, OPP_KEY)) return;
+  const key = blockPhaseKey(S, OPP_KEY);
+  if(__autoFinish.key===key) return;       // déjà envoyé (ou en cours) pour cette phase
+  if(__autoFinish.timer) return;           // minuteur déjà armé
+  const attempt = ()=>{
+    __autoFinish.timer = null;
+    if(!S || !blockPhaseNeedsAutoFinish(S, MY_KEY, OPP_KEY)) return; // le serveur a fini entre-temps
+    if(blockPhaseKey(S, OPP_KEY)!==key) return maybeAutoFinishBlocking();
+    if(__matchAnnounceActive || __combatAnimPlaying || __combatAnimQueue.length || __boardRenderFrozen || ACTION_IN_FLIGHT){
+      __autoFinish.timer = setTimeout(attempt, 150); // animations en cours : on attend
+      return;
+    }
+    __autoFinish.key = key; __autoFinish.status = 'sending';
+    UI.pendingBlocker = null;
+    runAction('Fin du blocage (auto)', ()=>gsFinishBlocking(), { ignoreErrors:['wrong-phase'] })
+      .catch(()=>{})
+      .then(()=>{ if(__autoFinish.key===key) __autoFinish.status = 'settled'; render(); });
+  };
+  __autoFinish.timer = setTimeout(attempt, cms(BLOCK_AUTO_FINISH_DELAY_MS));
 }
 
 // ---------------- cardEl (adapté du prototype) ----------------
@@ -4608,6 +4816,7 @@ function releaseCombatAnimLock(){
     __pendingStateWhileAnimating = null;
     onStateUpdate(pending);
   }
+  maybeAutoFinishBlocking();
 }
 // Interruption immédiate (bouton « Passer » ou garde-fou) : coupe les sons en
 // cours, retire tout ce qui flotte encore (chiffres, flèches, révélation,
@@ -5150,7 +5359,13 @@ function renderPhaseBar(){
   let phaseKey = null; // reste null tant qu'aucune action n'est vraiment attendue du joueur
 
   if(!myTurn){
-    if(S.phase==='declareBlockersMe'){
+    if(S.phase==='declareBlockersMe' && autoFinishPending()){
+      // Plus aucun bloqueur disponible : la phase se termine toute seule (serveur
+      // à jour, ou repli client maybeAutoFinishBlocking). Pas d'ancien bouton
+      // « Passer » en course ; s'il reste affiché en cas d'échec, voir plus bas.
+      btn.textContent = 'Résolution du combat...';
+      btn.disabled = true;
+    } else if(S.phase==='declareBlockersMe'){
       // Normalement le serveur résout seul la phase quand je ne peux pas
       // bloquer (on n'arrive alors jamais ici). Si l'état est resté en
       // attente de blocage (ancienne partie, serveur non à jour), l'ancien
@@ -5413,7 +5628,7 @@ function showActionError(msg){
   if(__actionErrorTimer) clearTimeout(__actionErrorTimer);
   __actionErrorTimer = setTimeout(()=>{ box.style.display = 'none'; }, 5000);
 }
-async function runAction(label, fn){
+async function runAction(label, fn, opts){
   if(ACTION_IN_FLIGHT){ debugLog(`${label} → une action est déjà en cours, patiente un instant.`, 'log-error'); return; }
   ACTION_IN_FLIGHT = true;
   document.body.classList.add('action-busy');
@@ -5421,7 +5636,11 @@ async function runAction(label, fn){
     const res = await fn();
     if(res && res.error){
       debugLog(`${label} → ${res.error}`, 'log-error');
-      showActionError(`${label} : ${describeActionError(res.error, label)}`);
+      // Erreurs attendues et sans gravité pour cette action (ex. « wrong-phase »
+      // quand le serveur avait déjà terminé la phase) : pas de bandeau d'erreur.
+      if(!(opts && opts.ignoreErrors && opts.ignoreErrors.includes(res.error))){
+        showActionError(`${label} : ${describeActionError(res.error, label)}`);
+      }
     } else if(res && res.state){
       // Applique directement l'état renvoyé par l'action elle-même — ne
       // dépend plus uniquement de la diffusion temps réel (qui met à jour
