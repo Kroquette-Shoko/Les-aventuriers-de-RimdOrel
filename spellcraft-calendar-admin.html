@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" href="data:,">
-<title>Spellcraft — Administration du calendrier</title>
+<title>Spellcraft — Administration — Les coffres de Velkrin</title>
 <link rel="stylesheet" href="spellcraft-ui-kit.css">
 <style>
 body{margin:0;background:var(--bg-void,#0b0a12);color:var(--parchment,#efe6c8);font-family:'Inter',sans-serif;}
@@ -127,8 +127,8 @@ function summary(){
 function render(){
   const root=document.getElementById('root');
   const seasonOpts=SEASONS.map(s=>`<option value="${esc(s.id)}" ${SEASON&&s.id===SEASON.id?'selected':''}>${esc(s.name)} (${esc(s.id)})</option>`).join('');
-  let h=`<div id="msg"></div><h1>Calendrier — administration</h1><p class="hint"><a href="spellcraft-card-editor.html" style="color:#d4af37">← Éditeur de cartes</a> · Les modifications ne sont enregistrées qu'au clic sur « Enregistrer ».</p>`;
-  h+=`<div class="panel"><h2>Accès des joueurs</h2><p>Le calendrier est actuellement <b class="${FLAG?'ok':'ko'}">${FLAG?'OUVERT':'FERMÉ'}</b> pour les joueurs (les joueurs voient « bientôt » et ne peuvent rien ouvrir).</p><button class="sc-btn sc-btn-gold" data-act="flag">${FLAG?'Fermer l\'accès':'Ouvrir l\'accès aux joueurs'}</button></div>`;
+  let h=`<div id="msg"></div><h1>Les coffres de Velkrin — administration</h1><p class="hint"><a href="spellcraft-card-editor.html" style="color:#d4af37">← Éditeur de cartes</a> · Les modifications ne sont enregistrées qu'au clic sur « Enregistrer ».</p>`;
+  h+=`<div class="panel"><h2>Accès des joueurs</h2><p>Les coffres de Velkrin sont actuellement <b class="${FLAG?'ok':'ko'}">${FLAG?'OUVERTS':'FERMÉS'}</b> pour les joueurs (les joueurs voient « bientôt » et ne peuvent rien ouvrir).</p><button class="sc-btn sc-btn-gold" data-act="flag">${FLAG?'Fermer l\'accès':'Ouvrir l\'accès aux joueurs'}</button></div>`;
   h+=`<div class="panel"><h2>Saison</h2><div class="row"><label>Saison<select id="season-sel">${seasonOpts}</select></label><button class="sm" data-act="newseason">+ Nouvelle saison (copie les récompenses de celle-ci)</button></div>`;
   if(SEASON){
     h+=`<div class="row"><label>Nom affiché<input id="s-name" size="30" value="${esc(SEASON.name)}"></label><label>Début (heure de Paris)<input id="s-start" type="datetime-local" value="${parisParts(new Date(SEASON.starts_at))}"></label><label>Fin (heure de Paris)<input id="s-end" type="datetime-local" value="${parisParts(new Date(SEASON.ends_at))}"></label><label>Prix premium (or)<input id="s-price" type="number" min="0" value="${esc(SEASON.premium_price)}"></label></div>
@@ -186,7 +186,7 @@ async function newSeason(){
   syncFromDom();
   const id=prompt('Identifiant de la nouvelle saison (ex. 2026-12) :'); if(!id) return;
   if(SEASONS.some(s=>s.id===id)) return msg('Cet identifiant existe déjà.',false);
-  const name=prompt('Nom de la saison :','Calendrier — '+id); if(!name) return;
+  const name=prompt('Nom de la saison :','Les coffres de Velkrin — '+id); if(!name) return;
   const start=SEASON?new Date(SEASON.ends_at):new Date(); const end=new Date(start.getTime()+61*86400000);
   const {error}=await sb.from('cal_seasons').insert({id,name,starts_at:start.toISOString(),ends_at:end.toISOString(),premium_price:SEASON?SEASON.premium_price:500,cells:49});
   if(error) return msg('Erreur : '+error.message,false);
@@ -202,7 +202,7 @@ async function newTitle(key,i){
   const masc=prompt('Titre (masculin) :'); if(!masc) return;
   const fem=prompt('Titre (féminin) — laisse vide si identique :',masc)||masc;
   const id='cal_title_'+Date.now();
-  const {error}=await sb.from('achievement_definitions').insert({id,name:masc,description:'Titre obtenu via le calendrier',condition_type:'calendar',category:'calendar',target_count:1,rewards:[],active:false,order_index:9100,grants_title:true,title_masculine:masc,title_feminine:fem});
+  const {error}=await sb.from('achievement_definitions').insert({id,name:masc,description:'Titre obtenu via les coffres de Velkrin',condition_type:'calendar',category:'calendar',target_count:1,rewards:[],active:false,order_index:9100,grants_title:true,title_masculine:masc,title_feminine:fem});
   if(error) return msg('Erreur création du titre : '+error.message,false);
   const {data}=await sb.from('achievement_definitions').select('id,name,title_masculine,title_feminine,grants_title,category').eq('grants_title',true);
   TITLES=data||TITLES;
@@ -214,7 +214,7 @@ async function toggleFlag(){
   syncFromDom();
   const {data,error}=await sb.from('app_flags').upsert({key:'calendar_enabled',value:!FLAG,updated_at:new Date().toISOString()},{onConflict:'key'}).select();
   if(error||!data||!data.length) return msg('Impossible de modifier l\'accès : '+(error?error.message:'refusé'),false);
-  FLAG=!!data[0].value; render(); msg(FLAG?'Calendrier ouvert aux joueurs.':'Calendrier fermé.');
+  FLAG=!!data[0].value; render(); msg(FLAG?'Coffres ouverts aux joueurs.':'Coffres fermés.');
 }
 
 document.addEventListener('click', async e=>{

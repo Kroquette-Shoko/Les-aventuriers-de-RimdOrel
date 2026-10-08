@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Spellcraft — Calendrier</title>
+<title>Spellcraft — Les coffres de Velkrin</title>
 <script>
 // Anti-flash : applique le thème choisi AVANT le premier rendu.
 (function(){
@@ -96,7 +96,7 @@ main{width:100%;max-width:900px;display:flex;flex-direction:column;gap:18px;}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
       Menu principal
     </a>
-    <span class="sc-topbar-title">🎁 Calendrier</span>
+    <span class="sc-topbar-title">🎁 Les coffres de Velkrin</span>
     <div class="sc-topbar-right">
       <div id="sc-auth-slot"></div>
       <div id="sc-options-slot"></div>
@@ -104,7 +104,7 @@ main{width:100%;max-width:900px;display:flex;flex-direction:column;gap:18px;}
   </div>
 
   <div class="cal-top-row">
-    <h1 class="sc-h1">Calendrier</h1>
+    <h1 class="sc-h1">Les coffres de Velkrin</h1>
     <div id="gold-chip" class="sc-pill sc-pill-gold"><span class="money-icon"></span><span id="gold-amount">–</span></div>
   </div>
 
@@ -139,7 +139,7 @@ function toast(msg){
 function fmtDate(iso){ try{ return new Date(iso).toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric', timeZone:'Europe/Paris' }); }catch(e){ return ''; } }
 
 const ERRORS = {
-  'not-logged-in':'Connecte-toi pour utiliser le calendrier.',
+  'not-logged-in':'Connecte-toi pour ouvrir les coffres de Velkrin.',
   'no-season':'Aucune saison en cours.',
   'no-ticket':'Aucune case à ouvrir pour le moment : termine une partie !',
   'already-opened':'Cette case est déjà ouverte.',
@@ -282,19 +282,19 @@ async function showResult(title, granted){
 async function load(){
   const user = await scGetCurrentUser();
   if(!user){
-    document.getElementById('cal-head').innerHTML = '<p class="empty-note">Connecte-toi pour voir ton calendrier.</p>';
+    document.getElementById('cal-head').innerHTML = '<p class="empty-note">Connecte-toi pour voir tes coffres de Velkrin.</p>';
     document.getElementById('grid').innerHTML = ''; document.getElementById('final-tile').innerHTML = '';
     return;
   }
   const { data, error } = await sb.rpc('get_calendar');
   if(data && data.error === 'coming-soon'){
-    document.getElementById('cal-head').innerHTML = '<p class="empty-note">Le calendrier arrive bientôt ! 🎁</p>';
+    document.getElementById('cal-head').innerHTML = '<p class="empty-note">Les coffres de Velkrin arrivent bientôt ! 🎁</p>';
     document.getElementById('grid').innerHTML = ''; document.getElementById('final-tile').innerHTML = '';
     document.getElementById('cal-rules').innerHTML = '';
     return;
   }
   if(error || !data || data.error){
-    document.getElementById('cal-head').innerHTML = '<p class="empty-note">Impossible de charger le calendrier pour le moment.</p>';
+    document.getElementById('cal-head').innerHTML = '<p class="empty-note">Impossible de charger les coffres de Velkrin pour le moment.</p>';
     return;
   }
   if(!data.season){
