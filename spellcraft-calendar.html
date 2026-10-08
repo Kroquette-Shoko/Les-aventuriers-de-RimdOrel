@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spellcraft — Calendrier</title>
+<script>
+// Anti-flash : applique le thème choisi AVANT le premier rendu.
+(function(){
+  try{
+    var t = localStorage.getItem('sc-theme') || 'actuel';
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){}
+})();
+</script>
+<link rel="stylesheet" href="spellcraft-ui-kit.css">
+<style>
+#app{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:0 20px 60px;}
+#app > .sc-topbar{margin:0 -20px 20px;width:calc(100% + 40px);}
+main{width:100%;max-width:900px;display:flex;flex-direction:column;gap:18px;}
+
+.money-icon{width:20px;height:20px;display:inline-block;vertical-align:-5px;background-color:#f2c94c;-webkit-mask-image:url('images/money.png');mask-image:url('images/money.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;}
+#gold-chip{font-size:13.5px;padding:7px 16px;}
+.cal-top-row{width:100%;max-width:900px;display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px;}
+.cal-top-row .sc-h1{margin:0;}
+
+/* ---------- Bandeau du jour ---------- */
+#cal-head{display:flex;flex-direction:column;gap:14px;}
+.head-line{display:flex;align-items:center;gap:18px;flex-wrap:wrap;}
+.ticket-badge{min-width:108px;height:108px;padding:0 10px;border-radius:50%;border:3px solid var(--gold);display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg-panel-3);flex-shrink:0;}
+.ticket-badge.has{box-shadow:0 0 18px rgba(242,201,76,.45);}
+.ticket-badge small{font-size:9.5px;color:var(--parchment-dim);letter-spacing:.8px;text-transform:uppercase;text-align:center;line-height:1.2;}
+.ticket-badge b{font-family:'Cinzel',serif;font-size:32px;color:var(--gold);line-height:1;}
+.head-info{flex:1;min-width:230px;}
+.season-name{font-family:'Cinzel',serif;font-size:17px;color:var(--gold);}
+.season-sub{font-size:12px;color:var(--parchment-dim);margin:2px 0 10px;}
+.todo{display:flex;flex-direction:column;gap:6px;font-size:13px;}
+.todo .row{display:flex;align-items:center;gap:8px;}
+.todo .ck{width:20px;height:20px;border-radius:50%;border:2px solid var(--line);display:inline-flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
+.todo .done .ck{border-color:var(--green);color:var(--green);}
+.todo .done{color:var(--parchment-dim);}
+.progress-line{height:8px;border-radius:5px;background:var(--bg-panel-3);overflow:hidden;margin-top:8px;}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--arcane),var(--gold));transition:width .4s;}
+.progress-text{font-size:11.5px;color:var(--parchment-dim);margin-top:4px;}
+
+.premium-box{border:1px solid var(--gold);border-radius:12px;padding:12px 14px;background:var(--bg-panel-2);display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;}
+.premium-box.owned{border-color:var(--green);}
+.premium-box .pt{font-weight:700;font-size:13.5px;}
+.premium-box .pd{font-size:11.5px;color:var(--parchment-dim);}
+
+/* ---------- Grille 7x7 ---------- */
+#grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;}
+.tile{position:relative;aspect-ratio:1/1;border-radius:10px;border:1px solid var(--line);background:var(--bg-panel-2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:4px;font-size:11.5px;text-align:center;cursor:default;overflow:hidden;color:var(--parchment);}
+.tile .num{font-family:'Cinzel',serif;font-weight:700;font-size:20px;color:var(--parchment-dim);}
+.tile.closed{background:linear-gradient(145deg,var(--bg-panel-3),var(--bg-panel-2));}
+.tile.closed.can{border-color:var(--gold);cursor:pointer;}
+.tile.closed.can .num{color:var(--gold);}
+.tile.closed.can:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(242,201,76,.25);}
+.tile.open{border-color:var(--green);}
+.tile.open .num{position:absolute;top:3px;left:6px;font-size:10px;font-weight:400;}
+.tile .rw{display:flex;flex-direction:column;align-items:center;gap:2px;font-weight:700;line-height:1.15;}
+.tile .rw .big{font-size:18px;}
+.tile.gold-rw .rw{color:var(--gold);}
+.tile.pop{animation:pop .5s ease;}
+@keyframes pop{0%{transform:scale(.6) rotate(-6deg);opacity:.2}60%{transform:scale(1.12) rotate(2deg);opacity:1}100%{transform:scale(1) rotate(0)}}
+
+#final-tile{width:100%;margin-top:12px;border-radius:12px;border:2px dashed var(--line);background:var(--bg-panel-2);padding:16px;display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;font-family:'Cinzel',serif;font-size:15px;color:var(--parchment-dim);text-align:center;}
+#final-tile.ready{border:2px solid var(--gold);color:var(--gold);cursor:pointer;box-shadow:0 0 18px rgba(242,201,76,.35);}
+#final-tile.done{border:2px solid var(--green);color:var(--green);}
+#final-tile small{display:block;font-family:inherit;font-size:11.5px;color:var(--parchment-dim);font-weight:400;}
+
+.empty-note{font-size:12.5px;color:var(--parchment-dim);font-style:italic;}
+.rules{font-size:12px;color:var(--parchment-dim);line-height:1.6;}
+.rules b{color:var(--parchment);}
+
+#res-back{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:300;padding:20px;}
+#res-back.show{display:flex;}
+#res-box{background:var(--bg-panel-2);border:1px solid var(--gold);border-radius:14px;padding:20px 22px;max-width:460px;width:100%;max-height:80vh;overflow:auto;}
+#res-box h3{font-family:'Cinzel',serif;color:var(--gold);margin:0 0 12px;}
+#res-box ul{margin:0 0 14px;padding-left:18px;font-size:13px;line-height:1.6;}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg-panel-3);border:1px solid var(--line);padding:10px 18px;border-radius:10px;font-size:13px;z-index:400;display:none;max-width:90vw;text-align:center;}
+
+@media(max-width:560px){
+  #grid{gap:5px;}
+  .tile{font-size:9.5px;border-radius:7px;}
+  .tile .num{font-size:15px;}
+  .tile .rw .big{font-size:14px;}
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="sc-topbar">
+    <a href="spellcraft-hub.html" class="sc-topbar-back" title="Retour à l'accueil">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Menu principal
+    </a>
+    <span class="sc-topbar-title">🎁 Calendrier</span>
+    <div class="sc-topbar-right">
+      <div id="sc-auth-slot"></div>
+      <div id="sc-options-slot"></div>
+    </div>
+  </div>
+
+  <div class="cal-top-row">
+    <h1 class="sc-h1">Calendrier</h1>
+    <div id="gold-chip" class="sc-pill sc-pill-gold"><span class="money-icon"></span><span id="gold-amount">–</span></div>
+  </div>
+
+  <main>
+    <div id="cal-head" class="sc-panel"><p class="empty-note">Chargement…</p></div>
+    <div class="sc-panel">
+      <div id="grid"></div>
+      <div id="final-tile"></div>
+    </div>
+    <div class="sc-panel rules" id="cal-rules"></div>
+  </main>
+</div>
+
+<div id="res-back"><div id="res-box"></div></div>
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>window.APP_TOPBAR_DISABLED = true;</script>
+<script src="spellcraft-shared.js"></script>
+<script src="spellcraft-auth.js"></script>
+<script src="spellcraft-economy.js"></script>
+<script>
+let CAL = null;           // dernier état renvoyé par get_calendar
+let busy = false;
+let lastOpened = null;    // case qui vient d'être ouverte (pour l'animation)
+
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function toast(msg){
+  const t = document.getElementById('toast'); t.textContent = msg; t.style.display = 'block';
+  clearTimeout(toast._t); toast._t = setTimeout(()=>{ t.style.display = 'none'; }, 3400);
+}
+function fmtDate(iso){ try{ return new Date(iso).toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric', timeZone:'Europe/Paris' }); }catch(e){ return ''; } }
+
+const ERRORS = {
+  'not-logged-in':'Connecte-toi pour utiliser le calendrier.',
+  'no-season':'Aucune saison en cours.',
+  'no-ticket':'Aucune case à ouvrir pour le moment : termine une partie !',
+  'already-opened':'Cette case est déjà ouverte.',
+  'bad-cell':'Case invalide.',
+  'already-premium':'Tu as déjà le premium.',
+  'not-enough-gold':'Pas assez d\'or pour le premium.',
+  'grid-not-complete':'Ouvre d\'abord les 49 cases.',
+  'already-claimed':'Case finale déjà ouverte.'
+};
+function errText(e){ return ERRORS[e] || ('Erreur : ' + e); }
+
+/* ---------- Contenu d'une case ouverte ---------- */
+function shortReward(list){
+  return (list || []).map(g => {
+    if(g.type === 'gold') return `<span class="rw"><span class="big"><span class="money-icon"></span></span>${esc(g.amount)}</span>`;
+    if(g.type === 'booster') return `<span class="rw"><span class="big">📦</span>${g.count > 1 ? esc(g.count) + '× ' : ''}Booster</span>`;
+    if(g.type === 'card') return `<span class="rw"><span class="big">🃏</span>${esc(g.rarity)}${g.foil ? ' ✨' : ''}</span>`;
+    if(g.type === 'card_back') return `<span class="rw"><span class="big">🎴</span>Dos</span>`;
+    if(g.type === 'title') return `<span class="rw"><span class="big">🏷️</span>Titre</span>`;
+    return '';
+  }).join('');
+}
+
+function render(){
+  document.getElementById('gold-amount').textContent = CAL.gold;
+  const s = CAL.season, t = CAL.tickets;
+  const opened = t.opened, total = CAL.cellCount;
+  const pct = Math.round(opened / total * 100);
+  const gamesDone = t.todayGames >= 1, pvpDone = t.todayPvp >= 5;
+  const head = document.getElementById('cal-head');
+  head.innerHTML = `
+    <div class="head-line">
+      <div class="ticket-badge ${t.available > 0 ? 'has' : ''}"><small>Cases à ouvrir</small><b>${esc(t.available)}</b></div>
+      <div class="head-info">
+        <div class="season-name">${esc(s.name)}</div>
+        <div class="season-sub">Jusqu'au ${esc(fmtDate(new Date(new Date(s.endsAt).getTime() - 1000).toISOString()))} · ${s.daysLeft} jour${s.daysLeft > 1 ? 's' : ''} restant${s.daysLeft > 1 ? 's' : ''}</div>
+        <div class="todo">
+          <div class="row ${gamesDone ? 'done' : ''}"><span class="ck">${gamesDone ? '✓' : ''}</span> Terminer 1 partie aujourd'hui <span style="margin-left:auto;color:var(--parchment-dim)">+1 case</span></div>
+          <div class="row ${pvpDone ? 'done' : ''}"><span class="ck">${pvpDone ? '✓' : ''}</span> Terminer 5 parties contre des joueurs (${esc(Math.min(5, t.todayPvp))}/5) <span style="margin-left:auto;color:var(--parchment-dim)">+1 case</span></div>
+          <div class="row ${CAL.premium ? 'done' : ''}"><span class="ck">${CAL.premium ? '✓' : '★'}</span> Bonus premium <span style="margin-left:auto;color:var(--parchment-dim)">${CAL.premium ? '+1 case par jour' : 'non débloqué'}</span></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="progress-line"><div class="progress-fill" style="width:${pct}%"></div></div>
+      <div class="progress-text">${esc(opened)} / ${esc(total)} cases ouvertes · ${esc(t.earned)} droit${t.earned > 1 ? 's' : ''} gagné${t.earned > 1 ? 's' : ''} cette saison</div>
+    </div>
+    <div class="premium-box ${CAL.premium ? 'owned' : ''}" id="premium-box"></div>`;
+  const pb = document.getElementById('premium-box');
+  if(CAL.premium){
+    pb.innerHTML = '<div><div class="pt">★ Premium actif pour cette saison</div><div class="pd">+1 case par jour et des récompenses en plus dans la case finale.</div></div>';
+  } else {
+    pb.innerHTML = '<div><div class="pt">★ Premium</div><div class="pd">+1 case chaque jour à partir de l\'achat, et des récompenses supplémentaires dans la case finale. Valable pour cette saison.</div></div>';
+    const b = document.createElement('button');
+    b.className = 'sc-btn sc-btn-gold';
+    b.innerHTML = `Débloquer · <span class="money-icon"></span> ${esc(CAL.premiumPrice)}`;
+    b.onclick = buyPremium;
+    pb.appendChild(b);
+  }
+
+  const grid = document.getElementById('grid');
+  grid.innerHTML = '';
+  CAL.cells.forEach(c => {
+    const el = document.createElement('div');
+    if(c.opened){
+      el.className = 'tile open' + ((c.granted || []).some(g => g.type === 'gold') ? ' gold-rw' : '') + (lastOpened === c.n ? ' pop' : '');
+      el.innerHTML = `<span class="num">${c.n}</span>${shortReward(c.granted)}`;
+    } else {
+      const can = t.available > 0;
+      el.className = 'tile closed' + (can ? ' can' : '');
+      el.innerHTML = `<span class="num">${c.n}</span>`;
+      el.onclick = () => openCell(c.n);
+      el.title = can ? 'Clique pour ouvrir' : 'Termine une partie pour gagner une case';
+    }
+    grid.appendChild(el);
+  });
+  lastOpened = null;
+
+  const ft = document.getElementById('final-tile');
+  const freeDone = CAL.final.free && CAL.final.free.claimed;
+  const premPending = CAL.premium && CAL.final.premium && !CAL.final.premium.claimed;
+  ft.className = '';
+  ft.onclick = null;
+  if(CAL.finalUnlocked && (!freeDone || premPending)){
+    ft.className = 'ready';
+    ft.innerHTML = '<div>🎁 Case finale — clique pour l\'ouvrir !<small>Une récompense exclusive' + (premPending ? ', plus les extras premium' : '') + '</small></div>';
+    ft.onclick = claimFinal;
+  } else if(freeDone){
+    ft.className = 'done';
+    ft.innerHTML = '<div>🎁 Case finale ouverte ✓<small>' + (CAL.premium ? 'Tu as tout récupéré pour cette saison.' : 'Le premium aurait ajouté des récompenses en plus.') + '</small></div>';
+  } else {
+    ft.innerHTML = `<div>🎁 Case finale (n° ${esc(total + 1)})<small>Ouvre les ${esc(total)} cases pour la débloquer : une récompense qu'on ne trouve qu'ici.</small></div>`;
+  }
+
+  document.getElementById('cal-rules').innerHTML = `
+    <b>Comment ça marche ?</b><br>
+    • Chaque jour (heure de Paris), <b>1 partie terminée</b> (contre l'IA ou un joueur) te donne <b>1 case à ouvrir</b>.<br>
+    • <b>5 parties terminées contre des joueurs</b> le même jour te donnent <b>1 case de plus</b>. Au-delà de 3 parties en 24 h contre le même adversaire, les parties ne comptent plus pour ce bonus.<br>
+    • Les cases non ouvertes <b>s'accumulent</b> : tu peux les ouvrir quand tu veux jusqu'à la fin de la saison.<br>
+    • Les récompenses sont les mêmes pour tous les joueurs, mais <b>placées différemment</b> dans chaque grille.<br>
+    • Les boosters sont ouverts automatiquement et leurs cartes ajoutées à ta collection.<br>
+    • La grille est remplacée par une nouvelle à la fin de la saison : ce qui n'est pas ouvert est perdu.`;
+}
+
+/* ---------- Fenêtre de résultat ---------- */
+async function cardNames(ids){
+  const out = {};
+  if(!ids.length) return out;
+  try{
+    const { data } = await sb.from('cards').select('id, data').in('id', ids);
+    (data || []).forEach(c => { out[c.id] = (c.data && c.data.name) || c.id; });
+  }catch(e){}
+  return out;
+}
+async function showResult(title, granted){
+  let gold = 0, boosters = 0, fragments = 0, boosterCards = 0; const lines = []; const cardIds = [];
+  (granted || []).forEach(g => {
+    if(g.type === 'gold') gold += g.amount;
+    else if(g.type === 'booster'){
+      boosters += g.count;
+      (g.opened || []).forEach(o => (((o.result || {}).cards) || []).forEach(c => { if(c.result === 'fragments') fragments++; else boosterCards++; }));
+    }
+    else if(g.type === 'card'){ (g.card_ids || []).forEach(id => cardIds.push({ id, foil: g.foil, rarity: g.rarity })); }
+    else if(g.type === 'card_back'){ lines.push(g.duplicate ? `Dos « ${esc(g.name)} » déjà possédé : +${esc(g.gold)} or à la place` : `Nouveau dos de carte : <b>${esc(g.name)}</b>`); if(g.duplicate) gold += g.gold; }
+    else if(g.type === 'title') lines.push(`Nouveau titre : <b>${esc(g.masculine)}${g.feminine && g.feminine !== g.masculine ? ' / ' + esc(g.feminine) : ''}</b> (à équiper depuis ton profil)`);
+  });
+  const names = await cardNames(cardIds.map(c => c.id));
+  const items = [];
+  if(gold) items.push(`<span class="money-icon"></span> <b>+${gold} or</b>`);
+  if(boosters) items.push(`📦 <b>${boosters} booster${boosters > 1 ? 's' : ''} ouvert${boosters > 1 ? 's' : ''}</b> : ${boosterCards} carte${boosterCards > 1 ? 's' : ''} ajoutée${boosterCards > 1 ? 's' : ''}${fragments ? `, ${fragments} convertie${fragments > 1 ? 's' : ''} en fragments (exemplaires au maximum)` : ''}`);
+  cardIds.forEach(c => items.push(`🃏 <b>${esc(names[c.id] || c.id)}</b> (${esc(c.rarity)}${c.foil ? ' ✨ foil' : ''})`));
+  lines.forEach(l => items.push(l));
+  document.getElementById('res-box').innerHTML = `<h3>${esc(title)}</h3><ul>${items.map(i => `<li>${i}</li>`).join('') || '<li>Rien à afficher.</li>'}</ul><button class="sc-btn sc-btn-gold" onclick="document.getElementById('res-back').classList.remove('show')">Fermer</button>`;
+  document.getElementById('res-back').classList.add('show');
+}
+
+/* ---------- Actions ---------- */
+async function load(){
+  const user = await scGetCurrentUser();
+  if(!user){
+    document.getElementById('cal-head').innerHTML = '<p class="empty-note">Connecte-toi pour voir ton calendrier.</p>';
+    document.getElementById('grid').innerHTML = ''; document.getElementById('final-tile').innerHTML = '';
+    return;
+  }
+  const { data, error } = await sb.rpc('get_calendar');
+  if(error || !data || data.error){
+    document.getElementById('cal-head').innerHTML = '<p class="empty-note">Impossible de charger le calendrier pour le moment.</p>';
+    return;
+  }
+  if(!data.season){
+    document.getElementById('cal-head').innerHTML = '<p class="empty-note">Aucune saison n\'est en cours. Reviens bientôt !</p>';
+    document.getElementById('grid').innerHTML = ''; document.getElementById('final-tile').innerHTML = '';
+    return;
+  }
+  CAL = data;
+  render();
+}
+
+async function openCell(n){
+  if(busy) return;
+  if(CAL.tickets.available <= 0){ toast(errText('no-ticket')); return; }
+  busy = true;
+  try{
+    const { data, error } = await sb.rpc('open_calendar_cell', { p_cell: n });
+    if(error || !data){ toast('Erreur : ' + (error ? error.message : 'réponse vide')); return; }
+    if(data.error){ toast(errText(data.error)); await load(); return; }
+    try{ playSfx('quest-loot'); }catch(e){}
+    lastOpened = n;
+    await load();
+    showResult(`Case ${n}`, data.granted);
+    sb.rpc('progress_collection_achievements').catch(()=>{});
+  } finally { busy = false; }
+}
+
+async function claimFinal(){
+  if(busy) return; busy = true;
+  try{
+    const { data, error } = await sb.rpc('claim_calendar_final');
+    if(error || !data){ toast('Erreur : ' + (error ? error.message : 'réponse vide')); return; }
+    if(data.error){ toast(errText(data.error)); await load(); return; }
+    try{ playSfx('quest-loot'); }catch(e){}
+    await load();
+    showResult('Case finale', data.granted);
+    sb.rpc('progress_collection_achievements').catch(()=>{});
+  } finally { busy = false; }
+}
+
+async function buyPremium(){
+  if(busy) return; busy = true;
+  try{
+    if(!confirm(`Débloquer le premium de cette saison pour ${CAL.premiumPrice} or ?`)) return;
+    const { data, error } = await sb.rpc('buy_calendar_premium');
+    if(error || !data){ toast('Erreur : ' + (error ? error.message : 'réponse vide')); return; }
+    if(data.error){ toast(errText(data.error)); await load(); return; }
+    toast('Premium débloqué !');
+    await load();
+  } finally { busy = false; }
+}
+
+initSpellcraftAuth();
+try{ playMenuMusicRotation(0.35); }catch(e){}
+load();
+sb.auth.onAuthStateChange(() => { load(); });
+</script>
+</body>
+</html>
