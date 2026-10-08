@@ -28,7 +28,7 @@ const CARD_TYPES = ['Héros','Région','Créature','Artefact','Sortilège','Piè
 
 const KEYWORDS = [
   {key:'charge', label:'Charge', desc:'Peut attaquer au tour où elle arrive.'},
-  {key:'flying', label:'Envol', desc:'Ne peut être bloquée que par des créatures volantes ou à portée.'},
+  {key:'flying', label:'Vol', desc:'Ne peut être bloquée que par des créatures volantes ou à portée.'},
   {key:'reach', label:'Portée', desc:'Peut bloquer les créatures volantes sans avoir elle-même le Vol.'},
   {key:'pierce', label:'Brutalité', desc:"L'excédent de dégâts passe sur le héros adverse."},
   {key:'lifesteal', label:'Vol de vie', desc:'Les dégâts infligés soignent votre héros.'},

@@ -220,8 +220,12 @@ async function saveUserDeck(deck){
 }
 
 async function deleteUserDeck(id){
-  const { error } = await sb.from('user_decks').delete().eq('id', id);
+  // .select('id') : on récupère les lignes réellement supprimées. Sans cela, une
+  // suppression refusée en silence (droits, id introuvable) passait pour un succès
+  // et le deck restait en base alors que l'écran le retirait.
+  const { data, error } = await sb.from('user_decks').delete().eq('id', id).select('id');
   if(error) return { error: error.message };
+  if(!data || !data.length) return { error: "Le deck n'a pas été supprimé (introuvable ou non autorisé)." };
   return { ok: true };
 }
 

@@ -497,7 +497,7 @@ body.targeting *{cursor:crosshair !important;}
 <div id="tut-end-screen">
   <div id="tut-end-card">
     <h2>Vous connaissez les bases !</h2>
-    <p>Vous savez maintenant jouer des créatures, attaquer et bloquer, utiliser les principaux mots-clés, activer un artefact, poser un piège et lancer un sortilège.<br><br>
+    <p>Vous savez maintenant jouer des créatures, attaquer et bloquer, utiliser les principaux mots-clés, activer un artefact, poser un piège, lancer un sortilège et lire le journal.<br><br>
     Direction la <strong>boutique</strong> : 3 boosters « Booster classique » vous y attendent, offerts. Ouvrez-les, puis rendez-vous dans votre <strong>collection</strong> pour construire votre tout premier deck — un guide rapide vous accompagnera pas à pas.<br><br>
     Pour le détail complet d'un tour, de chaque mot-clé et du fonctionnement précis des cartes, consultez <strong>le Grimoire</strong> — il reste accessible à tout moment depuis le hub.</p>
     <div class="tut-end-btns">
@@ -661,6 +661,32 @@ body.targeting *{cursor:crosshair !important;}
   body.combat-anim-lock #hand-p1{
     pointer-events:none;
   }
+  /* --- Journal : lisibilité --- */
+  /* Ordre chronologique (le plus récent en bas, le panneau suit la dernière
+     ligne) : l'ancien « column-reverse » collait le défilement en bas tout en
+     affichant le plus récent en haut, donc hors de vue dès que le journal
+     débordait. Les règles ci-dessous sont préfixées pour passer devant
+     « #log div » (padding / filet commun à tous les div). */
+  #journal-panel #log{display:block;flex-direction:initial;}
+  #journal-panel #log .journal-entry{padding:5px 0 5px 7px;border-bottom:1px dashed var(--line, #3a3260);}
+  #journal-panel #log .journal-entry.mine{border-left:3px solid #4aa3ff;}
+  #journal-panel #log .journal-entry.opp{border-left:3px solid #e0584f;}
+  #journal-panel #log .journal-entry-card, #journal-panel #log .journal-effect-line{padding:0;border-bottom:none;}
+  #journal-panel #log .journal-entry .jicon{display:inline-block;width:1.5em;text-align:center;margin-left:-.2em;}
+  #journal-panel #log .journal-turn{position:sticky;top:0;z-index:2;margin:8px 0 4px;padding:3px 8px;border-radius:6px;border:1px solid var(--line,#3a3260);border-bottom-width:1px;font-family:'Cinzel',serif;font-weight:700;font-size:11px;letter-spacing:.5px;color:var(--parchment,#f0e6c8);background:#26203c;}
+  #journal-panel #log .journal-turn.mine{background:#16304a;border-color:#2b6ea8;}
+  #journal-panel #log .journal-turn.opp{background:#40201f;border-color:#a8423b;}
+  #journal-panel #log .journal-combat{margin:6px 0;padding:2px 0 2px 6px;border-radius:6px;background:rgba(255,255,255,.035);border:1px solid var(--line,#3a3260);}
+  #journal-panel #log .journal-combat.mine{border-left:3px solid #4aa3ff;}
+  #journal-panel #log .journal-combat.opp{border-left:3px solid #e0584f;}
+  #journal-panel #log .journal-combat-head{padding:2px 0;border-bottom:none;font-family:'Cinzel',serif;font-size:10.5px;letter-spacing:.6px;color:var(--gold);}
+  #journal-panel #log .journal-combat .journal-entry{border-bottom:none;border-left:none;padding:2px 0;}
+  .jr-dmg{color:#ff7a70;font-weight:700;}
+  .jr-heal{color:#6fd98d;font-weight:700;}
+  .jr-mana{color:#6cc6ff;font-weight:700;}
+  .jr-stat{color:var(--gold);font-weight:700;}
+  @keyframes journal-fresh-kf{0%{background:rgba(212,175,55,.35);}100%{background:transparent;}}
+  .journal-fresh{animation:journal-fresh-kf 1.6s ease-out;}
   .journal-entry-effects{max-height:0;overflow:hidden;transition:max-height .18s ease;padding-left:14px;border-left:2px solid #3a3260;margin-left:4px;}
   .journal-entry:hover .journal-entry-effects, .journal-entry-effects.force-open{max-height:200px;}
   .journal-effect-line{font-size:11px;color:var(--parchment-dim,#d9cfae);padding:2px 0;cursor:default;}
@@ -777,18 +803,18 @@ const KEYWORD_ICON_FILES = {
   // "debut" est volontairement absent : pas d'icône pour ce mot-clé.
 };
 const KEYWORD_LABELS = {
-  charge:'Charge', flying:'Envol', reach:'Portée', pierce:'Brutalité', lifesteal:'Vol de vie',
+  charge:'Charge', flying:'Vol', reach:'Portée', pierce:'Brutalité', lifesteal:'Vol de vie',
   initiative:'Initiative', armor:'Armure', stealth:'Parade', relentless:'Tenace',
   fearful:'Peureux', protecteur:'Protecteur', toxic:'Toxique',
   discret:'Discret', imparable:'Imparable', fugace:'Fugace',
-  assault:'Assault', debut:'Début', final:'Final'
+  assault:'Assaut', debut:'Début', final:'Final'
 };
 // Texte complet de chaque mot-clé — utilisé par les bulles contextuelles
 // affichées à côté de l'aperçu agrandi d'une créature (survol en partie).
 const KEYWORD_DESCRIPTIONS = {
   charge: "Peut attaquer dès le tour où elle arrive en jeu, sans attendre le tour suivant.",
   flying: "Ne peut être bloquée que par des créatures qui ont elles-mêmes le Vol ou la Portée.",
-  reach: "Peut bloquer une créature avec Envol, sans avoir elle-même ce mot-clé.",
+  reach: "Peut bloquer une créature avec Vol, sans avoir elle-même ce mot-clé.",
   pierce: "Si les dégâts qu'elle inflige dépassent les PV de sa cible, l'excédent est reporté directement sur le héros adverse.",
   lifesteal: "Chaque point de dégât qu'elle inflige soigne d'autant votre héros.",
   initiative: "Frappe la première lors d'un combat. Si ce premier coup suffit à tuer sa cible, elle ne subit aucun dégât en retour.",
@@ -964,24 +990,193 @@ function renderGameLog(){
   });
   SEEN_GAMELOG_COUNT = entries.length;
 
-  el.innerHTML = '';
-  (S.__gameLog||[]).forEach(entry=>{
+  journalRenderList(el, S.__gameLog||[]);
+}
+
+// ---------------- Journal : accords grammaticaux et perspective ----------------
+// Le serveur écrit les effets à la 3e personne du singulier ("inflige 3
+// dégâts à ...") et, pour les héros, avec des tournures figées sur p1
+// ("votre héros" = p1, "l'adversaire" = p2). Ces fonctions les remettent à
+// la bonne personne et dans la perspective du joueur local (MY_KEY).
+const JOURNAL_VERB_IRREGULAR = {
+  fait:'faites', met:'mettez', détruit:'détruisez', étourdit:'étourdissez',
+  réduit:'réduisez', gèle:'gelez', récupère:'récupérez', renforcera:'renforcerez',
+  renvoie:'renvoyez', envoie:'envoyez', dit:'dites'
+};
+function journalConjugateYou(verb){
+  if(Object.prototype.hasOwnProperty.call(JOURNAL_VERB_IRREGULAR, verb)) return JOURNAL_VERB_IRREGULAR[verb];
+  if(/era$/.test(verb)) return verb.slice(0,-1)+'ez';        // futur : renforcera -> renforcerez
+  if(/è([^aeiouyéèêàâîôûç]+)e$/.test(verb)) return verb.replace(/è([^aeiouyéèêàâîôûç]+)e$/, 'é$1ez');
+  if(/e$/.test(verb)) return verb+'z';                        // inflige -> infligez
+  if(/it$/.test(verb)) return verb.slice(0,-1)+'ssez';       // verbes en -ir
+  return verb;
+}
+// Mots-clés internes (anglais) -> libellés français, uniquement entre
+// guillemets ou parenthèses pour ne pas toucher aux noms de cartes.
+function journalFrenchKeywords(text){
+  return text.replace(/(["(])(charge|flying|reach|pierce|lifesteal|initiative|armor|stealth|relentless|fearful|protecteur|toxic|discret|imparable|fugace|assault|debut|final)([")])/g,
+    (m,a,k,b)=>a+(KEYWORD_LABELS[k]||k)+b);
+}
+// Remplace la tournure "votre héros" / "l'adversaire" par celle qui est juste
+// pour le joueur local, d'après le héros réellement visé (id "hero-p1"/"hero-p2").
+function journalFixHeroPerspective(text, eff, actorKey){
+  const ids = (eff && eff.targetInstIds || []).filter(id=>id==='hero-p1' || id==='hero-p2');
+  if(ids.length!==1) return text;
+  const heroKey = ids[0]==='hero-p1' ? 'p1' : 'p2';
+  let phrase;
+  if(heroKey===MY_KEY) phrase = 'votre héros';
+  else if(heroKey===actorKey) phrase = 'son héros';
+  else phrase = "l'adversaire";
+  return text.replace(/votre héros|l'adversaire/, phrase);
+}
+// Phrase complète pour un effet : sujet + verbe accordé + complément. Jamais "undefined".
+function journalEffectSentence(eff, actorKey){
+  let t = String((eff && eff.text) || '').trim();
+  t = t.replace(/\s*undefined\s*/g, ' ').replace(/\s+/g,' ').trim();
+  if(!t) return '';
+  t = journalFrenchKeywords(journalFixHeroPerspective(t, eff, actorKey));
+  const isMe = actorKey===MY_KEY;
+  const first = t.split(' ')[0];
+  const rest = t.slice(first.length);
+  // Texte qui porte déjà son sujet (nom de carte entre guillemets, "trop de sorts...") : tel quel.
+  if(/^["«]/.test(t) || /^(trop|le|la|les|un|une|des|l')$/i.test(first) || /^l'/i.test(first)) return t + '.';
+  if(!/^[a-zéèêëàâîïôûùç]+$/i.test(first)) return t + '.';
+  if(isMe) return `Vous ${journalConjugateYou(first)}${rest}.`;
+  return `L'adversaire ${first}${rest}.`;
+}
+
+
+// ============================================================
+// JOURNAL — affichage (visibilité + exécution)
+// ============================================================
+// - Séparateurs de tour (« Tour 3 · Votre tour »).
+// - Trait de couleur par joueur (bleu = vous, rouge = adversaire) et icône
+//   par type d'entrée ; dégâts en rouge, soins en vert, mana en bleu.
+// - Un combat (attaque → blocage → dégâts → morts) est regroupé en un bloc.
+// - Mise à jour incrémentale : les lignes déjà affichées sont réutilisées
+//   (le survol / la surbrillance en cours n'est plus coupé), seules les
+//   nouvelles sont ajoutées, et le panneau reste calé sur la dernière ligne
+//   sauf si le joueur est remonté lire plus haut.
+const JOURNAL_ACTIVE_KINDS = new Set(['play','hero_activate','artifact_activate','creature_activate','region_activate']);
+
+// Verbes des lignes « brutes » du serveur, conjugués selon le sujet.
+function journalRawSentence(entry){
+  const isMe = entry.ownerKey===MY_KEY;
+  let r = String(entry.raw||'').replace(/\s*undefined\s*/g,' ').replace(/\s+/g,' ').trim();
+  let m;
+  if((m = r.match(/^\{who\} attaque avec (\d+) créatures?$/))){
+    const n = parseInt(m[1],10);
+    return `${isMe?'Vous attaquez':"L'adversaire attaque"} avec ${n} créature${n>1?'s':''}.`;
+  }
+  if((m = r.match(/^\{who\} bloque la créature "(.+)" avec "(.+)"$/))){
+    return `${isMe?'Vous bloquez':"L'adversaire bloque"} "${m[1]}" avec "${m[2]}".`;
+  }
+  if((m = r.match(/^\{who\} a perdu (\d+) points? de vie dans cette attaque$/))){
+    const n = parseInt(m[1],10);
+    return `${isMe?'Vous perdez':"L'adversaire perd"} ${n} point${n>1?'s':''} de vie.`;
+  }
+  return journalFrenchKeywords(r.replace('{who}', isMe?'Vous':"L'adversaire"));
+}
+// Échappe puis colore les chiffres importants (dégâts, soins, mana, stats).
+function journalRich(text){
+  let h = escapeHtmlGS(String(text));
+  const heal = /soign|gagn|récupér/i.test(text) && !/dégâts/i.test(text);
+  h = h.replace(/(\d+) (dégâts?|points? de vie)/g, (m,n,w)=> heal && /vie/.test(w) ? m : `<span class="jr-dmg">${n} ${w}</span>`);
+  h = h.replace(/(\d+) PV/g, (m,n)=> /soigne/i.test(text) ? `<span class="jr-heal">${n} PV</span>` : `<span class="jr-dmg">${n} PV</span>`);
+  h = h.replace(/(\d+) mana( fragile)?/g, '<span class="jr-mana">$1 mana$2</span>');
+  h = h.replace(/([+-]\d+\/[+-]\d+)/g, '<span class="jr-stat">$1</span>');
+  return h;
+}
+function journalIcon(entry){
+  if(entry.raw){
+    const r = String(entry.raw);
+    if(/attaque avec/.test(r)) return '⚔';
+    if(/bloque/.test(r)) return '🛡';
+    if(/a perdu/.test(r)) return '💥';
+    if(/meurt|détruit/.test(r)) return '☠';
+    return '•';
+  }
+  switch(entry.kind){
+    case 'trap': return '🪤';
+    case 'hero_trigger': case 'hero_activate': return '👑';
+    case 'artifact_activate': case 'artifact_trigger': return '⚒';
+    case 'creature_trigger': case 'creature_activate': return '✦';
+  }
+  if(typeof entry.kind==='string' && entry.kind.indexOf('region')===0) return '🌍';
+  const c = entry.cardId ? (JOURNAL_CARD_LOOKUP||{})[entry.cardId] : null;
+  const t = c && c.type;
+  if(t==='Sortilège') return '✨';
+  if(t==='Artefact') return '⚒';
+  if(t==='Piège') return '🪤';
+  if(t==='Créature') return '🐾';
+  return '🃏';
+}
+// Qui joue chaque tour : déduit des entrées (attaque, carte jouée, activation),
+// puis propagé par alternance aux tours sans indice.
+function journalTurnOwners(entries){
+  const owners = {};
+  entries.forEach(e=>{
+    const t = e.turn;
+    if(typeof t!=='number' || owners[t]) return;
+    const leads = (e.raw && /attaque avec/.test(e.raw)) || JOURNAL_ACTIVE_KINDS.has(e.kind);
+    if(leads) owners[t] = e.ownerKey;
+  });
+  const known = Object.keys(owners).map(Number);
+  if(known.length){
+    entries.forEach(e=>{
+      const t = e.turn;
+      if(typeof t!=='number' || owners[t]) return;
+      const ref = known[0];
+      owners[t] = ((t-ref)%2===0) ? owners[ref] : (owners[ref]==='p1' ? 'p2' : 'p1');
+    });
+  }
+  return owners;
+}
+function journalEntrySig(e){
+  return JSON.stringify([e.seq, e.turn, e.ownerKey, e.raw||null, e.cardName||null, e.kind||null,
+    (e.effects||[]).map(x=>x&&x.text), e.highlightIds||null]);
+}
+function journalSeparatorEl(turn, owner){
+  const d = document.createElement('div');
+  const round = Math.ceil(turn/2);
+  const mine = owner===MY_KEY;
+  d.className = 'journal-turn ' + (owner ? (mine ? 'mine' : 'opp') : '');
+  d.textContent = owner ? `Tour ${round} · ${mine ? 'Votre tour' : "Tour de l'adversaire"}` : `Tour ${round}`;
+  return d;
+}
+
+// Construit la ligne d'une entrée du journal.
+function buildJournalEntryEl(entry){
     const who = entry.ownerKey===MY_KEY ? 'Vous' : "L'adversaire";
     const isMe = entry.ownerKey===MY_KEY;
     const line = document.createElement('div');
-    line.className = 'journal-entry';
+    line.className = 'journal-entry ' + (isMe ? 'mine' : 'opp');
+    // Entrées de région : le texte vient toujours de la carte (nom + effets du
+    // serveur), jamais d'un libellé figé côté client. Si le nom manque, on le
+    // relit sur la région du joueur concerné ; si l'entrée n'a ni nom ni
+    // effet lisible, on affiche une phrase neutre plutôt que « undefined ».
+    const isRegionKind = typeof entry.kind==='string' && entry.kind.indexOf('region')===0;
+    if(!entry.raw && !entry.cardName && isRegionKind){
+      const rp = S[entry.ownerKey];
+      if(rp && rp.region && rp.region.name){ entry.cardName = rp.region.name; if(!entry.cardId) entry.cardId = rp.region.id; }
+    }
+    if(!entry.raw && !entry.cardName){
+      const plain = (typeof entry.text==='string' && entry.text) || (typeof entry.message==='string' && entry.message) || '';
+      entry.raw = plain || (isRegionKind ? '{who} : une région se déclenche.' : '');
+    }
     if(entry.raw){
       // message de combat : {who} est remplacé, et si des créatures sont
       // listées, tout le texte devient survolable — surbrillance sur
       // place si tout est encore là, sinon voyage dans le temps.
-      line.textContent = entry.raw.replace('{who}', who);
+      const rawSentence = journalRawSentence(entry);
+      line.innerHTML = `<span class="jicon">${journalIcon(entry)}</span>` + journalRich(rawSentence);
       if(entry.highlightIds && entry.highlightIds.length){
         line.classList.add('hl-ref');
         line.onmouseenter = ()=>onJournalEffectHover(entry, entry.highlightIds);
         line.onmouseleave = onJournalEffectLeave;
       }
     } else {
-      const nameSpan = `<span class="card-name-ref" data-cardid="${entry.cardId||''}">"${escapeHtmlGS(entry.cardName)}"</span>`;
+      const nameSpan = `<span class="card-name-ref" data-cardid="${escapeHtmlGS(String(entry.cardId||''))}">"${escapeHtmlGS(String(entry.cardName||''))}"</span>`;
       // Une phrase d'en-tête distincte par catégorie — validées ensemble,
       // voir la conversation sur la refonte du journal.
       const headerPhrase = ({
@@ -995,17 +1190,24 @@ function renderGameLog(){
         artifact_trigger: `La capacité de ${nameSpan} se déclenche.`,
         region_trigger: isMe ? `La capacité de votre région ${nameSpan} se déclenche.` : `La capacité de la région adverse ${nameSpan} se déclenche.`,
         region_activate: isMe ? `Vous activez la capacité de votre région ${nameSpan}.` : `L'adversaire active la capacité de sa région ${nameSpan}.`,
-      })[entry.kind] || `${who} joue ${nameSpan}.`;
-      const effects = entry.effects || [];
+        // La région remplace le gain de mana du début de tour (le texte précis
+        // de l'effet suit, fourni par le serveur) :
+        region_replace: isMe ? `Votre région ${nameSpan} remplace votre gain de mana.` : `La région adverse ${nameSpan} remplace son gain de mana.`,
+      })[entry.kind] || (isRegionKind
+        ? (isMe ? `La capacité de votre région ${nameSpan} se déclenche.` : `La capacité de la région adverse ${nameSpan} se déclenche.`)
+        : `${who} joue ${nameSpan}.`);
+      // On ignore les effets sans texte (évite « Vous undefined. »).
+      const effects = (entry.effects || []).filter(e=>e && typeof e.text==='string' && journalEffectSentence(e, entry.ownerKey));
       const header = document.createElement('div');
       header.className = 'journal-entry-card';
+      const iconHtml = `<span class="jicon">${journalIcon(entry)}</span>`;
       if(effects.length <= 1){
         // Un seul effet (ou aucun) : deux phrases distinctes plutôt qu'une
         // seule avec "et" — "Vous jouez X. Vous gagnez 1 mana fragile."
         const eff = effects[0];
-        header.innerHTML = eff
-          ? `${headerPhrase} <span class="effect-sentence">${who} ${escapeHtmlGS(eff.text)}.</span>`
-          : headerPhrase;
+        header.innerHTML = iconHtml + (eff
+          ? `${headerPhrase} <span class="effect-sentence">${journalRich(journalEffectSentence(eff, entry.ownerKey))}</span>`
+          : headerPhrase);
         if(eff && eff.targetInstIds && eff.targetInstIds.length){
           const effSpan = header.querySelector('.effect-sentence');
           effSpan.classList.add('hl-ref');
@@ -1013,7 +1215,7 @@ function renderGameLog(){
           effSpan.onmouseleave = onJournalEffectLeave;
         }
       } else {
-        header.innerHTML = `${headerPhrase} <span class="effect-count">(${effects.length} effets)</span>`;
+        header.innerHTML = `${iconHtml}${headerPhrase} <span class="effect-count">(${effects.length} effets)</span>`;
       }
       line.appendChild(header);
       if(effects.length > 1){
@@ -1022,7 +1224,7 @@ function renderGameLog(){
         effects.forEach(eff=>{
           const effLine = document.createElement('div');
           effLine.className = 'journal-effect-line';
-          effLine.textContent = `${who} ${eff.text}.`;
+          effLine.innerHTML = journalRich(journalEffectSentence(eff, entry.ownerKey));
           if(eff.targetInstIds && eff.targetInstIds.length){
             effLine.classList.add('hl-ref');
             effLine.onmouseenter = ()=>onJournalEffectHover(entry, eff.targetInstIds);
@@ -1039,8 +1241,74 @@ function renderGameLog(){
         ref.onmouseleave = hidePreview;
       }
     }
-    el.appendChild(line);
+    return line;
+}
+
+// Découpe le journal en éléments affichables : séparateurs de tour, lignes
+// isolées et blocs de combat. Chaque élément porte une signature : si elle
+// est identique à celle d'un rendu précédent, l'élément DOM est réutilisé.
+function journalBuildItems(entries){
+  const owners = journalTurnOwners(entries);
+  const items = [];
+  let lastTurn = null;
+  let i = 0;
+  while(i < entries.length){
+    const e = entries[i];
+    if(e.turn !== lastTurn){
+      lastTurn = e.turn;
+      const owner = owners[e.turn] || null;
+      items.push({ sig:`turn|${e.turn}|${owner}`, make:()=>journalSeparatorEl(e.turn, owner) });
+    }
+    if(e.raw && /attaque avec/.test(e.raw)){
+      const group = [e];
+      let j = i+1;
+      while(j < entries.length && entries[j].turn === e.turn && !JOURNAL_ACTIVE_KINDS.has(entries[j].kind)){
+        group.push(entries[j]); j++;
+      }
+      const side = e.ownerKey===MY_KEY ? 'mine' : 'opp';
+      items.push({
+        sig:'combat|' + group.map(journalEntrySig).join('|'),
+        make:()=>{
+          const box = document.createElement('div');
+          box.className = 'journal-combat ' + side;
+          const head = document.createElement('div');
+          head.className = 'journal-combat-head';
+          head.textContent = '⚔ Combat';
+          box.appendChild(head);
+          group.forEach(g=>box.appendChild(buildJournalEntryEl(g)));
+          return box;
+        }
+      });
+      i = j;
+    } else {
+      items.push({ sig:'e|' + journalEntrySig(e), make:()=>buildJournalEntryEl(e) });
+      i++;
+    }
+  }
+  return items;
+}
+
+let JOURNAL_RENDERED_ONCE = false;
+function journalRenderList(el, entries){
+  const items = journalBuildItems(entries);
+  const nearBottom = (el.scrollHeight - el.scrollTop - el.clientHeight) < 30;
+  const existing = new Map();
+  Array.from(el.children).forEach(c=>{ if(c.dataset && c.dataset.sig) existing.set(c.dataset.sig, c); });
+  const keep = new Set();
+  items.forEach((it, idx)=>{
+    let node = existing.get(it.sig);
+    if(!node){
+      node = it.make();
+      node.dataset.sig = it.sig;
+      if(JOURNAL_RENDERED_ONCE) node.classList.add('journal-fresh');
+    }
+    keep.add(node);
+    if(el.children[idx] !== node) el.insertBefore(node, el.children[idx] || null);
   });
+  Array.from(el.children).forEach(c=>{ if(!keep.has(c)) c.remove(); });
+  // Reste calé sur la dernière ligne, sauf si le joueur est remonté lire.
+  if(!JOURNAL_RENDERED_ONCE || nearBottom) el.scrollTop = el.scrollHeight;
+  JOURNAL_RENDERED_ONCE = true;
 }
 
 // ---------------- Connexion / session ----------------
@@ -2728,7 +2996,14 @@ function hidePreview(){
 // ---------------- Menus repliables ----------------
 
 function toggleJournal(){
-  document.getElementById('journal-panel').classList.toggle('show');
+  const panel = document.getElementById('journal-panel');
+  panel.classList.toggle('show');
+  // Un panneau masqué ne peut pas défiler : à l'ouverture, on se cale sur la
+  // dernière ligne (le plus récent).
+  if(panel.classList.contains('show')){
+    const log = document.getElementById('log');
+    if(log) log.scrollTop = log.scrollHeight;
+  }
 }
 // Quitter proprement : si la partie est déjà terminée, aucun risque, on
 // part directement. Sinon, on prévient que partir compte comme un abandon
@@ -3020,7 +3295,7 @@ async function initFromUrl(){
        déclenché, défausse adverse, journal.
    T3  artefact (Hache de guerre naine) : Initiative + Brutalité.
    T4  créature à Armure ; l'adversaire attaque : blocage de la
-       créature Toxique, impossible de bloquer l'Envol.
+       créature Toxique, impossible de bloquer le Vol.
    T5  attaque contre une créature Tenace, puis sortilège final.
    ============================================================ */
 
@@ -3425,13 +3700,13 @@ defStep({ id:'discardClose', title:'La défausse adverse',
   run(){ tutNext(); }
 });
 defStep({ id:'journalOpen', title:'Le journal',
-  text:"Le journal 📜 raconte tout ce qui s'est passé, y compris ce que vous auriez pu manquer. Cliquez sur le bouton Journal en haut à droite du plateau.",
+  text:"Le journal 📜 raconte tout ce qui s'est passé, y compris ce que vous auriez pu manquer. Cliquez sur le bouton 📜 dans les boutons du plateau pour l'ouvrir.",
   highlight:['#journal-toggle-btn'],
   expect:{ kind:'toggleJournal', open:true },
   run(){ tutNext(); }
 });
 defStep({ id:'journalRead', title:'Lire le journal',
-  text:"Chaque ligne est une action : carte jouée, attaque, blocage, piège déclenché, mort. Survolez le nom d'une carte pour la revoir, ou une ligne de combat pour mettre en évidence les créatures concernées. Cliquez sur « Continuer ».",
+  text:"Le journal se lit de haut en bas : le plus récent est en bas. Un bandeau marque chaque tour (bleu = votre tour, rouge = celui de l'adversaire), et un combat est regroupé dans un seul bloc ⚔. Survolez le nom d'une carte pour la revoir, ou une ligne pour mettre en évidence les créatures concernées. Cliquez sur « Continuer ».",
   continueBtn:true, highlight:['#journal-panel'] });
 defStep({ id:'journalClose', title:'Fermez le journal',
   text:"Refermez le journal avec la croix ✕ (ou le même bouton). Vous pourrez le rouvrir à tout moment.",
@@ -3545,7 +3820,7 @@ defStep({ id:'playC3', title:'Une créature à Armure',
   }
 });
 defStep({ id:'enemyInfo', title:'Lisez le plateau adverse',
-  text:"Survolez les créatures de Sandroska. Phalène lunaire a Envol : seules des créatures avec Envol ou Portée peuvent la bloquer. Horreur reptilienne est Toxique : toute créature qu'elle blesse meurt. Attaquer maintenant serait risqué. Cliquez sur « Continuer ».",
+  text:"Survolez les créatures de Sandroska. Phalène lunaire a Vol : seules des créatures avec Vol ou Portée peuvent la bloquer. Horreur reptilienne est Toxique : toute créature qu'elle blesse meurt. Attaquer maintenant serait risqué. Cliquez sur « Continuer ».",
   continueBtn:true, highlight:['[data-instid="t-p2-c3"]','[data-instid="t-p2-c4"]'] });
 defStep({ id:'endTurn4', title:'Rien ne vous oblige à attaquer',
   text:"Vous pouvez finir votre tour sans passer par le combat : gardez vos créatures pour défendre. Cliquez directement sur « Fin de tour ».",
@@ -3567,7 +3842,7 @@ defStep({ id:'aiTurn4', title:"Tour de l'adversaire",
   }
 });
 defStep({ id:'blockHorreur', title:'On vous attaque !',
-  text:"Sandroska attaque avec Phalène lunaire (Envol) et Horreur reptilienne (Toxique). Pour bloquer : cliquez sur votre défenseur (Bandit des marais), puis sur l'attaquant à bloquer (Horreur reptilienne). L'Armure du Bandit encaissera le coup Toxique. Vous pourriez aussi ne pas bloquer.",
+  text:"Sandroska attaque avec Phalène lunaire (Vol) et Horreur reptilienne (Toxique). Pour bloquer : cliquez sur votre défenseur (Bandit des marais), puis sur l'attaquant à bloquer (Horreur reptilienne). L'Armure du Bandit encaissera le coup Toxique. Vous pourriez aussi ne pas bloquer.",
   highlight:['[data-instid="t-p1-c3"]','[data-instid="t-p2-c3"]'],
   expect:{ kind:'block', blocker:'t-p1-c3', attacker:'t-p2-c3' },
   async run(){
@@ -3586,7 +3861,7 @@ defStep({ id:'blockHorreur', title:'On vous attaque !',
     onStateUpdate(S);
     await tutSleep(900);
     tutKill('p2', horreur);
-    // Plus aucune créature ne peut bloquer la Phalène (Envol) : la phase
+    // Plus aucune créature ne peut bloquer la Phalène (Vol) : la phase
     // de blocage se termine d'elle-même, les dégâts passent au héros.
     S.p1.hp = Math.max(0, S.p1.hp - phalene.curAtk);
     tutLog({ ownerKey:'p1', raw:`{who} a perdu ${phalene.curAtk} point de vie dans cette attaque`, highlightIds:[phalene.instId] });
@@ -3596,7 +3871,7 @@ defStep({ id:'blockHorreur', title:'On vous attaque !',
   }
 });
 defStep({ id:'blockResult', title:'Résultat du blocage',
-  text:"Armure : le Bandit a absorbé l'unique coup de la créature Toxique, il survit et a tué Horreur reptilienne. Aucune de vos créatures n'a Envol ou Portée : la Phalène ne pouvait pas être bloquée, le blocage s'est terminé tout seul et elle vous a infligé 1 dégât. Cliquez sur « Continuer ».",
+  text:"Armure : le Bandit a absorbé l'unique coup de la créature Toxique, il survit et a tué Horreur reptilienne. Aucune de vos créatures n'a Vol ou Portée : la Phalène ne pouvait pas être bloquée, le blocage s'est terminé tout seul et elle vous a infligé 1 dégât. Cliquez sur « Continuer ».",
   continueBtn:true, highlight:['[data-instid="t-p1-c3"]','#hero-frame-p1'],
   onContinue(){ tutStartP1Turn(8, T_P1_SPELL); }
 });
@@ -3652,7 +3927,7 @@ defStep({ id:'finalSpell', title:'Un sortilège pour finir',
   }
 });
 defStep({ id:'done', title:'Tutoriel terminé',
-  text:'Vous connaissez maintenant les créatures, le combat, les mots-clés, les artefacts, les pièges et les sortilèges !',
+  text:'Vous savez maintenant jouer des créatures, attaquer et bloquer, utiliser les principaux mots-clés, activer un artefact, poser un piège, lancer un sortilège et lire le journal !',
   highlight:[] });
 
 // Les ~40 étapes sont regroupées en 10 « parties » : c'est ce que voit le
@@ -3681,6 +3956,9 @@ function tutEndPlayerTurn(){
   S.p1.attackers = [];
   UI.selectingAttackers = false; UI.selectedAttackers = [];
   S.active = 'p2';
+  // Comme sur le serveur : S.turn avance à CHAQUE tour de joueur (le journal
+  // en déduit les séparateurs « Tour N · Votre tour / Tour de l'adversaire »).
+  S.turn = (S.turn||1) + 1;
 }
 
 function tutSetStep(id){
@@ -4013,9 +4291,9 @@ gsAssignBlock = async function(blockerId, attackerId){
     tutFlash("Choisissez d'abord votre défenseur, puis l'attaquant à bloquer.");
     return { error:'tutorial-wrong-target' };
   }
-  // Règle réelle : une créature avec Envol n'est bloquable que par Envol / Portée.
+  // Règle réelle : une créature avec Vol n'est bloquable que par Vol / Portée.
   if(tutHasKw(att,'flying') && !tutHasKw(blk,'flying') && !tutHasKw(blk,'reach')){
-    tutFlash(`${att.name} a Envol : seules des créatures avec Envol ou Portée peuvent la bloquer.`);
+    tutFlash(`${att.name} a Vol : seules des créatures avec Vol ou Portée peuvent la bloquer.`);
     return { error:'cannot-block-flying' };
   }
   const info = tutExpecting('block');

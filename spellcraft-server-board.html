@@ -1063,18 +1063,18 @@ const KEYWORD_ICON_FILES = {
   // "debut" est volontairement absent : pas d'icône pour ce mot-clé.
 };
 const KEYWORD_LABELS = {
-  charge:'Charge', flying:'Envol', reach:'Portée', pierce:'Brutalité', lifesteal:'Vol de vie',
+  charge:'Charge', flying:'Vol', reach:'Portée', pierce:'Brutalité', lifesteal:'Vol de vie',
   initiative:'Initiative', armor:'Armure', stealth:'Parade', relentless:'Tenace',
   fearful:'Peureux', protecteur:'Protecteur', toxic:'Toxique',
   discret:'Discret', imparable:'Imparable', fugace:'Fugace',
-  assault:'Assault', debut:'Début', final:'Final'
+  assault:'Assaut', debut:'Début', final:'Final'
 };
 // Texte complet de chaque mot-clé — utilisé par les bulles contextuelles
 // affichées à côté de l'aperçu agrandi d'une créature (survol en partie).
 const KEYWORD_DESCRIPTIONS = {
   charge: "Peut attaquer dès le tour où elle arrive en jeu, sans attendre le tour suivant.",
   flying: "Ne peut être bloquée que par des créatures qui ont elles-mêmes le Vol ou la Portée.",
-  reach: "Peut bloquer une créature avec Envol, sans avoir elle-même ce mot-clé.",
+  reach: "Peut bloquer une créature avec Vol, sans avoir elle-même ce mot-clé.",
   pierce: "Les dégâts en excès par rapport aux PV restants du bloqueur sont infligés au héros adverse.",
   lifesteal: "Chaque point de dégât qu'elle inflige soigne d'autant votre héros.",
   initiative: "Frappe la première lors d'un combat. Si ce premier coup suffit à tuer sa cible, elle ne subit aucun dégât en retour.",
@@ -1353,7 +1353,7 @@ function statusDurationNote(c, ownerKey, state){
 function isCombatNumberLike(x){ return typeof x==='number' && isFinite(x); }
 
 // Serveur (doAssignBlock), dans cet ordre : déjà bloqué -> étourdie/gelée ->
-// Peureux -> attaquant Discret -> attaquant Envol (bloqueur sans Envol ni Portée).
+// Peureux -> attaquant Discret -> attaquant Vol (bloqueur sans Vol ni Portée).
 // Sans `attacker` : seules les raisons propres au bloqueur sont testées
 // (« ne peut bloquer aucun attaquant »). Avec `attacker` : on ajoute les
 // restrictions liées à l'attaquant. (Imparable ne concerne que les pièges,
@@ -1366,7 +1366,7 @@ function reasonCannotBlock(c, attacker){
   if(attacker){
     if(hasKw(attacker, 'discret')) return 'cet attaquant est Discret : on ne peut pas le bloquer';
     if(hasKw(attacker, 'flying') && !hasKw(c, 'flying') && !hasKw(c, 'reach'))
-      return 'cet attaquant a Envol : seules les créatures Envol ou Portée peuvent le bloquer';
+      return 'cet attaquant a Vol : seules les créatures Vol ou Portée peuvent le bloquer';
   }
   return null;
 }
@@ -1379,7 +1379,7 @@ function reasonCannotBlockAny(c, attackers){
   if(own) return own;
   if(!attackers || !attackers.length) return null;
   if(attackers.some(a=>canBlockClient(c, a))) return null;
-  return 'ne peut bloquer aucun des attaquants (Discret ou Envol)';
+  return 'ne peut bloquer aucun des attaquants (Discret ou Vol)';
 }
 
 // ---- Résolution automatique du combat (lecture fluide) ----
@@ -3928,7 +3928,7 @@ function currentAttackersOpp(){
 //  - choix des attaquants : mes créatures qui ne peuvent pas attaquer ;
 //  - choix des bloqueurs : mes créatures qui ne peuvent bloquer aucun
 //    attaquant ; et, une fois un bloqueur choisi, les attaquants adverses
-//    qu'il ne peut pas bloquer (Discret, Envol).
+//    qu'il ne peut pas bloquer (Discret, Vol).
 function unavailableReasonFor(key, c){
   const isMine = key===MY_KEY;
   if(isMine && UI.selectingAttackers && S.active===MY_KEY && S.phase==='main') return reasonCannotAttack(c);
@@ -5672,7 +5672,14 @@ function hidePreview(force){
 // ---------------- Menus repliables ----------------
 
 function toggleJournal(){
-  document.getElementById('journal-panel').classList.toggle('show');
+  const panel = document.getElementById('journal-panel');
+  panel.classList.toggle('show');
+  // Un panneau masqué ne peut pas défiler : à l'ouverture, on se cale sur la
+  // dernière ligne (le plus récent).
+  if(panel.classList.contains('show')){
+    const log = document.getElementById('log');
+    if(log) log.scrollTop = log.scrollHeight;
+  }
 }
 // Quitter proprement : si la partie est déjà terminée, aucun risque, on
 // part directement. Sinon, on prévient que partir compte comme un abandon

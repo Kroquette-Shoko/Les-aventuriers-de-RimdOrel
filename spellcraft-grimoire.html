@@ -161,7 +161,7 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
       <p>Un sortilège se joue depuis la main pendant votre phase principale. <strong>Dès que vous le jouez, la carte part en défausse</strong> ; ses effets se résolvent ensuite. Il n'y a <strong>aucune limite</strong> au nombre de sorts par tour : seul votre mana compte.</p>
       <ul>
         <li><strong>Choisir une option</strong> — certains sorts proposent deux options (A ou B). Vous choisissez d'abord l'option ; les cibles demandées dépendent de ce choix.</li>
-        <li><strong>Cibles valides seulement</strong> — vous ne pouvez désigner que des cibles qui respectent le camp demandé (allié, ennemi) et les <strong>filtres</strong> de la carte : sous-type, mot-clé (ex. <em>Chute mortelle</em> : une créature avec Envol), Force (ex. <em>Chasser les faibles</em> : Force 2 ou moins, <em>Vaincre les forts</em> : Force 4 ou plus, <em>Ôter la vie</em> : Force 3 ou moins). Les cibles interdites sont grisées.</li>
+        <li><strong>Cibles valides seulement</strong> — vous ne pouvez désigner que des cibles qui respectent le camp demandé (allié, ennemi) et les <strong>filtres</strong> de la carte : sous-type, mot-clé (ex. <em>Chute mortelle</em> : une créature avec Vol), Force (ex. <em>Chasser les faibles</em> : Force 2 ou moins, <em>Vaincre les forts</em> : Force 4 ou plus, <em>Ôter la vie</em> : Force 3 ou moins). Les cibles interdites sont grisées.</li>
         <li><strong>Parade</strong> — une créature adverse sous Parade ne peut pas être ciblée par un sort (ni par un sort de zone). Vos propres créatures sous Parade restent ciblables par vos sorts.</li>
         <li><strong>Aucune cible valide ?</strong> Le sort <strong>ne peut pas être joué</strong> : le message « Aucune cible valide » s'affiche, vous ne dépensez rien et la carte reste en main. C'est la même chose si la cible que vous désignez n'est pas valide : le jeu est refusé et rien n'est dépensé.</li>
         <li><strong>Plusieurs cibles</strong> — un sort à deux cibles (<em>Lancer</em>, <em>Chasse préparée</em>) vous demande d'abord un allié, puis un ennemi. Un sort « jusqu'à X cibles » (ex. <em>Force du groupe</em>) se joue avec <strong>de 1 à X créatures différentes</strong> : cliquez sur « Valider » dès la première, ou continuez jusqu'à X (la validation est alors automatique).</li>
@@ -280,11 +280,11 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
       <h3>Attaquer</h3>
       <p>Une seule fois par tour, en phase de déclaration des attaquants, vous choisissez quelles créatures attaquent : celles qui ne sont ni gelées, ni étourdies, ni Protecteur, qui n'ont pas déjà attaqué et qui n'ont pas le mal d'invocation (sauf Charge). Toutes visent le héros adverse. Une créature qui n'est pas bloquée lui inflige sa Force directement, à la fin du blocage. Si aucune de vos créatures ne peut attaquer, la phase de combat est sautée automatiquement (seul « Fin de tour » est proposé).</p>
       <h3>Bloquer</h3>
-      <p>L'adversaire désigne ses bloqueurs un par un. Un attaquant peut être bloqué par <strong>plusieurs</strong> bloqueurs ; en revanche un bloqueur ne peut bloquer qu'<strong>un seul</strong> attaquant par tour. Il faut que l'attaquant ait été déclaré ce tour-ci et soit toujours en jeu, que le bloqueur ne soit ni gelé, ni étourdi, ni Peureux, que l'attaquant ne soit pas Discret, et qu'un attaquant avec Envol soit bloqué par une créature avec Envol ou Portée. Le mal d'invocation n'empêche pas de bloquer.</p>
+      <p>L'adversaire désigne ses bloqueurs un par un. Un attaquant peut être bloqué par <strong>plusieurs</strong> bloqueurs ; en revanche un bloqueur ne peut bloquer qu'<strong>un seul</strong> attaquant par tour. Il faut que l'attaquant ait été déclaré ce tour-ci et soit toujours en jeu, que le bloqueur ne soit ni gelé, ni étourdi, ni Peureux, que l'attaquant ne soit pas Discret, et qu'un attaquant avec Vol soit bloqué par une créature avec Vol ou Portée. Le mal d'invocation n'empêche pas de bloquer.</p>
       <h3>Résolution des dégâts</h3>
       <p><strong>Chaque combat est résolu immédiatement</strong>, au moment où le bloqueur est désigné. L'attaquant et le bloqueur s'infligent mutuellement des dégâts égaux à leur Force ; avec plusieurs bloqueurs, l'attaquant inflige toute sa Force à <em>chacun</em>, et chacun lui inflige la sienne. Sauf mot-clé particulier (Initiative, Toxique, Armure…), les dégâts d'un combat sont simultanés : deux créatures qui s'affrontent peuvent mourir toutes les deux. Une créature meurt dès que ses PV tombent à 0 ou moins.</p>
       <p>Quand l'adversaire a fini de bloquer, chaque attaquant resté non bloqué inflige sa Force au héros adverse, puis les excédents de Brutalité passent au héros. Si l'adversaire n'a aucune créature capable de bloquer, il n'y a pas d'attente : cette étape est résolue directement.</p>
-      <div class="callout warn"><strong>À retenir :</strong> plusieurs mots-clés de combat (Envol, Discret, Peureux, Protecteur...) changent qui peut attaquer, bloquer, ou être bloqué — voir la section suivante. « Quand cette créature élimine une créature » ne se déclenche que si la créature qui a tué sa cible est encore en vie à la fin de l'échange.</div>
+      <div class="callout warn"><strong>À retenir :</strong> plusieurs mots-clés de combat (Vol, Discret, Peureux, Protecteur...) changent qui peut attaquer, bloquer, ou être bloqué — voir la section suivante. « Quand cette créature élimine une créature » ne se déclenche que si la créature qui a tué sa cible est encore en vie à la fin de l'échange.</div>
     </section>
 
     <section id="motscles">
@@ -293,8 +293,8 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
       <table class="kw">
         <tr><th>Mot-clé</th><th>Effet</th></tr>
         <tr><td class="kwname">Charge</td><td>Peut attaquer dès le tour où elle arrive en jeu, malgré le mal d'invocation.</td></tr>
-        <tr><td class="kwname">Envol</td><td>Ne peut être bloquée que par des créatures qui ont elles-mêmes Envol ou Portée.</td></tr>
-        <tr><td class="kwname">Portée</td><td>Peut bloquer une créature avec Envol, sans avoir elle-même ce mot-clé.</td></tr>
+        <tr><td class="kwname">Vol</td><td>Ne peut être bloquée que par des créatures qui ont elles-mêmes Vol ou Portée.</td></tr>
+        <tr><td class="kwname">Portée</td><td>Peut bloquer une créature avec Vol, sans avoir elle-même ce mot-clé.</td></tr>
         <tr><td class="kwname">Brutalité</td><td>Quand elle attaque et est bloquée, l'excédent de ses dégâts par rapport aux PV restants du ou des bloqueurs (avant le coup) est infligé directement au héros adverse. Un bloqueur dont l'Armure absorbe le coup n'est pas compté.</td></tr>
         <tr><td class="kwname">Vol de vie</td><td>Chaque point de dégât qu'elle inflige au combat soigne d'autant votre héros.</td></tr>
         <tr><td class="kwname">Initiative</td><td>Frappe la première lors d'un combat. Si ce premier coup tue sa cible, elle ne subit aucun dégât en retour.</td></tr>
@@ -316,7 +316,7 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
         <tr><td class="kwname">Début</td><td>Cartes liées au tout début d'une partie ou d'un tour.</td></tr>
         <tr><td class="kwname">Final</td><td>Cartes liées à la fin d'une partie ou d'un tour.</td></tr>
       </table>
-      <p class="dim" style="margin-top:12px;">Anciens noms : Vol est devenu Envol, Perçant est devenu Brutalité, Furtif est devenu Parade, « Implacable » est devenu Tenace. L'ancien mot-clé Protection n'existe plus (ne pas le confondre avec Protecteur).</p>
+      <p class="dim" style="margin-top:12px;">Anciens noms : Envol est redevenu Vol, Perçant est devenu Brutalité, Furtif est devenu Parade, « Implacable » est devenu Tenace. L'ancien mot-clé Protection n'existe plus (ne pas le confondre avec Protecteur).</p>
     </section>
 
     <section id="pieges">
