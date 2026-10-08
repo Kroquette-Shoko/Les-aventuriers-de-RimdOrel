@@ -206,7 +206,7 @@ async function gsCheckMatchmaking(since) {
 // Connexion au canal temps réel de la session (état de jeu + chat)
 // et à la présence (pour détecter une déconnexion adverse).
 // ------------------------------------------------------------
-function gsConnect(onStateUpdate, onChatMessage) {
+function gsConnect(onStateUpdate, onChatMessage, onGameChat) {
   GS_ON_STATE_UPDATE = onStateUpdate;
 
   GS_CHANNEL = sb.channel(`session-${GS_SESSION_ID}`, { config: { broadcast: { self: true } } });
@@ -226,6 +226,10 @@ function gsConnect(onStateUpdate, onChatMessage) {
   // délivrait jamais l'événement malgré un abonnement pourtant "SUBSCRIBED".
   if (onChatMessage) {
     GS_CHANNEL.on('broadcast', { event: 'emote' }, ({ payload }) => onChatMessage(payload));
+  }
+  // Chat de la partie (joueurs ET spectateurs) — temps réel uniquement : rien n'est enregistré.
+  if (onGameChat) {
+    GS_CHANNEL.on('broadcast', { event: 'chat' }, ({ payload }) => onGameChat(payload));
   }
   GS_CHANNEL.subscribe();
 
@@ -310,6 +314,18 @@ async function gsSendEmote(image, label) {
   console.log('Diffusion émote — rôle:', GS_ROLE, 'canal:', `session-${GS_SESSION_ID}`);
   const result = await GS_CHANNEL.send({ type: 'broadcast', event: 'emote', payload: { senderKey: GS_ROLE, image, label } });
   console.log('Résultat diffusion émote :', result);
+  return { ok: true };
+}
+
+// Message du chat de la partie. Ouvert aux deux joueurs et aux spectateurs (GS_ROLE =
+// 'p1' | 'p2' | 'spectator'). Diffusé sur le canal de la session, sans passer par la base.
+async function gsSendChat(name, text) {
+  if (!GS_CHANNEL) return { error: 'not-connected' };
+  const clean = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 200);
+  if (!clean) return { error: 'empty' };
+  await GS_CHANNEL.send({ type: 'broadcast', event: 'chat', payload: {
+    role: GS_ROLE === 'p1' || GS_ROLE === 'p2' ? GS_ROLE : 'spectator',
+    name: String(name || 'Joueur').slice(0, 24), text: clean, ts: Date.now() } });
   return { ok: true };
 }
 

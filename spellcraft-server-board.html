@@ -852,8 +852,7 @@ body.targeting *{cursor:crosshair !important;}
   /* ---------- Menus repliables (journal / chat) ---------- */
   .phase-bar-wrap{position:relative;}
   .menu-toggles-row{position:absolute;bottom:100%;right:0;margin-bottom:6px;display:flex;gap:6px;}
-  #emote-toggle-btn, #journal-toggle-btn, #leave-game-btn, #report-bug-btn, #reveal-hand-toggle-btn{width:50px;height:50px;border-radius:10px;background:rgba(23,19,37,.85);border:2px solid rgba(212,175,55,.45);color:#f2ead2;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;}
-  #reveal-hand-toggle-btn.active{border-color:var(--gold,#d4af37);background:rgba(212,175,55,.25);}
+  #emote-toggle-btn, #journal-toggle-btn, #chat-toggle-btn, #leave-game-btn, #report-bug-btn{width:50px;height:50px;border-radius:10px;background:rgba(23,19,37,.85);border:2px solid rgba(212,175,55,.45);color:#f2ead2;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;}
   #bug-report-panel{
     display:none;position:fixed;top:60px;right:20px;z-index:9990;width:280px;
     background:rgba(15,12,24,.97);border:1.5px solid var(--gold);border-radius:12px;padding:14px;
@@ -876,6 +875,24 @@ body.targeting *{cursor:crosshair !important;}
      gauche (sous la barre du haut), pas flottant en bas à droite. */
   #journal-panel{position:fixed;left:17px;top:65px;width:250px;height:745px;max-height:calc(100% - 85px);background:var(--bg-panel);border:1px solid var(--line, #3a3260);border-radius:12px;padding:12px;z-index:99997;display:none;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,.6);}
   #journal-panel.show{display:flex;}
+  /* ---------- Chat de la partie ---------- */
+  #chat-toggle-btn{position:relative;}
+  #chat-unread-badge{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 4px;border-radius:9px;background:#e0584f;color:#fff;font:700 11px/18px 'Inter',sans-serif;text-align:center;box-sizing:border-box;}
+  #chat-panel{position:fixed;right:17px;top:65px;width:270px;height:430px;max-height:calc(100% - 85px);background:var(--bg-panel);border:1px solid var(--line, #3a3260);border-radius:12px;padding:12px;z-index:99997;display:none;flex-direction:column;box-shadow:0 10px 30px rgba(0,0,0,.6);}
+  #chat-panel.show{display:flex;}
+  #chat-panel h3{margin:0 0 8px;font-family:'Cinzel',serif;color:var(--gold);font-size:14px;display:flex;justify-content:space-between;align-items:center;}
+  #chat-list{flex:1;min-height:0;overflow-y:auto;font-size:12px;line-height:1.45;color:var(--parchment-dim);}
+  #chat-list .chat-msg{padding:4px 0 4px 7px;border-bottom:1px dashed var(--line, #3a3260);border-left:3px solid transparent;word-wrap:break-word;overflow-wrap:anywhere;}
+  #chat-list .chat-msg.mine{border-left-color:#4aa3ff;}
+  #chat-list .chat-msg.opp{border-left-color:#e0584f;}
+  #chat-list .chat-msg.spec{border-left-color:#8a8a99;}
+  #chat-list .chat-name{font-weight:700;color:var(--parchment, #f2ead2);}
+  #chat-list .chat-tag{font-size:10px;margin-left:4px;padding:0 5px;border-radius:6px;background:rgba(255,255,255,.1);color:var(--parchment-dim);}
+  #chat-list .chat-empty{font-size:11.5px;opacity:.7;padding:6px 0;}
+  #chat-form{display:flex;gap:6px;margin-top:8px;}
+  #chat-input{flex:1;min-width:0;background:#1a1628;border:1.5px solid var(--line, #3a3260);border-radius:8px;color:#f2ead2;font-size:12.5px;padding:7px 8px;font-family:'Inter',sans-serif;}
+  #chat-send-btn{background:var(--arcane,#7c5cff);border:none;color:#fff;font-weight:600;border-radius:8px;padding:0 10px;font-size:12px;cursor:pointer;}
+  #chat-hint{font-size:10.5px;color:var(--parchment-dim);opacity:.75;margin-top:6px;}
   #journal-panel h3{margin:0 0 8px;font-family:'Cinzel',serif;color:var(--gold);font-size:14px;display:flex;justify-content:space-between;align-items:center;}
   #journal-panel h3 .close-journal-btn{cursor:pointer;font-size:16px;color:var(--parchment-dim);}
   #journal-panel h3 .close-journal-btn:hover{color:var(--gold);}
@@ -971,8 +988,8 @@ body.targeting *{cursor:crosshair !important;}
           <div class="phase-bar-wrap">
             <div class="menu-toggles-row">
               <button id="emote-toggle-btn" title="Émotes" onclick="toggleEmotePanel()">😄</button>
-              <button id="reveal-hand-toggle-btn" title="Révéler ma main aux spectateurs" onclick="toggleRevealHandToSpectators()" style="display:none;">🙈</button>
               <button id="journal-toggle-btn" title="Journal" onclick="toggleJournal()">📜</button>
+              <button id="chat-toggle-btn" title="Chat de la partie" onclick="toggleChatPanel()">💬<span id="chat-unread-badge" style="display:none;">0</span></button>
             </div>
             <div id="bug-report-panel">
               <h3>Signaler un problème</h3>
@@ -982,6 +999,15 @@ body.targeting *{cursor:crosshair !important;}
                 <button id="bug-report-cancel" onclick="closeBugReportPanel()">Annuler</button>
                 <button id="bug-report-send" onclick="submitBugReport()">Envoyer</button>
               </div>
+            </div>
+            <div id="chat-panel">
+              <h3>Chat <span class="close-journal-btn" onclick="toggleChatPanel()">✕</span></h3>
+              <div id="chat-list"></div>
+              <form id="chat-form" onsubmit="return uiSubmitChat(event)">
+                <input id="chat-input" type="text" maxlength="200" autocomplete="off" placeholder="Écrire un message…">
+                <button type="submit" id="chat-send-btn">Envoyer</button>
+              </form>
+              <div id="chat-hint">Joueurs et spectateurs peuvent écrire. Les messages ne sont pas conservés.</div>
             </div>
             <div id="journal-panel">
               <h3>Journal <span class="close-journal-btn" onclick="toggleJournal()">✕</span></h3>
@@ -2322,7 +2348,7 @@ function afterConnected(code){
   document.getElementById('app-outer').classList.add('show');
   MY_KEY = GS_ROLE === 'p2' ? 'p2' : 'p1';
   OPP_KEY = MY_KEY === 'p1' ? 'p2' : 'p1';
-  gsConnect(onStateUpdate, onEmoteMessage);
+  gsConnect(onStateUpdate, onEmoteMessage, onGameChatMessage);
   debugLog('Connecté (rôle : ' + GS_ROLE + ')', 'log-ok');
   gsFetchState().then(res=>{
     if(res.error){ debugLog('État initial → ' + res.error, 'log-error'); return; }
@@ -4370,18 +4396,30 @@ function renderEnemyHand(){
     el.appendChild(c);
   }
 }
-// Bouton œil (révéler sa main aux spectateurs) — visible uniquement pour
-// les deux joueurs (pas pour un spectateur lui-même, qui n'a pas de main
-// à révéler), reflète l'état réel à chaque rendu.
+// Option « Montrer ma main aux spectateurs » — rangée dans le menu des options (engrenage du haut),
+// réservée aux deux joueurs (un spectateur n'a pas de main à révéler). Reflète l'état réel à chaque rendu.
+function installBoardOptionRows(){
+  const modal = document.getElementById('sc-options-modal');
+  if(!modal) return false;
+  if(document.getElementById('sc-reveal-hand-row')) return true;
+  const row = document.createElement('div');
+  row.id = 'sc-reveal-hand-row';
+  row.innerHTML = '<div class="sc-opt-title" style="margin-top:14px;">Spectateurs</div>'
+    + '<label class="sc-opt-mute"><input type="checkbox" id="sc-reveal-hand-checkbox"> Montrer ma main aux spectateurs</label>';
+  const hub = modal.querySelector('.sc-opt-hub');
+  if(hub) modal.insertBefore(row, hub); else modal.appendChild(row);
+  document.getElementById('sc-reveal-hand-checkbox').onchange = ()=>toggleRevealHandToSpectators();
+  renderRevealHandToggle();
+  return true;
+}
 function renderRevealHandToggle(){
-  const btn = document.getElementById('reveal-hand-toggle-btn');
-  if(!btn) return;
-  if(GS_ROLE!=='p1' && GS_ROLE!=='p2'){ btn.style.display = 'none'; return; }
-  btn.style.display = 'flex';
-  const revealed = !!S[MY_KEY].showHandToSpectators;
-  btn.textContent = revealed ? '👁️' : '🙈';
-  btn.title = revealed ? 'Les spectateurs voient ta main — cliquer pour la cacher' : 'Révéler ta main aux spectateurs';
-  btn.classList.toggle('active', revealed);
+  if(!installBoardOptionRows()) return; // le menu d'options n'est pas encore là : réessayé au rendu suivant
+  const row = document.getElementById('sc-reveal-hand-row');
+  const box = document.getElementById('sc-reveal-hand-checkbox');
+  if(!row || !box) return;
+  if(GS_ROLE!=='p1' && GS_ROLE!=='p2'){ row.style.display = 'none'; return; }
+  row.style.display = '';
+  box.checked = !!S[MY_KEY].showHandToSpectators;
 }
 async function toggleRevealHandToSpectators(){
   const currentlyRevealed = !!S[MY_KEY].showHandToSpectators;
@@ -5768,6 +5806,72 @@ function onEmoteMessage(payload){
   bubble.innerHTML = `<img src="${escapeHtmlBoard(payload.image||'')}" title="${escapeHtmlBoard(payload.label||'')}">`;
   document.body.appendChild(bubble);
   setTimeout(()=>bubble.remove(), 2700);
+}
+// ---------------- Chat de la partie ----------------
+// Joueurs et spectateurs écrivent dans le même fil. Les messages passent par le canal temps réel
+// de la session (comme les émotes) : rien n'est enregistré, et un nouvel arrivant ne voit que
+// les messages envoyés après son arrivée. Le texte n'est jamais interprété comme du HTML.
+const CHAT_MAX_MESSAGES = 100, CHAT_MIN_GAP_MS = 1500;
+let CHAT_UNREAD = 0, CHAT_LAST_SENT = 0, CHAT_MY_NAME = null;
+function chatPanelOpen(){ const p = document.getElementById('chat-panel'); return !!(p && p.classList.contains('show')); }
+function toggleChatPanel(){
+  const panel = document.getElementById('chat-panel');
+  panel.classList.toggle('show');
+  if(panel.classList.contains('show')){
+    CHAT_UNREAD = 0; updateChatBadge();
+    const list = document.getElementById('chat-list'); if(list) list.scrollTop = list.scrollHeight;
+    const inp = document.getElementById('chat-input'); if(inp) inp.focus();
+  }
+}
+function updateChatBadge(){
+  const b = document.getElementById('chat-unread-badge'); if(!b) return;
+  b.style.display = CHAT_UNREAD>0 ? 'block' : 'none';
+  b.textContent = CHAT_UNREAD>9 ? '9+' : String(CHAT_UNREAD);
+}
+async function chatMyName(){
+  if(CHAT_MY_NAME) return CHAT_MY_NAME;
+  try{
+    const user = await scGetCurrentUser();
+    if(user){
+      const { data } = await sb.from('profiles').select('username').eq('id', user.id).maybeSingle();
+      CHAT_MY_NAME = (data && data.username) || 'Joueur';
+    }
+  }catch(e){ /* le chat reste utilisable avec un nom par défaut */ }
+  return CHAT_MY_NAME || 'Joueur';
+}
+async function uiSubmitChat(ev){
+  if(ev && ev.preventDefault) ev.preventDefault();
+  const inp = document.getElementById('chat-input');
+  const text = (inp.value||'').trim();
+  if(!text) return false;
+  const now = Date.now();
+  if(now - CHAT_LAST_SENT < CHAT_MIN_GAP_MS) return false; // anti-spam : un message toutes les 1,5 s
+  CHAT_LAST_SENT = now;
+  inp.value = '';
+  const res = await gsSendChat(await chatMyName(), text);
+  if(res && res.error && res.error!=='empty') appendChatMessage({ role:'spectator', name:'Système', text:"Le message n'a pas pu être envoyé ("+res.error+")." }, true);
+  return false;
+}
+function onGameChatMessage(payload){
+  if(!payload || typeof payload.text!=='string') return;
+  appendChatMessage(payload, false);
+}
+function appendChatMessage(p, isSystem){
+  const list = document.getElementById('chat-list'); if(!list) return;
+  const empty = list.querySelector('.chat-empty'); if(empty) empty.remove();
+  const role = (p.role==='p1' || p.role==='p2') ? p.role : 'spectator';
+  const mine = !isSystem && role===MY_KEY && GS_ROLE!=='spectator';
+  const el = document.createElement('div');
+  el.className = 'chat-msg ' + (mine ? 'mine' : (role==='spectator' ? 'spec' : 'opp'));
+  const name = document.createElement('span'); name.className = 'chat-name'; name.textContent = String(p.name||'Joueur').slice(0,24);
+  el.appendChild(name);
+  if(role==='spectator'){ const tag = document.createElement('span'); tag.className = 'chat-tag'; tag.textContent = isSystem ? 'système' : 'spectateur'; el.appendChild(tag); }
+  el.appendChild(document.createTextNode(' : ' + String(p.text).slice(0,200)));
+  const atBottom = list.scrollTop + list.clientHeight >= list.scrollHeight - 24;
+  list.appendChild(el);
+  while(list.children.length > CHAT_MAX_MESSAGES) list.removeChild(list.firstChild);
+  if(atBottom || mine) list.scrollTop = list.scrollHeight;
+  if(!mine && !isSystem && !chatPanelOpen()){ CHAT_UNREAD++; updateChatBadge(); }
 }
 function escapeHtmlBoard(s){
   return String(s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
