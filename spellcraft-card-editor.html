@@ -1856,7 +1856,7 @@ function buildTargetsSectionUI(ab, targetsArray, choiceKey, heading){
       trow.appendChild(makeSelectField('Mot-clé requis (optionnel)', [{key:'',label:'Aucun'}, ...KEYWORDS.map(k=>({key:k.key,label:k.label}))], tgt.keywordFilter||'', v=>{ tgt.keywordFilter=v; onFormChange(); }));
       const kwNote = document.createElement('div');
       kwNote.style.cssText = 'font-size:10.5px;color:var(--parchment-dim);margin-top:2px;flex-basis:100%;';
-      kwNote.textContent = "Filtre de ciblage : seules les créatures qui ont ce mot-clé peuvent être choisies (ex : Chute mortelle → Envol). Un sort qui exige une cible alors qu'aucune n'est valide est refusé : il reste en main et rien n'est dépensé. Une créature adverse protégée par Parade n'est jamais ciblable par un sort.";
+      kwNote.textContent = "Filtre de ciblage : seules les créatures qui ont ce mot-clé peuvent être choisies (ex : Chute mortelle → Vol). Un sort qui exige une cible alors qu'aucune n'est valide est refusé : il reste en main et rien n'est dépensé. Une créature adverse protégée par Parade n'est jamais ciblable par un sort.";
       trow.appendChild(kwNote);
     }
 

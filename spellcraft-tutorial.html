@@ -803,18 +803,18 @@ const KEYWORD_ICON_FILES = {
   // "debut" est volontairement absent : pas d'icône pour ce mot-clé.
 };
 const KEYWORD_LABELS = {
-  charge:'Charge', flying:'Envol', reach:'Portée', pierce:'Brutalité', lifesteal:'Vol de vie',
+  charge:'Charge', flying:'Vol', reach:'Portée', pierce:'Brutalité', lifesteal:'Vol de vie',
   initiative:'Initiative', armor:'Armure', stealth:'Parade', relentless:'Tenace',
   fearful:'Peureux', protecteur:'Protecteur', toxic:'Toxique',
   discret:'Discret', imparable:'Imparable', fugace:'Fugace',
-  assault:'Assault', debut:'Début', final:'Final'
+  assault:'Assaut', debut:'Début', final:'Final'
 };
 // Texte complet de chaque mot-clé — utilisé par les bulles contextuelles
 // affichées à côté de l'aperçu agrandi d'une créature (survol en partie).
 const KEYWORD_DESCRIPTIONS = {
   charge: "Peut attaquer dès le tour où elle arrive en jeu, sans attendre le tour suivant.",
   flying: "Ne peut être bloquée que par des créatures qui ont elles-mêmes le Vol ou la Portée.",
-  reach: "Peut bloquer une créature avec Envol, sans avoir elle-même ce mot-clé.",
+  reach: "Peut bloquer une créature avec Vol, sans avoir elle-même ce mot-clé.",
   pierce: "Si les dégâts qu'elle inflige dépassent les PV de sa cible, l'excédent est reporté directement sur le héros adverse.",
   lifesteal: "Chaque point de dégât qu'elle inflige soigne d'autant votre héros.",
   initiative: "Frappe la première lors d'un combat. Si ce premier coup suffit à tuer sa cible, elle ne subit aucun dégât en retour.",
@@ -3295,7 +3295,7 @@ async function initFromUrl(){
        déclenché, défausse adverse, journal.
    T3  artefact (Hache de guerre naine) : Initiative + Brutalité.
    T4  créature à Armure ; l'adversaire attaque : blocage de la
-       créature Toxique, impossible de bloquer l'Envol.
+       créature Toxique, impossible de bloquer le Vol.
    T5  attaque contre une créature Tenace, puis sortilège final.
    ============================================================ */
 
@@ -3820,7 +3820,7 @@ defStep({ id:'playC3', title:'Une créature à Armure',
   }
 });
 defStep({ id:'enemyInfo', title:'Lisez le plateau adverse',
-  text:"Survolez les créatures de Sandroska. Phalène lunaire a Envol : seules des créatures avec Envol ou Portée peuvent la bloquer. Horreur reptilienne est Toxique : toute créature qu'elle blesse meurt. Attaquer maintenant serait risqué. Cliquez sur « Continuer ».",
+  text:"Survolez les créatures de Sandroska. Phalène lunaire a Vol : seules des créatures avec Vol ou Portée peuvent la bloquer. Horreur reptilienne est Toxique : toute créature qu'elle blesse meurt. Attaquer maintenant serait risqué. Cliquez sur « Continuer ».",
   continueBtn:true, highlight:['[data-instid="t-p2-c3"]','[data-instid="t-p2-c4"]'] });
 defStep({ id:'endTurn4', title:'Rien ne vous oblige à attaquer',
   text:"Vous pouvez finir votre tour sans passer par le combat : gardez vos créatures pour défendre. Cliquez directement sur « Fin de tour ».",
@@ -3842,7 +3842,7 @@ defStep({ id:'aiTurn4', title:"Tour de l'adversaire",
   }
 });
 defStep({ id:'blockHorreur', title:'On vous attaque !',
-  text:"Sandroska attaque avec Phalène lunaire (Envol) et Horreur reptilienne (Toxique). Pour bloquer : cliquez sur votre défenseur (Bandit des marais), puis sur l'attaquant à bloquer (Horreur reptilienne). L'Armure du Bandit encaissera le coup Toxique. Vous pourriez aussi ne pas bloquer.",
+  text:"Sandroska attaque avec Phalène lunaire (Vol) et Horreur reptilienne (Toxique). Pour bloquer : cliquez sur votre défenseur (Bandit des marais), puis sur l'attaquant à bloquer (Horreur reptilienne). L'Armure du Bandit encaissera le coup Toxique. Vous pourriez aussi ne pas bloquer.",
   highlight:['[data-instid="t-p1-c3"]','[data-instid="t-p2-c3"]'],
   expect:{ kind:'block', blocker:'t-p1-c3', attacker:'t-p2-c3' },
   async run(){
@@ -3861,7 +3861,7 @@ defStep({ id:'blockHorreur', title:'On vous attaque !',
     onStateUpdate(S);
     await tutSleep(900);
     tutKill('p2', horreur);
-    // Plus aucune créature ne peut bloquer la Phalène (Envol) : la phase
+    // Plus aucune créature ne peut bloquer la Phalène (Vol) : la phase
     // de blocage se termine d'elle-même, les dégâts passent au héros.
     S.p1.hp = Math.max(0, S.p1.hp - phalene.curAtk);
     tutLog({ ownerKey:'p1', raw:`{who} a perdu ${phalene.curAtk} point de vie dans cette attaque`, highlightIds:[phalene.instId] });
@@ -3871,7 +3871,7 @@ defStep({ id:'blockHorreur', title:'On vous attaque !',
   }
 });
 defStep({ id:'blockResult', title:'Résultat du blocage',
-  text:"Armure : le Bandit a absorbé l'unique coup de la créature Toxique, il survit et a tué Horreur reptilienne. Aucune de vos créatures n'a Envol ou Portée : la Phalène ne pouvait pas être bloquée, le blocage s'est terminé tout seul et elle vous a infligé 1 dégât. Cliquez sur « Continuer ».",
+  text:"Armure : le Bandit a absorbé l'unique coup de la créature Toxique, il survit et a tué Horreur reptilienne. Aucune de vos créatures n'a Vol ou Portée : la Phalène ne pouvait pas être bloquée, le blocage s'est terminé tout seul et elle vous a infligé 1 dégât. Cliquez sur « Continuer ».",
   continueBtn:true, highlight:['[data-instid="t-p1-c3"]','#hero-frame-p1'],
   onContinue(){ tutStartP1Turn(8, T_P1_SPELL); }
 });
@@ -4291,9 +4291,9 @@ gsAssignBlock = async function(blockerId, attackerId){
     tutFlash("Choisissez d'abord votre défenseur, puis l'attaquant à bloquer.");
     return { error:'tutorial-wrong-target' };
   }
-  // Règle réelle : une créature avec Envol n'est bloquable que par Envol / Portée.
+  // Règle réelle : une créature avec Vol n'est bloquable que par Vol / Portée.
   if(tutHasKw(att,'flying') && !tutHasKw(blk,'flying') && !tutHasKw(blk,'reach')){
-    tutFlash(`${att.name} a Envol : seules des créatures avec Envol ou Portée peuvent la bloquer.`);
+    tutFlash(`${att.name} a Vol : seules des créatures avec Vol ou Portée peuvent la bloquer.`);
     return { error:'cannot-block-flying' };
   }
   const info = tutExpecting('block');

@@ -132,7 +132,7 @@ Un Piège adverse « quand l'adversaire lance un sortilège » (par exemple « O
 
 #### Ciblage et filtres
 - Un sort ne désigne que des cibles **valides**. Une cible valide respecte : le **camp** demandé (allié, ennemi ou les deux), la **catégorie** (créature, artefact, héros...) et tous les **filtres** de la carte.
-- **Filtres** : sous-type (ex. « un Dragon »), mot-clé (ex. « une créature avec Envol » pour *Chute mortelle*), statistique (ex. « Force ≤ 2 » pour *Chasser les faibles*, « Force ≥ 4 » pour *Vaincre les forts*, « Force ≤ 3 » pour *Ôter la vie*). Ces restrictions sont des **filtres de ciblage** : la cible ne convient pas = elle n'est tout simplement pas proposée (ce n'est plus une « condition » qui ferait perdre le sort).
+- **Filtres** : sous-type (ex. « un Dragon »), mot-clé (ex. « une créature avec Vol » pour *Chute mortelle*), statistique (ex. « Force ≤ 2 » pour *Chasser les faibles*, « Force ≥ 4 » pour *Vaincre les forts*, « Force ≤ 3 » pour *Ôter la vie*). Ces restrictions sont des **filtres de ciblage** : la cible ne convient pas = elle n'est tout simplement pas proposée (ce n'est plus une « condition » qui ferait perdre le sort).
 - **Parade** : une créature adverse protégée par Parade ne peut pas être ciblée par un sort (voir 7.7). Elle est exclue aussi des sorts de zone et des tirages au sort. Vos propres créatures Parade restent ciblables par vos sorts.
 - Un **héros** n'est une cible possible que si la catégorie du sort le permet (« héros », « joueur » ou « héros ou créature »). Un filtre (sous-type, mot-clé, statistique) exclut les héros.
 - **Aucune cible valide = refus.** Si le sort exige une cible choisie et qu'aucune cible ne convient (plateau vide, tout le monde sous Parade, filtre qui ne trouve personne...), le jeu est **refusé** (erreur `no-valid-target`) : rien n'est dépensé et la carte **reste en main**. Le client affiche « Aucune cible valide » et n'ouvre pas de ciblage vide.
@@ -234,7 +234,7 @@ Le client traduit les refus du serveur : `no-valid-target` (aucune cible valide)
    - l'attaquant doit avoir été déclaré ce tour-ci et être toujours en jeu ;
    - le bloqueur ne doit être ni gelé, ni étourdi, ni **Peureux**, et ne doit pas avoir déjà bloqué ce tour-ci (un bloqueur ne bloque qu'**un seul** attaquant par tour) ;
    - l'attaquant ne doit pas être **Discret** ;
-   - si l'attaquant a **Envol**, le bloqueur doit avoir **Envol** ou **Portée**.
+   - si l'attaquant a **Vol**, le bloqueur doit avoir **Vol** ou **Portée**.
    - Un attaquant peut être bloqué par **plusieurs** bloqueurs. Le mal d'invocation n'empêche pas de bloquer.
 4. **Résolution des dégâts** — **Chaque combat est résolu immédiatement**, au moment où le bloqueur est assigné (il n'y a pas de résolution simultanée à la fin du blocage) :
    - Attaquant bloqué : l'attaquant et le bloqueur s'infligent mutuellement des dégâts égaux à leur Force. Avec plusieurs bloqueurs, l'attaquant inflige **toute** sa Force à **chaque** bloqueur, et chaque bloqueur inflige la sienne à l'attaquant : chaque bloqueur subit donc un combat complet.
@@ -244,7 +244,7 @@ Le client traduit les refus du serveur : `no-valid-target` (aucune cible valide)
    - **Toxique** : une créature à qui une créature Toxique inflige au moins 1 dégât au combat meurt (un coup absorbé par l'Armure ou de Force 0 n'a pas cet effet).
    - **Armure** : absorbe le premier dégât positif subi, quelle qu'en soit la source, une seule fois (voir 7.7).
 5. **Fin du blocage** — Quand le défenseur termine son blocage, chaque attaquant resté non bloqué inflige toute sa Force au héros adverse (et déclenche « a infligé des blessures au héros »). Les excédents de Brutalité passent alors aussi au héros.
-   - **Blessures directes automatiques** : si le défenseur n'a aucune créature capable de bloquer (aucun bloqueur légal pour les attaquants déclarés : gelées, étourdies, Peureux, déjà bloqué, Envol / Discret des attaquants), il n'y a pas d'attente de blocage : le moteur passe directement à cette étape et les attaquants non bloqués infligent leur Force au héros, avec les mêmes événements que si le défenseur avait passé.
+   - **Blessures directes automatiques** : si le défenseur n'a aucune créature capable de bloquer (aucun bloqueur légal pour les attaquants déclarés : gelées, étourdies, Peureux, déjà bloqué, Vol / Discret des attaquants), il n'y a pas d'attente de blocage : le moteur passe directement à cette étape et les attaquants non bloqués infligent leur Force au héros, avec les mêmes événements que si le défenseur avait passé.
    - **Fin automatique du blocage** : la phase de blocage se termine toute seule dès qu'il n'y a plus rien à bloquer — plus aucun attaquant en jeu, ou plus aucun bloqueur libre capable de bloquer un des attaquants restants (tous ont déjà bloqué, ou ne le peuvent pas). Le défenseur n'a pas à cliquer sur « Passer ». Un bloqueur libre peut encore bloquer un attaquant déjà bloqué (blocage multiple) : tant qu'il en existe un, la phase reste en attente. Côté interface (serveur plus ancien), le client envoie lui-même la fin du blocage, une seule fois, après les animations.
    - **Présentation (interface, sans effet sur les règles)** : au début de la partie, l'écran d'annonce dure 6 secondes et peut être passé d'un clic n'importe où ; un clic sur le nom d'un joueur ouvre son profil dans un nouvel onglet (pas de profil pour l'IA). Pendant le tour de l'IA, l'interface rejoue les actions dans l'ordre : cartes jouées et capacités d'abord, puis une courte pause, puis la désignation des attaquants et la phase de blocage.
 6. **Résolution des morts** — Après chaque combat, toute créature dont l'Endurance courante est ≤ 0 meurt (voir 7.5) : Tenace, Finale et "Quand cette carte est détruite" selon le cas. "Quand cette carte élimine une créature" se déclenche chez la créature qui a mis sa cible à 0 PV **à condition qu'elle soit encore en vie à la fin de l'échange** (si les deux meurent, aucune des deux ne le déclenche).
@@ -261,8 +261,8 @@ Le client traduit les refus du serveur : `no-valid-target` (aucune cible valide)
 | Mot-clé | Effet |
 |---|---|
 | **Charge** | Peut attaquer le tour où elle arrive en jeu (ignore le mal d'invocation). |
-| **Envol** | Ne peut être bloquée que par des créatures ayant Envol ou Portée. |
-| **Portée** | Peut bloquer les créatures avec Envol sans avoir elle-même Envol. |
+| **Vol** | Ne peut être bloquée que par des créatures ayant Vol ou Portée. |
+| **Portée** | Peut bloquer les créatures avec Vol sans avoir elle-même Vol. |
 | **Brutalité** | Bloquée, elle fait passer au héros adverse l'excédent de ses dégâts par rapport aux PV restants du ou des bloqueurs. |
 | **Vol de vie** | Les dégâts infligés par cette créature soignent son héros d'autant. |
 | **Initiative** | Frappe avant son adversaire ; si elle élimine sa cible avec ce premier coup, elle ne subit aucun dégât en retour. |
@@ -407,15 +407,15 @@ Quand un effet récupère une créature depuis la défausse (en main ou en jeu),
 
 Il y a 15 mots-clés de jeu et 3 étiquettes sans effet. Chacun n'a qu'**un seul nom officiel** (la « clé » entre parenthèses est le nom interne utilisé par l'éditeur et le moteur). Une créature peut en cumuler plusieurs.
 
-**D'où viennent les mots-clés d'une créature ?** De la carte elle-même ; d'un octroi permanent ; d'un octroi **temporaire** (« ce tour-ci », voir ci-dessous) ; d'une aura (tant que sa source est en jeu) ; des effets « Amélioration » (un mot-clé aléatoire parmi Charge, Envol, Portée, Brutalité, Vol de vie, Initiative, Armure, Parade, Tenace, Toxique, Discret, Imparable, que la créature n'a pas déjà) et « Choix parmi 3 mots-clés » (3 mots-clés tirés parmi Charge, Envol, Portée, Brutalité, Vol de vie, Initiative, Armure, Parade, Tenace, Peureux, Protecteur, Toxique, que la créature n'a pas déjà). L'effet « Retire un mot-clé » le retire quelle que soit son origine (un mot-clé d'aura peut revenir au recalcul suivant).
+**D'où viennent les mots-clés d'une créature ?** De la carte elle-même ; d'un octroi permanent ; d'un octroi **temporaire** (« ce tour-ci », voir ci-dessous) ; d'une aura (tant que sa source est en jeu) ; des effets « Amélioration » (un mot-clé aléatoire parmi Charge, Vol, Portée, Brutalité, Vol de vie, Initiative, Armure, Parade, Tenace, Toxique, Discret, Imparable, que la créature n'a pas déjà) et « Choix parmi 3 mots-clés » (3 mots-clés tirés parmi Charge, Vol, Portée, Brutalité, Vol de vie, Initiative, Armure, Parade, Tenace, Peureux, Protecteur, Toxique, que la créature n'a pas déjà). L'effet « Retire un mot-clé » le retire quelle que soit son origine (un mot-clé d'aura peut revenir au recalcul suivant).
 
 **Mots-clés temporaires.** Un mot-clé accordé « ce tour-ci » est retiré à la **fin du tour courant** (que ce soit le tour de son propriétaire ou celui de l'adversaire : il ne dure donc pas pendant le tour adverse suivant). Une créature qui possède déjà le mot-clé (de naissance ou par un octroi permanent) ne le perd pas : seul un mot-clé réellement ajouté par l'effet temporaire est retiré.
 
 **Charge** (`charge`) — La créature peut attaquer le tour où elle arrive en jeu. Elle a quand même le mal d'invocation (et donc la protection de Parade, si elle l'a) : Charge ne fait que l'autoriser à attaquer. L'IA en tient compte. Voir 7.4 pour les créatures créées par un effet.
 
-**Envol** (`flying`) — Une créature avec Envol ne peut être bloquée que par une créature qui a **Envol** ou **Portée**. Envol ne limite pas les créatures qu'elle-même peut bloquer.
+**Vol** (`flying`) — Une créature avec Vol ne peut être bloquée que par une créature qui a **Vol** ou **Portée**. Vol ne limite pas les créatures qu'elle-même peut bloquer.
 
-**Portée** (`reach`) — La créature peut bloquer une créature avec Envol sans avoir elle-même Envol.
+**Portée** (`reach`) — La créature peut bloquer une créature avec Vol sans avoir elle-même Vol.
 
 **Brutalité** (`pierce`) — Ne joue que quand la créature **attaque** et est **bloquée**. Le moteur retient, pour chaque bloqueur, ses **PV restants avant le coup** (au plus 1 par bloqueur si l'attaquante est aussi Toxique). L'**excédent** = Force de l'attaquante − somme de ces PV ; s'il est positif, il est infligé au héros adverse. Il est infligé à la fin du blocage si l'attaquante est toujours en jeu, ou immédiatement à sa mort si elle est morte au combat (avant ses déclencheurs de mort). Si l'Armure d'un bloqueur absorbe le coup, ce bloqueur n'entre pas dans le calcul : s'il est le seul bloqueur, aucun excédent ne passe. L'excédent est un dégât ordinaire au héros ; il ne déclenche pas Vol de vie. Un attaquant non bloqué inflige de toute façon toute sa Force au héros.
 
@@ -505,7 +505,7 @@ Une capacité se lit « déclencheur → conditions → effet » (voir section 9
 
 | Nom actuel | Ancien nom ou usage | Remarque |
 |---|---|---|
-| **Envol** | Vol | |
+| **Vol** | Envol | Le mot-clé s'est brièvement appelé Envol avant de redevenir Vol. |
 | **Brutalité** | Perçant | |
 | **Parade** | Furtif | L'ancien Furtif visait seulement les sorts et durait jusqu'à la première attaque ; Parade vise tout ciblage adverse et dure jusqu'à la fin du mal d'invocation. |
 | **Tenace** | « Implacable » | |
