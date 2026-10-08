@@ -110,6 +110,14 @@
         <div class="sc-tile-sub">Des objectifs à accomplir, des récompenses à la clé.</div>
       </a>
 
+      <a class="sc-tile" id="calendar-tile" style="display:none" href="spellcraft-calendar.html" title="Une case à ouvrir chaque jour de jeu">
+        <div class="sc-tile-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="13" rx="1.5"/><path d="M12 8v13M3 12h18"/><path d="M12 8c-1-3-5-4-5-1.5C7 8 9 8 12 8zm0 0c1-3 5-4 5-1.5C17 8 15 8 12 8z"/></svg>
+        </div>
+        <div class="sc-tile-title">Calendrier</div>
+        <div class="sc-tile-sub">Une case à ouvrir chaque jour de jeu.</div>
+      </a>
+
     </div>
 
     <div class="hub-footer">
@@ -212,6 +220,13 @@
 <script src="spellcraft-auth.js"></script>
 <script>
 initSpellcraftAuth().then(initPatchNotesBadge).then(checkTutorialAutoLaunch);
+// Le calendrier n'apparaît que lorsqu'il est ouvert (administrateur, ou ouvert à tous par l'interrupteur serveur).
+(async function(){
+  try{
+    const { data } = await sb.rpc('calendar_open');
+    if(data === true){ const t = document.getElementById('calendar-tile'); if(t) t.style.display = ''; }
+  }catch(e){}
+})();
 playMenuMusicRotation(0.35);
 
 let PATCHNOTE_CAN_EDIT = false;
