@@ -20,6 +20,11 @@
 #app{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:0 20px 60px;}
 #app > .sc-topbar{margin:0 -20px 20px;width:calc(100% + 40px);}
 
+.quest-tabs{width:100%;max-width:1000px;display:flex;gap:8px;margin-bottom:18px;}
+.quest-tab{flex:0 0 auto;cursor:pointer;padding:9px 18px;border-radius:999px;border:1px solid var(--border,#3a3150);background:transparent;color:inherit;font-family:'Cinzel',serif;font-weight:700;font-size:14px;}
+.quest-tab.active{background:var(--gold,#d4af37);color:#1c1830;border-color:var(--gold,#d4af37);}
+#coffres-view{display:none;width:100%;max-width:1000px;}
+#coffres-view iframe{width:100%;border:0;display:block;min-height:600px;background:transparent;}
 .quests-top-row{width:100%;max-width:1000px;display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:22px;}
 .quests-top-row .sc-h1{margin:0;}
 
@@ -127,7 +132,14 @@ main{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:22px;}
     <div id="gold-chip" class="sc-pill sc-pill-gold"><span class="money-icon"></span><span id="gold-amount">–</span></div>
   </div>
 
-  <main>
+  <div class="quest-tabs" id="quest-tabs" style="display:none">
+    <button class="quest-tab active" data-tab="quetes">📜 Quêtes</button>
+    <button class="quest-tab" data-tab="coffres">🎁 Les coffres de Velkrin</button>
+  </div>
+
+  <div id="coffres-view"></div>
+
+  <main id="quests-main">
     <div class="quest-section sc-panel">
       <h2>Quêtes journalières</h2>
       <div class="quest-list" id="daily-list"><p class="empty-note">Chargement…</p></div>
@@ -494,6 +506,36 @@ async function loadQuests(){
   if(progression.length===0) progEl.innerHTML = '<p class="empty-note">Toutes les quêtes de progression sont terminées pour l\'instant — reviens plus tard !</p>';
   progression.forEach(q=>progEl.appendChild(buildQuestCard(q)));
 }
+
+// Onglet « Les coffres de Velkrin » : visible seulement quand l'interrupteur serveur l'ouvre à tous.
+// (L'administrateur ne le voit pas non plus avant ; il passe par la page d'administration.)
+function showTab(name){
+  const coffres = name === 'coffres';
+  document.querySelectorAll('.quest-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.getElementById('quests-main').style.display = coffres ? 'none' : '';
+  const view = document.getElementById('coffres-view');
+  view.style.display = coffres ? 'block' : 'none';
+  if(coffres && !view.firstChild){
+    view.innerHTML = '<iframe src="spellcraft-calendar.html?embed=1" title="Les coffres de Velkrin"></iframe>';
+  }
+  try{ history.replaceState(null, '', coffres ? '#coffres' : location.pathname + location.search); }catch(e){}
+}
+document.addEventListener('click', e => { const b = e.target.closest('.quest-tab'); if(b) showTab(b.dataset.tab); });
+window.addEventListener('message', e => {
+  if(e.data && e.data.type === 'coffres-height'){
+    const f = document.querySelector('#coffres-view iframe');
+    if(f) f.style.height = Math.max(600, Math.ceil(e.data.h) + 20) + 'px';
+  }
+});
+(async function initCoffresTab(){
+  try{
+    const { data } = await sb.from('app_flags').select('value').eq('key','calendar_enabled').maybeSingle();
+    if(data && data.value === true){
+      document.getElementById('quest-tabs').style.display = 'flex';
+      if(location.hash === '#coffres') showTab('coffres');
+    }
+  }catch(e){}
+})();
 
 initSpellcraftAuth();
 playMenuMusicRotation(0.35);
