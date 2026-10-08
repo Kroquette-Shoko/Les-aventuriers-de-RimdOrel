@@ -838,7 +838,11 @@ body.targeting *{cursor:crosshair !important;}
   .deck-counts{display:flex;flex-direction:column;gap:8px;}
 
   .artifact-stack{position:absolute;display:flex;gap:6px;align-items:center;}
-  .board-row.self .artifact-stack{right:280px;bottom:16px;flex-direction:row;}
+  /* Zones d'artefact alliées : empilées l'une au-dessus de l'autre (et non plus côte à côte),
+     pour que la main ne cache plus l'une des deux. Hauteur réduite (100px) pour que les deux
+     tiennent dans la rangée du joueur. */
+  .board-row.self .artifact-stack{right:280px;bottom:12px;flex-direction:column;align-items:flex-end;}
+  .board-row.self .artifact-stack .relic-slot{height:100px;}
   .board-row.enemy .artifact-stack{left:265px;top:14px;bottom:auto;flex-direction:row;}
   .artifact-stack .relic-slot{width:148px;height:148px;}
   .relic-slot-empty{border:2px dashed #4a4270;border-radius:8px;background:rgba(11,10,18,.4);}
