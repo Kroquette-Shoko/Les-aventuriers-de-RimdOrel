@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Spellcraft — Administration du calendrier</title>
+<link rel="stylesheet" href="spellcraft-ui-kit.css">
+<style>
+body{margin:0;background:var(--bg-void,#0b0a12);color:var(--parchment,#efe6c8);font-family:'Inter',sans-serif;}
+.wrap{max-width:1000px;margin:0 auto;padding:16px;}
+h1,h2{font-family:'Cinzel',serif;margin:0 0 8px;}
+h2{font-size:18px;color:var(--gold,#d4af37);}
+.panel{background:var(--bg-panel,#171325);border:1px solid #3a3150;border-radius:10px;padding:14px;margin-bottom:14px;}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin-bottom:8px;}
+label{display:flex;flex-direction:column;font-size:12px;gap:3px;color:#d9cfae;}
+input,select{background:#0f0c1a;color:#efe6c8;border:1px solid #3a3150;border-radius:6px;padding:6px 8px;font-size:14px;}
+input[type=number]{width:90px;}
+.hint{font-size:12px;color:#a89f86;}
+.ok{color:#6fd39a;}.ko{color:#e46a6a;}
+.cell{border:1px solid #3a3150;border-radius:8px;padding:8px;margin-bottom:6px;background:#1f1a30;}
+.cell h3{margin:0 0 6px;font-size:13px;color:#d4af37;display:flex;justify-content:space-between;align-items:center;}
+.item{display:flex;flex-wrap:wrap;gap:6px;align-items:flex-end;margin-bottom:6px;padding:6px;background:#171325;border-radius:6px;}
+button.sm{padding:4px 9px;font-size:12px;cursor:pointer;background:#2c2545;color:#efe6c8;border:1px solid #4a3f6e;border-radius:6px;}
+button.sm:hover{background:#3a3160;}
+.summary{font-size:13px;line-height:1.6;}
+#msg{position:sticky;top:0;z-index:5;padding:8px 12px;border-radius:8px;margin-bottom:10px;display:none;}
+#msg.show{display:block;background:#241f38;border:1px solid #d4af37;}
+.denied{padding:40px;text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap" id="root"><p class="hint">Chargement…</p></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="spellcraft-shared.js"></script>
+<script src="spellcraft-auth.js"></script>
+<script>
+(function(){
+const RARITIES = ['Basique','Commune','Rare','Épique','Mythique'];
+const TYPES = {gold:'Or',booster:'Booster',card:'Carte au hasard',card_back:'Dos de carte',card_variant:'Version alternative',title:'Titre de profil'};
+let SEASONS=[], SEASON=null, REW={}, FINAL={free:[],premium:[]};
+let BOOSTERS=[], BACKS=[], VARIANTS=[], CARDNAMES={}, TITLES=[], FLAG=false;
+const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function msg(t, ok){ const m=document.getElementById('msg'); if(!m) return; m.className='show'; m.innerHTML=(ok===false?'<span class="ko">':'<span class="ok">')+esc(t)+'</span>'; window.scrollTo({top:0,behavior:'smooth'}); }
+
+/* ---- Dates : saisies et affichées en heure de Paris ---- */
+function parisParts(d){
+  const f=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Paris',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}).format(d);
+  return f.replace(' ','T');
+}
+function parisToIso(local){
+  // local = 'YYYY-MM-DDTHH:mm' en heure de Paris -> ISO UTC
+  const guess=new Date(local+':00Z');
+  const asParis=parisParts(guess);
+  const diff=new Date(asParis+':00Z')-guess;
+  return new Date(guess-diff).toISOString();
+}
+
+async function loadAll(){
+  const [fl,se,bo,ba,va,ca,ti]=await Promise.all([
+    sb.from('app_flags').select('value').eq('key','calendar_enabled').maybeSingle(),
+    sb.from('cal_seasons').select('*').order('starts_at',{ascending:false}),
+    sb.from('boosters').select('id,name,set_id'),
+    sb.from('card_backs').select('id,name'),
+    sb.from('card_variants').select('id,card_id,name'),
+    sb.from('cards').select('id,data'),
+    sb.from('achievement_definitions').select('id,name,title_masculine,title_feminine,grants_title,category').eq('grants_title',true)
+  ]);
+  FLAG = !!(fl.data && fl.data.value);
+  SEASONS = se.data||[]; BOOSTERS=bo.data||[]; BACKS=ba.data||[]; VARIANTS=va.data||[]; TITLES=ti.data||[];
+  CARDNAMES={}; (ca.data||[]).forEach(c=>{CARDNAMES[c.id]=(c.data&&c.data.name)||c.id;});
+}
+async function loadSeason(id){
+  SEASON = SEASONS.find(s=>s.id===id)||null;
+  REW={}; FINAL={free:[],premium:[]};
+  if(!SEASON) return;
+  const [r,f]=await Promise.all([
+    sb.from('cal_rewards').select('idx,rewards').eq('season_id',id),
+    sb.from('cal_final').select('track,rewards').eq('season_id',id)
+  ]);
+  (r.data||[]).forEach(x=>{REW[x.idx]=x.rewards||[];});
+  (f.data||[]).forEach(x=>{FINAL[x.track]=x.rewards||[];});
+}
+
+/* ---- Éditeur d'un objet récompense ---- */
+function defaultItem(type){
+  switch(type){
+    case 'gold': return {type,amount:50};
+    case 'booster': return {type,set:'latest',count:1};
+    case 'card': return {type,rarity:'Commune',count:1,foil:false};
+    case 'card_back': return {type,id:(BACKS[0]||{}).id||''};
+    case 'card_variant': return {type,id:(VARIANTS[0]||{}).id||''};
+    case 'title': return {type,id:(TITLES[0]||{}).id||''};
+  }
+}
+function opts(list, sel, labelFn){ return list.map(o=>`<option value="${esc(o.v)}" ${o.v===sel?'selected':''}>${esc(o.l)}</option>`).join(''); }
+function itemHtml(it, key, i){
+  const t=it.type;
+  let f='';
+  if(t==='gold') f=`<label>Montant<input type="number" min="1" data-f="amount" value="${esc(it.amount)}"></label>`;
+  if(t==='booster'){
+    const choices=[{v:'latest',l:'Dernier set sorti'},{v:'base',l:'Set de base'}].concat(BOOSTERS.map(b=>({v:'b:'+b.id,l:'Booster : '+b.name})));
+    const cur = it.booster_id ? 'b:'+it.booster_id : (it.set||'latest');
+    f=`<label>Lequel<select data-f="boostersel">${opts(choices,cur)}</select></label><label>Quantité<input type="number" min="1" data-f="count" value="${esc(it.count||1)}"></label>`;
+  }
+  if(t==='card') f=`<label>Rareté<select data-f="rarity">${opts(RARITIES.map(r=>({v:r,l:r})),it.rarity)}</select></label><label>Quantité<input type="number" min="1" data-f="count" value="${esc(it.count||1)}"></label><label>Foil<select data-f="foil">${opts([{v:'0',l:'Non'},{v:'1',l:'Oui'}],it.foil?'1':'0')}</select></label>`;
+  if(t==='card_back') f=`<label>Dos<select data-f="id">${opts(BACKS.map(b=>({v:b.id,l:b.name})),it.id)}</select></label>`+(BACKS.length?'':'<span class="ko">Aucun dos créé (voir « Boutique » dans l\'éditeur de cartes)</span>');
+  if(t==='card_variant') f=`<label>Version<select data-f="id">${opts(VARIANTS.map(v=>({v:v.id,l:(CARDNAMES[v.card_id]||v.card_id)+' — '+v.name})),it.id)}</select></label>`+(VARIANTS.length?'':'<span class="ko">Aucune version alternative créée (voir l\'éditeur de cartes)</span>');
+  if(t==='title') f=`<label>Titre<select data-f="id">${opts(TITLES.map(x=>({v:x.id,l:(x.title_masculine||x.name)+(x.title_feminine&&x.title_feminine!==x.title_masculine?' / '+x.title_feminine:'')})),it.id)}</select></label><button class="sm" data-act="newtitle">+ Créer un titre</button>`;
+  return `<div class="item" data-key="${key}" data-i="${i}"><strong style="min-width:130px">${esc(TYPES[t]||t)}</strong>${f}<button class="sm" data-act="del">Retirer</button></div>`;
+}
+function getList(key){ return key==='free'||key==='premium' ? FINAL[key] : (REW[key]=REW[key]||[]); }
+function cellHtml(key,title){
+  const list=getList(key);
+  return `<div class="cell" data-cell="${key}"><h3><span>${esc(title)}</span><span>${Object.entries(TYPES).map(([k,v])=>`<button class="sm" data-act="add" data-type="${k}">+ ${esc(v)}</button>`).join(' ')}</span></h3>${list.map((it,i)=>itemHtml(it,key,i)).join('')||'<span class="hint">Vide</span>'}</div>`;
+}
+
+function summary(){
+  const n=SEASON.cells||49; let gold=0, counts={}, empty=[];
+  for(let i=1;i<=n;i++){ const l=REW[i]||[]; if(!l.length) empty.push(i); l.forEach(it=>{ counts[it.type]=(counts[it.type]||0)+(it.count||1); if(it.type==='gold') gold+=Number(it.amount)||0; }); }
+  const filled=n-empty.length;
+  return `<div class="summary">Cases remplies : <b class="${empty.length?'ko':'ok'}">${filled} / ${n}</b>${empty.length?` (vides : ${empty.slice(0,20).join(', ')}${empty.length>20?'…':''})`:''}<br>
+  Total or : <b>${gold}</b> · ${Object.entries(counts).filter(([k])=>k!=='gold').map(([k,v])=>`${esc(TYPES[k])} : <b>${v}</b>`).join(' · ')||'aucun autre objet'}</div>`;
+}
+
+function render(){
+  const root=document.getElementById('root');
+  const seasonOpts=SEASONS.map(s=>`<option value="${esc(s.id)}" ${SEASON&&s.id===SEASON.id?'selected':''}>${esc(s.name)} (${esc(s.id)})</option>`).join('');
+  let h=`<div id="msg"></div><h1>Calendrier — administration</h1><p class="hint"><a href="spellcraft-card-editor.html" style="color:#d4af37">← Éditeur de cartes</a> · Les modifications ne sont enregistrées qu'au clic sur « Enregistrer ».</p>`;
+  h+=`<div class="panel"><h2>Accès des joueurs</h2><p>Le calendrier est actuellement <b class="${FLAG?'ok':'ko'}">${FLAG?'OUVERT':'FERMÉ'}</b> pour les joueurs (les joueurs voient « bientôt » et ne peuvent rien ouvrir).</p><button class="sc-btn sc-btn-gold" data-act="flag">${FLAG?'Fermer l\'accès':'Ouvrir l\'accès aux joueurs'}</button></div>`;
+  h+=`<div class="panel"><h2>Saison</h2><div class="row"><label>Saison<select id="season-sel">${seasonOpts}</select></label><button class="sm" data-act="newseason">+ Nouvelle saison (copie les récompenses de celle-ci)</button></div>`;
+  if(SEASON){
+    h+=`<div class="row"><label>Nom affiché<input id="s-name" size="30" value="${esc(SEASON.name)}"></label><label>Début (heure de Paris)<input id="s-start" type="datetime-local" value="${parisParts(new Date(SEASON.starts_at))}"></label><label>Fin (heure de Paris)<input id="s-end" type="datetime-local" value="${parisParts(new Date(SEASON.ends_at))}"></label><label>Prix premium (or)<input id="s-price" type="number" min="0" value="${esc(SEASON.premium_price)}"></label></div>
+    <p class="hint">Nombre de cases : ${esc(SEASON.cells)} (la case finale est en plus). Une seule saison doit être en cours à la fois.</p>`;
+  }
+  h+=`</div>`;
+  if(SEASON){
+    h+=`<div class="panel"><h2>Récapitulatif des 49 cases</h2>${summary()}</div>`;
+    h+=`<div class="panel"><h2>Case finale (50ᵉ)</h2><p class="hint">« Gratuit » : donné à tous les joueurs qui terminent la grille. « Premium » : en supplément pour les joueurs premium.</p>${cellHtml('free','Récompense exclusive (tous)')}${cellHtml('premium','Suppléments premium')}</div>`;
+    h+=`<div class="panel"><h2>Cases de la grille</h2><p class="hint">Chaque joueur reçoit les mêmes récompenses, placées dans un ordre aléatoire. Les numéros ne sont pas des positions : ce sont des « lots ».</p>`;
+    for(let i=1;i<=SEASON.cells;i++) h+=cellHtml(i,'Lot '+i);
+    h+=`</div><div class="panel"><button class="sc-btn sc-btn-gold" data-act="save">Enregistrer la saison et les récompenses</button></div>`;
+  }
+  root.innerHTML=h;
+}
+
+/* ---- Lecture des champs vers l'état ---- */
+function syncFromDom(){
+  document.querySelectorAll('.item').forEach(el=>{
+    const key=el.dataset.key, i=+el.dataset.i, it=getList(isNaN(key)?key:+key)[i]; if(!it) return;
+    el.querySelectorAll('[data-f]').forEach(inp=>{
+      const f=inp.dataset.f, v=inp.value;
+      if(f==='boostersel'){ delete it.set; delete it.booster_id; if(v.startsWith('b:')) it.booster_id=v.slice(2); else it.set=v; }
+      else if(f==='foil') it.foil = v==='1';
+      else if(inp.type==='number') it[f]=Math.max(1,parseInt(v,10)||1);
+      else it[f]=v;
+    });
+  });
+  if(SEASON){
+    const g=id=>document.getElementById(id);
+    if(g('s-name')) SEASON.name=g('s-name').value;
+    if(g('s-price')) SEASON.premium_price=Math.max(0,parseInt(g('s-price').value,10)||0);
+    if(g('s-start')&&g('s-start').value) SEASON.starts_at=parisToIso(g('s-start').value);
+    if(g('s-end')&&g('s-end').value) SEASON.ends_at=parisToIso(g('s-end').value);
+  }
+}
+
+async function save(){
+  syncFromDom();
+  if(new Date(SEASON.ends_at)<=new Date(SEASON.starts_at)) return msg('La date de fin doit être après la date de début.',false);
+  const {error:e1}=await sb.from('cal_seasons').update({name:SEASON.name,starts_at:SEASON.starts_at,ends_at:SEASON.ends_at,premium_price:SEASON.premium_price}).eq('id',SEASON.id);
+  if(e1) return msg('Erreur saison : '+e1.message,false);
+  const rows=[]; for(let i=1;i<=SEASON.cells;i++) rows.push({season_id:SEASON.id,idx:i,rewards:REW[i]||[]});
+  const {error:e2}=await sb.from('cal_rewards').upsert(rows,{onConflict:'season_id,idx'});
+  if(e2) return msg('Erreur récompenses : '+e2.message,false);
+  const {error:e3}=await sb.from('cal_final').upsert([{season_id:SEASON.id,track:'free',rewards:FINAL.free},{season_id:SEASON.id,track:'premium',rewards:FINAL.premium}],{onConflict:'season_id,track'});
+  if(e3) return msg('Erreur case finale : '+e3.message,false);
+  const empty=[]; for(let i=1;i<=SEASON.cells;i++) if(!(REW[i]||[]).length) empty.push(i);
+  msg('Enregistré.'+(empty.length?` Attention : ${empty.length} lot(s) vide(s) — la grille doit avoir ${SEASON.cells} lots remplis avant l'ouverture.`:''), !empty.length ? true : false);
+  await loadAll(); await loadSeason(SEASON.id); render();
+  document.getElementById('msg').className='show';
+}
+
+async function newSeason(){
+  syncFromDom();
+  const id=prompt('Identifiant de la nouvelle saison (ex. 2026-12) :'); if(!id) return;
+  if(SEASONS.some(s=>s.id===id)) return msg('Cet identifiant existe déjà.',false);
+  const name=prompt('Nom de la saison :','Calendrier — '+id); if(!name) return;
+  const start=SEASON?new Date(SEASON.ends_at):new Date(); const end=new Date(start.getTime()+61*86400000);
+  const {error}=await sb.from('cal_seasons').insert({id,name,starts_at:start.toISOString(),ends_at:end.toISOString(),premium_price:SEASON?SEASON.premium_price:500,cells:49});
+  if(error) return msg('Erreur : '+error.message,false);
+  if(SEASON){
+    const rows=Object.entries(REW).map(([idx,rewards])=>({season_id:id,idx:+idx,rewards}));
+    if(rows.length) await sb.from('cal_rewards').insert(rows);
+    await sb.from('cal_final').insert([{season_id:id,track:'free',rewards:FINAL.free},{season_id:id,track:'premium',rewards:FINAL.premium}]);
+  }
+  await loadAll(); await loadSeason(id); render(); msg('Saison créée (dates à ajuster, récompenses copiées). Pense à enregistrer après modification.');
+}
+
+async function newTitle(key,i){
+  const masc=prompt('Titre (masculin) :'); if(!masc) return;
+  const fem=prompt('Titre (féminin) — laisse vide si identique :',masc)||masc;
+  const id='cal_title_'+Date.now();
+  const {error}=await sb.from('achievement_definitions').insert({id,name:masc,description:'Titre obtenu via le calendrier',condition_type:'calendar',category:'calendar',target_count:1,rewards:[],active:false,order_index:9100,grants_title:true,title_masculine:masc,title_feminine:fem});
+  if(error) return msg('Erreur création du titre : '+error.message,false);
+  const {data}=await sb.from('achievement_definitions').select('id,name,title_masculine,title_feminine,grants_title,category').eq('grants_title',true);
+  TITLES=data||TITLES;
+  getList(isNaN(key)?key:+key)[i].id=id;
+  render(); msg('Titre créé et sélectionné.');
+}
+
+async function toggleFlag(){
+  syncFromDom();
+  const {data,error}=await sb.from('app_flags').upsert({key:'calendar_enabled',value:!FLAG,updated_at:new Date().toISOString()},{onConflict:'key'}).select();
+  if(error||!data||!data.length) return msg('Impossible de modifier l\'accès : '+(error?error.message:'refusé'),false);
+  FLAG=!!data[0].value; render(); msg(FLAG?'Calendrier ouvert aux joueurs.':'Calendrier fermé.');
+}
+
+document.addEventListener('click', async e=>{
+  const b=e.target.closest('[data-act]'); if(!b) return;
+  const act=b.dataset.act;
+  if(act==='save') return save();
+  if(act==='flag') return toggleFlag();
+  if(act==='newseason') return newSeason();
+  const cell=b.closest('.cell'), item=b.closest('.item');
+  if(act==='add'){ syncFromDom(); const k=cell.dataset.cell; getList(isNaN(k)?k:+k).push(defaultItem(b.dataset.type)); render(); }
+  if(act==='del'){ syncFromDom(); const k=item.dataset.key; getList(isNaN(k)?k:+k).splice(+item.dataset.i,1); render(); }
+  if(act==='newtitle'){ syncFromDom(); newTitle(item.dataset.key,+item.dataset.i); }
+});
+document.addEventListener('change', async e=>{
+  if(e.target.id==='season-sel'){ syncFromDom(); await loadSeason(e.target.value); render(); }
+});
+
+(async function init(){
+  const root=document.getElementById('root');
+  try{
+    await initSpellcraftAuth();
+    const user=await scGetCurrentUser();
+    if(!user){ root.innerHTML='<div class="denied">Connecte-toi pour accéder à cette page.</div>'; return; }
+    const {data:adm}=await sb.rpc('is_admin');
+    if(adm!==true){ root.innerHTML='<div class="denied">Accès réservé à l\'administrateur.</div>'; return; }
+    await loadAll();
+    await loadSeason((SEASONS[0]||{}).id);
+    render();
+  }catch(err){ root.innerHTML='<div class="denied">Erreur de chargement : '+esc(err.message)+'</div>'; }
+})();
+})();
+</script>
+</body>
+</html>

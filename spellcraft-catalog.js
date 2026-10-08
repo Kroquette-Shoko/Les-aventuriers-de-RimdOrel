@@ -159,6 +159,34 @@ async function setUserCardQuantity(cardId, quantity){
   return { ok: true };
 }
 
+/* ============================================================
+   VARIANTES D'ILLUSTRATION
+   ============================================================
+   Une variante est une autre illustration (+ son cadrage) d'une carte.
+   Table card_variants (lecture pour tous), déblocages dans
+   user_card_variants (chaque joueur lit les siens). Dans un deck, une
+   carte peut porter  variantId  (une variante par carte du deck).
+   ============================================================ */
+async function loadCardVariants(){
+  const { data, error } = await sb.from('card_variants').select('id, card_id, name, image, frame, created_at').order('created_at');
+  if(error){ console.error('Erreur de chargement des variantes', error); return []; }
+  return data || [];
+}
+async function loadMyVariantIds(){
+  const user = await scGetCurrentUser();
+  if(!user) return [];
+  const { data, error } = await sb.from('user_card_variants').select('variant_id').eq('user_id', user.id);
+  if(error){ console.error('Erreur de chargement de tes variantes', error); return []; }
+  return (data || []).map(r => r.variant_id);
+}
+/* Renvoie une COPIE de la carte avec l'image et le cadrage de la variante.
+   Sans variante, renvoie la carte telle quelle. Tous les rendus de cartes
+   (classeur, aperçu, plateau) lisent ces mêmes champs. */
+function cardWithVariant(card, variant){
+  if(!card || !variant) return card;
+  return Object.assign({}, card, { image: variant.image }, variant.frame || {});
+}
+
 /* Région par défaut : utilisée quand un deck n'a pas de région, ou une
    région invalide (introuvable, mauvais type, mauvaise classe). Le serveur
    applique la même règle ; le client ne fait que la présenter. */

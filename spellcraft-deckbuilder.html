@@ -557,6 +557,17 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, #3a
   </div>
 </div>
 
+<div class="modal-overlay" id="variant-modal" onclick="if(event.target===this) closeModal('variant-modal')">
+  <div class="modal-box" style="max-width:640px;">
+    <h2 id="variant-modal-title">Choisir l'illustration</h2>
+    <p style="font-size:11.5px;color:var(--parchment-dim);margin:0 0 12px;">L'illustration choisie s'applique à tous les exemplaires de cette carte dans ce deck. Pense à sauvegarder le deck ensuite.</p>
+    <div id="variant-modal-content" style="display:flex;flex-wrap:wrap;gap:14px;justify-content:center;"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('variant-modal')">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="cardback-modal" onclick="if(event.target===this) closeModal('cardback-modal')">
   <div class="modal-box">
     <h2>Mes dos de cartes</h2>
@@ -623,7 +634,57 @@ let filters = {
 };
 let sortMode = 'class-cost-name';
 
-let currentDeck = null; // { id, name, heroId, regionId, cards:[{cardId, count}] } — null = pas de deck actif
+let currentDeck = null; // { id, name, heroId, regionId, cards:[{cardId, count, variantId?}] } — null = pas de deck actif
+
+/* ---------- Variantes d'illustration ---------- */
+let VARIANTS = [];                 // toutes les variantes du catalogue
+let MY_VARIANT_IDS = new Set();    // celles que le joueur a débloquées
+async function refreshVariants(){
+  VARIANTS = await loadCardVariants();
+  MY_VARIANT_IDS = new Set(await loadMyVariantIds());
+}
+function ownedVariantsFor(cardId){ return VARIANTS.filter(v => v.card_id === cardId && MY_VARIANT_IDS.has(v.id)); }
+function entryVariant(entry){
+  if(!entry || !entry.variantId) return null;
+  const v = VARIANTS.find(x => x.id === entry.variantId);
+  return (v && MY_VARIANT_IDS.has(v.id)) ? v : null;   // variante supprimée ou non possédée : illustration d'origine
+}
+function entryCardView(entry, card){ return cardWithVariant(card, entryVariant(entry)); }
+
+function openVariantModal(cardId){
+  if(!currentDeck) return;
+  const entry = currentDeck.cards.find(c => c.cardId === cardId);
+  const card = cardById(cardId);
+  if(!entry || !card) return;
+  const choices = [{ v:null, label:"Illustration d'origine" }].concat(ownedVariantsFor(cardId).map(v => ({ v, label: v.name })));
+  const current = entryVariant(entry);
+  document.getElementById('variant-modal-title').textContent = card.name;
+  const box = document.getElementById('variant-modal-content');
+  box.innerHTML = '';
+  choices.forEach(ch => {
+    const selected = (!current && !ch.v) || (current && ch.v && current.id === ch.v.id);
+    const tile = document.createElement('button');
+    tile.type = 'button';
+    tile.style.cssText = `background:var(--bg-panel-2);border:2px solid ${selected ? 'var(--gold)' : 'var(--line, #3a3260)'};border-radius:10px;padding:8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--parchment);font-size:12px;`;
+    const slot = document.createElement('div');
+    slot.style.cssText = 'width:150px;height:210px;position:relative;overflow:hidden;';
+    const cardEl = buildCardEl(cardWithVariant(card, ch.v), { isPreview:true });
+    cardEl.style.cssText += ';position:absolute;top:0;left:0;transform:scale(.5);transform-origin:top left;';
+    slot.appendChild(cardEl);
+    tile.appendChild(slot);
+    const lab = document.createElement('div');
+    lab.textContent = (selected ? '✓ ' : '') + ch.label;
+    tile.appendChild(lab);
+    tile.onclick = () => {
+      if(ch.v) entry.variantId = ch.v.id; else delete entry.variantId;
+      closeModal('variant-modal');
+      renderDeckPanel();
+      flashSaved('Illustration choisie — pense à sauvegarder le deck');
+    };
+    box.appendChild(tile);
+  });
+  openModal('variant-modal');
+}
 let savedDecks = [];
 
 /* ============================================================
@@ -636,6 +697,7 @@ async function loadAll(){
   await refreshCollection(true);
   if(isLoggedInCache) await migrateLocalDecksToSupabaseIfNeeded();
   savedDecks = await loadUserDecks();
+  await refreshVariants();
   buildFilterDropdowns();
   renderAll();
   renderFragmentsBar();
@@ -657,6 +719,7 @@ sb.auth.onAuthStateChange(async (event)=>{
     await refreshCollection(false);
     if(isLoggedInCache) await migrateLocalDecksToSupabaseIfNeeded();
     savedDecks = await loadUserDecks();
+    await refreshVariants();
     renderAll();
     renderFragmentsBar();
   }
@@ -2274,6 +2337,7 @@ function loadDeck(deckId){
   currentDeck = JSON.parse(JSON.stringify(d));
   if(currentDeck.regionId===undefined) currentDeck.regionId = null;
   if(currentDeck.cardBackId===undefined) currentDeck.cardBackId = null;
+  currentDeck.cards.forEach(e => { if(e.variantId && !entryVariant(e)) delete e.variantId; });   // variante supprimée ou non possédée
   document.getElementById('deck-name-input').value = currentDeck.name;
   deckBuildStep = 'cards';
   currentPage = 0;
@@ -2378,13 +2442,16 @@ function renderDeckPanel(){
       <div class="drow-name" title="${escapeHtml(c.name)}">${escapeHtml(c.name)}${c.isLegendary?' ✦':''}</div>
       <div class="drow-count">x${entry.count}</div>
       <div class="drow-btns">
+        ${ownedVariantsFor(c.id).length ? `<button class="drow-btn" data-act="variant" title="Changer l'illustration" style="${entryVariant(entry) ? 'border-color:var(--gold);' : ''}">🎨</button>` : ''}
         <button class="drow-btn" data-act="minus">−</button>
         <button class="drow-btn" data-act="plus">+</button>
       </div>
     `;
     row.querySelector('[data-act="minus"]').onclick = ()=>{ removeCardFromDeck(c.id); renderDeckPanel(); renderBinder(); };
     row.querySelector('[data-act="plus"]').onclick = ()=>{ addCardToDeck(c); renderDeckPanel(); renderBinder(); };
-    attachHoverPreview(row, c);
+    const variantBtn = row.querySelector('[data-act="variant"]');
+    if(variantBtn) variantBtn.onclick = ()=>openVariantModal(c.id);
+    attachHoverPreview(row, entryCardView(entry, c));
     listEl.appendChild(row);
   });
 }

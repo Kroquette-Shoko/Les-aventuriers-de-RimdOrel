@@ -464,6 +464,16 @@ header .spacer{flex:1;}
         </div>
         <datalist id="card-name-suggestions"></datalist>
 
+        <div id="variant-banner" style="display:none;background:#2a2146;border:2px solid var(--gold);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
+          <div style="font-family:'Cinzel',serif;color:var(--gold);font-size:13px;margin-bottom:8px;">🎨 Mode variante d'illustration</div>
+          <div style="font-size:11.5px;color:var(--parchment-dim);margin-bottom:8px;">Tu modifies <b>uniquement l'illustration et son cadrage</b> (champ Image et curseurs ci-dessous). La carte elle-même n'est pas modifiée, et le bouton « Enregistrer » de la carte est désactivé tant que tu es dans ce mode.</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <input type="text" id="variant-name" placeholder="Nom de la variante (ex : Version hivernale)" style="flex:1;min-width:200px;">
+            <button type="button" class="btn primary small" onclick="saveVariant()">💾 Enregistrer la variante</button>
+            <button type="button" class="btn small" onclick="exitVariantMode()">✖ Quitter sans enregistrer</button>
+          </div>
+          <div id="variant-status" style="font-size:11.5px;margin-top:6px;"></div>
+        </div>
         <div class="field">
           <label>Image (URL)</label>
           <input type="url" id="f-image" placeholder="https://..." oninput="onFormChange()">
@@ -622,6 +632,13 @@ header .spacer{flex:1;}
       </div>
     </div>
 
+    <div class="panel" id="variants-panel">
+      <h2>Variantes d'illustration <span class="hint">illustrations alternatives de cette carte — débloquées par les joueurs via les récompenses, choisies dans le deckbuilder</span></h2>
+      <div id="variants-hint" style="font-size:12px;color:var(--parchment-dim);margin-bottom:10px;"></div>
+      <div id="variants-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;"></div>
+      <button class="btn small" id="btn-new-variant" onclick="enterVariantMode(null)">➕ Nouvelle variante</button>
+    </div>
+
     <div class="panel">
       <div class="gallery-header">
         <h2 style="margin:0">Toutes les cartes (<span id="gallery-count">0</span>)</h2>
@@ -629,6 +646,11 @@ header .spacer{flex:1;}
       </div>
       <div class="filter-tabs" id="class-filter-tabs" style="margin-top:6px;"></div>
       <div id="gallery-grid"></div>
+    </div>
+
+    <div class="panel" id="calendar-admin-link">
+      <h2>Calendrier <span class="hint">saison, récompenses, ouverture aux joueurs</span></h2>
+      <a class="btn small" href="spellcraft-calendar-admin.html" style="text-decoration:none;display:inline-block;">Ouvrir l'administration du calendrier →</a>
     </div>
 
     <div class="panel" id="shop-admin-panel">
@@ -4306,6 +4328,7 @@ function readForm(){
 }
 
 function loadCardIntoForm(card){
+  variantMode = null; hideVariantBanner(); setTimeout(refreshVariantsPanel, 0);
   migrateCard(card);
   editingId = card.id;
   currentType = card.type;
@@ -4378,6 +4401,7 @@ function loadCardIntoForm(card){
 }
 
 function newCard(){
+  variantMode = null; hideVariantBanner(); setTimeout(refreshVariantsPanel, 0);
   editingId = null;
   currentType = 'Créature';
   subtypes = [];
@@ -4473,6 +4497,12 @@ function rebuildAbilitiesSentencesOnly(){
    ACTIONS
    ============================================================ */
 function saveCurrentCard(){
+  if(variantMode){ alert("Tu es en mode variante : enregistre la variante ou quitte ce mode avant d'enregistrer la carte."); return; }
+  const res = _saveCurrentCardBase.apply(this, arguments);
+  setTimeout(refreshVariantsPanel, 60);
+  return res;
+}
+function _saveCurrentCardBase(){
   const card = readForm();
   const idx = cards.findIndex(c=>c.id===card.id);
   if(idx>=0) cards[idx]=card; else cards.push(card);
@@ -5145,6 +5175,119 @@ let cardBacksCache = [];
 let editingBoosterId = null;
 let editingCardBackId = null;
 const RARITY_KEYS = ['Basique','Commune','Rare','Épique','Mythique'];
+
+/* ============================================================
+   VARIANTES D'ILLUSTRATION
+   ============================================================
+   Une variante = une autre image (+ son cadrage) pour une carte existante.
+   Stockée dans la table card_variants (écriture réservée à l'admin).
+   On réutilise le champ Image, les curseurs de cadrage et l'aperçu de la
+   carte : en « mode variante », ils éditent la variante au lieu de la carte.
+   ============================================================ */
+const VARIANT_INPUTS = {
+  image:'f-image',
+  imagePosX:'f-image-x', imagePosY:'f-image-y', imageZoom:'f-image-zoom',
+  imagePosXSmall:'f-image-x-small', imagePosYSmall:'f-image-y-small', imageZoomSmall:'f-image-zoom-small',
+  imagePosXHeroCard:'f-image-x-herocard', imagePosYHeroCard:'f-image-y-herocard', imageZoomHeroCard:'f-image-zoom-herocard'
+};
+const VARIANT_DEFAULTS = { image:'', imagePosX:50, imagePosY:50, imageZoom:100, imagePosXSmall:50, imagePosYSmall:50, imageZoomSmall:100, imagePosXHeroCard:50, imagePosYHeroCard:50, imageZoomHeroCard:100 };
+let variantMode = null;      // null | { id: (uuid|null), snapshot: {...champs image de la carte} }
+let variantsCache = [];
+
+function readImageFields(){
+  const o = {};
+  Object.keys(VARIANT_INPUTS).forEach(k=>{
+    const v = document.getElementById(VARIANT_INPUTS[k]).value;
+    o[k] = k==='image' ? v.trim() : (parseInt(v) || VARIANT_DEFAULTS[k]);
+  });
+  return o;
+}
+function writeImageFields(o){
+  Object.keys(VARIANT_INPUTS).forEach(k=>{
+    const v = (o && o[k] !== undefined && o[k] !== null) ? o[k] : VARIANT_DEFAULTS[k];
+    document.getElementById(VARIANT_INPUTS[k]).value = v;
+  });
+  onFormChange();
+}
+function hideVariantBanner(){
+  const b = document.getElementById('variant-banner'); if(b) b.style.display = 'none';
+}
+function variantStatus(msg, isError){
+  const el = document.getElementById('variant-status');
+  el.textContent = msg || ''; el.style.color = isError ? 'var(--blood)' : 'var(--green)';
+}
+
+async function refreshVariantsPanel(){
+  const list = document.getElementById('variants-list');
+  const hint = document.getElementById('variants-hint');
+  const btn = document.getElementById('btn-new-variant');
+  if(!list) return;
+  if(!editingId){
+    variantsCache = [];
+    list.innerHTML = '';
+    hint.textContent = "Enregistre d'abord la carte (ou sélectionne-en une dans la galerie) pour pouvoir lui ajouter des variantes.";
+    btn.disabled = true;
+    return;
+  }
+  btn.disabled = false;
+  const { data, error } = await sb.from('card_variants').select('*').eq('card_id', editingId).order('created_at');
+  if(error){ hint.textContent = 'Impossible de charger les variantes : ' + error.message; list.innerHTML = ''; return; }
+  variantsCache = data || [];
+  hint.textContent = variantsCache.length
+    ? `${variantsCache.length} variante${variantsCache.length>1?'s':''} pour cette carte. L'illustration d'origine reste toujours disponible pour les joueurs.`
+    : "Aucune variante pour cette carte. Clique « Nouvelle variante » : l'image et le cadrage actuels servent de point de départ, remplace l'URL de l'image.";
+  list.innerHTML = variantsCache.map(v=>`
+    <div style="display:flex;align-items:center;gap:10px;background:var(--bg-panel-2);border-radius:8px;padding:8px 10px;font-size:12px;">
+      <img src="${escapeHtml(v.image)}" alt="" style="width:34px;height:46px;object-fit:cover;border-radius:5px;border:1px solid #3a3260;">
+      <span style="flex:1;">${escapeHtml(v.name)}</span>
+      <button class="mini-btn" onclick="enterVariantMode('${escapeHtml(v.id)}')" title="Modifier">✎</button>
+      <button class="mini-btn" onclick="deleteVariant('${escapeHtml(v.id)}')" title="Supprimer">🗑</button>
+    </div>`).join('');
+}
+
+function enterVariantMode(variantId){
+  if(!editingId){ alert("Enregistre d'abord la carte."); return; }
+  const v = variantId ? variantsCache.find(x=>x.id===variantId) : null;
+  if(variantId && !v) return;
+  if(!variantMode) variantMode = { id: null, snapshot: readImageFields() };   // on mémorise l'image d'origine de la carte
+  variantMode.id = v ? v.id : null;
+  if(v) writeImageFields(Object.assign({ image: v.image }, v.frame || {}));
+  document.getElementById('variant-name').value = v ? v.name : '';
+  variantStatus('');
+  const b = document.getElementById('variant-banner');
+  b.style.display = 'block';
+  b.scrollIntoView({ behavior:'smooth', block:'center' });
+}
+function exitVariantMode(){
+  if(!variantMode) return;
+  writeImageFields(variantMode.snapshot);   // on remet l'illustration d'origine de la carte
+  variantMode = null;
+  hideVariantBanner();
+}
+async function saveVariant(){
+  if(!variantMode || !editingId) return;
+  const name = document.getElementById('variant-name').value.trim();
+  const f = readImageFields();
+  if(!name){ variantStatus('Donne un nom à la variante.', true); return; }
+  if(!f.image){ variantStatus("Renseigne l'URL de l'image de la variante.", true); return; }
+  if(f.image === variantMode.snapshot.image && !variantMode.id){ variantStatus("L'image est identique à celle de la carte : remplace l'URL par celle de la variante.", true); return; }
+  const frame = Object.assign({}, f); delete frame.image;
+  const payload = { card_id: editingId, name, image: f.image, frame };
+  let res;
+  if(variantMode.id) res = await sb.from('card_variants').update(payload).eq('id', variantMode.id).select('id');
+  else res = await sb.from('card_variants').insert(payload).select('id');
+  if(res.error){ variantStatus('Erreur : ' + res.error.message, true); return; }
+  if(!res.data || !res.data.length){ variantStatus("Rien n'a été enregistré (droits administrateur requis).", true); return; }
+  exitVariantMode();
+  await refreshVariantsPanel();
+}
+async function deleteVariant(id){
+  const v = variantsCache.find(x=>x.id===id); if(!v) return;
+  if(!confirm(`Supprimer la variante « ${v.name} » ? Les joueurs qui la possèdent la perdront, et les decks qui l'utilisent reviendront à l'illustration d'origine.`)) return;
+  const { data, error } = await sb.from('card_variants').delete().eq('id', id).select('id');
+  if(error || !data || !data.length){ alert('Suppression impossible : ' + (error ? error.message : 'droits administrateur requis')); return; }
+  await refreshVariantsPanel();
+}
 
 async function loadShopAdmin(){
   const [{data: boosters}, {data: backs}] = await Promise.all([
