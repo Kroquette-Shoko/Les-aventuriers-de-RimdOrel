@@ -220,11 +220,11 @@
 <script src="spellcraft-auth.js"></script>
 <script>
 initSpellcraftAuth().then(initPatchNotesBadge).then(checkTutorialAutoLaunch);
-// Le calendrier n'apparaît que lorsqu'il est ouvert (administrateur, ou ouvert à tous par l'interrupteur serveur).
+// La tuile du calendrier n'apparaît que lorsque l'interrupteur serveur l'ouvre à tous (même l'administrateur ne la voit pas avant ; il passe par la page d'administration).
 (async function(){
   try{
-    const { data } = await sb.rpc('calendar_open');
-    if(data === true){ const t = document.getElementById('calendar-tile'); if(t) t.style.display = ''; }
+    const { data } = await sb.from('app_flags').select('value').eq('key','calendar_enabled').maybeSingle();
+    if(data && data.value === true){ const t = document.getElementById('calendar-tile'); if(t) t.style.display = ''; }
   }catch(e){}
 })();
 playMenuMusicRotation(0.35);
