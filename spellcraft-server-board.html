@@ -5672,7 +5672,14 @@ function hidePreview(force){
 // ---------------- Menus repliables ----------------
 
 function toggleJournal(){
-  document.getElementById('journal-panel').classList.toggle('show');
+  const panel = document.getElementById('journal-panel');
+  panel.classList.toggle('show');
+  // Un panneau masqué ne peut pas défiler : à l'ouverture, on se cale sur la
+  // dernière ligne (le plus récent).
+  if(panel.classList.contains('show')){
+    const log = document.getElementById('log');
+    if(log) log.scrollTop = log.scrollHeight;
+  }
 }
 // Quitter proprement : si la partie est déjà terminée, aucun risque, on
 // part directement. Sinon, on prévient que partir compte comme un abandon
