@@ -27,7 +27,8 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .title-font{font-family:'Cinzel',serif;}
 
 #board-scale-outer{position:fixed;top:92px;left:0;right:0;bottom:0;background:var(--bg-void,#0b0a12);overflow:hidden;display:flex;align-items:center;justify-content:center;z-index:1;}
-#app-outer{width:1920px;height:1080px;transform-origin:center center;flex-shrink:0;}
+/* Même cadre que la vraie partie (1920 de large, 56px de barre du haut en moins) : la bande de narration du tutoriel remplace cette barre. */
+#app-outer{width:1920px;height:1024px;transform-origin:center center;flex-shrink:0;flex-direction:column;}
 #app{display:flex;height:100%;width:100%;min-height:0;}
 
 /* ---------- Board ---------- */
@@ -543,7 +544,7 @@ body.targeting *{cursor:crosshair !important;}
   #setup-panel button.secondary{background:#1f1a30;border:1px solid #3a3260;}
   #session-code-display{font-family:'Cinzel',serif;font-weight:700;color:var(--gold);font-size:18px;letter-spacing:3px;}
   #app-outer{display:none;}
-  #app-outer.show{display:block;}
+  #app-outer.show{display:flex;}
   #emote-panel{position:absolute;bottom:100%;right:0;margin-bottom:50px;width:220px;background:var(--panel,#171325);border:1px solid #3a3260;border-radius:10px;padding:10px;font-family:'Inter',sans-serif;z-index:50;display:none;}
   #emote-panel.show{display:block;}
   #emote-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
@@ -851,7 +852,7 @@ function escapeHtmlGS(s){ return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;',
 // l'agencement déjà réglé), toute la zone se redimensionne uniformément
 // pour s'adapter à l'écran réel du joueur, en conservant les proportions
 // (letterboxing si le ratio d'écran diffère de 16:9).
-const BOARD_REF_WIDTH = 1920, BOARD_REF_HEIGHT = 1080;
+const BOARD_REF_WIDTH = 1920, BOARD_REF_HEIGHT = 1024; // 1080 de la vraie partie moins sa barre du haut (56px), remplacée ici par la bande de narration
 const TUT_TOPBAR_HEIGHT = 92; // doit rester synchronisé avec #board-scale-outer{top:...} et #tut-topbar{height:...}
 function updateBoardScale(){
   const outer = document.getElementById('app-outer');
