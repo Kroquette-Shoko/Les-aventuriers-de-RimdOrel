@@ -86,6 +86,10 @@ main{width:100%;max-width:900px;display:flex;flex-direction:column;gap:18px;}
   .tile .num{font-size:15px;}
   .tile .rw .big{font-size:14px;}
 }
+
+/* Mode intégré (onglet de la page des quêtes) : pas de barre du haut, de titre ni de musique. */
+html.embed .sc-topbar, html.embed .cal-top-row{display:none !important;}
+html.embed #app{padding-top:0;min-height:0;}
 </style>
 </head>
 <body>
@@ -347,8 +351,15 @@ async function buyPremium(){
   } finally { busy = false; }
 }
 
+const EMBED = new URLSearchParams(location.search).get('embed') === '1';
+if(EMBED){
+  document.documentElement.classList.add('embed');
+  // Prévient la page parente de la hauteur du contenu, pour que l'onglet s'ajuste sans double barre de défilement.
+  const sendH = () => { try{ parent.postMessage({ type:'coffres-height', h: document.getElementById('app').scrollHeight }, '*'); }catch(e){} };
+  new ResizeObserver(sendH).observe(document.getElementById('app')); window.addEventListener('load', sendH);
+}
 initSpellcraftAuth();
-try{ playMenuMusicRotation(0.35); }catch(e){}
+if(!EMBED){ try{ playMenuMusicRotation(0.35); }catch(e){} }
 load();
 sb.auth.onAuthStateChange(() => { load(); });
 </script>
