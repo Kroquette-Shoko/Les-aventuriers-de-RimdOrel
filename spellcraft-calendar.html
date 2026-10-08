@@ -159,6 +159,7 @@ function shortReward(list){
     if(g.type === 'card') return `<span class="rw"><span class="big">🃏</span>${esc(g.rarity)}${g.foil ? ' ✨' : ''}</span>`;
     if(g.type === 'card_back') return `<span class="rw"><span class="big">🎴</span>Dos</span>`;
     if(g.type === 'title') return `<span class="rw"><span class="big">🏷️</span>Titre</span>`;
+    if(g.type === 'card_variant') return `<span class="rw"><span class="big">🖼️</span>Variante</span>`;
     return '';
   }).join('');
 }
@@ -264,6 +265,7 @@ async function showResult(title, granted){
     }
     else if(g.type === 'card'){ (g.card_ids || []).forEach(id => cardIds.push({ id, foil: g.foil, rarity: g.rarity })); }
     else if(g.type === 'card_back'){ lines.push(g.duplicate ? `Dos « ${esc(g.name)} » déjà possédé : +${esc(g.gold)} or à la place` : `Nouveau dos de carte : <b>${esc(g.name)}</b>`); if(g.duplicate) gold += g.gold; }
+    else if(g.type === 'card_variant'){ lines.push(g.duplicate ? `Version « ${esc(g.name)} » (${esc(g.cardName)}) déjà possédée : +${esc(g.gold)} or à la place` : `Nouvelle version alternative : <b>${esc(g.name)}</b> (${esc(g.cardName)}) — à choisir dans l'éditeur de deck`); if(g.duplicate) gold += g.gold; }
     else if(g.type === 'title') lines.push(`Nouveau titre : <b>${esc(g.masculine)}${g.feminine && g.feminine !== g.masculine ? ' / ' + esc(g.feminine) : ''}</b> (à équiper depuis ton profil)`);
   });
   const names = await cardNames(cardIds.map(c => c.id));
