@@ -1925,7 +1925,7 @@ function renderGameLog(){
     if(entry.raw){
       if(entry.raw.includes('attaque avec')){
         playSfx('attack');
-      } else if(entry.highlightIds && entry.highlightIds.length===2){
+      } else if(isBlockLogEntry(entry)){
         // "bloque la créature X avec Y" : les deux se ruent l'une sur l'autre
         const [attackerInstId, blockerInstId] = entry.highlightIds;
         debugLog(`[anim] combat bloqué détecté : attaquant=${attackerInstId} bloqueur=${blockerInstId}`, 'log-ok');
@@ -2378,6 +2378,13 @@ function unfreezeBoardRender(){
   __boardRenderDirty = false;
   render(); // S est déjà l'état final : on l'affiche maintenant
 }
+// Une entrée « X bloque la créature Y avec Z » (et elle seule) = combat bloqué. Ne PAS se
+// contenter de « 2 identifiants » : les dégâts au héros de deux attaquants non bloqués ont
+// aussi 2 identifiants et se faisaient passer pour un blocage (les deux créatures
+// se frappaient au lieu d'attaquer le héros).
+function isBlockLogEntry(entry){
+  return !!(entry && entry.raw && entry.highlightIds && entry.highlightIds.length===2 && /bloque la cr[ée]ature/.test(entry.raw));
+}
 // Cette entrée de journal va-t-elle jouer une animation de combat qui doit se
 // dérouler sur l'ANCIEN plateau ? (même tri que dans renderGameLog)
 function entryAnimatesBoardCombat(entry){
@@ -2385,7 +2392,7 @@ function entryAnimatesBoardCombat(entry){
   if(combatInstant()) return false; // mode instantané : rien à animer, donc pas de gel
   if(entry.raw){
     if(entry.raw.includes('attaque avec')) return false; // simple son
-    if(entry.highlightIds && entry.highlightIds.length===2) return true; // combat bloqué
+    if(isBlockLogEntry(entry)) return true; // combat bloqué
     return entry.raw.includes('perdu') && entry.raw.includes('point') && (entry.highlightIds||[]).length>0; // dégâts au héros
   }
   if(entry.deadInstId) return true;

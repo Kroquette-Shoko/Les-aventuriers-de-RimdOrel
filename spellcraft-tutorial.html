@@ -949,7 +949,7 @@ function renderGameLog(){
     if(entry.raw){
       if(entry.raw.includes('attaque avec')){
         playSfx('attack');
-      } else if(entry.highlightIds && entry.highlightIds.length===2){
+      } else if(entry.highlightIds && entry.highlightIds.length===2 && /bloque la cr[ée]ature/.test(entry.raw)){
         // "bloque la créature X avec Y" : les deux se ruent l'une sur l'autre
         const [attackerInstId, blockerInstId] = entry.highlightIds;
         debugLog(`[anim] combat bloqué détecté : attaquant=${attackerInstId} bloqueur=${blockerInstId}`, 'log-ok');
