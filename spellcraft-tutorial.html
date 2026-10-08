@@ -483,7 +483,7 @@ body.targeting *{cursor:crosshair !important;}
 <body>
 
 <div id="tut-topbar">
-  <div class="tut-step-badge" id="tut-step-badge">Étape 1/17</div>
+  <div class="tut-step-badge" id="tut-step-badge">Étape 1/40</div>
   <div class="tut-body">
     <div class="tut-title" id="tut-title">Bienvenue</div>
     <div class="tut-text" id="tut-text"></div>
@@ -497,7 +497,7 @@ body.targeting *{cursor:crosshair !important;}
 <div id="tut-end-screen">
   <div id="tut-end-card">
     <h2>Vous connaissez les bases !</h2>
-    <p>Vous savez maintenant jouer une créature, un sortilège, un artefact et poser un piège.<br><br>
+    <p>Vous savez maintenant jouer des créatures, attaquer et bloquer, utiliser les principaux mots-clés, activer un artefact, poser un piège et lancer un sortilège.<br><br>
     Direction la <strong>boutique</strong> : 3 boosters « Booster classique » vous y attendent, offerts. Ouvrez-les, puis rendez-vous dans votre <strong>collection</strong> pour construire votre tout premier deck — un guide rapide vous accompagnera pas à pas.<br><br>
     Pour le détail complet d'un tour, de chaque mot-clé et du fonctionnement précis des cartes, consultez <strong>le Grimoire</strong> — il reste accessible à tout moment depuis le hub.</p>
     <div class="tut-end-btns">
@@ -2996,38 +2996,54 @@ async function initFromUrl(){
   afterConnected(null);
 }
 /* ============================================================
-   MOTEUR DU TUTORIEL SCRIPTÉ
+   MOTEUR DU TUTORIEL SCRIPTÉ (version 2 — partie complète, 5 tours)
    ============================================================
-   Rejoue le scénario fixe décrit par Kroquette, en réutilisant
-   100% du rendu et des interactions du vrai plateau ci-dessus.
-   Aucune requête réseau : toutes les fonctions gs*() utilisées
-   par l'interface sont réécrites ici (simple réaffectation d'une
-   fonction globale — les appels existants plus haut dans le
-   fichier pointent déjà vers ces nouvelles versions au moment où
-   ils s'exécutent, puisque JS résout un nom de fonction libre au
-   moment de l'appel, pas au moment de sa définition).
+   Rejoue un scénario fixe en réutilisant 100% du rendu et des
+   interactions du vrai plateau ci-dessus. Aucune requête réseau :
+   toutes les fonctions gs*() utilisées par l'interface sont
+   réécrites ici (réaffectation d'une fonction globale : JS résout
+   un nom de fonction libre au moment de l'appel, donc les appels
+   existants plus haut pointent déjà vers ces nouvelles versions).
+
+   Principe : chaque étape (voir TUT_STEPS plus bas) décrit
+   - le texte de narration et les éléments à mettre en surbrillance ;
+   - ce qu'elle attend du joueur (champ "expect") et ce qui se passe
+     quand il le fait (champ "run") ;
+   - ou, pour le tour de l'adversaire, ce que l'IA scriptée joue
+     (champ "ai").
+   Toute autre action du joueur est refusée avec un petit message.
+
+   Scénario (Kyzïre contre Sandroska, PV 20 / 18) :
+   T1  pouvoir du héros, créature à Charge, attaque non bloquée,
+       jouer APRÈS le combat, pose d'un piège.
+   T2  gestion du mana avec le piège, attaque bloquée, piège
+       déclenché, défausse adverse, journal.
+   T3  artefact (Hache de guerre naine) : Initiative + Brutalité.
+   T4  créature à Armure ; l'adversaire attaque : blocage de la
+       créature Toxique, impossible de bloquer l'Envol.
+   T5  attaque contre une créature Tenace, puis sortilège final.
    ============================================================ */
 
-// ---------------- Petit style additionnel (flèche animée) ----------------
+// ---------------- Petit style additionnel ----------------
 (function(){
   const st = document.createElement('style');
   st.textContent = `
     .tut-arrow{position:fixed;z-index:99997;font-size:30px;line-height:1;color:var(--gold);text-shadow:0 0 10px rgba(0,0,0,.85);pointer-events:none;animation:tutArrowBounce 1s ease-in-out infinite;}
     @keyframes tutArrowBounce{0%,100%{transform:translate(-50%,0);}50%{transform:translate(-50%,-12px);}}
+    .phase-bar-stack{display:flex;flex-direction:column;align-items:stretch;gap:8px;}
+    .phase-bar-subrow{display:flex;gap:8px;justify-content:flex-end;}
   `;
   document.head.appendChild(st);
 })();
 
+const tutSleep = ms => new Promise(r=>setTimeout(r, ms));
+
 // ---------------- Cartes du tutoriel ----------------
-// Vraies cartes de la base Supabase (table public.cards), choisies par
-// Kroquette pour que le déroulé soit le plus simple à comprendre possible.
+// Vraies cartes de la base Supabase (table public.cards), "Édition de
+// base" : Kyzïre joue des cartes Volonté (+ une carte Neutre), Sandroska
+// des cartes Arcane/Crépuscule. Aucune carte du set "Conjuration".
 function mkTutCard(o){ return Object.assign({ class:'Neutre', keywords:[], subtypes:[] }, o); }
 
-// Héros et régions : données réelles copiées depuis Supabase (image,
-// cadrage, émotes...) — un objet minimal {name,type,class} suffisait pour
-// la logique du tutoriel, mais le rendu réel du plateau (cadre du héros,
-// vignette de région dans le bloc de mana, panneau d'émotes) a besoin de
-// ces champs pour afficher autre chose qu'un cadre vide.
 const T_P1_HERO = {
   name:'Kyzïre', type:'Héros', class:'Volonté',
   image:'https://wa-cdn.nyc3.cdn.digitaloceanspaces.com/user-data/production/207996a7-0a7c-4e56-8ad6-619774f27628/uploads/images/d6d300e776d0c9b3086795a4514f3466.jpeg',
@@ -3054,8 +3070,6 @@ const T_P2_HERO = {
     {"id":"em_1786493538169_433","image":"images/Emote/sandroska-sleep.png","label":"Dormir"}
   ]
 };
-// Terrain basique des deux côtés (aucune capacité codée qui se déclenche
-// réellement en jeu — voir la colonne n_abilities vérifiée en base).
 const T_REGION_P1 = {
   name:'Sentier de la gloire', type:'Région', class:'Volonté',
   image:'https://i.pinimg.com/736x/d2/ca/8f/d2ca8f184d4b0c9225975142a4c9ebb7.jpg',
@@ -3066,41 +3080,29 @@ const T_REGION_P2 = {
   image:'https://i.pinimg.com/1200x/e5/ad/bc/e5adbce20d8557ed3a53cd178dc4855c.jpg',
   imagePosX:50, imagePosY:50, imageZoom:100
 };
-// Dos de carte par défaut (celui que tout nouveau compte possède).
 const T_CARDBACK_URL = 'images/card/back/dos-de-carte-base.png';
 
-// Toutes les cartes ci-dessous sont de vraies cartes de la base Supabase.
-// Contraintes respectées : Kyzïre ne joue que des cartes Volonté, Sandroska
-// que des cartes Arcane/Crépuscule ; aucune carte du set "Conjuration" ;
-// aucune carte liée à un autre héros ; sets "Édition de base" sauf Frappe
-// preventive (seul Piège Volonté non lié à un héros disponible).
-
-// 1) Gobelin inconscient — Créature Volonté 1 mana, 2/1, Charge
+// ---- Cartes du joueur (Kyzïre) ----
 const T_P1_C1 = mkTutCard({
   instId:'t-p1-c1', name:'Gobelin inconscient', type:'Créature', class:'Volonté',
-  cost:1, atk:2, hp:1, curAtk:2, curHp:1, keywords:['charge'],
+  cost:1, atk:2, hp:1, curAtk:2, curHp:1, keywords:['charge'], subtypes:['Gobelin','Guerrier'],
   image:'https://i.pinimg.com/1200x/7d/38/df/7d38df7947c57ba5a16a9c9ee073d3de.jpg',
   imagePosX:50, imagePosY:50, imageZoom:100
 });
-// 2) Chevaucheuse de requin des sables — Créature Volonté 3 mana, 4/3, Charge
 const T_P1_C2 = mkTutCard({
   instId:'t-p1-c2', name:'Chevaucheuse de requin des sables', type:'Créature', class:'Volonté',
   cost:3, atk:4, hp:3, curAtk:4, curHp:3, keywords:['charge'],
   image:'https://i.pinimg.com/1200x/0f/fb/01/0ffb01d6a1791d88e2e7459127c522c7.jpg',
   imagePosX:50, imagePosY:50, imageZoom:100
 });
-// 3) Frappe preventive — Piège Volonté 1 mana : 3 dégâts au bloqueur, avant le combat
 const T_P1_TRAP = mkTutCard({
   instId:'t-p1-trap', name:'Frappe preventive', type:'Piège', class:'Volonté',
   cost:1, text:"Avant qu'une créature alliée ne combatte, infligez 3 dégâts à la créature qu'elle va affronter.",
   image:'https://i.pinimg.com/736x/4e/4c/8e/4e4c8eaad6100d2fdd4ebf08d0a5753e.jpg',
   imagePosX:50, imagePosY:45, imageZoom:131
 });
-// 4) Hache de guerre naine — Artefact Volonté 6 mana, 3 charges. Activation
-//    gratuite (1 fois par tour) : une créature alliée désignée gagne +4/+0,
-//    Perçant et Initiative. "abilities" est copié tel quel depuis la vraie
-//    carte, afin de réutiliser l'interface réelle de ciblage (clic sur une
-//    créature alliée) déjà présente dans le code du plateau ci-dessus.
+// Hache de guerre naine : "abilities" copié tel quel depuis la vraie carte
+// pour réutiliser l'interface réelle d'activation et de ciblage.
 const T_P1_ARTIFACT = mkTutCard({
   instId:'t-p1-artifact', name:'Hache de guerre naine', type:'Artefact', class:'Volonté',
   cost:6, charges:3,
@@ -3124,7 +3126,13 @@ const T_P1_ARTIFACT = mkTutCard({
     }
   ]
 });
-// 5) Découper — Sortilège Volonté 1 mana : 2 dégâts à un héros/créature ennemi désigné
+// Bandit des marais Aral'Anak — Créature Neutre, 2 mana, 2/2, Armure
+const T_P1_C3 = mkTutCard({
+  instId:'t-p1-c3', name:"Bandit des marais Aral'Anak", type:'Créature', class:'Neutre',
+  cost:2, atk:2, hp:2, curAtk:2, curHp:2, keywords:['armor'],
+  image:'https://i.pinimg.com/736x/f7/2e/1a/f72e1af4727445a721c7a345b2e2947e.jpg',
+  imagePosX:50, imagePosY:50, imageZoom:100
+});
 const T_P1_SPELL = mkTutCard({
   instId:'t-p1-spell', name:'Découper', type:'Sortilège', class:'Volonté',
   cost:1, text:'Infligez 2 dégâts à un héros ou une créature ennemie désignée.',
@@ -3133,20 +3141,43 @@ const T_P1_SPELL = mkTutCard({
   imagePosX:50, imagePosY:50, imageZoom:100
 });
 
-// 6) Forge-sort — Créature Arcane 2 mana, 1/1 (bot)
+// ---- Cartes de l'adversaire (Sandroska) ----
 const T_P2_FORGE = mkTutCard({
   instId:'t-p2-c1', name:'Forge-sort', type:'Créature', class:'Arcane',
   cost:2, atk:1, hp:1, curAtk:1, curHp:1, keywords:[],
   image:'https://i.pinimg.com/1200x/9b/f0/45/9bf045ecf28f0bc6a68d99e4cc98a617.jpg',
   imagePosX:50, imagePosY:24, imageZoom:100
 });
-// 7) Traqueur infatigable — Créature Crépuscule 3 mana, 3/5 (bot)
 const T_P2_TRAQUEUR = mkTutCard({
   instId:'t-p2-c2', name:'Traqueur infatigable', type:'Créature', class:'Crépuscule',
   cost:3, atk:3, hp:5, curAtk:3, curHp:5, keywords:[],
   image:'https://i.pinimg.com/1200x/7f/fc/2d/7ffc2d4203cfb12bf770411ffc08e3a4.jpg',
   imagePosX:50, imagePosY:50, imageZoom:100
 });
+const T_P2_HORREUR = mkTutCard({
+  instId:'t-p2-c3', name:'Horreur reptilienne', type:'Créature', class:'Crépuscule',
+  cost:2, atk:1, hp:2, curAtk:1, curHp:2, keywords:['toxic'],
+  image:'https://i.pinimg.com/1200x/0c/4f/6e/0c4f6e85d07a57fbb6818b8542802d68.jpg',
+  imagePosX:50, imagePosY:50, imageZoom:115
+});
+const T_P2_PHALENE = mkTutCard({
+  instId:'t-p2-c4', name:'Phalène lunaire', type:'Créature', class:'Arcane',
+  cost:3, atk:1, hp:5, curAtk:1, curHp:5, keywords:['flying'],
+  image:'https://i.pinimg.com/1200x/e6/29/fd/e629fdf3d896d569a7af01de95dcd4a4.jpg',
+  imagePosX:50, imagePosY:50, imageZoom:100
+});
+const T_P2_CADAVRE = mkTutCard({
+  instId:'t-p2-c5', name:'Cadavre ambulant', type:'Créature', class:'Crépuscule',
+  cost:1, atk:1, hp:1, curAtk:1, curHp:1, keywords:['relentless'], subtypes:['Zombie'],
+  image:'https://i.pinimg.com/1200x/2b/9a/cc/2b9acc68f5f8aa958ba080c301c506b2.jpg',
+  imagePosX:50, imagePosY:10, imageZoom:100
+});
+
+const TUT_ALL_CARDS = [T_P1_C1, T_P1_C2, T_P1_TRAP, T_P1_ARTIFACT, T_P1_C3, T_P1_SPELL,
+  T_P2_FORGE, T_P2_TRAQUEUR, T_P2_HORREUR, T_P2_PHALENE, T_P2_CADAVRE];
+const TUT_BY_ID = {};
+TUT_ALL_CARDS.forEach(c=>{ TUT_BY_ID[c.instId] = c; });
+function tutFresh(card){ return Object.assign({}, TUT_BY_ID[card.instId] || card); }
 
 function tutBuildInitialState(){
   return {
@@ -3154,62 +3185,486 @@ function tutBuildInitialState(){
     pendingSacrifice:null, pendingDiscover:null, pendingKeywordChoice:null,
     __gameLog:[],
     p1:{
-      // Kyzïre et Sandroska sont scriptés à 10 PV chacun (au lieu de leurs
-      // PV réels de match, 24 et 22) : c'est la consigne du tutoriel.
-      hero:T_P1_HERO, region:T_REGION_P1, hp:10,
-      // Assez de mana pour jouer Gobelin inconscient (1) + Frappe preventive (1) au tour 1.
+      // PV scriptés (consigne du tutoriel) : 20 pour Kyzïre, 18 pour
+      // Sandroska — ramenés à 14 dès la première étape par le pouvoir
+      // passif de Kyzïre (4 dégâts). Le total est calculé pour que le
+      // sortilège final soit exactement mortel (voir tutDamageNotes).
+      hero:T_P1_HERO, region:T_REGION_P1, hp:20,
       manaNormal:2, manaNormalMax:2, manaFragile:0,
-      hand:[ Object.assign({}, T_P1_C1), Object.assign({}, T_P1_TRAP) ],
+      hand:[ tutFresh(T_P1_C1), tutFresh(T_P1_TRAP) ],
       deck: Array.from({length:12}, (_,i)=>({ instId:'t-p1-deck-'+i })),
       board:[], relics:[], discard:[], attackers:[],
       cardBackUrl:T_CARDBACK_URL, isAI:false, attackPhaseDone:false, mulliganDone:true, showHandToSpectators:false
     },
     p2:{
-      // 10 PV de départ, ramenés à 6 dès la première étape par le pouvoir
-      // passif de Kyzïre (4 dégâts automatiques au héros ennemi en début de
-      // partie) — voir l'étape "heroPower" et tutOnContinueClick().
-      hero:T_P2_HERO, region:T_REGION_P2, hp:10,
+      hero:T_P2_HERO, region:T_REGION_P2, hp:18,
       manaNormal:0, manaNormalMax:0, manaFragile:0,
-      hand:[ Object.assign({}, T_P2_FORGE), Object.assign({}, T_P2_TRAQUEUR) ],
+      hand:[ tutFresh(T_P2_FORGE), tutFresh(T_P2_TRAQUEUR), tutFresh(T_P2_HORREUR), tutFresh(T_P2_PHALENE), tutFresh(T_P2_CADAVRE) ],
       deck: Array.from({length:12}, (_,i)=>({ instId:'t-p2-deck-'+i })),
       board:[], relics:[], discard:[], attackers:[],
       cardBackUrl:T_CARDBACK_URL, isAI:true, attackPhaseDone:false, mulliganDone:true, showHandToSpectators:false
     }
   };
 }
+// Bilan des dégâts sur Sandroska : 18 -4 (pouvoir de Kyzïre) = 14 ;
+// -2 (Gobelin, T1) = 12 ; -3 (Brutalité, T3) = 9 ; -7 (Brutalité, T5) = 2 ;
+// -2 (Découper, T5) = 0.
+
+// ---------------- Petits utilitaires d'état ----------------
+function tutLog(entry){
+  if(!S.__gameLog) S.__gameLog = [];
+  S.__gameLog.push(Object.assign({ turn: S.turn||1 }, entry));
+}
+function tutHasKw(c, k){ return !!(c.keywords && c.keywords.includes(k)); }
+function tutCanAttack(c){
+  return !c.hasAttacked && (!c.summonSick || tutHasKw(c, 'charge'));
+}
+function tutRemoveFromBoard(key, c){
+  const p = S[key];
+  p.board = p.board.filter(x=>x.instId!==c.instId);
+}
+// Mort d'une créature : retirée du plateau, carte "neuve" en défausse.
+function tutKill(key, c){
+  tutRemoveFromBoard(key, c);
+  S[key].discard.push(tutFresh(c));
+  tutLog({ ownerKey:key, raw:`"${c.name}" meurt au combat`, highlightIds:[] });
+}
+function tutDrawTo(key, card){
+  const p = S[key];
+  if(p.deck.length) p.deck.pop();
+  if(card) p.hand.push(tutFresh(card));
+}
+// Début du tour du joueur : mana, pioche, fin du mal d'invocation.
+function tutStartP1Turn(mana, drawnCard){
+  S.active = 'p1';
+  S.phase = 'main';
+  S.turn = (S.turn||1) + 1;
+  const me = S.p1;
+  me.attackPhaseDone = false;
+  me.attackers = [];
+  me.board.forEach(c=>{ c.summonSick = false; c.hasAttacked = false; c.hasBlockedThisTurn = false; });
+  me.relics.forEach(r=>{ r._activatedThisTurn = false; });
+  me.manaNormalMax = mana; me.manaNormal = mana;
+  tutDrawTo('p1', drawnCard);
+}
+function tutStartP2Turn(mana){
+  S.active = 'p2';
+  S.phase = 'main';
+  const ai = S.p2;
+  ai.board.forEach(c=>{ c.summonSick = false; c.hasBeenBlocked = false; });
+  ai.manaNormalMax = mana; ai.manaNormal = mana;
+  S.p1.attackPhaseDone = false;
+  S.p1.board.forEach(c=>{ c.hasBlockedThisTurn = false; });
+}
+function tutAiPlay(card){
+  const ai = S.p2;
+  const idx = ai.hand.findIndex(c=>c.instId===card.instId);
+  if(idx>=0) ai.hand.splice(idx,1);
+  ai.board.push(Object.assign(tutFresh(card), { summonSick:true }));
+  ai.manaNormal -= card.cost;
+  if(ai.deck.length) ai.deck.pop();
+  tutLog({ ownerKey:'p2', cardName:card.name, cardId:card.instId, kind:'play', effects:[] });
+}
+function tutPlayerPlay(card, i){
+  const me = S.p1;
+  me.hand.splice(i, 1);
+  me.manaNormal -= card.cost;
+  tutLog({ ownerKey:'p1', cardName:card.name, cardId:card.instId, kind:'play', effects:[] });
+}
 
 // ---------------- Script des étapes ----------------
-// Chaque étape décrit son texte de narration (affiché dans la barre du
-// haut) et les éléments à mettre en surbrillance dorée (sélecteurs CSS —
-// soit un id réel du plateau, soit [data-instid="..."] pour une carte
-// précise, posé par cardEl() sur chaque carte rendue).
-const TUT_STEPS_INFO = {
-  heroPower: { title:'Le pouvoir de Kyzïre', text:"Kyzïre a un pouvoir passif : dès le début du combat, il inflige automatiquement 4 dégâts au héros ennemi. Sandroska commence donc la partie à 6 points de vie au lieu de 10. Cliquez sur « Continuer ».", continueBtn:true, highlight:['#hero-frame-p1','#hero-frame-p2'] },
-  intro1: { title:'Bienvenue !', text:"En bas de l'écran, c'est vous : Kyzïre, votre main et votre plateau. En haut, c'est Sandroska, votre adversaire. Suivez les instructions affichées ici, en haut, tout au long de la partie.", continueBtn:true, highlight:['#hero-frame-p1','#hero-frame-p2'] },
-  intro2: { title:'Le mana', text:"À côté de votre héros : votre réserve de mana. Chaque carte coûte du mana pour être jouée, et vous en gagnez un peu plus à chaque tour.", continueBtn:true, highlight:['#mana-box-p1'] },
-  intro3: { title:'Votre main', text:"En bas de l'écran : votre main. Survolez une carte pour l'agrandir, glissez-la sur le plateau pour la jouer.", continueBtn:true, highlight:['#hand-p1'] },
-  playC1: { title:'Jouez votre première créature', text:"Vous avez en main Gobelin inconscient, une créature Volonté à 1 mana (2 attaque / 1 point de vie) avec le mot-clé Charge : elle peut attaquer dès qu'elle est posée. Glissez-la depuis votre main jusqu'au plateau pour la jouer.", continueBtn:false, highlight:['[data-instid="t-p1-c1"]'] },
-  goToAttack1: { title:"Passez à l'attaque", text:"Le plateau adverse est vide : votre Gobelin inconscient peut attaquer sans être bloqué. Cliquez sur « ⚔ Passer au combat », en bas de l'écran.", continueBtn:false, highlight:['#phase-bar button'] },
-  selectAttackers1: { title:'Choisissez votre attaquant', text:"Cliquez sur le Gobelin inconscient pour le désigner comme attaquant, puis cliquez sur « Valider » pour lancer l'attaque.", continueBtn:false, highlight:['[data-instid="t-p1-c1"]'] },
-  playTrap: { title:'Posez un piège', text:"Vous avez aussi en main Frappe preventive, un Piège Volonté à 1 mana : « Avant qu'une créature alliée ne combatte, infligez 3 dégâts à la créature qu'elle va affronter. » Glissez-le sur le plateau pour le poser : aucun mana n'est dépensé à la pose, le piège s'arme au prochain changement de phase, puis se déclenchera tout seul (et son mana sera payé à ce moment-là) lors d'un futur combat.", continueBtn:false, highlight:['[data-instid="t-p1-trap"]'] },
-  endTurn1: { title:'Terminez votre tour', text:"Le Gobelin inconscient, non bloqué, a infligé 2 dégâts à Sandroska. Cliquez sur « Fin de tour », en bas de l'écran.", continueBtn:false, highlight:['#phase-bar button'] },
-  aiTurn1: { title:"Tour de l'adversaire", text:"Sandroska joue Forge-sort, une créature Arcane à 2 mana (1 attaque / 1 point de vie)...", continueBtn:false, highlight:[] },
-  playC2: { title:'Une deuxième créature', text:"Nouveau tour : vous avez pioché Chevaucheuse de requin des sables, une créature Volonté à 3 mana (4 attaque / 3 points de vie), elle aussi avec Charge. Glissez-la sur le plateau.", continueBtn:false, highlight:['[data-instid="t-p1-c2"]'] },
-  goToAttack2: { title:"Passez à l'attaque", text:"Attaquez avec votre Chevaucheuse de requin des sables. Cliquez sur « ⚔ Passer au combat ».", continueBtn:false, highlight:['#phase-bar button'] },
-  selectAttackers2: { title:'Choisissez votre attaquant', text:"Cliquez sur la Chevaucheuse de requin des sables, puis validez l'attaque. Sandroska va bloquer avec son Forge-sort — observez ce qu'il se passe.", continueBtn:false, highlight:['[data-instid="t-p1-c2"]'] },
-  endTurn2: { title:'Le piège s\'est déclenché', text:"Juste avant l'échange de coups, Frappe preventive a infligé 3 dégâts au Forge-sort qui bloquait : il est mort avant même de pouvoir se battre. Votre Chevaucheuse n'a subi aucune riposte. Cliquez sur « Fin de tour ».", continueBtn:false, highlight:['#phase-bar button'] },
-  aiTurn2: { title:"Tour de l'adversaire", text:"Sandroska joue Traqueur infatigable, une créature Crépuscule à 3 mana (3 attaque / 5 points de vie)...", continueBtn:false, highlight:[] },
-  playArtifact: { title:'Un artefact puissant', text:"Nouveau tour : vous avez pioché Hache de guerre naine, un Artefact Volonté à 6 mana. Glissez-le sur le plateau pour le poser, puis activez sa capacité (gratuite) en ciblant votre Chevaucheuse de requin des sables : elle gagnera +4 attaque, Perçant (les dégâts en trop après avoir tué le bloqueur passent au héros) et Initiative (elle frappe en premier, sans subir de riposte si elle tue son adversaire).", continueBtn:false, highlight:['[data-instid="t-p1-artifact"]','[data-instid="t-p1-c2"]'] },
-  goToAttack3: { title:"Passez à l'attaque", text:"Votre Chevaucheuse, maintenant à 8 attaque, est prête. Cliquez sur « ⚔ Passer au combat ».", continueBtn:false, highlight:['#phase-bar button'] },
-  selectAttackers3: { title:'Portez le coup décisif', text:"Cliquez sur la Chevaucheuse de requin des sables, puis validez. Face au Traqueur infatigable (5 points de vie), Initiative et Perçant vont faire toute la différence.", continueBtn:false, highlight:['[data-instid="t-p1-c2"]'] },
-  endTurn3: { title:'Combo réussi !', text:"Initiative a permis à votre Chevaucheuse de frapper la première et de tuer le Traqueur sans subir de riposte ; Perçant a envoyé les 3 dégâts en trop directement sur Sandroska. Cliquez sur « Fin de tour ».", continueBtn:false, highlight:['#phase-bar button'] },
-  aiTurn3: { title:"Tour de l'adversaire", text:"Sandroska, à 1 point de vie et sans rien à jouer, ne peut plus rien tenter...", continueBtn:false, highlight:[] },
-  finalSpell: { title:'Portez le coup fatal', text:"Vous avez pioché Découper, un Sortilège Volonté à 1 mana : « Infligez 2 dégâts à un héros ou une créature ennemie désignée. » Glissez-le sur le plateau puis désignez le héros de Sandroska pour l'achever.", continueBtn:false, highlight:['[data-instid="t-p1-spell"]','#hero-frame-p2'] },
-  done: { title:'Tutoriel terminé', text:'Vous connaissez maintenant les créatures, les pièges, les sortilèges et les artefacts !', continueBtn:false, highlight:[] }
-};
-const TUT_STEP_ORDER = Object.keys(TUT_STEPS_INFO);
+const TUT_STEPS_INFO = {};
+const TUT_STEP_ORDER = [];
+function defStep(o){ TUT_STEP_ORDER.push(o.id); TUT_STEPS_INFO[o.id] = o; }
+function tutNextId(id){ const i = TUT_STEP_ORDER.indexOf(id); return TUT_STEP_ORDER[i+1] || null; }
+function tutNext(){ const n = tutNextId(TUT.step); if(n) tutSetStep(n); }
+
+const SEL_COMBAT = '#phase-bar button:first-child';
+const SEL_COMBAT_BTN = '#phase-bar [data-tut="combat"]';
+const SEL_ENDTURN_BTN = '#phase-bar [data-tut="endturn"]';
+const SEL_CONFIRM_BTN = '#phase-bar [data-tut="confirm"]';
+
+// ---------- TOUR 1 ----------
+defStep({ id:'heroPower', title:'Le pouvoir du héros',
+  text:"Chaque héros a un pouvoir. Celui de Kyzïre est passif : il se déclenche tout seul et inflige 4 dégâts au héros ennemi dès le début de la partie. D'autres héros ont un pouvoir à activer en payant du mana, en cliquant sur leur portrait. Cliquez sur « Continuer ».",
+  continueBtn:true, highlight:['#hero-frame-p1','#hero-frame-p2'],
+  onContinue(){
+    S.p2.hp = Math.max(0, S.p2.hp - 4);
+    tutLog({ ownerKey:'p1', cardName:T_P1_HERO.name, cardId:'tut-hero-p1', kind:'hero_trigger',
+      effects:[{ text:'infligez 4 dégâts au héros ennemi', targetInstIds:[] }] });
+  }
+});
+defStep({ id:'intro1', title:'Bienvenue !',
+  text:"En bas, c'est vous : Kyzïre, avec ses 20 points de vie (le chiffre sur son portrait), votre main et votre plateau. En haut, c'est Sandroska, votre adversaire. Un héros tombé à 0 point de vie perd la partie. Suivez les instructions affichées ici, en haut.",
+  continueBtn:true, highlight:['#hero-frame-p1','#hero-frame-p2'] });
+defStep({ id:'intro2', title:'Le mana',
+  text:"À côté de votre héros : votre mana. Chaque carte coûte du mana pour être jouée. Votre réserve se remplit entièrement à chaque tour, avec un peu plus de mana que le tour précédent.",
+  continueBtn:true, highlight:['#mana-box-p1'] });
+defStep({ id:'intro3', title:'Votre main',
+  text:"En bas, votre main. Elle contient quatre types de cartes à jouer : Créature (elle combat), Sortilège (effet immédiat, puis la carte part en défausse), Artefact (reste en jeu et s'utilise plusieurs fois) et Piège (posé à l'avance, il se déclenche tout seul). Survolez une carte pour l'agrandir.",
+  continueBtn:true, highlight:['#hand-p1'] });
+defStep({ id:'playC1', title:'Jouez votre première créature',
+  text:"Gobelin inconscient : Créature à 1 mana (2 attaque / 1 point de vie) avec le mot-clé Charge. Une créature doit normalement attendre le tour suivant pour attaquer (elle « dort », ZZZ) ; avec Charge, elle peut attaquer dès qu'elle est posée. Glissez-la de votre main jusqu'au plateau.",
+  highlight:['[data-instid="t-p1-c1"]'],
+  expect:{ kind:'play', card:'t-p1-c1' },
+  run(info){
+    tutPlayerPlay(info.card, info.i);
+    S.p1.board.push(Object.assign(tutFresh(info.card), { summonSick:true }));
+    tutNext();
+  }
+});
+defStep({ id:'goToAttack1', title:"Passez à l'attaque",
+  text:"Le plateau adverse est vide : votre Gobelin peut attaquer sans être bloqué. Cliquez sur « ⚔ Combat », en bas de l'écran.",
+  highlight:[SEL_COMBAT_BTN], onSelecting:'selectAttackers1' });
+defStep({ id:'selectAttackers1', title:'Choisissez votre attaquant',
+  text:"Cliquez sur le Gobelin inconscient pour le désigner comme attaquant, puis sur « Valider ». Une créature que personne ne bloque inflige sa force au héros adverse.",
+  highlight:['[data-instid="t-p1-c1"]', SEL_CONFIRM_BTN], backTo:'goToAttack1',
+  expect:{ kind:'attack', ids:['t-p1-c1'] },
+  async run(){
+    const g = S.p1.board.find(c=>c.instId==='t-p1-c1');
+    tutLog({ ownerKey:'p1', raw:'{who} attaque avec 1 créature', highlightIds:[g.instId] });
+    g.hasAttacked = true;
+    S.p2.hp = Math.max(0, S.p2.hp - g.curAtk);
+    tutLog({ ownerKey:'p2', raw:`{who} a perdu ${g.curAtk} points de vie dans cette attaque`, highlightIds:[g.instId] });
+    S.p1.attackPhaseDone = true;
+    S.p1.attackers = [];
+    tutNext();
+  }
+});
+defStep({ id:'playTrap', title:'Jouer des cartes après le combat',
+  text:"Le Gobelin, non bloqué, a infligé 2 dégâts à Sandroska. Après un combat, vous gardez la main : vous pouvez encore jouer des cartes avant de finir le tour. Glissez Frappe préventive (Piège, 1 mana) sur le plateau pour la poser : la carte reste dans votre main, armée, et aucun mana n'est dépensé.",
+  highlight:['[data-instid="t-p1-trap"]'],
+  expect:{ kind:'trap', card:'t-p1-trap' },
+  run(info){
+    info.card.activeTrap = true;
+    tutLog({ ownerKey:'p1', cardName:info.card.name, cardId:info.card.instId, kind:'play', effects:[] });
+    tutNext();
+  }
+});
+defStep({ id:'trapInfo', title:'Comment fonctionne un piège',
+  text:"Un piège armé attend sa condition : ici, qu'une de vos créatures aille combattre. Son coût (1 mana) n'est payé qu'au moment du déclenchement, avec le mana disponible à cet instant : pas assez de mana, pas de déclenchement. Un piège non déclenché avant votre prochain tour se désarme. Cliquez sur « Continuer ».",
+  continueBtn:true, highlight:['[data-instid="t-p1-trap"]','#mana-box-p1'] });
+defStep({ id:'endTurn1', title:'Terminez votre tour',
+  text:"Frappe préventive est armée (badge « Armé »). Cliquez sur « Fin de tour », en bas de l'écran.",
+  highlight:[SEL_ENDTURN_BTN],
+  expect:{ kind:'endTurn' },
+  run(){ tutEndPlayerTurn(); tutNext(); }
+});
+defStep({ id:'aiTurn1', title:"Tour de l'adversaire",
+  text:"Sandroska joue Forge-sort, une créature Arcane à 2 mana (1 attaque / 1 point de vie)...",
+  highlight:[],
+  ai(){
+    tutStartP2Turn(2);
+    tutAiPlay(T_P2_FORGE);
+    tutStartP1Turn(4, T_P1_C2);
+  }
+});
+
+// ---------- TOUR 2 ----------
+defStep({ id:'playC2', title:'Une deuxième créature',
+  text:"Nouveau tour : votre réserve est passée à 4 mana. Vous avez pioché Chevaucheuse de requin des sables (3 mana, 4 attaque / 3 points de vie), elle aussi avec Charge. Glissez-la sur le plateau.",
+  highlight:['[data-instid="t-p1-c2"]'],
+  expect:{ kind:'play', card:'t-p1-c2' },
+  run(info){
+    tutPlayerPlay(info.card, info.i);
+    S.p1.board.push(Object.assign(tutFresh(info.card), { summonSick:true }));
+    tutNext();
+  }
+});
+defStep({ id:'manaTrap', title:'Gardez du mana pour vos pièges',
+  text:"Regardez votre mana : il en reste 1, exactement le coût de Frappe préventive. Si vous aviez tout dépensé, le piège n'aurait pas pu se déclencher. À chaque tour, pensez à laisser le mana nécessaire à vos pièges armés. Cliquez sur « Continuer ».",
+  continueBtn:true, highlight:['#mana-box-p1','[data-instid="t-p1-trap"]'] });
+defStep({ id:'goToAttack2', title:"Passez à l'attaque",
+  text:"Attaquez avec votre Chevaucheuse de requin des sables. Cliquez sur « ⚔ Combat ».",
+  highlight:[SEL_COMBAT_BTN], onSelecting:'selectAttackers2' });
+defStep({ id:'selectAttackers2', title:'Choisissez votre attaquant',
+  text:"Cliquez sur la Chevaucheuse de requin des sables, puis validez. Sandroska va bloquer avec Forge-sort : observez ce qui se passe.",
+  highlight:['[data-instid="t-p1-c2"]', SEL_CONFIRM_BTN], backTo:'goToAttack2',
+  expect:{ kind:'attack', ids:['t-p1-c2'] },
+  async run(){
+    const chev = S.p1.board.find(c=>c.instId==='t-p1-c2');
+    const forge = S.p2.board.find(c=>c.instId==='t-p2-c1');
+    const trap = S.p1.hand.find(c=>c.activeTrap);
+    chev.hasAttacked = true;
+    tutLog({ ownerKey:'p1', raw:'{who} attaque avec 1 créature', highlightIds:[chev.instId] });
+    tutLog({ ownerKey:'p2', raw:`{who} bloque la créature "${chev.name}" avec "${forge.name}"`, highlightIds:[chev.instId, forge.instId] });
+    forge.hasBeenBlocked = true;
+    onStateUpdate(S);
+    await tutSleep(1000);
+    // Le piège se déclenche AVANT l'échange de coups : son coût (1 mana)
+    // est payé maintenant, avec le mana qui restait.
+    S.p1.manaNormal -= trap.cost;
+    S.p1.hand.splice(S.p1.hand.indexOf(trap), 1);
+    S.p1.discard.push(Object.assign(tutFresh(trap), { activeTrap:false }));
+    forge.curHp -= 3;
+    tutLog({ ownerKey:'p1', cardName:trap.name, cardId:trap.instId, kind:'trap',
+      effects:[{ text:`infligez 3 dégâts à ${forge.name}`, targetInstIds:[forge.instId] }] });
+    tutFlash('Frappe préventive se déclenche ! (1 mana payé)');
+    onStateUpdate(S);
+    await tutSleep(900);
+    // Forge-sort est mort avant de combattre : pas d'échange de coups.
+    tutKill('p2', forge);
+    S.p1.attackPhaseDone = true;
+    S.p1.attackers = [];
+    tutNext();
+  }
+});
+defStep({ id:'trapResult', title:'Le piège s\'est déclenché !',
+  text:"Sandroska a bloqué avec Forge-sort. Juste avant l'échange de coups, Frappe préventive a payé 1 mana et infligé 3 dégâts : Forge-sort est mort avant de frapper, et votre Chevaucheuse n'a rien subi. Le piège, lui, est parti en défausse. Cliquez sur « Continuer ».",
+  continueBtn:true, highlight:['#mana-box-p1','#discard-badge-p1'] });
+defStep({ id:'discardOpen', title:'Surveillez la défausse adverse',
+  text:"Chaque carte détruite ou utilisée part en défausse, visible de tous. Regarder celle de l'adversaire permet de savoir ce qu'il a déjà joué. Cliquez sur « Défausse » juste à côté du deck adverse, en haut.",
+  highlight:['#discard-badge-p2'],
+  expect:{ kind:'openDiscard', key:'p2' },
+  run(){ tutNext(); }
+});
+defStep({ id:'discardClose', title:'La défausse adverse',
+  text:"Vous y voyez Forge-sort, mort pendant le combat. La vôtre contient Frappe préventive. Certaines cartes peuvent piocher ou ramener une carte depuis la défausse. Fermez la fenêtre avec le bouton prévu.",
+  highlight:[],
+  expect:{ kind:'closeDiscard' },
+  run(){ tutNext(); }
+});
+defStep({ id:'journalOpen', title:'Le journal',
+  text:"Le journal 📜 raconte tout ce qui s'est passé, y compris ce que vous auriez pu manquer. Cliquez sur le bouton Journal en haut à droite du plateau.",
+  highlight:['#journal-toggle-btn'],
+  expect:{ kind:'toggleJournal', open:true },
+  run(){ tutNext(); }
+});
+defStep({ id:'journalRead', title:'Lire le journal',
+  text:"Chaque ligne est une action : carte jouée, attaque, blocage, piège déclenché, mort. Survolez le nom d'une carte pour la revoir, ou une ligne de combat pour mettre en évidence les créatures concernées. Cliquez sur « Continuer ».",
+  continueBtn:true, highlight:['#journal-panel'] });
+defStep({ id:'journalClose', title:'Fermez le journal',
+  text:"Refermez le journal avec la croix ✕ (ou le même bouton). Vous pourrez le rouvrir à tout moment.",
+  highlight:['#journal-panel .close-journal-btn'],
+  expect:{ kind:'toggleJournal', open:false },
+  run(){ tutNext(); }
+});
+defStep({ id:'endTurn2', title:'Terminez votre tour',
+  text:"Cliquez sur « Fin de tour », en bas de l'écran.",
+  highlight:[SEL_ENDTURN_BTN],
+  expect:{ kind:'endTurn' },
+  run(){ tutEndPlayerTurn(); tutNext(); }
+});
+defStep({ id:'aiTurn2', title:"Tour de l'adversaire",
+  text:"Sandroska joue Traqueur infatigable, une créature Crépuscule à 3 mana (3 attaque / 5 points de vie)...",
+  highlight:[],
+  ai(){
+    tutStartP2Turn(3);
+    tutAiPlay(T_P2_TRAQUEUR);
+    tutStartP1Turn(6, T_P1_ARTIFACT);
+  }
+});
+
+// ---------- TOUR 3 ----------
+defStep({ id:'playArtifact', title:'Un artefact puissant',
+  text:"Nouveau tour : 6 mana. Vous avez pioché Hache de guerre naine, un Artefact. Il reste en jeu (2 au maximum), se paie une seule fois à la pose, puis s'utilise gratuitement une fois par tour tant qu'il lui reste des charges (ici 3). Glissez-le sur le plateau.",
+  highlight:['[data-instid="t-p1-artifact"]'],
+  expect:{ kind:'play', card:'t-p1-artifact' },
+  run(info){
+    tutPlayerPlay(info.card, info.i);
+    S.p1.relics.push(tutFresh(info.card));
+    tutNext();
+  }
+});
+defStep({ id:'activateArtifact', title:"Utilisez l'artefact",
+  text:"Cliquez sur la Hache de guerre naine posée, puis désignez votre Chevaucheuse : elle gagne +4 attaque, Brutalité et Initiative. Chaque utilisation retire 1 charge à l'artefact (3 → 2).",
+  highlight:['.relic-slot:not(.relic-slot-empty)','[data-instid="t-p1-c2"]'],
+  expect:{ kind:'activate', target:'t-p1-c2' },
+  run(info){
+    const art = S.p1.relics.find(r=>r.instId==='t-p1-artifact');
+    const target = info.target;
+    target.atk += 4; target.curAtk += 4;
+    if(!target.keywords.includes('pierce')) target.keywords.push('pierce');
+    if(!target.keywords.includes('initiative')) target.keywords.push('initiative');
+    art.charges = Math.max(0, (art.charges||1) - 1);
+    art._activatedThisTurn = true;
+    tutLog({ ownerKey:'p1', cardName:art.name, cardId:art.instId, kind:'artifact_activate',
+      effects:[{ text:`donne +4/+0, Perçant et Initiative à ${target.name}`, targetInstIds:[target.instId] }] });
+    tutNext();
+  }
+});
+defStep({ id:'keywordsInfo', title:'Trois mots-clés',
+  text:"Charge : peut attaquer dès la pose. Initiative : frappe en premier, et si elle tue sa cible elle ne subit aucun coup en retour. Brutalité : si elle est bloquée, les dégâts en trop passent au héros adverse. Survolez la Chevaucheuse pour les relire. Cliquez sur « Continuer ».",
+  continueBtn:true, highlight:['[data-instid="t-p1-c2"]'] });
+defStep({ id:'goToAttack3', title:"Passez à l'attaque",
+  text:"Votre Chevaucheuse, maintenant à 8 attaque, est prête. Cliquez sur « ⚔ Combat ».",
+  highlight:[SEL_COMBAT_BTN], onSelecting:'selectAttackers3' });
+defStep({ id:'selectAttackers3', title:'Portez le coup décisif',
+  text:"Cliquez sur la Chevaucheuse, puis validez. Face au Traqueur infatigable (5 points de vie), Initiative et Brutalité vont faire toute la différence.",
+  highlight:['[data-instid="t-p1-c2"]', SEL_CONFIRM_BTN], backTo:'goToAttack3',
+  expect:{ kind:'attack', ids:['t-p1-c2'] },
+  async run(){
+    const chev = S.p1.board.find(c=>c.instId==='t-p1-c2');
+    const tr = S.p2.board.find(c=>c.instId==='t-p2-c2');
+    chev.hasAttacked = true;
+    tutLog({ ownerKey:'p1', raw:'{who} attaque avec 1 créature', highlightIds:[chev.instId] });
+    tutLog({ ownerKey:'p2', raw:`{who} bloque la créature "${chev.name}" avec "${tr.name}"`, highlightIds:[chev.instId, tr.instId] });
+    tr.hasBeenBlocked = true;
+    onStateUpdate(S);
+    await tutSleep(1000);
+    // Initiative : la Chevaucheuse frappe la première et tue le Traqueur,
+    // qui ne peut donc pas riposter. Brutalité : l'excédent passe au héros.
+    const excess = chev.curAtk - tr.curHp;
+    tr.curHp -= chev.curAtk;
+    S.p2.hp = Math.max(0, S.p2.hp - excess);
+    tutLog({ ownerKey:'p2', raw:`{who} a perdu ${excess} points de vie dans cette attaque`, highlightIds:[chev.instId] });
+    onStateUpdate(S);
+    await tutSleep(900);
+    tutKill('p2', tr);
+    S.p1.attackPhaseDone = true;
+    S.p1.attackers = [];
+    tutNext();
+  }
+});
+defStep({ id:'endTurn3', title:'Combo réussi !',
+  text:"Initiative : la Chevaucheuse a tué le Traqueur sans subir de riposte. Brutalité : les 3 dégâts en trop ont frappé Sandroska (12 → 9 PV). Cliquez sur « Fin de tour ».",
+  highlight:[SEL_ENDTURN_BTN],
+  expect:{ kind:'endTurn' },
+  run(){ tutEndPlayerTurn(); tutNext(); }
+});
+defStep({ id:'aiTurn3', title:"Tour de l'adversaire",
+  text:"Sandroska joue Horreur reptilienne (2 mana) et Phalène lunaire (3 mana)...",
+  highlight:[],
+  ai(){
+    tutStartP2Turn(5);
+    tutAiPlay(T_P2_HORREUR);
+    tutAiPlay(T_P2_PHALENE);
+    tutStartP1Turn(7, T_P1_C3);
+  }
+});
+
+// ---------- TOUR 4 ----------
+defStep({ id:'playC3', title:'Une créature à Armure',
+  text:"Nouveau tour : 7 mana. Bandit des marais Aral'Anak (2 mana, 2/2) a Armure : elle absorbe entièrement le premier dégât qu'elle subit, une seule fois (le bouclier disparaît ensuite). Glissez-le sur le plateau.",
+  highlight:['[data-instid="t-p1-c3"]'],
+  expect:{ kind:'play', card:'t-p1-c3' },
+  run(info){
+    tutPlayerPlay(info.card, info.i);
+    S.p1.board.push(Object.assign(tutFresh(info.card), { summonSick:true }));
+    tutNext();
+  }
+});
+defStep({ id:'enemyInfo', title:'Lisez le plateau adverse',
+  text:"Survolez les créatures de Sandroska. Phalène lunaire a Envol : seules des créatures avec Envol ou Portée peuvent la bloquer. Horreur reptilienne est Toxique : toute créature qu'elle blesse meurt. Attaquer maintenant serait risqué. Cliquez sur « Continuer ».",
+  continueBtn:true, highlight:['[data-instid="t-p2-c3"]','[data-instid="t-p2-c4"]'] });
+defStep({ id:'endTurn4', title:'Rien ne vous oblige à attaquer',
+  text:"Vous pouvez finir votre tour sans passer par le combat : gardez vos créatures pour défendre. Cliquez directement sur « Fin de tour ».",
+  highlight:[SEL_ENDTURN_BTN],
+  expect:{ kind:'endTurn' },
+  run(){ tutEndPlayerTurn(); tutNext(); }
+});
+defStep({ id:'aiTurn4', title:"Tour de l'adversaire",
+  text:"Sandroska pose Cadavre ambulant, puis attaque...",
+  highlight:[],
+  ai(){
+    tutStartP2Turn(6);
+    tutAiPlay(T_P2_CADAVRE);
+    const att = S.p2.board.filter(c=>c.instId==='t-p2-c3' || c.instId==='t-p2-c4');
+    S.p2.attackers = att.map(c=>c.instId);
+    att.forEach(c=>{ c.hasAttacked = true; });
+    tutLog({ ownerKey:'p2', raw:'{who} attaque avec 2 créatures', highlightIds:S.p2.attackers.slice() });
+    S.phase = 'declareBlockersMe';
+  }
+});
+defStep({ id:'blockHorreur', title:'On vous attaque !',
+  text:"Sandroska attaque avec Phalène lunaire (Envol) et Horreur reptilienne (Toxique). Pour bloquer : cliquez sur votre défenseur (Bandit des marais), puis sur l'attaquant à bloquer (Horreur reptilienne). L'Armure du Bandit encaissera le coup Toxique. Vous pourriez aussi ne pas bloquer.",
+  highlight:['[data-instid="t-p1-c3"]','[data-instid="t-p2-c3"]'],
+  expect:{ kind:'block', blocker:'t-p1-c3', attacker:'t-p2-c3' },
+  async run(){
+    const bandit = S.p1.board.find(c=>c.instId==='t-p1-c3');
+    const horreur = S.p2.board.find(c=>c.instId==='t-p2-c3');
+    const phalene = S.p2.board.find(c=>c.instId==='t-p2-c4');
+    bandit.hasBlockedThisTurn = true;
+    horreur.hasBeenBlocked = true;
+    tutLog({ ownerKey:'p1', raw:`{who} bloque la créature "${horreur.name}" avec "${bandit.name}"`, highlightIds:[horreur.instId, bandit.instId] });
+    onStateUpdate(S);
+    await tutSleep(1000);
+    // Armure : le premier dégât (ici le coup Toxique) est absorbé, donc
+    // Toxique ne tue pas. Le Bandit riposte et tue Horreur reptilienne.
+    bandit.armorUsed = true;
+    horreur.curHp -= bandit.curAtk;
+    onStateUpdate(S);
+    await tutSleep(900);
+    tutKill('p2', horreur);
+    // Plus aucune créature ne peut bloquer la Phalène (Envol) : la phase
+    // de blocage se termine d'elle-même, les dégâts passent au héros.
+    S.p1.hp = Math.max(0, S.p1.hp - phalene.curAtk);
+    tutLog({ ownerKey:'p1', raw:`{who} a perdu ${phalene.curAtk} point de vie dans cette attaque`, highlightIds:[phalene.instId] });
+    S.p2.attackers = [];
+    S.phase = 'main';
+    tutNext();
+  }
+});
+defStep({ id:'blockResult', title:'Résultat du blocage',
+  text:"Armure : le Bandit a absorbé l'unique coup de la créature Toxique, il survit et a tué Horreur reptilienne. Aucune de vos créatures n'a Envol ou Portée : la Phalène ne pouvait pas être bloquée, le blocage s'est terminé tout seul et elle vous a infligé 1 dégât. Cliquez sur « Continuer ».",
+  continueBtn:true, highlight:['[data-instid="t-p1-c3"]','#hero-frame-p1'],
+  onContinue(){ tutStartP1Turn(8, T_P1_SPELL); }
+});
+
+// ---------- TOUR 5 ----------
+defStep({ id:'goToAttack5', title:'Dernier assaut',
+  text:"Nouveau tour : 8 mana. Sandroska n'a plus que Cadavre ambulant, une créature Tenace (elle reste en jeu une fois quand elle devrait mourir), et la Phalène. Attaquez avec votre Chevaucheuse : cliquez sur « ⚔ Combat ».",
+  highlight:[SEL_COMBAT_BTN], onSelecting:'selectAttackers5' });
+defStep({ id:'selectAttackers5', title:'Choisissez votre attaquant',
+  text:"Cliquez sur la Chevaucheuse, puis validez. Sandroska va bloquer avec Cadavre ambulant.",
+  highlight:['[data-instid="t-p1-c2"]', SEL_CONFIRM_BTN], backTo:'goToAttack5',
+  expect:{ kind:'attack', ids:['t-p1-c2'] },
+  async run(){
+    const chev = S.p1.board.find(c=>c.instId==='t-p1-c2');
+    const cad = S.p2.board.find(c=>c.instId==='t-p2-c5');
+    chev.hasAttacked = true;
+    tutLog({ ownerKey:'p1', raw:'{who} attaque avec 1 créature', highlightIds:[chev.instId] });
+    tutLog({ ownerKey:'p2', raw:`{who} bloque la créature "${chev.name}" avec "${cad.name}"`, highlightIds:[chev.instId, cad.instId] });
+    cad.hasBeenBlocked = true;
+    onStateUpdate(S);
+    await tutSleep(1000);
+    const excess = chev.curAtk - cad.curHp;
+    S.p2.hp = Math.max(0, S.p2.hp - excess);
+    tutLog({ ownerKey:'p2', raw:`{who} a perdu ${excess} points de vie dans cette attaque`, highlightIds:[chev.instId] });
+    onStateUpdate(S);
+    await tutSleep(900);
+    // Tenace : la créature reste en jeu à pleine Endurance et perd Tenace.
+    cad.curHp = cad.hp;
+    cad.keywords = cad.keywords.filter(k=>k!=='relentless');
+    tutLog({ ownerKey:'p2', raw:`"${cad.name}" reste en jeu grâce à Tenace`, highlightIds:[] });
+    tutFlash('Tenace : Cadavre ambulant reste en jeu !');
+    S.p1.attackPhaseDone = true;
+    S.p1.attackers = [];
+    tutNext();
+  }
+});
+defStep({ id:'finalSpell', title:'Un sortilège pour finir',
+  text:"Initiative a tué Cadavre ambulant sans riposte et Brutalité a fait passer 7 dégâts (9 → 2 PV), mais Tenace le garde en jeu, une seule fois. Il reste Découper (Sortilège, 1 mana) : « Infligez 2 dégâts à un héros ou une créature ennemie ». Jouez-le après le combat : glissez-le sur le plateau puis désignez le héros de Sandroska. La carte part en défausse, puis l'effet s'applique.",
+  highlight:['[data-instid="t-p1-spell"]','#hero-frame-p2'],
+  expect:{ kind:'play', card:'t-p1-spell', needsHeroTarget:true },
+  run(info){
+    tutPlayerPlay(info.card, info.i);
+    S.p1.discard.push(tutFresh(info.card));
+    S.p2.hp = Math.max(0, S.p2.hp - 2);
+    // Dans le journal, l'effet est détaillé juste après la carte jouée.
+    S.__gameLog[S.__gameLog.length-1].effects = [{ text:'infligez 2 dégâts au héros ennemi', targetInstIds:[] }];
+    if(S.p2.hp<=0){
+      S.gameOver = true;
+      S.winnerKey = 'p1';
+      setTimeout(tutRewireGameOverButton, 50);
+    }
+    tutNext();
+  }
+});
+defStep({ id:'done', title:'Tutoriel terminé',
+  text:'Vous connaissez maintenant les créatures, le combat, les mots-clés, les artefacts, les pièges et les sortilèges !',
+  highlight:[] });
 
 let TUT = { step:'heroPower' };
+
+// Fin du tour du joueur : on passe la main, les créatures reprennent
+// leurs statuts de début de tour au prochain tour de leur propriétaire.
+function tutEndPlayerTurn(){
+  S.p1.attackPhaseDone = false;
+  S.p1.attackers = [];
+  UI.selectingAttackers = false; UI.selectedAttackers = [];
+  S.active = 'p2';
+}
 
 function tutSetStep(id){
   TUT.step = id;
@@ -3226,6 +3681,21 @@ function tutSetStep(id){
   if(hintEl){ hintEl.style.display = 'none'; hintEl.textContent = ''; }
   const contBtn = document.getElementById('tut-continue-btn');
   if(contBtn) contBtn.style.display = info.continueBtn ? 'inline-block' : 'none';
+  if(info.ai) tutScheduleAi(id);
+}
+
+// Tour de l'IA : lancé automatiquement, relancé tant qu'il n'a pas eu lieu
+// (une action déjà en cours, un onglet en arrière-plan... ne doivent
+// jamais bloquer le tutoriel).
+const AI_DONE = {};
+function tutScheduleAi(id){
+  const tick = ()=>{
+    if(TUT.step!==id || AI_DONE[id]) return;
+    if(ACTION_IN_FLIGHT || __combatAnimPlaying){ setTimeout(tick, 300); return; }
+    uiProcessAi();
+    setTimeout(tick, 1500);
+  };
+  setTimeout(tick, 900);
 }
 
 function tutApplyHighlight(){
@@ -3260,30 +3730,7 @@ function tutFlash(msg){
   el.textContent = msg;
   el.classList.add('show');
   clearTimeout(__tutFlashTimer);
-  __tutFlashTimer = setTimeout(()=>el.classList.remove('show'), 2600);
-}
-
-function tutResolveDeaths(key){
-  const p = S[key];
-  const dead = p.board.filter(c=>c.curHp<=0);
-  if(dead.length){
-    p.board = p.board.filter(c=>c.curHp>0);
-    dead.forEach(c=>p.discard.push(c));
-  }
-}
-
-// ---------------- Journal ----------------
-// Le panneau "Journal" du vrai plateau lit S.__gameLog (rempli côté
-// serveur en match réel, via pushLogEntry()/logRaw() — voir
-// spellcraft-edge-function-game-action.ts). Le tutoriel ne passe jamais
-// par le serveur, donc chaque action scriptée alimente ce journal à la
-// main, avec exactement la même forme, pour que le panneau ne reste pas
-// vide. Deux formes possibles :
-// - carte jouée/déclenchée : {ownerKey, cardName, cardId, kind, effects:[{text, targetInstIds}]}
-// - texte libre (combat)   : {ownerKey, raw:"{who} ...", highlightIds:[...]}
-function tutLog(entry){
-  if(!S.__gameLog) S.__gameLog = [];
-  S.__gameLog.push(Object.assign({ turn: S.turn||1 }, entry));
+  __tutFlashTimer = setTimeout(()=>el.classList.remove('show'), 3200);
 }
 
 function tutRewireGameOverButton(){
@@ -3302,24 +3749,13 @@ function tutShowEndScreen(){
 
 // ---------------- Boutons de la barre du tutoriel ----------------
 function tutOnContinueClick(){
-  const idx = TUT_STEP_ORDER.indexOf(TUT.step);
-  if(TUT.step==='heroPower'){
-    // Pouvoir passif de Kyzïre : 4 dégâts automatiques au héros ennemi.
-    S.p2.hp = Math.max(0, S.p2.hp - 4);
-    tutLog({ ownerKey:'p1', cardName:T_P1_HERO.name, cardId:'tut-hero-p1', kind:'hero_trigger',
-      effects:[{ text:'infligez 4 dégâts au héros ennemi', targetInstIds:[] }] });
-    render();
-  }
-  if(idx>=0 && idx<TUT_STEP_ORDER.length-1){
-    tutSetStep(TUT_STEP_ORDER[idx+1]);
-    tutApplyHighlight();
-  }
+  const info = TUT_STEPS_INFO[TUT.step];
+  if(!info || !info.continueBtn) return;
+  if(info.onContinue) info.onContinue();
+  tutNext();
+  render();
+  renderGameLog();
 }
-// Attend l'écriture serveur du flag "tutoriel terminé" avant de naviguer
-// (avec un filet de sécurité côté client + un délai max, pour ne jamais
-// bloquer indéfiniment si le réseau traîne). Sans ce await, la navigation
-// partait avant la fin de la requête, le navigateur l'annulait, et le flag
-// restait à false en base -> le hub relançait le tutoriel à chaque retour.
 async function tutMarkCompletedThenGo(url){
   try{ localStorage.setItem('sc-tutorial-completed', '1'); }catch(e){}
   try{
@@ -3336,53 +3772,105 @@ function tutSkip(){
   if(!confirm('Passer le tutoriel et retourner au menu ?')) return;
   tutMarkCompletedThenGo('spellcraft-hub.html');
 }
-function tutFinish(){
-  tutMarkCompletedThenGo('spellcraft-hub.html');
-}
+function tutFinish(){ tutMarkCompletedThenGo('spellcraft-hub.html'); }
 function tutGoToShop(){
   // L'octroi des 3 boosters (grant_tutorial_boosters, idempotent) se fait
-  // côté boutique elle-même, au chargement de spellcraft-shop.html — voir
-  // maybeGrantTutorialBoosters() dans ce fichier.
+  // côté boutique, au chargement de spellcraft-shop.html.
   tutMarkCompletedThenGo('spellcraft-shop.html?fromTutorial=1');
 }
-function tutOpenGrimoire(){
-  window.location.href = 'spellcraft-grimoire.html';
-}
+function tutOpenGrimoire(){ window.location.href = 'spellcraft-grimoire.html'; }
+
+// ---------------- Barre de phase : mêmes boutons que le vrai plateau ----------------
+// (« ⚔ Combat » + « Fin de tour » quand une créature peut attaquer ;
+// « Fin de tour » seul sinon ; « Passer (fin du blocage) » en défense.)
+const __tutOrigRenderPhaseBar = renderPhaseBar;
+renderPhaseBar = function(){
+  if(S.gameOver || S.pendingSacrifice || UI.pendingCard || UI.pendingPower || UI.pendingNewTarget){
+    return __tutOrigRenderPhaseBar();
+  }
+  const bar = document.getElementById('phase-bar');
+  bar.innerHTML = '';
+  const myTurn = S.active===MY_KEY;
+  const me = S[MY_KEY];
+  const mk = (txt, cls, tut, fn, disabled)=>{
+    const b = document.createElement('button');
+    b.className = cls; b.textContent = txt;
+    if(tut) b.dataset.tut = tut;
+    if(fn) b.onclick = fn;
+    if(disabled) b.disabled = true;
+    return b;
+  };
+  const stack = (main, ...subs)=>{
+    const st = document.createElement('div'); st.className = 'phase-bar-stack';
+    st.appendChild(main);
+    const row = document.createElement('div'); row.className = 'phase-bar-subrow';
+    subs.forEach(s=>row.appendChild(s));
+    st.appendChild(row);
+    bar.appendChild(st);
+  };
+  if(!myTurn){
+    if(S.phase==='declareBlockersMe'){
+      bar.appendChild(mk('Passer (fin du blocage)', 'phase-btn', 'pass-block', uiFinishBlocking));
+    } else {
+      bar.appendChild(mk('Tour adverse', 'phase-btn', null, null, true));
+    }
+    return;
+  }
+  if(S.phase==='declareBlockersMe'){
+    bar.appendChild(mk('En attente du blocage adverse...', 'phase-btn', null, null, true));
+    return;
+  }
+  if(UI.selectingAttackers){
+    const n = UI.selectedAttackers.length;
+    const main = n
+      ? mk(`Valider ${n} attaquant(s)`, 'phase-btn', 'confirm', uiConfirmAttackers)
+      : mk('Passer le combat', 'phase-btn', 'confirm', uiConfirmAttackers);
+    const cancel = mk('Annuler', 'phase-btn secondary small', null, ()=>{ UI.selectingAttackers = false; UI.selectedAttackers = []; render(); });
+    stack(main, cancel);
+    return;
+  }
+  if(S.phase==='main' && !me.attackPhaseDone && me.board.some(tutCanAttack)){
+    const combat = mk('⚔ Combat', 'phase-btn', 'combat', ()=>{ UI.selectingAttackers = true; UI.selectedAttackers = []; render(); });
+    const endNow = mk('Fin de tour', 'phase-btn secondary small', 'endturn', uiEndTurn);
+    stack(combat, endNow);
+    return;
+  }
+  bar.appendChild(mk('Fin de tour', 'phase-btn', 'endturn', uiEndTurn));
+};
 
 // ---------------- render() : on réutilise 100% le rendu réel ----------------
-// Réaffectation d'une fonction globale simple (function render(){...} plus
-// haut) — technique déjà utilisée ailleurs dans ce fichier pour les gs*() :
-// tout le code existant qui appelle render() (par son nom) obtiendra bien
-// cette nouvelle version à l'exécution.
 const __tutRealRender = render;
-// Garde-fou : évite de déclencher deux fois le tour de l'IA pour la même
-// étape (une fois via le setTimeout posé dans gsEndTurn, une fois via ce
-// filet de sécurité déclenché au rendu — voir plus bas).
-const AI_TURN_AUTOFIRED = {};
 render = function(){
   __tutRealRender();
-  // Transition purement cliente (aucun appel réseau) : passer en mode
-  // "sélection des attaquants" ne déclenche aucune fonction gs*(), on la
-  // détecte donc ici, à chaque rendu.
-  // Trois attaques scriptées ce tutoriel-ci, donc trois paires
-  // goToAttackN → selectAttackersN à détecter au fil du rendu.
-  const ATTACK_STEP_PAIRS = { goToAttack1:'selectAttackers1', goToAttack2:'selectAttackers2', goToAttack3:'selectAttackers3' };
-  if(ATTACK_STEP_PAIRS[TUT.step] && UI.selectingAttackers){
-    tutSetStep(ATTACK_STEP_PAIRS[TUT.step]);
-  }
-  // Filet de sécurité pour le tour de l'IA : gsEndTurn() pose déjà un
-  // setTimeout(uiProcessAi, 700) en entrant dans aiTurn1/2/3, mais un
-  // setTimeout peut être retardé (onglet en arrière-plan, navigateur
-  // occupé) ou, en cas d'erreur JS imprévue ailleurs, ne jamais se
-  // déclencher. On revérifie donc à chaque rendu si on est bien entré
-  // dans une étape aiTurnN sans que l'IA n'ait encore joué, et on relance
-  // uiProcessAi() nous-mêmes si besoin — au plus une fois par étape.
-  if(/^aiTurn[123]$/.test(TUT.step) && !AI_TURN_AUTOFIRED[TUT.step] && !ACTION_IN_FLIGHT){
-    const stepAtSchedule = TUT.step;
-    AI_TURN_AUTOFIRED[stepAtSchedule] = true;
-    setTimeout(()=>{ if(TUT.step===stepAtSchedule) uiProcessAi(); }, 700);
+  const info = TUT_STEPS_INFO[TUT.step];
+  if(info){
+    // Entrer / sortir du mode "choix des attaquants" est purement client
+    // (aucun appel gs*()) : on le détecte donc ici, à chaque rendu.
+    if(info.onSelecting && UI.selectingAttackers) tutSetStep(info.onSelecting);
+    else if(info.backTo && !UI.selectingAttackers) tutSetStep(info.backTo);
   }
   tutApplyHighlight();
+};
+
+// ---------------- Journal et défausse : étapes qui attendent une ouverture ----------------
+const __tutOrigOpenDiscard = openDiscardModal;
+openDiscardModal = function(key){
+  __tutOrigOpenDiscard(key);
+  const e = (TUT_STEPS_INFO[TUT.step]||{}).expect;
+  if(e && e.kind==='openDiscard' && e.key===key){ TUT_STEPS_INFO[TUT.step].run(); render(); }
+};
+const __tutOrigCloseDiscard = closeDiscardModal;
+closeDiscardModal = function(){
+  __tutOrigCloseDiscard();
+  const e = (TUT_STEPS_INFO[TUT.step]||{}).expect;
+  if(e && e.kind==='closeDiscard'){ TUT_STEPS_INFO[TUT.step].run(); render(); }
+};
+const __tutOrigToggleJournal = toggleJournal;
+toggleJournal = function(){
+  __tutOrigToggleJournal();
+  const isOpen = document.getElementById('journal-panel').classList.contains('show');
+  const e = (TUT_STEPS_INFO[TUT.step]||{}).expect;
+  if(e && e.kind==='toggleJournal' && e.open===isOpen){ TUT_STEPS_INFO[TUT.step].run(); render(); }
 };
 
 // ---------------- Actions réseau → simulées localement ----------------
@@ -3396,36 +3884,64 @@ gsReportBug = async function(){ return { ok:true }; };
 gsResolveDiscoverChoice = async function(){ return { state:S }; };
 gsResolveKeywordChoice = async function(){ return { state:S }; };
 gsMulligan = async function(){ return { state:S }; };
-// Ni Kyzïre ni Sandroska n'ont de pouvoir de héros activable manuellement
-// (leurs seules capacités sont passives), donc ce bouton reste désactivé.
 gsUseHeroPower = async function(){
-  tutFlash("Kyzïre n'a pas de pouvoir de héros à activer : le sien est passif (déclenché automatiquement en début de partie).");
+  tutFlash("Kyzïre n'a pas de pouvoir à activer : le sien est passif (déclenché automatiquement en début de partie).");
   return { error:'tutorial-disabled' };
 };
 
-// Activation de Hache de guerre naine : le plateau réel gère déjà le clic
-// sur la carte (Activer), l'affichage du bouton et le ciblage d'une
-// créature alliée grâce au vrai champ "abilities" copié sur la carte
-// (mêmes fonctions clientes que le plateau normal) — on n'a ici qu'à
-// appliquer l'effet une fois la cible reçue.
+// Étape courante si elle attend ce type d'action, sinon null.
+function tutExpecting(kind){
+  const info = TUT_STEPS_INFO[TUT.step];
+  return (info && info.expect && info.expect.kind===kind) ? info : null;
+}
+function tutWrongStep(){
+  tutFlash("Ce n'est pas ce qu'il faut faire pour l'instant — suivez les instructions en haut de l'écran.");
+  return { error:'tutorial-wrong-step' };
+}
+
+gsPlayCardSimple = async function(i, targetInfo, chosenTargets){
+  const card = S.p1.hand[i];
+  if(!card) return { error:'Carte introuvable.' };
+  const info = tutExpecting('play');
+  if(!info || info.expect.card!==card.instId) return tutWrongStep();
+  if(info.expect.needsHeroTarget){
+    // Sortilège final : seul le héros de Sandroska est une cible valide ici.
+    const flat = chosenTargets ? (Array.isArray(chosenTargets) ? chosenTargets : [].concat(...Object.values(chosenTargets))) : [];
+    const viaHero = (targetInfo && targetInfo.isHeroTarget && targetInfo.playerKey==='p2') || flat.includes('hero:p2');
+    const anyTarget = !!(targetInfo && (targetInfo.instId || targetInfo.isHeroTarget)) || flat.length>0;
+    if(anyTarget && !viaHero){
+      tutFlash('Pour finir la partie, désignez le héros de Sandroska.');
+      return { error:'tutorial-wrong-target' };
+    }
+  }
+  await info.run({ card, i, targetInfo, chosenTargets });
+  return { state:S };
+};
+
+gsSetTrap = async function(handIndex){
+  const card = S.p1.hand[handIndex];
+  const info = tutExpecting('trap');
+  if(!info || !card || card.instId!==info.expect.card){
+    tutFlash("Ce n'est pas le moment de poser ce piège.");
+    return { error:'tutorial-wrong-step' };
+  }
+  await info.run({ card, i:handIndex });
+  return { state:S };
+};
+
 gsActivatePermanent = async function(permanentType, permanentInstId, targetInfo, chosenTargets){
-  if(TUT.step!=='playArtifact'){
+  const info = tutExpecting('activate');
+  if(!info){
     tutFlash("Ce n'est pas le moment d'activer cette capacité.");
     return { error:'tutorial-wrong-step' };
   }
-  const me = S.p1;
-  const art = me.relics.find(r=>r.instId===T_P1_ARTIFACT.instId);
-  if(!art || permanentInstId!==T_P1_ARTIFACT.instId){
+  const art = S.p1.relics.find(r=>r.instId===permanentInstId);
+  if(!art){
     tutFlash("Ce n'est pas la bonne capacité à activer.");
     return { error:'tutorial-wrong-target' };
   }
-  // IMPORTANT : le vrai plateau (pickNewFormatTarget, dans le code copié
-  // plus haut) envoie chosenTargets sous la forme d'un OBJET indexé par
-  // l'id de la cible de la capacité — { "<targetId>": ["<instId>", ...] }
-  // — et non d'un tableau comme on aurait pu s'y attendre. L'ancienne
-  // version de ce code testait chosenTargets.length (toujours undefined
-  // sur un objet), donc targetInstId restait toujours null et le clic sur
-  // la créature ne faisait jamais rien de visible : c'était le bug.
+  // Le vrai plateau envoie chosenTargets sous la forme d'un OBJET indexé par
+  // l'id de la cible de la capacité — { "<targetId>": ["<instId>", ...] }.
   let targetInstId = null;
   if(chosenTargets){
     const arr = Array.isArray(chosenTargets) ? chosenTargets : Object.values(chosenTargets)[0];
@@ -3435,256 +3951,75 @@ gsActivatePermanent = async function(permanentType, permanentInstId, targetInfo,
     }
   }
   if(!targetInstId && targetInfo && targetInfo.instId) targetInstId = targetInfo.instId;
-  const target = me.board.find(c=>c.instId===targetInstId);
+  const target = S.p1.board.find(c=>c.instId===targetInstId);
   if(!target){
     tutFlash('Désignez une créature alliée pour recevoir le bonus.');
     return { error:'tutorial-no-target' };
   }
-  if(target.instId!==T_P1_C2.instId){
+  if(target.instId!==info.expect.target){
     tutFlash('Pour cette démonstration, ciblez plutôt votre Chevaucheuse de requin des sables.');
     return { error:'tutorial-wrong-target' };
   }
-  target.atk += 4; target.curAtk += 4;
-  if(!target.keywords.includes('pierce')) target.keywords.push('pierce');
-  if(!target.keywords.includes('initiative')) target.keywords.push('initiative');
-  art.charges = Math.max(0, (art.charges||1) - 1);
-  tutLog({ ownerKey:'p1', cardName:T_P1_ARTIFACT.name, cardId:art.instId, kind:'artifact_activate',
-    effects:[{ text:`donne +4/+0, Perçant et Initiative à ${target.name}`, targetInstIds:[target.instId] }] });
-  tutSetStep('goToAttack3');
+  await info.run({ art, target });
   return { state:S };
-};
-
-gsPlayCardSimple = async function(i, targetInfo, chosenTargets, choiceKey, sacrificeInstId){
-  const me = S.p1;
-  const card = me.hand[i];
-  if(!card){ return { error:'Carte introuvable.' }; }
-
-  if(TUT.step==='playC1' && card.instId===T_P1_C1.instId){
-    me.hand.splice(i,1);
-    me.board.push(Object.assign({}, card, { summonSick:true }));
-    me.manaNormal -= card.cost;
-    tutLog({ ownerKey:'p1', cardName:card.name, cardId:card.instId, kind:'play', effects:[] });
-    tutSetStep('goToAttack1');
-    return { state:S };
-  }
-  if(TUT.step==='playC2' && card.instId===T_P1_C2.instId){
-    me.hand.splice(i,1);
-    me.board.push(Object.assign({}, card, { summonSick:true }));
-    me.manaNormal -= card.cost;
-    tutLog({ ownerKey:'p1', cardName:card.name, cardId:card.instId, kind:'play', effects:[] });
-    tutSetStep('goToAttack2');
-    return { state:S };
-  }
-  if(TUT.step==='playArtifact' && card.instId===T_P1_ARTIFACT.instId){
-    me.hand.splice(i,1);
-    me.relics.push(Object.assign({}, card));
-    me.manaNormal -= card.cost;
-    tutLog({ ownerKey:'p1', cardName:card.name, cardId:card.instId, kind:'play', effects:[] });
-    // On reste à la même étape : il reste à activer la capacité (bouton
-    // "Activer" affiché par le vrai rendu du plateau, grâce à "abilities").
-    return { state:S };
-  }
-  if(TUT.step==='finalSpell' && card.instId===T_P1_SPELL.instId){
-    // Le plateau adverse est vide à ce stade : le héros de Sandroska est la
-    // seule cible valide proposée par l'interface de ciblage réelle.
-    me.hand.splice(i,1);
-    S.p2.hp = Math.max(0, S.p2.hp - 2);
-    tutLog({ ownerKey:'p1', cardName:card.name, cardId:card.instId, kind:'play',
-      effects:[{ text:'infligez 2 dégâts au héros ennemi', targetInstIds:[] }] });
-    tutResolveDeaths('p1');
-    tutResolveDeaths('p2');
-    if(S.p2.hp<=0){
-      S.gameOver = true;
-      S.winnerKey = 'p1';
-      setTimeout(tutRewireGameOverButton, 50);
-    }
-    tutSetStep('done');
-    return { state:S };
-  }
-  tutFlash("Ce n'est pas ce qu'il faut faire pour l'instant — suivez les instructions en haut de l'écran.");
-  return { error:'tutorial-wrong-step' };
-};
-
-gsSetTrap = async function(handIndex){
-  const me = S.p1;
-  const card = me.hand[handIndex];
-  if(TUT.step==='playTrap' && card && card.instId===T_P1_TRAP.instId){
-    card.activeTrap = true;
-    me.manaNormal -= card.cost;
-    tutLog({ ownerKey:'p1', cardName:card.name, cardId:card.instId, kind:'play', effects:[] });
-    tutSetStep('endTurn1');
-    return { state:S };
-  }
-  tutFlash("Ce n'est pas le moment de poser ce piège.");
-  return { error:'tutorial-wrong-step' };
 };
 
 gsDeclareAttackers = async function(attackerIds){
   const got = attackerIds || [];
-
-  // ---- Tour 1 : le Gobelin inconscient attaque seul, plateau adverse vide ----
-  if(TUT.step==='selectAttackers1'){
-    if(got.length!==1 || got[0]!==T_P1_C1.instId){
-      tutFlash('Sélectionnez le Gobelin inconscient, puis validez.');
-      return { error:'tutorial-wrong-attackers' };
-    }
-    const gobelin = S.p1.board.find(c=>c.instId===T_P1_C1.instId);
-    if(gobelin){
-      S.p2.hp = Math.max(0, S.p2.hp - gobelin.curAtk);
-      tutLog({ ownerKey:'p1', raw:`{who} attaque avec ${gobelin.name}`, highlightIds:[gobelin.instId] });
-      tutLog({ ownerKey:'p2', raw:`{who} a perdu ${gobelin.curAtk} points de vie dans cette attaque`, highlightIds:[gobelin.instId] });
-    }
-    S.p1.attackPhaseDone = true;
-    S.p1.attackers = [];
-    tutSetStep('playTrap');
-    return { state:S };
+  const info = tutExpecting('attack');
+  if(!info) return tutWrongStep();
+  const want = info.expect.ids;
+  if(got.length!==want.length || !want.every(id=>got.includes(id))){
+    tutFlash(`Sélectionnez ${want.length>1?'les créatures indiquées':'la créature en surbrillance'}, puis validez.`);
+    return { error:'tutorial-wrong-attackers' };
   }
-
-  // ---- Tour 2 : la Chevaucheuse attaque seule, bloquée par Forge-sort ----
-  if(TUT.step==='selectAttackers2'){
-    if(got.length!==1 || got[0]!==T_P1_C2.instId){
-      tutFlash('Sélectionnez la Chevaucheuse de requin des sables, puis validez.');
-      return { error:'tutorial-wrong-attackers' };
-    }
-    const chevaucheuseAtt = S.p1.board.find(c=>c.instId===T_P1_C2.instId);
-    if(chevaucheuseAtt) tutLog({ ownerKey:'p1', raw:`{who} attaque avec ${chevaucheuseAtt.name}`, highlightIds:[chevaucheuseAtt.instId] });
-    const blocker = S.p2.board.find(c=>c.instId===T_P2_FORGE.instId);
-    const trapCard = S.p1.hand.find(c=>c.activeTrap);
-    if(blocker && trapCard){
-      // Frappe preventive se déclenche avant l'échange de coups : 3 dégâts
-      // au bloqueur désigné, avant même que le combat ne commence.
-      blocker.curHp -= 3;
-      const idx = S.p1.hand.indexOf(trapCard);
-      S.p1.hand.splice(idx,1);
-      S.p1.discard.push(trapCard);
-      tutLog({ ownerKey:'p1', cardName:trapCard.name, cardId:trapCard.instId, kind:'trap',
-        effects:[{ text:`infligez 3 dégâts à ${blocker.name}`, targetInstIds:[blocker.instId] }] });
-      tutFlash('Frappe preventive se déclenche ! 3 dégâts au bloqueur, avant le combat.');
-    }
-    // Le bloqueur meurt avant l'échange de coups : le combat s'arrête là,
-    // aucun dégât supplémentaire des deux côtés (ni au héros, ni en retour).
-    tutResolveDeaths('p1');
-    tutResolveDeaths('p2');
-    S.p1.attackPhaseDone = true;
-    S.p1.attackers = [];
-    tutSetStep('endTurn2');
-    return { state:S };
-  }
-
-  // ---- Tour 3 : Chevaucheuse buffée (Hache de guerre naine), combo Initiative + Perçant ----
-  if(TUT.step==='selectAttackers3'){
-    if(got.length!==1 || got[0]!==T_P1_C2.instId){
-      tutFlash('Sélectionnez la Chevaucheuse de requin des sables, puis validez.');
-      return { error:'tutorial-wrong-attackers' };
-    }
-    const chevaucheuse = S.p1.board.find(c=>c.instId===T_P1_C2.instId);
-    const traqueur = S.p2.board.find(c=>c.instId===T_P2_TRAQUEUR.instId);
-    if(chevaucheuse) tutLog({ ownerKey:'p1', raw:`{who} attaque avec ${chevaucheuse.name}`, highlightIds:[chevaucheuse.instId] });
-    if(chevaucheuse && traqueur){
-      // Initiative : la Chevaucheuse frappe en premier.
-      const excess = chevaucheuse.curAtk - traqueur.curHp;
-      traqueur.curHp -= chevaucheuse.curAtk;
-      if(excess > 0){
-        // Le coup fatal tue le bloqueur avant qu'il ne puisse riposter :
-        // Initiative annule donc toute contre-attaque sur la Chevaucheuse.
-        // Perçant : les dégâts en trop passent au travers, jusqu'au héros.
-        S.p2.hp = Math.max(0, S.p2.hp - excess);
-        tutLog({ ownerKey:'p2', raw:`{who} a perdu ${excess} points de vie dans cette attaque`, highlightIds:[chevaucheuse.instId] });
-      } else {
-        // (Cas non atteint dans ce script : sans coup fatal, la riposte
-        // normale se serait appliquée à la Chevaucheuse.)
-        chevaucheuse.curHp -= traqueur.curAtk;
-      }
-    }
-    tutResolveDeaths('p1');
-    tutResolveDeaths('p2');
-    S.p1.attackPhaseDone = true;
-    S.p1.attackers = [];
-    tutSetStep('endTurn3');
-    return { state:S };
-  }
-
-  tutFlash("Ce n'est pas le moment d'attaquer.");
-  return { error:'tutorial-wrong-step' };
+  await info.run();
+  return { state:S };
 };
 
-// IMPORTANT : en match réel, onStateUpdate() se relance automatiquement
-// après un tour (diffusion temps réel du serveur), et C'EST ce second
-// appel — arrivant après coup, une fois ACTION_IN_FLIGHT repassé à false
-// — qui déclenche uiProcessAi(). Le tutoriel n'a aucune diffusion
-// réseau : le SEUL appel à onStateUpdate() est celui, synchrone, fait par
-// runAction() DANS son propre bloc try, donc AVANT que son "finally" ne
-// remette ACTION_IN_FLIGHT à false — la condition "!ACTION_IN_FLIGHT" dans
-// onStateUpdate() y échoue donc toujours, et l'IA ne joue jamais. On
-// déclenche donc ici, explicitement, le tour de l'IA nous-mêmes.
 gsEndTurn = async function(){
-  if(TUT.step==='endTurn1'){
-    S.p1.attackPhaseDone = false;
-    S.active = 'p2';
-    tutSetStep('aiTurn1');
-    setTimeout(()=>{ uiProcessAi(); }, 700);
-    return { state:S };
+  const info = tutExpecting('endTurn');
+  if(!info){
+    tutFlash("Pas encore : suivez les instructions en haut de l'écran.");
+    return { error:'tutorial-wrong-step' };
   }
-  if(TUT.step==='endTurn2'){
-    S.p1.attackPhaseDone = false;
-    S.active = 'p2';
-    tutSetStep('aiTurn2');
-    setTimeout(()=>{ uiProcessAi(); }, 700);
-    return { state:S };
+  await info.run();
+  return { state:S };
+};
+
+gsAssignBlock = async function(blockerId, attackerId){
+  const blk = S.p1.board.find(c=>c.instId===blockerId);
+  const att = S.p2.board.find(c=>c.instId===attackerId);
+  if(!blk || !att || !(S.p2.attackers||[]).includes(attackerId)){
+    tutFlash("Choisissez d'abord votre défenseur, puis l'attaquant à bloquer.");
+    return { error:'tutorial-wrong-target' };
   }
-  if(TUT.step==='endTurn3'){
-    S.p1.attackPhaseDone = false;
-    S.active = 'p2';
-    tutSetStep('aiTurn3');
-    setTimeout(()=>{ uiProcessAi(); }, 700);
-    return { state:S };
+  // Règle réelle : une créature avec Envol n'est bloquable que par Envol / Portée.
+  if(tutHasKw(att,'flying') && !tutHasKw(blk,'flying') && !tutHasKw(blk,'reach')){
+    tutFlash(`${att.name} a Envol : seules des créatures avec Envol ou Portée peuvent la bloquer.`);
+    return { error:'cannot-block-flying' };
   }
-  tutFlash("Pas encore : suivez les instructions en haut de l'écran.");
+  const info = tutExpecting('block');
+  if(!info || blockerId!==info.expect.blocker || attackerId!==info.expect.attacker){
+    tutFlash("Pour ce tutoriel, bloquez Horreur reptilienne avec Bandit des marais Aral'Anak.");
+    return { error:'tutorial-wrong-block' };
+  }
+  await info.run();
+  return { state:S };
+};
+gsFinishBlocking = async function(){
+  tutFlash("Pour ce tutoriel, bloquez d'abord Horreur reptilienne avec Bandit des marais Aral'Anak.");
   return { error:'tutorial-wrong-step' };
 };
+
+// Le tour de l'IA est entièrement scripté par l'étape courante (champ "ai").
 gsProcessAiTurn = async function(){
-  // Sandroska ne passe jamais à l'attaque dans ce tutoriel (pour rester
-  // pédagogique et laisser le joueur mener le jeu) : chaque tour de l'IA se
-  // limite à poser une créature, puis rendre la main.
-  if(TUT.step==='aiTurn1'){
-    S.p2.manaNormalMax = 2; S.p2.manaNormal = 2;
-    S.p2.hand.pop();
-    S.p2.board.push(Object.assign({}, T_P2_FORGE, { summonSick:true }));
-    S.p2.manaNormal -= T_P2_FORGE.cost;
-    tutLog({ ownerKey:'p2', cardName:T_P2_FORGE.name, cardId:T_P2_FORGE.instId, kind:'play', effects:[] });
-    S.active = 'p1';
-    S.p1.board.forEach(c=>{ c.summonSick = false; });
-    S.p1.manaNormalMax = 3; S.p1.manaNormal = 3;
-    S.p1.hand.push(Object.assign({}, T_P1_C2));
-    tutSetStep('playC2');
-    return { state:S };
-  }
-  if(TUT.step==='aiTurn2'){
-    S.p2.board.forEach(c=>{ c.summonSick = false; });
-    S.p2.manaNormalMax = 3; S.p2.manaNormal = 3;
-    S.p2.hand.pop();
-    S.p2.board.push(Object.assign({}, T_P2_TRAQUEUR, { summonSick:true }));
-    S.p2.manaNormal -= T_P2_TRAQUEUR.cost;
-    tutLog({ ownerKey:'p2', cardName:T_P2_TRAQUEUR.name, cardId:T_P2_TRAQUEUR.instId, kind:'play', effects:[] });
-    S.active = 'p1';
-    S.p1.board.forEach(c=>{ c.summonSick = false; });
-    // Bond de mana jusqu'à 6 pour pouvoir poser Hache de guerre naine :
-    // ce tutoriel est scripté, la progression du mana n'a pas à suivre la
-    // courbe normale d'une vraie partie.
-    S.p1.manaNormalMax = 6; S.p1.manaNormal = 6;
-    S.p1.hand.push(Object.assign({}, T_P1_ARTIFACT));
-    tutSetStep('playArtifact');
-    return { state:S };
-  }
-  if(TUT.step==='aiTurn3'){
-    // Sandroska, déjà réduite à 1 point de vie et sans board, ne tente
-    // plus rien : son tour se termine sans la moindre action.
-    S.active = 'p1';
-    S.p1.manaNormalMax = 7; S.p1.manaNormal = 7;
-    S.p1.hand.push(Object.assign({}, T_P1_SPELL));
-    tutSetStep('finalSpell');
-    return { state:S };
-  }
+  const info = TUT_STEPS_INFO[TUT.step];
+  if(!info || !info.ai || AI_DONE[TUT.step]) return {};
+  const id = TUT.step;
+  AI_DONE[id] = true;
+  await info.ai();
+  if(TUT.step===id) tutNext();
   return { state:S };
 };
 
@@ -3693,12 +4028,9 @@ async function initTutorial(){
   MY_KEY = 'p1'; OPP_KEY = 'p2';
   GS_ROLE = 'p1'; GS_VS_AI = true;
   // Alimente le lookup utilisé par le journal (survol du nom d'une carte
-  // dans une ligne du journal → aperçu de la carte, et détection du bon
-  // son de pose selon le type) avec nos cartes scriptées.
+  // → aperçu, détection du son de pose selon le type) avec nos cartes.
   JOURNAL_CARD_LOOKUP = JOURNAL_CARD_LOOKUP || {};
-  [T_P1_C1, T_P1_C2, T_P1_TRAP, T_P1_ARTIFACT, T_P1_SPELL, T_P2_FORGE, T_P2_TRAQUEUR].forEach(c=>{
-    JOURNAL_CARD_LOOKUP[c.instId] = c;
-  });
+  TUT_ALL_CARDS.forEach(c=>{ JOURNAL_CARD_LOOKUP[c.instId] = c; });
   const appOuter = document.getElementById('app-outer');
   if(appOuter) appOuter.classList.add('show');
   const aiBtn = document.getElementById('ai-debug-btn');
