@@ -167,6 +167,7 @@ let UNLOCKED_ACHIEVEMENT_IDS = [];
 let SELECTED_AVATAR = null;
 let LAST_PROFILE = null; // dernière réponse de gsGetProfile, réutilisée par openEditPanel
 let SELECTED_ACHIEVEMENTS = [];
+let SELECTED_TITLE_VARIANT = null; // 'm' | 'f' | null (titres genrés uniquement)
 let SELECTED_TITLE = null; // id du succès dont le nom sert de titre équipé (ou null = aucun)
 
 function escapeHtmlProfile(s){ return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -277,7 +278,7 @@ async function openEditPanel(){
     };
   });
 
-  const { data: achievements } = await sb.from('achievement_definitions').select('id, name, description, image_url, grants_title').order('order_index');
+  const { data: achievements } = await sb.from('achievement_definitions').select('id, name, description, image_url, grants_title, title_masculine, title_feminine').order('order_index');
   const { data: unlocked } = await sb.from('user_achievements').select('achievement_id').eq('user_id', MY_USER_ID).eq('completed', true);
   ALL_ACHIEVEMENTS = achievements || [];
   UNLOCKED_ACHIEVEMENT_IDS = (unlocked||[]).map(u=>u.achievement_id);
@@ -288,6 +289,7 @@ async function openEditPanel(){
   SELECTED_ACHIEVEMENTS = ((LAST_PROFILE && LAST_PROFILE.featuredAchievements) || [])
     .map(f => f && f.id).filter(id => id && UNLOCKED_ACHIEVEMENT_IDS.includes(id)).slice(0,5);
   SELECTED_TITLE = (LAST_PROFILE && LAST_PROFILE.equippedTitleAchievementId) || null;
+  SELECTED_TITLE_VARIANT = (LAST_PROFILE && LAST_PROFILE.equippedTitleVariant) || null;
 
   const achWrap = document.getElementById('achievement-choices');
   achWrap.innerHTML = ALL_ACHIEVEMENTS.map(a=>{
@@ -314,10 +316,23 @@ async function openEditPanel(){
   // le joueur. "Aucun titre" est toujours proposé pour pouvoir le retirer.
   const unlockedTitleAchievements = ALL_ACHIEVEMENTS.filter(a => a.grants_title && UNLOCKED_ACHIEVEMENT_IDS.includes(a.id));
   const titleWrap = document.getElementById('title-choices');
-  let titleTilesHtml = `<div class="title-choice${SELECTED_TITLE ? '' : ' selected'}" data-title-id="">Aucun titre</div>`;
-  titleTilesHtml += unlockedTitleAchievements.map(a => `
-    <div class="title-choice${a.id===SELECTED_TITLE ? ' selected' : ''}" data-title-id="${escapeHtmlProfile(a.id)}">${escapeHtmlProfile(a.name)}</div>
-  `).join('');
+  let titleTilesHtml = `<div class="title-choice${SELECTED_TITLE ? '' : ' selected'}" data-title-id="" data-variant="">Aucun titre</div>`;
+  // Un titre genré donne DEUX choix distincts (ex. « Prestidigitateur » et « Prestidigitatrice »).
+  // Si les deux formes sont identiques (ex. « L'enfant »), un seul choix est proposé.
+  // Un titre sans forme genrée reste un choix unique, sans variante.
+  const titleTiles = [];
+  unlockedTitleAchievements.forEach(a => {
+    if(a.title_masculine){
+      titleTiles.push({ id:a.id, variant:'m', label:a.title_masculine });
+      if(a.title_feminine && a.title_feminine !== a.title_masculine) titleTiles.push({ id:a.id, variant:'f', label:a.title_feminine });
+    } else {
+      titleTiles.push({ id:a.id, variant:'', label:a.name });
+    }
+  });
+  titleTilesHtml += titleTiles.map(t => {
+    const isSel = t.id === SELECTED_TITLE && (t.variant === '' || t.variant === (SELECTED_TITLE_VARIANT || 'm') || (t.variant === 'm' && SELECTED_TITLE_VARIANT === 'f' && !titleTiles.some(x => x.id === t.id && x.variant === 'f')));
+    return `<div class="title-choice${isSel ? ' selected' : ''}" data-title-id="${escapeHtmlProfile(t.id)}" data-variant="${t.variant}">${escapeHtmlProfile(t.label)}</div>`;
+  }).join('');
   titleWrap.innerHTML = titleTilesHtml;
   if(unlockedTitleAchievements.length === 0){
     titleWrap.innerHTML += '<p style="font-size:12px;color:var(--parchment-dim);width:100%;">Aucun titre débloqué pour l\'instant — certains succès en donnent un en plus du badge.</p>';
@@ -325,6 +340,7 @@ async function openEditPanel(){
   titleWrap.querySelectorAll('.title-choice').forEach(el=>{
     el.onclick = ()=>{
       SELECTED_TITLE = el.dataset.titleId || null;
+      SELECTED_TITLE_VARIANT = el.dataset.variant || null;
       titleWrap.querySelectorAll('.title-choice').forEach(e=>e.classList.remove('selected'));
       el.classList.add('selected');
     };
@@ -341,8 +357,7 @@ async function saveProfileCustomization(){
   const statusEl = document.getElementById('edit-status');
   statusEl.textContent = 'Enregistrement...';
   const res = await gsUpdateProfileCustomization(SELECTED_AVATAR, SELECTED_ACHIEVEMENTS, SELECTED_TITLE,
-    // variante (m/f) conservée tant que le titre n'a pas changé
-    (LAST_PROFILE && LAST_PROFILE.equippedTitleAchievementId === SELECTED_TITLE) ? (LAST_PROFILE.equippedTitleVariant || null) : null);
+    SELECTED_TITLE_VARIANT);
   if(res.error){ statusEl.textContent = 'Erreur : ' + res.error; return; }
   statusEl.textContent = 'Enregistré !';
   await loadAndRenderProfile();
