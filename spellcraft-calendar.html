@@ -285,6 +285,12 @@ async function load(){
     return;
   }
   const { data, error } = await sb.rpc('get_calendar');
+  if(data && data.error === 'coming-soon'){
+    document.getElementById('cal-head').innerHTML = '<p class="empty-note">Le calendrier arrive bientôt ! 🎁</p>';
+    document.getElementById('grid').innerHTML = ''; document.getElementById('final-tile').innerHTML = '';
+    document.getElementById('cal-rules').innerHTML = '';
+    return;
+  }
   if(error || !data || data.error){
     document.getElementById('cal-head').innerHTML = '<p class="empty-note">Impossible de charger le calendrier pour le moment.</p>';
     return;
