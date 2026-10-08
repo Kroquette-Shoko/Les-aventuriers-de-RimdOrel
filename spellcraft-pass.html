@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spellcraft — Pass de saison</title>
+<script>
+// Anti-flash : applique le thème choisi AVANT le premier rendu.
+(function(){
+  try{
+    var t = localStorage.getItem('sc-theme') || 'actuel';
+    document.documentElement.setAttribute('data-theme', t);
+  }catch(e){}
+})();
+</script>
+<link rel="stylesheet" href="spellcraft-ui-kit.css">
+<style>
+#app{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:0 20px 60px;}
+#app > .sc-topbar{margin:0 -20px 20px;width:calc(100% + 40px);}
+main{width:100%;max-width:900px;display:flex;flex-direction:column;gap:18px;}
+
+.money-icon{width:20px;height:20px;display:inline-block;vertical-align:-5px;background-color:#f2c94c;-webkit-mask-image:url('images/money.png');mask-image:url('images/money.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;}
+#gold-chip{font-size:13.5px;padding:7px 16px;}
+
+.pass-top-row{width:100%;max-width:900px;display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px;}
+.pass-top-row .sc-h1{margin:0;}
+
+/* ---------- En-tête : niveau + barre d'XP ---------- */
+#pass-head{display:flex;flex-direction:column;gap:12px;}
+.head-line{display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.lvl-badge{min-width:74px;height:74px;border-radius:50%;border:3px solid var(--gold);display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg-panel-3);flex-shrink:0;}
+.lvl-badge small{font-size:10px;color:var(--parchment-dim);letter-spacing:.8px;text-transform:uppercase;}
+.lvl-badge b{font-family:'Cinzel',serif;font-size:26px;color:var(--gold);line-height:1;}
+.head-info{flex:1;min-width:220px;}
+.season-name{font-family:'Cinzel',serif;font-size:17px;color:var(--gold);}
+.season-sub{font-size:12px;color:var(--parchment-dim);margin:2px 0 8px;}
+.xp-track{width:100%;height:12px;border-radius:7px;background:var(--bg-panel-3);overflow:hidden;}
+.xp-fill{height:100%;background:linear-gradient(90deg,var(--arcane),var(--gold));transition:width .4s;}
+.xp-text{font-size:11.5px;color:var(--parchment-dim);margin-top:5px;}
+
+.action-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.premium-box{flex:1;min-width:240px;border:1px solid var(--gold);border-radius:12px;padding:12px 14px;background:var(--bg-panel-2);display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between;}
+.premium-box.owned{border-color:var(--green);}
+.premium-box .pt{font-weight:700;font-size:13.5px;}
+.premium-box .pd{font-size:11.5px;color:var(--parchment-dim);}
+
+/* ---------- Liste des niveaux ---------- */
+.grid-head,.lvl-row{display:grid;grid-template-columns:54px 1fr 1fr;gap:10px;align-items:stretch;}
+.grid-head{position:sticky;top:66px;z-index:20;background:var(--bg-panel-2);padding:8px 0;border-bottom:1px solid var(--line);font-family:'Cinzel',serif;font-size:12.5px;letter-spacing:.5px;}
+.grid-head div{text-align:center;color:var(--parchment-dim);}
+.grid-head .ph{color:var(--gold);}
+#levels{display:flex;flex-direction:column;gap:8px;margin-top:8px;}
+.lvl-num{display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:700;font-size:15px;border-radius:10px;background:var(--bg-panel-3);color:var(--parchment-dim);border:1px solid var(--line);}
+.lvl-row.reached .lvl-num{color:var(--gold);border-color:var(--gold);}
+.lvl-row.current .lvl-num{background:var(--gold);color:#1b1630;}
+
+.cell{position:relative;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--bg-panel-2);display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;min-height:54px;font-size:12.5px;text-align:center;}
+.cell.premium{border-color:rgba(242,201,76,.45);}
+.cell.empty{opacity:.35;}
+.cell.locked{opacity:.55;}
+.cell.claimable{border-color:var(--green);box-shadow:0 0 0 1px var(--green) inset;cursor:pointer;}
+.cell.claimable:hover{background:var(--bg-panel-3);}
+.cell.claimed{opacity:.55;}
+.cell .tag{position:absolute;top:3px;right:6px;font-size:11px;font-weight:700;}
+.cell .tag.ok{color:var(--green);}
+.rw{display:inline-flex;align-items:center;gap:5px;font-weight:700;color:var(--parchment);}
+.rw.gold{color:var(--gold);}
+.rw img{width:26px;height:36px;object-fit:cover;border-radius:4px;border:1px solid var(--line);}
+
+.empty-note{font-size:12.5px;color:var(--parchment-dim);font-style:italic;}
+.rules{font-size:12px;color:var(--parchment-dim);line-height:1.55;}
+.rules b{color:var(--parchment);}
+
+/* ---------- Fenêtre de résultat ---------- */
+#res-back{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:300;padding:20px;}
+#res-back.show{display:flex;}
+#res-box{background:var(--bg-panel-2);border:1px solid var(--gold);border-radius:14px;padding:20px 22px;max-width:460px;width:100%;max-height:80vh;overflow:auto;}
+#res-box h3{font-family:'Cinzel',serif;color:var(--gold);margin:0 0 12px;}
+#res-box ul{margin:0 0 14px;padding-left:18px;font-size:13px;line-height:1.6;}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--bg-panel-3);border:1px solid var(--line);padding:10px 18px;border-radius:10px;font-size:13px;z-index:400;display:none;}
+
+@media(max-width:560px){
+  .grid-head,.lvl-row{grid-template-columns:42px 1fr 1fr;gap:6px;}
+  .cell{padding:8px 6px;font-size:11.5px;}
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="sc-topbar">
+    <a href="spellcraft-hub.html" class="sc-topbar-back" title="Retour à l'accueil">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Menu principal
+    </a>
+    <span class="sc-topbar-title">🎖️ Pass de saison</span>
+    <div class="sc-topbar-right">
+      <div id="sc-auth-slot"></div>
+      <div id="sc-options-slot"></div>
+    </div>
+  </div>
+
+  <div class="pass-top-row">
+    <h1 class="sc-h1">Pass de saison</h1>
+    <div id="gold-chip" class="sc-pill sc-pill-gold"><span class="money-icon"></span><span id="gold-amount">–</span></div>
+  </div>
+
+  <main>
+    <div id="pass-head" class="sc-panel"><p class="empty-note">Chargement…</p></div>
+
+    <div class="sc-panel">
+      <div class="grid-head"><div>Niveau</div><div>Voie gratuite</div><div class="ph">Voie premium ★</div></div>
+      <div id="levels"></div>
+    </div>
+
+    <div class="sc-panel rules" id="pass-rules"></div>
+  </main>
+</div>
+
+<div id="res-back"><div id="res-box"></div></div>
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>window.APP_TOPBAR_DISABLED = true;</script>
+<script src="spellcraft-shared.js"></script>
+<script src="spellcraft-auth.js"></script>
+<script src="spellcraft-economy.js"></script>
+<script>
+let PASS = null;          // dernier état renvoyé par get_pass
+let BACK_NAMES = {};      // id dos de carte -> {name, image_url}
+let TITLE_NAMES = {};     // id titre -> {m, f}
+let busy = false;
+
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function toast(msg){
+  const t = document.getElementById('toast'); t.textContent = msg; t.style.display = 'block';
+  clearTimeout(toast._t); toast._t = setTimeout(()=>{ t.style.display = 'none'; }, 3200);
+}
+function fmtDate(iso){ try{ return new Date(iso).toLocaleDateString('fr-FR', { day:'numeric', month:'long', year:'numeric', timeZone:'Europe/Paris' }); }catch(e){ return ''; } }
+
+const ERRORS = {
+  'not-logged-in':'Connecte-toi pour utiliser le pass.',
+  'no-season':'Aucune saison en cours.',
+  'level-not-reached':'Tu n\'as pas encore atteint ce niveau.',
+  'premium-required':'Cette récompense demande la voie premium.',
+  'already-claimed':'Récompense déjà réclamée.',
+  'already-premium':'Tu as déjà la voie premium.',
+  'not-enough-gold':'Pas assez d\'or pour débloquer la voie premium.',
+  'no-reward':'Aucune récompense à ce niveau.'
+};
+function errText(e){ return ERRORS[e] || ('Erreur : ' + e); }
+
+/* ---------- Noms des dos de carte et des titres (pour l'affichage) ---------- */
+async function loadNames(){
+  try{
+    const { data: backs } = await sb.from('card_backs').select('id, name, image_url');
+    (backs || []).forEach(b => { BACK_NAMES[b.id] = b; });
+  }catch(e){}
+  try{
+    const { data: defs } = await sb.from('achievement_definitions').select('id, title_masculine, title_feminine').like('id', 'pass\\_%');
+    (defs || []).forEach(d => { TITLE_NAMES[d.id] = { m: d.title_masculine, f: d.title_feminine }; });
+  }catch(e){}
+}
+
+/* ---------- Affichage d'une récompense ---------- */
+function rewardHtml(r){
+  if(r.type === 'gold') return `<span class="rw gold"><span class="money-icon"></span> ${esc(r.amount)}</span>`;
+  if(r.type === 'booster') return `<span class="rw">📦 ${r.count > 1 ? esc(r.count) + '× ' : ''}Booster</span>`;
+  if(r.type === 'card') return `<span class="rw">🃏 ${r.count > 1 ? esc(r.count) + '× ' : ''}Carte ${esc(r.rarity)}${r.foil ? ' ✨' : ''}</span>`;
+  if(r.type === 'card_back'){
+    const b = BACK_NAMES[r.id];
+    return `<span class="rw">${b && b.image_url ? `<img src="${esc(b.image_url)}" alt="">` : '🎴'} Dos : ${esc(b ? b.name : r.id)}</span>`;
+  }
+  if(r.type === 'title'){
+    const t = TITLE_NAMES[r.id];
+    return `<span class="rw">🏷️ Titre : ${esc(t ? (t.f && t.f !== t.m ? t.m + ' / ' + t.f : t.m) : r.id)}</span>`;
+  }
+  return `<span class="rw">${esc(r.type)}</span>`;
+}
+
+function cellEl(lv, track){
+  const d = lv[track];
+  const el = document.createElement('div');
+  el.className = 'cell' + (track === 'premium' ? ' premium' : '');
+  if(!d){ el.className += ' empty'; el.textContent = '—'; return el; }
+  el.innerHTML = (d.rewards || []).map(rewardHtml).join('');
+  const reached = lv.level <= PASS.level;
+  const unlocked = track === 'free' || PASS.premium;
+  if(d.claimed){
+    el.classList.add('claimed');
+    el.insertAdjacentHTML('beforeend', '<span class="tag ok">✓</span>');
+  } else if(reached && unlocked){
+    el.classList.add('claimable');
+    el.title = 'Clique pour réclamer';
+    el.onclick = () => claimOne(lv.level, track);
+    el.insertAdjacentHTML('beforeend', '<span class="tag ok">À réclamer</span>');
+  } else {
+    el.classList.add('locked');
+    if(reached && !unlocked) el.insertAdjacentHTML('beforeend', '<span class="tag">🔒</span>');
+  }
+  return el;
+}
+
+function claimableCount(){
+  let n = 0;
+  PASS.levels.forEach(lv => {
+    if(lv.level > PASS.level) return;
+    if(lv.free && !lv.free.claimed) n++;
+    if(PASS.premium && lv.premium && !lv.premium.claimed) n++;
+  });
+  return n;
+}
+
+function render(){
+  const head = document.getElementById('pass-head');
+  const levels = document.getElementById('levels');
+  document.getElementById('gold-amount').textContent = PASS.gold;
+  const s = PASS.season;
+  const pct = PASS.level >= PASS.maxLevel ? 100 : Math.round(PASS.intoLevel / PASS.xpPerLevel * 100);
+  const n = claimableCount();
+  head.innerHTML = `
+    <div class="head-line">
+      <div class="lvl-badge"><small>Niveau</small><b>${esc(PASS.level)}</b></div>
+      <div class="head-info">
+        <div class="season-name">${esc(s.name)}</div>
+        <div class="season-sub">Du ${esc(fmtDate(s.startsAt))} au ${esc(fmtDate(new Date(new Date(s.endsAt).getTime() - 1000).toISOString()))} · ${s.daysLeft} jour${s.daysLeft > 1 ? 's' : ''} restant${s.daysLeft > 1 ? 's' : ''}</div>
+        <div class="xp-track"><div class="xp-fill" style="width:${pct}%"></div></div>
+        <div class="xp-text">${PASS.level >= PASS.maxLevel ? 'Niveau maximum atteint 🎉' : `${esc(PASS.intoLevel)} / ${esc(PASS.xpPerLevel)} XP pour le niveau ${PASS.level + 1}`} · ${esc(PASS.xp)} XP au total</div>
+      </div>
+    </div>
+    <div class="action-row" id="action-row"></div>`;
+  const ar = document.getElementById('action-row');
+  const pb = document.createElement('div');
+  pb.className = 'premium-box' + (PASS.premium ? ' owned' : '');
+  if(PASS.premium){
+    pb.innerHTML = '<div><div class="pt">★ Voie premium débloquée</div><div class="pd">Toutes les récompenses premium des niveaux atteints sont réclamables.</div></div>';
+  } else {
+    pb.innerHTML = `<div><div class="pt">★ Voie premium</div><div class="pd">Débloque les récompenses premium (y compris celles des niveaux déjà atteints) avec de l'or du jeu.</div></div>`;
+    const b = document.createElement('button');
+    b.className = 'sc-btn sc-btn-gold';
+    b.innerHTML = `Débloquer · <span class="money-icon"></span> ${esc(PASS.premiumPrice)}`;
+    b.onclick = buyPremium;
+    pb.appendChild(b);
+  }
+  ar.appendChild(pb);
+  const ab = document.createElement('button');
+  ab.className = 'sc-btn sc-btn-gold';
+  ab.textContent = n > 0 ? `Tout réclamer (${n})` : 'Rien à réclamer';
+  ab.disabled = n === 0;
+  ab.onclick = claimAll;
+  ar.appendChild(ab);
+
+  levels.innerHTML = '';
+  PASS.levels.forEach(lv => {
+    const row = document.createElement('div');
+    row.className = 'lvl-row' + (lv.level <= PASS.level ? ' reached' : '') + (lv.level === PASS.level ? ' current' : '');
+    row.id = 'lvl-' + lv.level;
+    const num = document.createElement('div'); num.className = 'lvl-num'; num.textContent = lv.level;
+    row.appendChild(num); row.appendChild(cellEl(lv, 'free')); row.appendChild(cellEl(lv, 'premium'));
+    levels.appendChild(row);
+  });
+
+  document.getElementById('pass-rules').innerHTML = `
+    <b>Comment gagner de l'XP ?</b><br>
+    • Partie contre un joueur : <b>20 XP</b> (+10 si victoire). Au-delà de 3 parties en 24 h contre le même adversaire, plus d'XP.<br>
+    • Partie contre l'IA : <b>10 XP</b> (+5 si victoire), jusqu'à 10 parties par jour.<br>
+    • Quêtes réclamées : journalière <b>30 XP</b>, hebdomadaire <b>100 XP</b>, progression <b>150 XP</b>.<br>
+    • Chaque niveau demande <b>${esc(PASS.xpPerLevel)} XP</b>, pour ${esc(PASS.maxLevel)} niveaux. La saison dure un trimestre.<br>
+    <b>Attention :</b> les récompenses non réclamées à la fin de la saison sont perdues. Les boosters sont ouverts automatiquement et leurs cartes ajoutées à ta collection.`;
+}
+
+/* ---------- Fenêtre de résultat ---------- */
+async function cardNames(ids){
+  const out = {};
+  if(!ids.length) return out;
+  try{
+    const { data } = await sb.from('cards').select('id, data').in('id', ids);
+    (data || []).forEach(c => { out[c.id] = (c.data && c.data.name) || c.id; });
+  }catch(e){}
+  return out;
+}
+async function showResult(title, grantedList){
+  // grantedList : tableau de tableaux de récompenses accordées
+  let gold = 0, boosters = 0, fragments = 0, boosterCards = 0; const lines = []; const cardIds = [];
+  const flat = [].concat.apply([], grantedList);
+  flat.forEach(g => {
+    if(g.type === 'gold') gold += g.amount;
+    else if(g.type === 'booster'){
+      boosters += g.count;
+      (g.opened || []).forEach(o => (((o.result || {}).cards) || []).forEach(c => { if(c.result === 'fragments') fragments++; else boosterCards++; }));
+    }
+    else if(g.type === 'card'){ (g.card_ids || []).forEach(id => cardIds.push({ id, foil: g.foil, rarity: g.rarity })); }
+    else if(g.type === 'card_back'){ lines.push(g.duplicate ? `Dos « ${esc(g.name)} » déjà possédé : +${esc(g.gold)} or à la place` : `Nouveau dos de carte : <b>${esc(g.name)}</b>`); if(g.duplicate) gold += g.gold; }
+    else if(g.type === 'title') lines.push(`Nouveau titre : <b>${esc(g.masculine)}${g.feminine && g.feminine !== g.masculine ? ' / ' + esc(g.feminine) : ''}</b> (à équiper depuis ton profil)`);
+  });
+  const names = await cardNames(cardIds.map(c => c.id));
+  const items = [];
+  if(gold) items.push(`<span class="money-icon"></span> <b>+${gold} or</b>`);
+  if(boosters) items.push(`📦 <b>${boosters} booster${boosters > 1 ? 's' : ''} ouvert${boosters > 1 ? 's' : ''}</b> : ${boosterCards} carte${boosterCards > 1 ? 's' : ''} ajoutée${boosterCards > 1 ? 's' : ''}${fragments ? `, ${fragments} convertie${fragments > 1 ? 's' : ''} en fragments (exemplaires au maximum)` : ''}`);
+  cardIds.forEach(c => items.push(`🃏 <b>${esc(names[c.id] || c.id)}</b> (${esc(c.rarity)}${c.foil ? ' ✨ foil' : ''})`));
+  lines.forEach(l => items.push(l));
+  document.getElementById('res-box').innerHTML = `<h3>${esc(title)}</h3><ul>${items.map(i => `<li>${i}</li>`).join('') || '<li>Rien à afficher.</li>'}</ul><button class="sc-btn sc-btn-gold" onclick="document.getElementById('res-back').classList.remove('show')">Fermer</button>`;
+  document.getElementById('res-back').classList.add('show');
+}
+
+/* ---------- Actions ---------- */
+async function load(keepScroll){
+  const user = await scGetCurrentUser();
+  if(!user){
+    document.getElementById('pass-head').innerHTML = '<p class="empty-note">Connecte-toi pour voir ton pass de saison.</p>';
+    document.getElementById('levels').innerHTML = '';
+    return;
+  }
+  const { data, error } = await sb.rpc('get_pass');
+  if(error || !data || data.error){
+    document.getElementById('pass-head').innerHTML = '<p class="empty-note">Impossible de charger le pass pour le moment.</p>';
+    return;
+  }
+  if(!data.season){
+    document.getElementById('pass-head').innerHTML = '<p class="empty-note">Aucune saison n\'est en cours. Reviens bientôt !</p>';
+    document.getElementById('levels').innerHTML = '';
+    return;
+  }
+  PASS = data;
+  render();
+  if(!keepScroll){
+    const target = document.getElementById('lvl-' + Math.max(1, Math.min(PASS.maxLevel, PASS.level + 1)));
+    if(target) setTimeout(() => target.scrollIntoView({ block:'center' }), 60);
+  }
+}
+
+async function claimOne(level, track){
+  if(busy) return; busy = true;
+  try{
+    const { data, error } = await sb.rpc('claim_pass_reward', { p_level: level, p_track: track });
+    if(error || !data){ toast('Erreur : ' + (error ? error.message : 'réponse vide')); return; }
+    if(data.error){ toast(errText(data.error)); await load(true); return; }
+    try{ playSfx('quest-loot'); }catch(e){}
+    await load(true);
+    showResult(`Niveau ${level} — ${track === 'premium' ? 'voie premium' : 'voie gratuite'}`, [data.granted]);
+    sb.rpc('progress_collection_achievements').catch(()=>{});
+  } finally { busy = false; }
+}
+
+async function claimAll(){
+  if(busy) return; busy = true;
+  try{
+    const { data, error } = await sb.rpc('claim_pass_all');
+    if(error || !data){ toast('Erreur : ' + (error ? error.message : 'réponse vide')); return; }
+    if(data.error){ toast(errText(data.error)); await load(true); return; }
+    try{ playSfx('quest-loot'); }catch(e){}
+    await load(true);
+    if(data.count > 0) showResult(`${data.count} récompense${data.count > 1 ? 's' : ''} réclamée${data.count > 1 ? 's' : ''}`, data.granted || []);
+    else toast('Rien à réclamer pour le moment.');
+    sb.rpc('progress_collection_achievements').catch(()=>{});
+  } finally { busy = false; }
+}
+
+async function buyPremium(){
+  if(busy) return; busy = true;
+  try{
+    if(!confirm(`Débloquer la voie premium pour ${PASS.premiumPrice} or ?`)) return;
+    const { data, error } = await sb.rpc('buy_pass_premium');
+    if(error || !data){ toast('Erreur : ' + (error ? error.message : 'réponse vide')); return; }
+    if(data.error){ toast(errText(data.error)); await load(true); return; }
+    toast('Voie premium débloquée !');
+    await load(true);
+  } finally { busy = false; }
+}
+
+initSpellcraftAuth();
+try{ playMenuMusicRotation(0.35); }catch(e){}
+loadNames().then(() => load(false));
+sb.auth.onAuthStateChange(() => { load(true); });
+</script>
+</body>
+</html>
