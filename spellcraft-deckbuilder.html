@@ -1838,13 +1838,23 @@ function deckHeroCard(){
   return currentDeck && currentDeck.heroId ? cardById(currentDeck.heroId) : null;
 }
 
+// Règle des couleurs : une carte est jouable avec un héros si TOUTES ses couleurs sont des couleurs
+// du héros (ou Neutre). Un héros Prima/Crépuscule joue donc les cartes Prima, Crépuscule et
+// Prima/Crépuscule, mais pas une carte Crépuscule/Arcane (Arcane n'est pas sa couleur).
+function heroCoversCardClasses(card, hero){
+  const heroClasses = [hero.class, hero.classSecondary].filter(Boolean);
+  const cardClasses = [card.class, card.classSecondary].filter(Boolean);
+  return cardClasses.includes('Neutre') || cardClasses.every(c=>heroClasses.includes(c));
+}
+
+// Nombre de cartes du deck qui ne sont PAS couvertes par les couleurs du héros (donc comptées
+// dans la limite de l'exception « multiclasse » du héros).
 function multiClassCount(deck, hero){
   let count = 0;
   (deck.cards||[]).forEach(entry=>{
     const c = collection.find(x=>x.id===entry.cardId);
     if(!c) return;
-    const cardClasses = [c.class, c.classSecondary].filter(Boolean);
-    if(!cardClasses.includes('Neutre') && !cardClasses.includes(hero.class)) count += entry.count;
+    if(!heroCoversCardClasses(c, hero)) count += entry.count;
   });
   return count;
 }
@@ -1861,9 +1871,13 @@ function classAllowedByDeck(card){
   // héros — un héros bicolore "Aube-Volonté" ne peut pas jouer une carte
   // "Volonté-Crépuscule" seulement parce qu'elles partagent Volonté :
   // Crépuscule reste une classe à laquelle le héros n'a pas accès.
-  if(cardClasses.includes('Neutre') || cardClasses.every(c=>heroClasses.includes(c))) return true;
+  if(heroCoversCardClasses(card, hero)) return true;
+  // Exception « multiclasse » du héros : seulement si CHAQUE couleur de la carte est soit une
+  // couleur du héros, soit une couleur explicitement autorisée par l'exception (avant, une seule
+  // couleur autorisée suffisait : une carte Crépuscule/Aube passait pour un héros Prima qui
+  // n'avait droit qu'à Aube).
   const mc = hero.heroMultiClass;
-  if(mc && mc.enabled && mc.allowedClasses && cardClasses.some(c=>mc.allowedClasses.includes(c))){
+  if(mc && mc.enabled && mc.allowedClasses && cardClasses.every(c=>heroClasses.includes(c) || mc.allowedClasses.includes(c))){
     if(mc.scope && mc.scope!=='Toutes' && card.type!==mc.scope) return false;
     const already = multiClassCount(currentDeck, hero);
     return already < (mc.maxCount||0);
