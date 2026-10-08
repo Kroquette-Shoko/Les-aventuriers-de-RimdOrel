@@ -1963,7 +1963,10 @@ function renderGameLog(){
         // Combat annulé (un piège type « Frappe préventive » a éliminé une des
         // deux créatures avant l'affrontement) : aucun choc à animer.
         if(!(blockEv && blockEv.combatCancelled)){
-          playCombatStrike(attackerInstId, blockerInstId, resolveBlockOutcome(blockEv, PREV_S, S, attackerInstId, blockerInstId));
+          // Duel strict : cet attaquant n'a qu'UN bloqueur et ce bloqueur ne bloque que lui.
+          const duel = newCombatEvents.filter(e=>e && e.combatEvent==='blockResolved' &&
+            (e.attackerInstId===attackerInstId || e.blockerInstId===blockerInstId)).length === 0;
+          playCombatStrike(attackerInstId, blockerInstId, resolveBlockOutcome(blockEv, PREV_S, S, attackerInstId, blockerInstId), duel);
         }
       } else if(entry.raw.includes('perdu') && entry.raw.includes('point')){
         // dégâts non bloqués au héros : popup + son selon l'ampleur, et
@@ -4681,12 +4684,20 @@ function arrowThenLunge(attEl, targetEl, opts){
   const removeArrow = showCombatArrow(attEl, targetEl);
   const lead = cms(ANIM_ARROW_LEAD_MS);
   const wait = lead ? new Promise(r=>combatTimeout(r, lead)) : Promise.resolve();
-  return wait.then(()=>lungeToward(attEl, targetEl, Object.assign({}, opts, {
-    onImpact: ()=>{
-      combatTimeout(removeArrow, cms(ANIM_IMPACT_HOLD_MS));
-      if(opts.onImpact) opts.onImpact();
-    }
-  }))).then(removeArrow, e=>{ removeArrow(); throw e; });
+  return wait.then(()=>{
+    // Duel (opts.mutual) : la cible fonce AUSSI vers l'attaquant, en même temps,
+    // et elles se rencontrent à mi-chemin. L'impact (sons, chiffres) n'est déclenché
+    // qu'une fois, par l'attaquant.
+    const strikes = [lungeToward(attEl, targetEl, Object.assign({}, opts, {
+      fraction: opts.mutual ? 0.5 : opts.fraction,
+      onImpact: ()=>{
+        combatTimeout(removeArrow, cms(ANIM_IMPACT_HOLD_MS));
+        if(opts.onImpact) opts.onImpact();
+      }
+    }))];
+    if(opts.mutual) strikes.push(lungeToward(targetEl, attEl, { fraction: 0.5 }));
+    return Promise.all(strikes);
+  }).then(removeArrow, e=>{ removeArrow(); throw e; });
 }
 
 /* ============================================================
@@ -4924,6 +4935,8 @@ function makeCombatGhost(el, rect){
 // queueCombatAnim) plutôt que jouée immédiatement.
 // `opts` (tous facultatifs) :
 //  - onImpact : appelé à l'arrivée sur la cible (son, flash, chiffres, tremblement).
+//  - fraction : part du trajet parcourue (1 par défaut = jusqu'au centre de la cible ;
+//    0.5 pour un duel où les DEUX créatures foncent l'une vers l'autre et se rencontrent à mi-chemin).
 function lungeToward(el, targetEl, opts){
   opts = (opts && typeof opts==='object') ? opts : {};
   if(!el || !targetEl) return Promise.resolve();
@@ -4931,8 +4944,9 @@ function lungeToward(el, targetEl, opts){
   const hold = cms(ANIM_IMPACT_HOLD_MS), ret = cms(ANIM_LUNGE_RETURN_MS);
   if(!(windup+charge+hold+ret)){ if(opts.onImpact) opts.onImpact(); return Promise.resolve(); } // instantané : pas de mouvement
   const a = el.getBoundingClientRect(), b = targetEl.getBoundingClientRect();
-  const dx = (b.left+b.width/2) - (a.left+a.width/2);
-  const dy = (b.top+b.height/2) - (a.top+a.height/2);
+  const frac = (typeof opts.fraction==='number' && opts.fraction>0 && opts.fraction<=1) ? opts.fraction : 1;
+  const dx = ((b.left+b.width/2) - (a.left+a.width/2)) * frac;
+  const dy = ((b.top+b.height/2) - (a.top+a.height/2)) * frac;
   const len = Math.hypot(dx,dy) || 1;
   const ux = dx/len, uy = dy/len;
   const tImpact = windup+charge, tHoldEnd = tImpact+hold, tHome = tHoldEnd+ret, total = tHome;
@@ -5139,7 +5153,7 @@ function applyBlockImpact(attEl, blkEl, o){
 // bloqueuse ripostant n'est pas "agressive" au sens visuel du terme).
 // `outcome` : résultat du blocage (voir resolveBlockOutcome) — dégâts exacts
 // si le serveur a envoyé l'événement blockResolved, estimés sinon.
-function playCombatStrike(attackerInstId, blockerInstId, outcome){
+function playCombatStrike(attackerInstId, blockerInstId, outcome, duel){
   if(combatInstant()){
     // mode instantané : pas de charge, de chiffres ni de tremblement ; un seul
     // son d'impact, celui du coup le plus fort
@@ -5167,6 +5181,9 @@ function playCombatStrike(attackerInstId, blockerInstId, outcome){
     // Pas de recul en fin de coup : le retrait des créatures bloquées / bloqueuses
     // est un état persistant, posé par le rendu au dégel (voir « Posture de combat »).
     return arrowThenLunge(attEl, blkEl, {
+      // duel : exactement deux créatures face à face (un attaquant, un seul bloqueur)
+      // → elles se frappent l'une l'autre ; sinon seul l'attaquant charge.
+      mutual: !!duel && !!blockerInstId && !blkRes.temp && !attRes.temp,
       onImpact: ()=>applyBlockImpact(attEl, blkEl, o)
     }).then(cleanup);
   });
