@@ -222,10 +222,21 @@ async function loadAndRenderProfile(){
     featuredRow.appendChild(badge);
   }
 
+  // Classement de la saison en cours (ligue + points). Absent ou en erreur : la ligne est simplement omise.
+  let rankedLine = null;
+  try{
+    const { data: rk } = await sb.rpc('get_ranked_profile', { p_user_id: VIEWED_USER_ID });
+    if(rk && rk.ok){
+      rankedLine = rk.games>0
+        ? `${rk.league} — ${rk.rating} pts${rk.rank ? ` (#${rk.rank})` : ''}`
+        : 'Non classé cette saison';
+    }
+  }catch(e){ /* le profil reste affichable sans classement */ }
   const winRate = res.totalGamesPlayed>0 ? Math.round((res.totalWins/res.totalGamesPlayed)*100) : 0;
   const losses = Math.max(0, res.totalGamesPlayed - res.totalWins);
   const stats = [
-    { label:'Parties jouées', value: res.totalGamesPlayed + (res.rank ? ` (#${res.rank} au classement)` : ''), small:true },
+    { label:'Parties jouées', value: res.totalGamesPlayed, small:true },
+    ...(rankedLine ? [{ label:'Classement de la saison', value: rankedLine, small:true }] : []),
     { label:'Ratio victoire / défaite', value: `${res.totalWins}V — ${losses}D (${winRate}%)` },
     { label:'Source de magie favorite', value: res.favoriteClass || '—' },
     { label:'Héros favori', value: res.favoriteHero || '—' },
