@@ -928,7 +928,7 @@ const TRIGGER_TEXT = {
 
 // Noms courts façon "mot-clé" pour certains déclencheurs, affichés dans le menu (n'affecte pas le texte généré)
 const TRIGGER_SHORT_NAME = {
-  onPlay: 'Début',
+  onPlay: 'Arrivée',
   onDeath: 'Finale',
   onAttack: 'Assaut'
 };
@@ -2674,7 +2674,7 @@ function rebuildAbilitiesUI(){
     note.className = 'hint';
     note.style.cssText = 'margin:0 0 10px;padding:8px 10px;border:1px solid var(--gold, #d4af37);border-radius:8px;';
     note.innerHTML = `<strong>Région :</strong> une Région n'est jamais jouée, détruite, ciblée ni ramenée du cimetière, et n'a pas de capacité activée. Seuls les déclencheurs « Au début de la partie », « Remplace le gain de mana » (début de tour), de tour, et les capacités continues sont pris en compte par le jeu.`
-      + (regionConverted ? `<br><strong style="color:var(--red, #e66);">${regionConverted} déclencheur(s) non autorisé(s) pour une Région (Début, détruite, retour du cimetière ou capacité activée) ont été remplacés par « Au début de la partie » : vérifie et corrige la capacité avant d'enregistrer.</strong>` : '');
+      + (regionConverted ? `<br><strong style="color:var(--red, #e66);">${regionConverted} déclencheur(s) non autorisé(s) pour une Région (Arrivée, détruite, retour du cimetière ou capacité activée) ont été remplacés par « Au début de la partie » : vérifie et corrige la capacité avant d'enregistrer.</strong>` : '');
     list.prepend(note);
   }
 }
