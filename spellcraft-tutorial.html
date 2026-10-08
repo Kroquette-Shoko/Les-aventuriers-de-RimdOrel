@@ -483,7 +483,7 @@ body.targeting *{cursor:crosshair !important;}
 <body>
 
 <div id="tut-topbar">
-  <div class="tut-step-badge" id="tut-step-badge">Étape 1/40</div>
+  <div class="tut-step-badge" id="tut-step-badge">Partie 1/10</div>
   <div class="tut-body">
     <div class="tut-title" id="tut-title">Bienvenue</div>
     <div class="tut-text" id="tut-text"></div>
@@ -3655,6 +3655,23 @@ defStep({ id:'done', title:'Tutoriel terminé',
   text:'Vous connaissez maintenant les créatures, le combat, les mots-clés, les artefacts, les pièges et les sortilèges !',
   highlight:[] });
 
+// Les ~40 étapes sont regroupées en 10 « parties » : c'est ce que voit le
+// joueur dans la pastille en haut à gauche (plus lisible qu'un « 17/40 »).
+const TUT_CHAPTERS = [
+  { name:'Bienvenue',            steps:['heroPower','intro1','intro2','intro3'] },
+  { name:'Première créature',    steps:['playC1','goToAttack1','selectAttackers1'] },
+  { name:'Poser un piège',       steps:['playTrap','trapInfo','endTurn1','aiTurn1'] },
+  { name:'Mana et piège',        steps:['playC2','manaTrap','goToAttack2','selectAttackers2','trapResult'] },
+  { name:'Défausse et journal',  steps:['discardOpen','discardClose','journalOpen','journalRead','journalClose','endTurn2','aiTurn2'] },
+  { name:'Les artefacts',        steps:['playArtifact','activateArtifact'] },
+  { name:'Mots-clés de combat',  steps:['keywordsInfo','goToAttack3','selectAttackers3','endTurn3','aiTurn3'] },
+  { name:'Se défendre',          steps:['playC3','enemyInfo','endTurn4','aiTurn4','blockHorreur','blockResult'] },
+  { name:'Tenace',               steps:['goToAttack5','selectAttackers5'] },
+  { name:'Le sortilège final',   steps:['finalSpell','done'] }
+];
+const TUT_CHAPTER_OF = {};
+TUT_CHAPTERS.forEach((c, i)=>{ c.steps.forEach(id=>{ TUT_CHAPTER_OF[id] = { n:i+1, name:c.name }; }); });
+
 let TUT = { step:'heroPower' };
 
 // Fin du tour du joueur : on passe la main, les créatures reprennent
@@ -3670,9 +3687,11 @@ function tutSetStep(id){
   TUT.step = id;
   const info = TUT_STEPS_INFO[id];
   if(!info) return;
-  const idx = TUT_STEP_ORDER.indexOf(id);
   const badge = document.getElementById('tut-step-badge');
-  if(badge) badge.textContent = `Étape ${idx+1}/${TUT_STEP_ORDER.length}`;
+  if(badge){
+    const ch = TUT_CHAPTER_OF[id];
+    badge.textContent = ch ? `Partie ${ch.n}/${TUT_CHAPTERS.length} · ${ch.name}` : '';
+  }
   const titleEl = document.getElementById('tut-title');
   if(titleEl) titleEl.textContent = info.title;
   const textEl = document.getElementById('tut-text');
