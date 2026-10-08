@@ -65,6 +65,23 @@
 .lb-row .lb-name{flex:1;font-weight:600;}
 .lb-row .lb-wins{font-family:'Cinzel',serif;font-weight:700;color:var(--gold);}
 .lb-row.lb-top1{border-color:var(--gold);box-shadow:0 0 14px rgba(212,175,55,.3);}
+.lb-row .lb-league{font-family:'Cinzel',serif;font-size:11px;padding:2px 8px;border-radius:8px;border:1px solid var(--line);color:var(--parchment-dim);white-space:nowrap;}
+.lb-row .lb-rating{font-family:'Cinzel',serif;font-weight:700;color:var(--gold);min-width:64px;text-align:right;}
+.lb-row .lb-record{font-size:11px;color:var(--parchment-dim);min-width:58px;text-align:right;}
+.lb-row.lb-me{border-color:#4aa3ff;}
+#lb-season-head{text-align:center;font-family:'Cinzel',serif;color:var(--gold);margin:0 0 10px;font-size:15px;}
+#lb-me-card{background:var(--bg-panel);border:1.5px solid var(--gold);border-radius:12px;padding:14px 16px;margin-bottom:14px;}
+#lb-me-card .lb-me-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;}
+#lb-me-card .lb-me-league{font-family:'Cinzel',serif;font-weight:700;font-size:18px;color:var(--gold);}
+#lb-me-card .lb-bar{height:8px;border-radius:5px;background:rgba(255,255,255,.1);margin:8px 0 4px;overflow:hidden;}
+#lb-me-card .lb-bar > span{display:block;height:100%;background:var(--gold);}
+#lb-me-card .lb-sub{font-size:11.5px;color:var(--parchment-dim);}
+#lb-me-card .lb-recent{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap;}
+#lb-me-card .lb-chip{font-size:11px;padding:1px 7px;border-radius:7px;font-weight:700;}
+#lb-me-card .lb-chip.up{background:rgba(74,157,107,.25);color:#7fd6a0;}
+#lb-me-card .lb-chip.down{background:rgba(224,88,79,.25);color:#f0908a;}
+#lb-reward{background:rgba(212,175,55,.12);border:1.5px solid var(--gold);border-radius:12px;padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
+#lb-rules{font-size:11.5px;color:var(--parchment-dim);margin-top:14px;line-height:1.5;}
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg-panel-3);
   border:1.5px solid var(--gold);border-radius:10px;padding:14px 20px;opacity:0;pointer-events:none;
   transition:all .3s ease;z-index:99;text-align:center;font-family:'Cinzel',serif;font-size:13px;
@@ -127,7 +144,7 @@ let CARD_BACK_NAMES = {}; // id -> nom, chargé une fois pour afficher les réco
 
 async function loadAchievements(){
   const { data, error } = await sb.rpc('get_achievements');
-  if(error || data.error){
+  if(error || !data || data.error){
     document.getElementById('ach-grid').innerHTML = `<div class="empty-state">Connecte-toi pour voir tes succès.</div>`;
     return;
   }
@@ -248,26 +265,66 @@ async function toggleLeaderboardView(){
 }
 const CLASS_SLUG_NOACCENT = {'Aube':'aube', 'Crépuscule':'crepuscule', 'Volonté':'volonte', 'Prima':'prima', 'Arcane':'arcane', 'Neutre':'neutre'};
 
+// Classement par saison (mensuelle) : points type Elo, ligues, récompenses de fin de saison.
+const LEAGUE_ICONS = { 'Bronze':'🥉', 'Argent':'🥈', 'Or':'🥇', 'Platine':'💠', 'Diamant':'💎', 'Maître':'👑' };
+const LEAGUE_FLOORS = { 'Bronze':0, 'Argent':1100, 'Or':1300, 'Platine':1500, 'Diamant':1700, 'Maître':1900 };
+function seasonLabel(key){
+  const m = /^(\d{4})-(\d{2})$/.exec(key||'');
+  if(!m) return key||'';
+  const mois = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  return `${mois[parseInt(m[2],10)-1]||m[2]} ${m[1]}`;
+}
+async function claimSeasonRewardsUi(){
+  const { data, error } = await sb.rpc('claim_season_rewards');
+  if(error || !data || data.error){ showToast('Impossible de réclamer les récompenses.'); return; }
+  showToast(data.gold>0 ? `Récompenses de saison : +${data.gold} pièces d'or` : 'Aucune récompense à réclamer.');
+  await loadLeaderboard();
+}
 async function loadLeaderboard(){
   const wrap = document.getElementById('leaderboard-wrap');
   wrap.innerHTML = `<div class="empty-state">Chargement...</div>`;
-  const { data, error } = await sb.rpc('get_leaderboard');
-  if(error || data.error || !data.leaderboard || data.leaderboard.length===0){
-    wrap.innerHTML = `<div class="empty-state">Aucune victoire enregistrée pour l'instant.</div>`;
+  const [lbRes, meRes] = await Promise.all([ sb.rpc('get_ranked_leaderboard', { p_limit: 100 }), sb.rpc('get_ranked_profile') ]);
+  const lb = lbRes.data, me = meRes.data;
+  let myId = null;
+  try{ const { data: au } = await sb.auth.getUser(); myId = au && au.user && au.user.id; }catch(e){}
+  if(lbRes.error || !lb || lb.error){
+    wrap.innerHTML = `<div class="empty-state">Le classement n'est pas disponible pour l'instant.</div>`;
     return;
   }
-  wrap.innerHTML = data.leaderboard.map((p,i)=>{
-    const slug = CLASS_SLUG_NOACCENT[p.favorite_class];
-    const classIcon = slug ? `<img src="images/${slug}.png" class="lb-class-icon" title="${escapeHtml(p.favorite_class)}" alt="${escapeHtml(p.favorite_class)}">` : '';
-    return `
-    <div class="lb-row ${i===0?'lb-top1':''}">
-      <div class="lb-rank">${i+1}</div>
-      ${classIcon}
+  let html = `<div id="lb-season-head">Saison de ${escapeHtml(seasonLabel(lb.season))}</div>`;
+  if(me && me.ok){
+    if(me.pendingRewards && me.pendingRewards.length){
+      const total = me.pendingRewards.reduce((s,r)=>s+r.gold,0);
+      const detail = me.pendingRewards.map(r=>`${escapeHtml(seasonLabel(r.season))} : ${LEAGUE_ICONS[r.league]||''} ${escapeHtml(r.league)}`).join(' · ');
+      html += `<div id="lb-reward"><div><strong>Récompenses de saison à réclamer : +${total} or</strong><div class="lb-sub" style="font-size:11.5px;color:var(--parchment-dim);">${detail}</div></div>
+        <button class="claim-btn" style="margin-top:0;" onclick="claimSeasonRewardsUi()">Réclamer</button></div>`;
+    }
+    const floor = LEAGUE_FLOORS[me.league] || 0;
+    const pct = me.nextLeagueAt ? Math.max(0, Math.min(100, Math.round(((me.rating-floor)/(me.nextLeagueAt-floor))*100))) : 100;
+    const chips = (me.recent||[]).map(c=>`<span class="lb-chip ${c.delta>=0?'up':'down'}" title="${c.won?'Victoire':'Défaite'}">${c.delta>=0?'+':''}${c.delta}</span>`).join('');
+    html += `<div id="lb-me-card">
+      <div class="lb-me-top"><span class="lb-me-league">${LEAGUE_ICONS[me.league]||''} ${escapeHtml(me.league)}</span>
+        <span><strong>${me.rating} pts</strong>${me.rank?` · #${me.rank}`:''}</span></div>
+      <div class="lb-bar"><span style="width:${pct}%"></span></div>
+      <div class="lb-sub">${me.nextLeagueAt ? `${me.nextLeagueAt-me.rating} pts avant la ligue suivante` : 'Ligue maximale atteinte'} · ${me.wins}V ${me.losses}D · meilleur : ${me.peak}</div>
+      ${chips?`<div class="lb-recent">${chips}</div>`:''}
+      ${me.games<5?`<div class="lb-sub" style="margin-top:6px;">Encore ${5-me.games} partie${5-me.games>1?'s':''} classée${5-me.games>1?'s':''} pour avoir droit à la récompense de fin de saison.</div>`:''}
+    </div>`;
+  }
+  if(!lb.leaderboard || lb.leaderboard.length===0){
+    html += `<div class="empty-state" style="padding:30px 20px;">Aucune partie classée cette saison pour l'instant.</div>`;
+  } else {
+    html += lb.leaderboard.map(p=>`
+    <div class="lb-row ${p.rank===1?'lb-top1':''} ${me && me.ok && p.id===myId ? 'lb-me':''}">
+      <div class="lb-rank">${p.rank}</div>
       <a class="lb-name" href="spellcraft-profile.html?uid=${encodeURIComponent(p.id)}" style="text-decoration:none;color:inherit;">${escapeHtml(p.username)}</a>
-      <div class="lb-wins">${p.total_wins} victoire${p.total_wins>1?'s':''}</div>
-    </div>
-  `;
-  }).join('');
+      <span class="lb-league">${LEAGUE_ICONS[p.league]||''} ${escapeHtml(p.league)}</span>
+      <div class="lb-record">${p.wins}V ${p.losses}D</div>
+      <div class="lb-rating">${p.rating}</div>
+    </div>`).join('');
+  }
+  html += `<div id="lb-rules"><strong>Comment ça marche.</strong> Seules les parties contre un autre joueur comptent (pas l'IA). Chaque partie gagnée ou perdue fait gagner ou perdre des points selon le niveau de l'adversaire. Ligues : Bronze, Argent (1100), Or (1300), Platine (1500), Diamant (1700), Maître (1900). La saison dure un mois ; à la suivante, vos points reviennent à mi-chemin de 1000. Récompense d'or selon votre ligue en fin de saison, à partir de 5 parties classées. Au-delà de 3 parties contre le même adversaire en 24 h, les suivantes ne rapportent rien.</div>`;
+  wrap.innerHTML = html;
 }
 
 const GEM_NAMES = {Volonté:'Rubis', Aube:'Diamant', 'Crépuscule':'Obsidienne', Arcane:'Saphir', Prima:'Émeraude', Opale:'Opale'};
@@ -293,7 +350,7 @@ async function describeGrantedRewards(granted){
 
 async function claimAchievement(id){
   const { data, error } = await sb.rpc('claim_achievement_reward', { p_user_achievement_id: id });
-  if(error || data.error){ showToast('Impossible de réclamer cette récompense.'); return; }
+  if(error || !data || data.error){ showToast('Impossible de réclamer cette récompense.'); return; }
   const detail = await describeGrantedRewards(data.granted || []);
   showToast(`Récompense obtenue : ${detail}`);
   await loadAchievements();
