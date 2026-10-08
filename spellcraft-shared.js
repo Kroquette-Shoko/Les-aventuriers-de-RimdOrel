@@ -1,8 +1,8 @@
 /* ============================================================
    SPELLCRAFT — DONNÉES ET FONCTIONS PARTAGÉES
    ============================================================
-   Chargé par spellcraft-card-editor.html, spellcraft-deckbuilder.html
-   et spellcraft-prototype.html via <script src="spellcraft-shared.js">.
+   Chargé par spellcraft-card-editor.html et spellcraft-deckbuilder.html
+   via <script src="spellcraft-shared.js">.
 
    But de ce fichier : être la SEULE source de vérité pour :
    - les listes de référence (classes, raretés, types, mots-clés)

@@ -1,8 +1,8 @@
 // ============================================================
 // SPELLCRAFT — Couche client du serveur de jeu (nouvelle architecture)
 // ============================================================
-// Remplace progressivement spellcraft-multiplayer.js. Contrairement à
-// l'ancien système (un des deux joueurs fait tourner le moteur), ici
+// Remplace l'ancien système multijoueur (supprimé). Contrairement à
+// lui (un des deux joueurs fait tourner le moteur), ici
 // AUCUN client ne fait tourner la logique de jeu — tout passe par la
 // fonction serveur "game-action". Ce fichier ne fait que : envoyer des
 // actions, recevoir l'état, et gérer la présence (déconnexion).
