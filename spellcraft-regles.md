@@ -87,7 +87,7 @@ Votre **Région** est une carte qui reste toujours en jeu, à côté de votre H�
 - **Remplacement du gain de mana.** Au début de votre tour, si les conditions de la Région sont remplies (tour personnel atteint, puis tirage de la chance), ses effets ont lieu **à la place** du gain de mana normal : vous ne gagnez pas le mana du tour. Si la condition n'est pas remplie ou si le tirage échoue, vous gagnez le mana normal. L'ordre exact est décrit à la section 5.
 - **Début de partie** (`gameStart`, « Au début de la partie ») : se déclenche une seule fois, à la **fin du 2e mulligan du joueur n°1, puis pour le joueur n°2**, avant le gain de mana du tout premier tour. Pendant le mulligan, les effets de début de partie n'ont donc pas encore eu lieu.
 - **Tout premier tour du premier joueur :** il ne pioche pas, et ses capacités « Au début de votre tour » (celles de sa Région comprises) ne se déclenchent pas, car le moteur ne lance pas de « début de tour » à cet instant. Seul le gain de mana de ce tour a lieu ; la Région pourrait le remplacer si sa condition était remplie, mais aucune Région actuelle ne le peut au tour 1 (leurs seuils sont au tour 3 ou plus). Le joueur n°2 a, lui, un début de tour complet à son premier tour.
-- Une Région n'a pas de « Début » (elle n'est jamais jouée depuis la main), de « Quand je suis détruite » ni de « retour du cimetière », et **pas de capacité activée** : l'éditeur ne propose pas ces options pour une Région.
+- Une Région n'a pas d'« Arrivée » (elle n'est jamais jouée depuis la main), de « Quand je suis détruite » ni de « retour du cimetière », et **pas de capacité activée** : l'éditeur ne propose pas ces options pour une Région.
 
 #### Une Région ne peut jamais être détruite ni ciblée
 Aucun sort, effet, piège ou capacité ne peut détruire une Région, ni la prendre pour cible (renvoyer, copier, voler, silencer...). *À venir :* de futurs effets pourront augmenter la chance de déclenchement d'une Région ou la remplacer ; ils ne sont pas encore définis.
@@ -207,7 +207,7 @@ Le client traduit les refus du serveur : `no-valid-target` (aucune cible valide)
 2. **Phase principale**
    - Jouer des cartes (Créatures, Sortilèges, Artefacts, Pièges) en payant leur coût.
    - Activer des capacités activées (mana + coût additionnel éventuel ; pour un artefact : « Utiliser », gratuit, 1 fois par tour, voir la section 8).
-   - Déclenchement des capacités "Quand cette carte entre en jeu" (Début) à la pose.
+   - Déclenchement des capacités "Quand cette carte entre en jeu" (Arrivée) à la pose.
 
 3. **Phase de combat**
    - Chaque créature non étourdie, non gelée, sans Protecteur et n'ayant pas le mal d'invocation (sauf **Charge**) peut attaquer une fois.
@@ -276,7 +276,7 @@ Le client traduit les refus du serveur : `no-valid-target` (aucune cible valide)
 | **Imparable** | Aucun piège ne se déclenche à cause d'un événement qui la concerne. |
 | **Fugace** | Meurt à la fin du tour de son propriétaire. |
 
-Trois étiquettes (**Assaut**, **Début**, **Final**) existent aussi sous forme de mots-clés, mais elles n'ont aucun effet de jeu (voir 7.7).
+Trois étiquettes (**Assaut**, **Arrivée**, **Final**) existent aussi sous forme de mots-clés, mais elles n'ont aucun effet de jeu (voir 7.7).
 
 ---
 
@@ -333,7 +333,7 @@ Règles communes à toutes ces créatures :
 - elles arrivent **sans payer de coût**, avec Force et Endurance courantes égales à leur référence ;
 - elles ont le **mal d'invocation**, sauf si elles ont **Charge** (dans ce cas elles ne l'ont pas du tout, et donc pas non plus la protection de Parade) ;
 - elles déclenchent « Quand une créature arrive en jeu (quelle que soit la source) » et « Quand vous invoquez une créature du sous-type X » ;
-- elles **ne déclenchent pas** leur propre capacité « Début » (« quand cette carte entre en jeu » ne concerne que la carte jouée depuis la main), ni « Quand une créature est jouée (depuis la main) », ni les Pièges de l'adversaire « l'adversaire invoque une créature » ou « joue une carte », ni les bonus « chaque créature jouée ce tour-ci » ;
+- elles **ne déclenchent pas** leur propre capacité « Arrivée » (« quand cette carte entre en jeu » ne concerne que la carte jouée depuis la main), ni « Quand une créature est jouée (depuis la main) », ni les Pièges de l'adversaire « l'adversaire invoque une créature » ou « joue une carte », ni les bonus « chaque créature jouée ce tour-ci » ;
 - exception : les copies créées par « Invoquer des copies de cette carte » ne déclenchent **aucun** effet d'arrivée, pas même « quand une créature arrive en jeu ».
 
 ### 7.5 Cycle de vie d'une créature
@@ -344,7 +344,7 @@ Une créature en main est une carte (voir 7.1). Elle reste en main tant qu'elle 
 
 #### Étape 2 : être jouée
 
-Pour jouer une créature depuis la main, il faut que ce soit votre phase principale, que vous ayez assez de mana (coût réduit ou augmenté par les effets en cours, jamais en dessous de 0), qu'il reste de la place sur le plateau (moins de 8 créatures), que le coût additionnel éventuel puisse être payé, et que la cible éventuellement désignée pour la capacité « Début » soit valable (une cible refusée annule la pose). Le moteur paie alors le coût additionnel (sacrifice, défausse, PV), puis le mana (le mana normal d'abord, le mana fragile ensuite), et la carte quitte la main.
+Pour jouer une créature depuis la main, il faut que ce soit votre phase principale, que vous ayez assez de mana (coût réduit ou augmenté par les effets en cours, jamais en dessous de 0), qu'il reste de la place sur le plateau (moins de 8 créatures), que le coût additionnel éventuel puisse être payé, et que la cible éventuellement désignée pour la capacité « Arrivée » soit valable (une cible refusée annule la pose). Le moteur paie alors le coût additionnel (sacrifice, défausse, PV), puis le mana (le mana normal d'abord, le mana fragile ensuite), et la carte quitte la main.
 
 #### Étape 3 : l'arrivée, dans l'ordre exact
 
@@ -354,7 +354,7 @@ Pour jouer une créature depuis la main, il faut que ce soit votre phase princip
 4. Les effets « sur la prochaine carte jouée » en attente s'appliquent.
 5. Les capacités « Quand une créature est jouée (depuis la main) » se déclenchent, chez les deux joueurs (selon que chaque capacité surveille ses créatures alliées ou ennemies).
 6. Les capacités « Quand une créature arrive en jeu » se déclenchent, chez les deux joueurs, puis « Quand vous invoquez une créature du sous-type X » chez son propriétaire (ses créatures en jeu, y compris la nouvelle, puis son héros, sa région, ses artefacts, ses Pièges armés).
-7. La capacité « **Début** » de la créature elle-même se résout (avec les cibles choisies à la pose).
+7. La capacité « **Arrivée** » de la créature elle-même se résout (avec les cibles choisies à la pose).
 8. Les créatures mortes en chemin sont retirées, puis les **auras** sont recalculées : la nouvelle créature ne reçoit donc ses bonus d'aura qu'**après** tous ces déclencheurs.
 
 Quand plusieurs cartes réagissent au même événement, le moteur ne laisse **pas** le joueur choisir l'ordre : pour les capacités qui surveillent les deux camps, il traite d'abord le **joueur n°1** de la partie, puis le joueur n°2 ; pour un joueur donné, ses créatures dans l'ordre de son plateau, puis son héros, sa région, ses artefacts et ses Pièges armés.
@@ -397,7 +397,7 @@ Quand un effet récupère une créature depuis la défausse (en main ou en jeu),
 
 **Gel et Étourdissement** sont **un seul et même état** : seule l'étiquette change. Leurs durées exactes sont décrites en section 6.
 
-**Silence.** Le Silence **retire tous les mots-clés et toutes les capacités** de la créature : mots-clés de la carte, mots-clés temporaires, capacités (y compris continues, donc plus d'aura émise), effet « Début », effet d'arrivée et doublements de déclencheurs. Il **ne modifie ni ses PV ni sa Force** : pas de soin, et les dégâts subis, les bonus (Évolution, « fixer une statistique », « voler une statistique », renforcements) et les malus sont conservés. L'Armure déjà utilisée et les états (Gel…) ne sont pas touchés.
+**Silence.** Le Silence **retire tous les mots-clés et toutes les capacités** de la créature : mots-clés de la carte, mots-clés temporaires, capacités (y compris continues, donc plus d'aura émise), effet « Arrivée », effet d'arrivée et doublements de déclencheurs. Il **ne modifie ni ses PV ni sa Force** : pas de soin, et les dégâts subis, les bonus (Évolution, « fixer une statistique », « voler une statistique », renforcements) et les malus sont conservés. L'Armure déjà utilisée et les états (Gel…) ne sont pas touchés.
 - Le Silence dure **tant que la créature est en jeu** ; une créature silencée qui meurt reste silencée en défausse (et si elle est récupérée depuis la défausse, elle le reste).
 - Une créature silencée **continue de bénéficier des auras des autres cartes** (bonus de stats et mots-clés d'aura, recalculés normalement) ; en revanche elle n'émet plus aucune aura, puisqu'elle n'a plus de capacité.
 - Une créature silencée qui est **renvoyée en main** redevient une carte neuve, normale.
@@ -441,7 +441,7 @@ Il y a 15 mots-clés de jeu et 3 étiquettes sans effet. Chacun n'a qu'**un seul
 
 **Fugace** (`fugace`) — La créature meurt à la **fin du tour de son propriétaire** (après ses déclencheurs de fin de tour et l'expiration de ses bonus temporaires). Elle compte comme morte ; sa Finale se déclenche. Seule Tenace peut la sauver une fois.
 
-**Étiquettes sans effet de jeu** : **Assaut** (`assault`), **Début** (`debut`), **Final** (`final`). Ces trois mots-clés ne font rien par eux-mêmes ; ils servent de marqueur pour qu'une autre carte puisse repérer ce type de carte (filtres de Conjuration, de Récupération, de Révélation…). Ne pas les confondre avec les noms courts de déclencheurs **Début** (quand la carte entre en jeu), **Assaut** (quand la créature attaque) et **Finale** (quand elle meurt), qui s'affichent sur les cartes.
+**Étiquettes sans effet de jeu** : **Assaut** (`assault`), **Arrivée** (`debut`), **Final** (`final`). Ces trois mots-clés ne font rien par eux-mêmes ; ils servent de marqueur pour qu'une autre carte puisse repérer ce type de carte (filtres de Conjuration, de Récupération, de Révélation…). Ne pas les confondre avec les noms courts de déclencheurs **Arrivée** (quand la carte entre en jeu), **Assaut** (quand la créature attaque) et **Finale** (quand elle meurt), qui s'affichent sur les cartes.
 
 ### 7.8 Combat des créatures
 
@@ -475,7 +475,7 @@ Une capacité se lit « déclencheur → conditions → effet » (voir section 9
 
 | Déclencheur | Se produit… |
 |---|---|
-| **Début** (entre en jeu) | Quand la carte est **jouée depuis la main** (7.5, étape 3). Pas pour une créature créée par un effet. |
+| **Arrivée** (entre en jeu) | Quand la carte est **jouée depuis la main** (7.5, étape 3). Pas pour une créature créée par un effet. |
 | **Assaut** (attaque) | Quand elle est déclarée attaquante (dans l'ordre de la déclaration). |
 | Est bloquée / a bloqué | À chaque bloqueur assigné, avant l'échange de dégâts. |
 | A infligé des blessures au héros adverse | À la fin du blocage, pour chaque attaquant non bloqué. |
@@ -498,7 +498,7 @@ Une capacité se lit « déclencheur → conditions → effet » (voir section 9
 - **Contrôle (vol de créature)** : la créature passe sur le plateau de l'adversaire de son propriétaire (il faut qu'il y ait de la place). C'est la **même** créature : elle garde bonus, dégâts, mots-clés, Silence et Armure utilisée. Le mal d'invocation lui est **remis**, même si elle a Charge (donc la Parade s'applique de nouveau) ; ses statuts « a attaqué » et « a bloqué » sont remis à zéro. Elle ne déclenche aucun effet d'arrivée. Attention : le code teste « mal d'invocation **ou** Charge » pour autoriser l'attaque : une créature volée qui a Charge **peut donc quand même attaquer** tout de suite.
 - **Copie** : copie une carte ou une créature vers le deck, la main ou le plateau. La copie reprend les valeurs de **référence** actuelles, les mots-clés et les capacités actuels (Silence compris), sans dégâts ni états. Sur le plateau, elle suit les règles de 7.4.
 - **Invocation de copies de soi** : voir 7.4.
-- **Transformation** : la créature est **remplacée** par une carte neuve du catalogue (précise, ou tirée au hasard) : plus aucun bonus ni état. La nouvelle créature se place à la fin du plateau, arrive selon les règles de 7.4 (mal d'invocation sauf Charge, pas de « Début »).
+- **Transformation** : la créature est **remplacée** par une carte neuve du catalogue (précise, ou tirée au hasard) : plus aucun bonus ni état. La nouvelle créature se place à la fin du plateau, arrive selon les règles de 7.4 (mal d'invocation sauf Charge, pas de « Arrivée »).
 - **Évolution** : peut transformer la créature (comme ci-dessus), puis ajouter un bonus de Force/Endurance (valeurs courantes) et/ou un mot-clé.
 
 ### 7.11 Glossaire et anciens noms
@@ -506,12 +506,13 @@ Une capacité se lit « déclencheur → conditions → effet » (voir section 9
 | Nom actuel | Ancien nom ou usage | Remarque |
 |---|---|---|
 | **Vol** | Envol | Le mot-clé s'est brièvement appelé Envol avant de redevenir Vol. |
+| **Arrivée** | Début | Le déclencheur « Début » (quand la carte entre en jeu) et le mot-clé-étiquette `debut` s'appellent désormais Arrivée ; les noms internes (`onPlay`, `debut`) n'ont pas changé. Les textes de 77 cartes ont été mis à jour le 8 octobre 2026. |
 | **Brutalité** | Perçant | |
 | **Parade** | Furtif | L'ancien Furtif visait seulement les sorts et durait jusqu'à la première attaque ; Parade vise tout ciblage adverse et dure jusqu'à la fin du mal d'invocation. |
 | **Tenace** | « Implacable » | |
 | **Mal d'invocation** | « Fatigue d'invocation », « maladie d'invocation » | Règle automatique, pas un mot-clé. |
 | *(retiré)* | **Protection** (« ne peut pas être ciblée jusqu'au prochain tour ») | N'existe plus. À ne pas confondre avec **Protecteur** (« ne peut pas attaquer »), qui n'a aucun rapport. |
-| **Assaut**, **Début**, **Final** | « Assault » (orthographe anglaise visible dans l'éditeur) | Étiquettes sans effet de jeu (7.7). |
+| **Assaut**, **Arrivée**, **Final** | « Assault » (orthographe anglaise visible dans l'éditeur) | Étiquettes sans effet de jeu (7.7). |
 | **Gel**, **Étourdissement** | | Même effet, deux noms. |
 | **Endurance** | PV d'une créature | Les PV du Héros s'appellent « PV ». |
 | **Rareté** | Basique, Commune, Rare, Épique, Mythique | **Légendaire** est un super-type distinct. |
@@ -540,7 +541,7 @@ Un artefact en jeu peut être la cible d'effets (par exemple « détruisez un ar
 
 ### 8.3 Jouer un artefact
 
-Pour jouer un artefact depuis la main, il faut que ce soit votre **phase principale**, que vous ayez assez de **mana** (le coût de mana est payé **uniquement à la pose**), que le **coût additionnel** éventuel (voir 3.2) puisse être payé et qu'un emplacement soit libre. Il arrive alors en jeu avec toutes ses charges ; sa capacité « Début » (quand la carte entre en jeu) se résout. Les Pièges adverses « l'adversaire joue une carte » peuvent se déclencher à la pose et la contrer (voir 3.1).
+Pour jouer un artefact depuis la main, il faut que ce soit votre **phase principale**, que vous ayez assez de **mana** (le coût de mana est payé **uniquement à la pose**), que le **coût additionnel** éventuel (voir 3.2) puisse être payé et qu'un emplacement soit libre. Il arrive alors en jeu avec toutes ses charges ; sa capacité « Arrivée » (quand la carte entre en jeu) se résout. Les Pièges adverses « l'adversaire joue une carte » peuvent se déclencher à la pose et la contrer (voir 3.1).
 
 ### 8.4 Les deux façons dont un artefact agit
 
@@ -561,7 +562,7 @@ Un artefact peut avoir une capacité de chaque famille, les deux, ou aucune.
 **Usure automatique (nouveau).** Chaque fois qu'une de ces capacités déclenchées **se résout réellement**, l'artefact **perd 1 charge**. Ne comptent **pas** :
 
 - la capacité « Utiliser » (elle a sa propre charge, voir ci-dessus) ;
-- l'arrivée en jeu (« Début ») ;
+- l'arrivée en jeu (« Arrivée ») ;
 - « Quand je suis détruit ».
 
 L'effet « retirez 1 utilisation » n'est donc plus nécessaire dans le texte des cartes pour représenter l'usure (il reste disponible dans l'éditeur et le moteur pour d'autres usages, voir 8.8).
@@ -607,7 +608,7 @@ L'IA utilise désormais ses artefacts, **1 fois par tour chacun**, selon les mê
 | Déclencheur | Se produit... |
 |---|---|
 | Au début de la partie | Une fois, à la fin du 2e mulligan du joueur n°1 puis pour le joueur n°2, avant le gain de mana du 1er tour (Héros, Région ; voir 3.4) |
-| Début *(onPlay)* | Quand la carte est jouée depuis la main (une créature créée par un effet ne le déclenche pas) ; pour un Piège, quand il est armé |
+| Arrivée *(onPlay)* | Quand la carte est jouée depuis la main (une créature créée par un effet ne le déclenche pas) ; pour un Piège, quand il est armé |
 | Quand cette créature attaque | À chaque attaque déclarée |
 | Quand cette carte subit des dégâts | Quand elle perd des PV : au combat seulement si elle survit ; par un sort ou un effet de dégâts même si le coup est fatal ; jamais si l'Armure absorbe le coup (voir 7.9) |
 | Finale *(onDeath)* | Quand la créature meurt (Endurance ≤ 0, quelle qu'en soit la cause) ; pas en cas de résurrection par Tenace |
@@ -624,7 +625,7 @@ L'IA utilise désormais ses artefacts, **1 fois par tour chacun**, selon les mê
 | Quand vous invoquez une créature du sous-type X | Quand une créature de ce sous-type arrive en jeu chez vous, quelle qu'en soit la source (main ou effet) ; le sous-type est défini carte par carte |
 | Capacité activée | Le joueur choisit de payer le coût pour déclencher l'effet (créature, Héros ; voir 7.9 pour les créatures ; une Région n'en a pas). Pour un artefact (« Utiliser : … »), aucun mana : gratuit, 1 fois par tour, 1 charge consommée (voir 8.4) |
 
-**Artefacts et usure.** Pour un artefact, tout déclencheur ci-dessus qui se résout réellement lui retire 1 charge, sauf « Début » (arrivée en jeu), « Quand je suis détruit » et la capacité « Utiliser » (qui a sa propre charge). Détails en 8.4.
+**Artefacts et usure.** Pour un artefact, tout déclencheur ci-dessus qui se résout réellement lui retire 1 charge, sauf « Arrivée » (arrivée en jeu), « Quand je suis détruit » et la capacité « Utiliser » (qui a sa propre charge). Détails en 8.4.
 
 **Déclencheurs réservés aux Pièges :**
 
