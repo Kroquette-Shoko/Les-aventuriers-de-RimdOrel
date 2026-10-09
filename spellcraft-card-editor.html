@@ -93,6 +93,20 @@ header .spacer{flex:1;}
 .ability-row{display:flex;gap:10px;align-items:flex-end;margin-bottom:10px;flex-wrap:wrap;}
 .ability-row .field{margin-bottom:0;flex:1;min-width:140px;}
 
+
+.ab-step{border:1px solid #3a3260;border-radius:8px;margin-top:8px;background:rgba(0,0,0,.12);}
+.ab-step.open{border-color:var(--gold);}
+.ab-step-head{width:100%;display:flex;align-items:center;gap:10px;padding:9px 12px;background:none;border:0;color:var(--parchment);cursor:pointer;text-align:left;font:inherit;}
+.ab-step-num{width:22px;height:22px;border-radius:50%;background:var(--gold);color:#1a1530;font-weight:700;font-size:12px;display:inline-flex;align-items:center;justify-content:center;flex:none;}
+.ab-step-name{font-family:'Cinzel',serif;font-size:12.5px;color:var(--gold);}
+.ab-step-sum{flex:1;font-size:11.5px;color:var(--parchment-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:right;}
+.ab-step-body{padding:0 12px 12px;}
+.ab-next-btn{margin-top:12px;padding:8px 14px;border-radius:8px;border:1px solid var(--gold);background:rgba(212,175,55,.12);color:var(--gold);cursor:pointer;font:inherit;font-weight:600;}
+.ab-next-btn:hover{background:rgba(212,175,55,.25);}
+.tgt-suggest{background:var(--bg-panel-3);border-radius:8px;padding:10px 12px;margin-bottom:8px;display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+.tgt-suggest-title{flex-basis:100%;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--parchment-dim);}
+.tgt-chip{padding:5px 10px;border-radius:14px;border:1px solid #3a3260;background:rgba(255,255,255,.05);color:var(--parchment);cursor:pointer;font:inherit;font-size:12px;}
+.tgt-chip:hover{border-color:var(--gold);color:var(--gold);}
 .conditions-box, .effects-box, .trigger-list-box, .targets-box{background:var(--bg-panel-3);border-radius:8px;padding:10px 12px;margin-top:10px;}
 .conditions-box h4, .effects-box h4, .trigger-list-box h4, .targets-box h4{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--parchment-dim);margin:0 0 8px;display:flex;align-items:center;gap:8px;}
 .target-entry-row{display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;flex-wrap:wrap;padding-bottom:8px;border-bottom:1px dashed #3a3260;}
@@ -1678,7 +1692,7 @@ function buildTargetsSectionUI(ab, targetsArray, choiceKey, heading){
   targetsArray.forEach((tgt, tIdx)=>{
     const trow = document.createElement('div');
     trow.className = 'target-entry-row';
-    trow.innerHTML = `<div class="field"><label class="mini-field">Cible ${(targetsArray.length>1) ? String.fromCharCode(65+tIdx) : ''}</label></div>`;
+    trow.innerHTML = `<div class="field"><label class="mini-field">Cible ${choiceKey ? choiceKey+' supp. ' : ''}${String.fromCharCode(65+tIdx)}</label></div>`;
 
     trow.appendChild(makeSelectField('Quel type de ciblage ?', SELECTION_MODES, tgt.selectionMode, v=>{ tgt.selectionMode=v; rebuildAbilitiesUI(); onFormChange(); }));
     trow.appendChild(makeSelectField('Catégorie', TARGET_CATEGORIES, tgt.targetCategory, v=>{ tgt.targetCategory=v; rebuildAbilitiesUI(); onFormChange(); }));
@@ -1884,7 +1898,9 @@ function removeEvolutionTrigger(abilityId, evoId, triggerId){
   onFormChange();
 }
 function addAbility(){
-  abilities.push(blankAbility());
+  const nab = blankAbility();
+  ABIL_UNLOCKED[nab.id] = 0; ABIL_OPEN[nab.id] = null;
+  abilities.push(nab);
   rebuildAbilitiesUI();
   onFormChange();
 }
@@ -2147,6 +2163,148 @@ function buildTriggerEntryBox(te, tIdx, totalCount, availableTriggers, onRemove)
   return tBox;
 }
 
+/* ============================================================
+   Parcours par étapes d'une capacité (UI uniquement — rien n'est
+   ajouté aux données de la carte).
+   Étapes : Type → Déclencheur → Conditions → Effets → Cibles → Évolutions.
+   ABIL_UNLOCKED[id] = index de la dernière étape débloquée (absent = tout débloqué,
+   cas des capacités déjà existantes). ABIL_OPEN[id] = étape actuellement ouverte.
+   ============================================================ */
+const ABIL_UNLOCKED = {};
+const ABIL_OPEN = {};
+function abilityStepList(ab, isSpellLike){
+  const L = [];
+  if(!isSpellLike) L.push({k:'type', n:'Type de capacité'});
+  if(ab.kind==='triggered') L.push({k:'trig', n:'Déclencheur'});
+  L.push({k:'cond', n:'Conditions'});
+  L.push({k:'eff', n:'Effets'});
+  L.push({k:'tgt', n:'Cibles'});
+  L.push({k:'evo', n:'Évolutions'});
+  return L;
+}
+function abilityStepSummary(ab, k){
+  const eff = (ab.useChoice ? [] : (ab.effects||[]));
+  if(k==='type') return ab.kind==='continuous' ? 'Continue' : 'Déclencheur';
+  if(k==='trig') return (ab.triggers||[]).map(t=>TRIGGER_SHORT_NAME[t.trigger]||TRIGGER_TEXT[t.trigger]||t.trigger).join(' + ');
+  if(k==='cond') return (ab.conditions||[]).length ? (ab.conditions.length+' condition(s)') : 'aucune';
+  if(k==='eff') return ab.useChoice ? ('Choix 1 parmi '+(ab.numChoices||2)) : (eff.map(e=>{const d=EFFECT_TYPES.find(x=>x.key===e.effectType);return d?d.label:e.effectType;}).join(', ')||'—');
+  if(k==='tgt'){ const n=(ab.targets||[]).length; return n ? Array.from({length:n},(_,i)=>String.fromCharCode(65+i)).join(', ') : 'aucune'; }
+  if(k==='evo') return (ab.evolutions||[]).length ? ((ab.evolutions.length)+' évolution(s)') : 'aucune';
+  return '';
+}
+function assembleAbilitySteps(box, ab, S, isSpellLike){
+  const list = abilityStepList(ab, isSpellLike);
+  let unlocked = ABIL_UNLOCKED[ab.id];
+  if(unlocked===undefined || unlocked>=list.length) unlocked = list.length-1;
+  let open = ABIL_OPEN[ab.id];
+  if(open===undefined) open = null;
+  // ouverte par défaut : la dernière étape débloquée si l'on est encore dans le parcours
+  const stillGuided = ABIL_UNLOCKED[ab.id]!==undefined && ABIL_UNLOCKED[ab.id] < list.length-1;
+  if(!list.some(x=>x.k===open)) open = stillGuided ? list[unlocked].k : null;
+  // une seule étape ouverte ; si tout est débloqué et rien d'ouvert, tout reste replié
+  list.forEach((st, i)=>{
+    if(i>unlocked) return;
+    const isOpen = st.k===open;
+    const wrap = document.createElement('div');
+    wrap.className = 'ab-step' + (isOpen ? ' open' : '');
+    const head = document.createElement('button');
+    head.type='button'; head.className='ab-step-head';
+    head.innerHTML = `<span class="ab-step-num">${i+1}</span><span class="ab-step-name">${st.n}</span><span class="ab-step-sum">${escapeHtml(abilityStepSummary(ab, st.k))}</span><span class="ab-step-chev">${isOpen?'▾':'▸'}</span>`;
+    head.onclick = ()=>{ ABIL_OPEN[ab.id] = isOpen ? null : st.k; rebuildAbilitiesUI(); };
+    wrap.appendChild(head);
+    if(isOpen){
+      const body = document.createElement('div');
+      body.className='ab-step-body';
+      body.appendChild(S[st.k]);
+      if(i<list.length-1 && i===unlocked && stillGuided){
+        const next = document.createElement('button');
+        next.type='button'; next.className='ab-next-btn';
+        next.textContent = 'Suivant : ' + list[i+1].n + ' ›';
+        next.onclick = ()=>{ ABIL_UNLOCKED[ab.id]=i+1; ABIL_OPEN[ab.id]=list[i+1].k; rebuildAbilitiesUI(); };
+        body.appendChild(next);
+      } else if(i<list.length-1 && i<unlocked){
+        const next = document.createElement('button');
+        next.type='button'; next.className='ab-next-btn';
+        next.textContent = 'Étape suivante : ' + list[i+1].n + ' ›';
+        next.onclick = ()=>{ ABIL_OPEN[ab.id]=list[i+1].k; rebuildAbilitiesUI(); };
+        body.appendChild(next);
+      }
+      wrap.appendChild(body);
+    }
+    box.appendChild(wrap);
+  });
+  // premier affichage : si un nouveau parcours n'a rien d'ouvert, ouvrir l'étape 1
+  if(stillGuided && !list.some(x=>x.k===ABIL_OPEN[ab.id])) ABIL_OPEN[ab.id]=open;
+}
+
+/* Étape « Cibles » : propose des cibles déduites du contexte (déclencheurs,
+   effets, conditions), lettrées A, B, C… dans l'ordre de création. */
+function suggestTargets(ab){
+  const trigs = (ab.triggers||[]).map(t=>t.trigger);
+  const effs = ab.useChoice ? [] : (ab.effects||[]);
+  const S = [];
+  const add = (label, extra)=>S.push({label, entry:Object.assign(blankTargetEntry(), extra)});
+  add('Cette carte', {targetOwner:'self', targetCategory:'creature'});
+  if(ab.kind==='triggered' && trigs.some(t=>WATCH_TRIGGERS.includes(t)||t==='onTargeted'))
+    add('La carte qui a déclenché la capacité', {targetOwner:'trigger', targetCategory:'creature'});
+  if(trigs.includes('beforeAllyFights'))
+    add('La créature qu\'elle va affronter', {targetOwner:'fight_opponent', targetCategory:'creature'});
+  if(effs.some(e=>e.effectType==='draw'))
+    add('La dernière carte piochée par cette capacité', {targetOwner:'last_drawn_by_ability', targetCategory:'card_in_hand'});
+  if((ab.conditions||[]).some(c=>c.conditionType && (CONDITION_TYPES.find(x=>x.key===c.conditionType)||{}).isStatCompare && c.statScope==='target'))
+    S.push({label:'ℹ Une condition compare la « cible de la capacité » : définis ci-dessous la cible à comparer.', info:true});
+  add('Une créature ennemie (désignée)', {targetOwner:'enemy', targetCategory:'creature', selectionMode:'chosen'});
+  add('Toutes les créatures ennemies', {targetOwner:'enemy', targetCategory:'creature', selectionMode:'all'});
+  add('Une créature alliée (désignée)', {targetOwner:'ally', targetCategory:'creature', selectionMode:'chosen'});
+  add('Toutes les créatures alliées', {targetOwner:'ally', targetCategory:'creature', selectionMode:'all'});
+  add('Le héros adverse', {targetOwner:'enemy', targetCategory:'hero', selectionMode:'chosen'});
+  return S;
+}
+function buildTargetsStep(ab, heading){
+  const wrap = document.createElement('div');
+  const effs = ab.useChoice ? [] : (ab.effects||[]);
+  const needing = effs.filter(e=>{ const d=EFFECT_TYPES.find(x=>x.key===e.effectType); return d && d.needsTarget; });
+  const intro = document.createElement('div');
+  intro.className='hint'; intro.style.margin='0 0 8px';
+  intro.textContent = ab.useChoice
+    ? "Choisissez un effet : les cibles de chaque choix se règlent dans son bloc (étape Effets). Les cibles ci-dessous sont partagées par tous les choix."
+    : (needing.length
+      ? `${needing.length} effet(s) ont besoin d'une cible. Ajoute les cibles (A, B, C…) puis indique, pour chaque effet, laquelle il utilise.`
+      : "Aucun effet de cette capacité ne demande de cible : cette étape est facultative.");
+  wrap.appendChild(intro);
+
+  const sugg = suggestTargets(ab);
+  const sBox = document.createElement('div');
+  sBox.className='tgt-suggest';
+  sBox.innerHTML = `<div class="tgt-suggest-title">Cibles proposées selon ta capacité (clique pour ajouter)</div>`;
+  sugg.forEach(sg=>{
+    if(sg.info){ const n=document.createElement('div'); n.className='hint'; n.textContent=sg.label; sBox.appendChild(n); return; }
+    const b=document.createElement('button');
+    b.type='button'; b.className='tgt-chip'; b.textContent='+ '+sg.label;
+    b.onclick=()=>{ (ab.targets||(ab.targets=[])).push(sg.entry); ABIL_OPEN[ab.id]='tgt'; rebuildAbilitiesUI(); onFormChange(); };
+    sBox.appendChild(b);
+  });
+  wrap.appendChild(sBox);
+
+  wrap.appendChild(buildTargetsSectionUI(ab, ab.targets||(ab.targets=[]), null, heading || 'Cibles'));
+
+  if(needing.length && (ab.targets||[]).length){
+    const useBox = document.createElement('div');
+    useBox.className='targets-box';
+    useBox.innerHTML = `<h4>Quel effet utilise quelle cible ?</h4>`;
+    const opts = ab.targets.map((t,i)=>({key:t.id, label:'Cible '+String.fromCharCode(65+i)}));
+    needing.forEach(e=>{
+      const d=EFFECT_TYPES.find(x=>x.key===e.effectType);
+      if(!e.usesTarget || !ab.targets.some(t=>t.id===e.usesTarget)) e.usesTarget = ab.targets[0].id;
+      const row=document.createElement('div'); row.className='ability-row';
+      row.appendChild(makeSelectField('Effet « '+d.label+' » → cible', opts, e.usesTarget, v=>{ e.usesTarget=v; onFormChange(); }));
+      useBox.appendChild(row);
+    });
+    wrap.appendChild(useBox);
+  }
+  return wrap;
+}
+
 function rebuildAbilitiesUI(){
   const list = document.getElementById('abilities-list');
   list.innerHTML = '';
@@ -2174,6 +2332,7 @@ function rebuildAbilitiesUI(){
     delBtn.onclick = ()=>removeAbility(ab.id);
     header.appendChild(delBtn);
     box.appendChild(header);
+    const S = {type:document.createElement("div"),trig:document.createElement("div"),cond:document.createElement("div"),eff:document.createElement("div"),tgt:document.createElement("div"),evo:document.createElement("div")};
 
     // type de capacité : continue ou à déclencheur(s) — masqué pour Sortilège
     // (toujours "à la résolution", un seul déclencheur implicite)
@@ -2189,7 +2348,7 @@ function rebuildAbilitiesUI(){
       });
       kindSel.onchange = ()=>{ ab.kind=kindSel.value; rebuildAbilitiesUI(); onFormChange(); };
       kindRow.querySelector('.field').appendChild(kindSel);
-      box.appendChild(kindRow);
+      S.type.appendChild(kindRow);
     }
 
     // liste des déclencheurs (un ou plusieurs) — masquée pour les capacités
@@ -2211,14 +2370,14 @@ function rebuildAbilitiesUI(){
       addTrigBtn.onclick = ()=>addTriggerEntry(ab.id);
       trigList.appendChild(addTrigBtn);
 
-      box.appendChild(trigList);
+      S.trig.appendChild(trigList);
     }
 
     if(!isSpellLike && ab.kind==='continuous'){
       const contNote = document.createElement('div');
       contNote.className = 'ability-row';
       contNote.innerHTML = `<div class="field" style="color:var(--parchment-dim);font-size:12px;font-style:italic;">Capacité continue : son effet s'applique tant que la carte est en jeu (aucun déclencheur — les conditions ci-dessous déterminent quand elle s'active).</div>`;
-      box.appendChild(contNote);
+      S.cond.appendChild(contNote);
     }
 
     // conditions
@@ -2387,10 +2546,10 @@ function rebuildAbilitiesUI(){
     addCondBtn.style.marginTop='6px';
     addCondBtn.onclick=()=>addCondition(ab.id);
     condBox.appendChild(addCondBtn);
-    box.appendChild(condBox);
+    S.cond.appendChild(condBox);
 
     // cibles — déterminées AVANT les effets (qui, puis quoi)
-    box.appendChild(buildTargetsSectionUI(ab, ab.targets||(ab.targets=[]), null, "Cibles (optionnel — laisser vide si l'effet ne cible personne, ex: soigner soi-même)"));
+    S.tgt.appendChild(buildTargetsStep(ab, "Cibles (optionnel — laisser vide si l'effet ne cible personne, ex: soigner soi-même)"));
 
     // effects
     const effBox = document.createElement('div');
@@ -2472,7 +2631,7 @@ function rebuildAbilitiesUI(){
         effBox.appendChild(grp);
       });
     }
-    box.appendChild(effBox);
+    S.eff.appendChild(effBox);
 
     // évolution — liste d'étapes, chacune avec son propre schéma de déclencheur(s)
     const evoBox = document.createElement('div');
@@ -2534,7 +2693,9 @@ function rebuildAbilitiesUI(){
     addEvoBtn.className='add-row-btn'; addEvoBtn.textContent='+ Ajouter une évolution';
     addEvoBtn.onclick = ()=>addEvolution(ab.id);
     evoBox.appendChild(addEvoBtn);
-    box.appendChild(evoBox);
+    S.evo.appendChild(evoBox);
+
+    assembleAbilitySteps(box, ab, S, isSpellLike);
 
     // phrase générée pour cette capacité
     const preview = document.createElement('div');
@@ -2584,13 +2745,13 @@ function buildEffectRow(ab, eff, choiceKey){
     const allTargets = [...(ab.targets||[]), ...choiceTargets];
     if(allTargets.length>0){
       const sharedCount = (ab.targets||[]).length;
-      const tgtOptions = allTargets.map((t,i)=>({key:t.id, label: i<sharedCount ? `Cible ${allTargets.length>1?String.fromCharCode(65+i):''}`.trim() : `Cible ${choiceKey} supp. ${String.fromCharCode(65+(i-sharedCount))}`}));
+      const tgtOptions = allTargets.map((t,i)=>({key:t.id, label: i<sharedCount ? `Cible ${String.fromCharCode(65+i)}` : `Cible ${choiceKey} supp. ${String.fromCharCode(65+(i-sharedCount))}`}));
       if(!eff.usesTarget || !allTargets.some(t=>t.id===eff.usesTarget)) eff.usesTarget = allTargets[0].id;
       row.appendChild(makeSelectField('Cible utilisée', tgtOptions, eff.usesTarget, v=>{ eff.usesTarget=v; onFormChange(); }));
     } else {
       const warn = document.createElement('div');
       warn.className='field';
-      warn.innerHTML = `<label class="mini-field" style="color:#c9a86a;">⚠ Aucune cible définie plus haut — ajoute une cible dans la section "Cibles" ci-dessus.</label>`;
+      warn.innerHTML = `<label class="mini-field" style="color:#c9a86a;">ℹ La cible se choisit à l'étape « Cibles » (en dernier), une fois tous les effets définis.</label>`;
       row.appendChild(warn);
     }
   }
