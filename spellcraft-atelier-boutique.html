@@ -79,7 +79,7 @@ const imgSrc=u=>u?(/^(https?:|data:|\/)/.test(u)?u:u):'';
 
 async function loadAll(){
   const [s,b,c,t]=await Promise.all([
-    sb.from('card_sets').select('id,name').order('name'),
+    sb.from('card_sets').select('id,name,in_shop').order('name'),
     sb.from('boosters').select('*').order('created_at'),
     sb.from('card_backs').select('*').order('created_at'),
     sb.from('achievement_definitions').select('id,name,description,category,active,title_masculine,title_feminine').eq('grants_title',true).order('created_at')]);
@@ -114,37 +114,63 @@ function imageField(prefix,val){
 
 /* ---------- Boosters ---------- */
 function renderBoosters(){
-  const sel=SEL.boosters, b=BOOSTERS.find(x=>x.id===sel)||(sel==='new'?{id:null,name:'',set_id:(SETS[0]||{}).id,price:120,image_url:'',in_shop:true,rarity_distribution:RAR_DEFAULT}:null);
+  const sel=SEL.boosters, b=BOOSTERS.find(x=>x.id===sel)||((sel==='new'||sel==='new-miniset')?{id:null,name:'',set_id:(SETS[0]||{}).id,price:120,image_url:'',in_shop:true,kind:(sel==='new-miniset'?'miniset':'booster'),miniset_copies:'max',rarity_distribution:RAR_DEFAULT}:null);
   const list=BOOSTERS.map(x=>{const set=(SETS.find(s=>s.id===x.set_id)||{}).name||'(set introuvable)';
-    return `<div class="item ${sel===x.id?'sel':''}" data-act="sel-b" data-id="${esc(x.id)}">${x.image_url?`<img src="${esc(imgSrc(x.image_url))}">`:'<img>'}<div class="nm">${esc(x.name)}<small>${esc(set)} · ${x.in_shop===false?'🎁 hors boutique':esc(x.price)+' or'}</small></div></div>`;}).join('')||'<div class="empty">Aucun booster créé.</div>';
+    return `<div class="item ${sel===x.id?'sel':''}" data-act="sel-b" data-id="${esc(x.id)}">${x.image_url?`<img src="${esc(imgSrc(x.image_url))}">`:'<img>'}<div class="nm">${esc(x.name)}<small>${x.kind==='miniset'?'🗂️ Mini-set · ':''}${esc(set)} · ${x.in_shop===false?'🎁 hors boutique':esc(x.price)+' or'}</small></div></div>`;}).join('')||'<div class="empty">Aucun booster ni mini-set créé.</div>';
   let form='<div class="empty">Choisis un booster dans la liste, ou crée-en un.</div>';
   if(b){
     const d=b.rarity_distribution||{};
-    form=`<div class="field"><label>Nom</label><input type="text" id="b-name" value="${esc(b.name)}" placeholder="Ex : Booster Aube"></div>
-    <div class="row2"><div class="field"><label>Set source</label><select id="b-set">${SETS.map(s=>`<option value="${esc(s.id)}" ${s.id===b.set_id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div>
+    const isMs=b.kind==='miniset';
+    form=`<div class="field"><label>Type</label><select id="b-kind"><option value="booster" ${isMs?'':'selected'}>📦 Booster (6 cartes au hasard, achetable à volonté)</option><option value="miniset" ${isMs?'selected':''}>🗂️ Mini-set (toutes les cartes du set, achat unique par joueur)</option></select></div>
+    <div class="field"><label>Nom</label><input type="text" id="b-name" value="${esc(b.name)}" placeholder="Ex : Booster Aube"></div>
+    <div class="row2"><div class="field"><label id="b-set-label">${isMs?'Set contenu (toutes ses cartes)':'Set source'}</label><select id="b-set">${SETS.map(s=>`<option value="${esc(s.id)}" ${s.id===b.set_id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div>
     <div class="field"><label>Prix (or)</label><input type="number" id="b-price" min="1" value="${esc(b.price)}"></div></div>
     ${imageField('b',b.image_url)}
     <div class="field"><label style="display:flex;gap:8px;align-items:center;text-transform:none;font-size:13px;color:#efe6c8;cursor:pointer;"><input type="checkbox" id="b-shop" ${b.in_shop!==false?'checked':''} style="width:auto;"> Vendu dans la boutique (décoché : le booster reste utilisable comme récompense, mais n'apparaît pas en boutique)</label></div>
-    <div class="field"><label>Répartition des raretés (%) — total : <b id="b-total"></b>/100</label>
-    <div class="rar">${RARS.map(r=>`<div><label>${r}</label><input type="number" min="0" max="100" class="b-rar" data-r="${r}" value="${esc(d[r]!=null?d[r]:0)}"></div>`).join('')}</div></div>
+    <div id="b-box-booster" style="${isMs?'display:none':''}"><div class="field"><label>Répartition des raretés (%) — total : <b id="b-total"></b>/100</label>
+    <div class="rar">${RARS.map(r=>`<div><label>${r}</label><input type="number" min="0" max="100" class="b-rar" data-r="${r}" value="${esc(d[r]!=null?d[r]:0)}"></div>`).join('')}</div></div></div>
+    <div id="b-box-miniset" style="${isMs?'':'display:none'}"><div class="field"><label>Exemplaires donnés par carte</label><select id="b-copies"><option value="max" ${b.miniset_copies==='one'?'':'selected'}>Le maximum autorisé en deck (2 exemplaires ; 1 pour les héros, régions et légendaires)</option><option value="one" ${b.miniset_copies==='one'?'selected':''}>1 seul exemplaire de chaque carte</option></select></div>
+    <p class="hint" id="b-count">Nombre de cartes du set : …</p>
+    <p class="hint">Achat unique : le joueur reçoit toutes les cartes d'un coup, une seule fois. S'il possède déjà des exemplaires, on complète sans dépasser le maximum, et le prix reste le même.</p></div>
     <div class="actions"><button class="btn primary" data-act="save-b">💾 Enregistrer</button>${b.id?`<button class="btn danger" data-act="del-b">🗑 Supprimer</button>`:''}<span id="b-status" class="hint"></span></div>`;
   }
-  $('v-boosters').innerHTML=`<div class="split"><div class="panel"><h2>Boosters (${BOOSTERS.length})</h2>${list}<button class="btn sm" data-act="new-b">+ Nouveau booster</button></div><div class="panel"><h2>${b?(b.id?'Modifier le booster':'Nouveau booster'):'Booster'}</h2>${form}</div></div>`;
-  updTotal();
+  $('v-boosters').innerHTML=`<div class="split"><div class="panel"><h2>Boosters et mini-sets (${BOOSTERS.length})</h2>${list}<button class="btn sm" data-act="new-b">+ Nouveau booster</button> <button class="btn sm" data-act="new-ms">+ Nouveau mini-set</button></div><div class="panel"><h2>${b?(b.id?(b.kind==='miniset'?'Modifier le mini-set':'Modifier le booster'):(b.kind==='miniset'?'Nouveau mini-set':'Nouveau booster')):'Booster / mini-set'}</h2>${form}</div></div>`;
+  updTotal(); updMsCount();
+}
+async function updMsCount(){
+  const e=$('b-count'), st=$('b-set'); if(!e||!st) return;
+  const {count,error}=await sb.from('cards').select('id',{count:'exact',head:true}).eq('set_id',st.value);
+  if(error||count==null){e.textContent='Nombre de cartes du set : inconnu';return;}
+  e.textContent='Nombre de cartes du set : '+count+(count<30||count>50?' (conseillé pour un mini-set : 30 à 50)':'');
+  e.style.color=(count<30||count>50)?'#e4b86a':'';
+}
+function onKindChange(){
+  const ms=$('b-kind').value==='miniset';
+  $('b-box-booster').style.display=ms?'none':''; $('b-box-miniset').style.display=ms?'':'none';
+  $('b-set-label').textContent=ms?'Set contenu (toutes ses cartes)':'Set source';
 }
 function updTotal(){const t=[...document.querySelectorAll('.b-rar')].reduce((a,i)=>a+(parseInt(i.value)||0),0);const e=$('b-total'); if(e){e.textContent=t;e.style.color=t===100?'#6fd39a':'#e46a6a';}}
 async function saveBooster(){
   const name=$('b-name').value.trim(); if(!name) return say('b-status','Donne un nom au booster.',false);
+  const isMs=$('b-kind').value==='miniset';
   const dist={}; document.querySelectorAll('.b-rar').forEach(i=>dist[i.dataset.r]=parseInt(i.value)||0);
   const total=Object.values(dist).reduce((a,b)=>a+b,0);
-  if(total!==100 && !confirm(`La répartition fait ${total} % au lieu de 100 %. Enregistrer quand même ?`)) return;
+  if(!isMs && total!==100 && !confirm(`La répartition fait ${total} % au lieu de 100 %. Enregistrer quand même ?`)) return;
   const cur=BOOSTERS.find(x=>x.id===SEL.boosters);
-  const row={id:cur?cur.id:'booster_'+Date.now(),name,set_id:$('b-set').value,price:parseInt($('b-price').value)||120,image_url:$('b-image').value.trim()||null,rarity_distribution:dist};
+  const row={id:cur?cur.id:'booster_'+Date.now(),name,set_id:$('b-set').value,price:parseInt($('b-price').value)||120,image_url:$('b-image').value.trim()||null,rarity_distribution:isMs?(cur&&cur.rarity_distribution)||RAR_DEFAULT:dist};
+  const hasKind=BOOSTERS.some(x=>'kind' in x);
+  if(hasKind){row.kind=isMs?'miniset':'booster'; row.miniset_copies=$('b-copies').value;}
+  else if(isMs) return say('b-status',"Les mini-sets n'existent pas encore dans la base : exécute d'abord le fichier SQL minisets_20261010.sql dans Supabase (SQL Editor).",false);
   const hasCol=BOOSTERS.some(x=>'in_shop' in x);
   if(hasCol) row.in_shop=$('b-shop').checked;
   else if(!$('b-shop').checked) return say('b-status',"La colonne « in_shop » n'existe pas encore : exécute d'abord le fichier SQL de la livraison (boutique_recompenses_rarete).",false);
   const {error}=await sb.from('boosters').upsert(row);
   if(error) return say('b-status','Erreur : '+error.message,false);
+  const setRow=SETS.find(x=>x.id===row.set_id);
+  if(isMs && setRow && setRow.in_shop!==false && confirm(`Le set « ${setRow.name} » est encore proposé en boutique (cartes à l'unité et offres du jour). Le retirer de la boutique, pour qu'on ne puisse l'obtenir que via ce mini-set ?`)){
+    const r2=await sb.from('card_sets').update({in_shop:false}).eq('id',setRow.id);
+    if(r2.error) alert('Impossible de modifier le set : '+r2.error.message);
+  }
   await loadAll(); SEL.boosters=row.id; renderBoosters(); say('b-status','✓ Enregistré',true);
 }
 async function delBooster(){
@@ -316,6 +342,7 @@ document.addEventListener('click',async e=>{
   if(a==='tab'){TAB=t.dataset.v;render();}
   else if(a==='sel-b'){SEL.boosters=t.dataset.id;renderBoosters();}
   else if(a==='new-b'){SEL.boosters='new';renderBoosters();}
+  else if(a==='new-ms'){SEL.boosters='new-miniset';renderBoosters();}
   else if(a==='save-b') saveBooster(); else if(a==='del-b') delBooster();
   else if(a==='sel-c'){SEL.backs=t.dataset.id;renderBacks();}
   else if(a==='new-c'){SEL.backs='new';renderBacks();}
@@ -326,6 +353,10 @@ document.addEventListener('click',async e=>{
   else if(a==='picker-open'){pickTarget=t.dataset.p;try{$('picker-list').value=localStorage.getItem(STORE)||'';}catch(x){}pickerGrid();$('picker').classList.add('show');}
   else if(a==='picker-close') $('picker').classList.remove('show');
   else if(a==='picker-pick'){const inp=$(pickTarget+'-image'); inp.value=FOLDER+t.dataset.f; inp.dispatchEvent(new Event('input')); $('picker').classList.remove('show');}
+});
+document.addEventListener('change',e=>{
+  if(e.target.id==='b-kind') onKindChange();
+  if(e.target.id==='b-set') updMsCount();
 });
 document.addEventListener('input',e=>{
   if(e.target.classList.contains('b-rar')) updTotal();
