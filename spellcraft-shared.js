@@ -931,3 +931,14 @@ function applyNCardArtFree(art, card, sfx){
   art.appendChild(inner);
   return true;
 }
+
+/* Logo de rareté d'une carte : le dossier est propre au set (champ rarityIconDir de la carte,
+   réglé dans « Réglages du set » de l'éditeur) ; sans dossier, ou si l'image manque,
+   on utilise les logos d'origine (images/card/icon/rare/). */
+function rarityGemImg(card, slug, cls, mk){
+  const def = 'images/card/icon/rare/' + slug + '.png';
+  const dir = card && card.rarityIconDir ? String(card.rarityIconDir).replace(/\/+$/, '') : '';
+  const img = mk(dir ? (dir + '/' + slug + '.png') : def, cls);
+  if(dir) img.onerror = function(){ this.onerror = null; this.src = def; };
+  return img;
+}

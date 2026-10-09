@@ -5,7 +5,7 @@
   var PAGES = [
     { key:'cartes',   label:'🃏 Cartes',        href:'spellcraft-card-editor.html' },
     { key:'boutique', label:'🛒 Boutique & coffres', href:'spellcraft-atelier-boutique.html' },
-    { key:'heros',    label:'🖼️ Écrans d\'annonce', href:'spellcraft-card-editor.html#heros' },
+    { key:'heros',    label:'🖼️ Écrans d\'annonce', href:'spellcraft-atelier-annonce.html' },
     { key:'succes',   label:'🏅 Succès',        href:'spellcraft-achievements-editor.html' }
   ];
   var CSS = '#atelier-nav{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 16px;background:#110e1c;border-bottom:1px solid #3a3260;font-family:Inter,sans-serif;}'
