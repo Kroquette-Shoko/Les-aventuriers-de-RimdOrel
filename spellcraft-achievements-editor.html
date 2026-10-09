@@ -173,6 +173,7 @@ textarea{resize:vertical;min-height:60px;}
 <script>window.APP_TOPBAR_TITLE = '🏆 Éditeur de succès';</script>
 <script src="spellcraft-shared.js"></script>
 <script src="spellcraft-auth.js"></script>
+<script src="spellcraft-atelier-nav.js"></script>
 <script>
 // Même vocabulaire de déclencheurs que la création de cartes — copié
 // depuis spellcraft-card-editor.html pour rester cohérent (union de
@@ -532,6 +533,7 @@ async function init(){
   await loadAchievements();
   newAchievementForm();
 }
+atelierNav('succes');
 initSpellcraftAuth().then(init);
 </script>
 </body>

@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Atelier — Boutique et or</title>
+<link rel="stylesheet" href="spellcraft-ui-kit.css">
+<style>
+body{margin:0;background:var(--bg-void,#0b0a12);color:var(--parchment,#efe6c8);font-family:'Inter',sans-serif;}
+.wrap{max-width:1100px;margin:0 auto;padding:18px 16px 60px;}
+h1{font-family:'Cinzel',serif;font-size:22px;margin:0 0 4px;color:#d4af37;}
+.sub{font-size:13px;color:#a89f86;margin:0 0 16px;}
+.tabs{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.tab{cursor:pointer;padding:9px 18px;border-radius:999px;border:1px solid #3a3260;background:#1f1a30;color:inherit;font-family:'Cinzel',serif;font-weight:700;font-size:14px;}
+.tab.active{background:#d4af37;color:#1c1830;border-color:#d4af37;}
+.view{display:none;}.view.active{display:block;}
+.split{display:grid;grid-template-columns:minmax(260px,340px) 1fr;gap:16px;align-items:start;}
+@media(max-width:760px){.split{grid-template-columns:1fr;}}
+.panel{background:#171325;border:1px solid #2b2440;border-radius:12px;padding:16px 18px;}
+.panel h2{font-family:'Cinzel',serif;font-size:15px;color:#d4af37;margin:0 0 12px;}
+.item{display:flex;align-items:center;gap:10px;padding:8px 10px;margin-bottom:6px;border-radius:8px;background:#1f1a30;border:1px solid transparent;cursor:pointer;font-size:13px;}
+.item:hover{border-color:#4a3f6e;}
+.item.sel{border-color:#d4af37;}
+.item img{width:34px;height:34px;object-fit:cover;border-radius:6px;border:1px solid #3a3260;flex-shrink:0;background:#0f0c1a;}
+.item .nm{flex:1;min-width:0;}
+.item .nm small{display:block;color:#a89f86;font-size:11px;}
+.field{margin-bottom:13px;}
+.field>label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#a89f86;margin-bottom:5px;}
+input[type=text],input[type=number],select{box-sizing:border-box;width:100%;background:#0f0c1a;color:#efe6c8;border:1px solid #3a3260;border-radius:6px;padding:8px 10px;font-size:14px;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.rar{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
+.rar label{font-size:11px;color:#a89f86;display:block;margin-bottom:3px;}
+.hint{font-size:12px;color:#a89f86;line-height:1.5;}
+.btn{background:#1f1a30;border:1px solid #3a3260;color:#efe6c8;border-radius:8px;padding:8px 14px;font-weight:600;font-size:13px;cursor:pointer;}
+.btn:hover{border-color:#d4af37;}
+.btn.primary{background:linear-gradient(180deg,#7c5cff,#5537c2);border:none;color:#fff;}
+.btn.danger{border-color:#c23b3b;color:#e88;}
+.btn.sm{padding:5px 10px;font-size:12px;}
+.actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px;}
+.ok{color:#6fd39a;}.ko{color:#e46a6a;}
+.preview{width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid #3a3260;background:#0f0c1a;display:none;}
+.empty{color:#a89f86;font-style:italic;font-size:13px;padding:10px 0;}
+.denied{padding:60px 20px;text-align:center;color:#d9cfae;}
+.modal{position:fixed;inset:0;background:rgba(5,4,10,.88);display:none;align-items:center;justify-content:center;z-index:80;}
+.modal.show{display:flex;}
+.modal .box{background:#171325;border:1px solid #3a3260;border-radius:12px;padding:20px;width:620px;max-width:92vw;max-height:84vh;overflow:auto;}
+.modal textarea{width:100%;box-sizing:border-box;min-height:90px;background:#0f0c1a;color:#efe6c8;border:1px solid #3a3260;border-radius:8px;padding:10px;font-family:monospace;}
+.pgrid{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;}
+.pgrid div{width:84px;text-align:center;cursor:pointer;font-size:10px;color:#a89f86;}
+.pgrid img{width:84px;height:84px;object-fit:cover;border-radius:8px;border:2px solid #3a3260;display:block;}
+</style>
+</head>
+<body>
+<div class="wrap" id="root"><p class="hint">Chargement…</p></div>
+
+<div class="modal" id="picker"><div class="box">
+  <h2 style="font-family:'Cinzel',serif;color:#d4af37;margin:0 0 6px;">📁 Choisir une illustration</h2>
+  <p class="hint">Le site est statique : il ne peut pas lister le dossier. Colle ici les noms des fichiers présents dans <code>images/card/back/</code> (un par ligne), puis clique sur une vignette.</p>
+  <textarea id="picker-list" placeholder="dos-flammes.png&#10;booster-aube.png"></textarea>
+  <div class="pgrid" id="picker-grid"></div>
+  <div class="actions"><button class="btn" data-act="picker-close">Fermer</button></div>
+</div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="spellcraft-shared.js"></script>
+<script src="spellcraft-auth.js"></script>
+<script src="spellcraft-atelier-nav.js"></script>
+<script>
+(function(){
+const FOLDER='images/card/back/', STORE='spellcraft_cardback_filelist';
+const RARS=['Basique','Commune','Rare','Épique','Mythique'];
+const RAR_DEFAULT={Basique:30,Commune:40,Rare:20,'Épique':8,Mythique:2};
+let SETS=[], BOOSTERS=[], BACKS=[], TAB='boosters', SEL={boosters:null,backs:null}, pickTarget=null;
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $=id=>document.getElementById(id);
+function say(id,t,ok){const e=$(id); if(!e) return; e.textContent=t; e.className=ok===true?'ok':ok===false?'ko':'hint';}
+const imgSrc=u=>u?(/^(https?:|data:|\/)/.test(u)?u:u):'';
+
+async function loadAll(){
+  const [s,b,c]=await Promise.all([
+    sb.from('card_sets').select('id,name').order('name'),
+    sb.from('boosters').select('*').order('created_at'),
+    sb.from('card_backs').select('*').order('created_at')]);
+  SETS=s.data||[]; BOOSTERS=b.data||[]; BACKS=c.data||[];
+}
+
+/* ---------- Vues ---------- */
+function render(){
+  $('root').innerHTML=`<h1>Boutique & or</h1><p class="sub">Boosters et dos de cartes vendus aux joueurs, distribution de dos et dons d'or.</p>
+  <div class="tabs">
+    <button class="tab ${TAB==='boosters'?'active':''}" data-act="tab" data-v="boosters">📦 Boosters</button>
+    <button class="tab ${TAB==='backs'?'active':''}" data-act="tab" data-v="backs">🎴 Dos de cartes</button>
+    <button class="tab ${TAB==='or'?'active':''}" data-act="tab" data-v="or">🪙 Or & distribution</button>
+  </div>
+  <div class="view ${TAB==='boosters'?'active':''}" id="v-boosters"></div>
+  <div class="view ${TAB==='backs'?'active':''}" id="v-backs"></div>
+  <div class="view ${TAB==='or'?'active':''}" id="v-or"></div>`;
+  renderBoosters(); renderBacks(); renderGold();
+}
+
+function imageField(prefix,val){
+  return `<div class="field"><label>Image (URL, ou fichier du dossier images/card/back/)</label>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input type="text" id="${prefix}-image" value="${esc(val||'')}" placeholder="https://… ou nom-fichier.png" data-prev="${prefix}">
+      <button class="btn sm" data-act="picker-open" data-p="${prefix}">📁 Parcourir</button>
+      <img class="preview" id="${prefix}-prev" ${val?`src="${esc(imgSrc(val))}" style="display:inline-block"`:''}>
+    </div></div>`;
+}
+
+/* ---------- Boosters ---------- */
+function renderBoosters(){
+  const sel=SEL.boosters, b=BOOSTERS.find(x=>x.id===sel)||(sel==='new'?{id:null,name:'',set_id:(SETS[0]||{}).id,price:120,image_url:'',rarity_distribution:RAR_DEFAULT}:null);
+  const list=BOOSTERS.map(x=>{const set=(SETS.find(s=>s.id===x.set_id)||{}).name||'(set introuvable)';
+    return `<div class="item ${sel===x.id?'sel':''}" data-act="sel-b" data-id="${esc(x.id)}">${x.image_url?`<img src="${esc(imgSrc(x.image_url))}">`:'<img>'}<div class="nm">${esc(x.name)}<small>${esc(set)} · ${esc(x.price)} or</small></div></div>`;}).join('')||'<div class="empty">Aucun booster créé.</div>';
+  let form='<div class="empty">Choisis un booster dans la liste, ou crée-en un.</div>';
+  if(b){
+    const d=b.rarity_distribution||{};
+    form=`<div class="field"><label>Nom</label><input type="text" id="b-name" value="${esc(b.name)}" placeholder="Ex : Booster Aube"></div>
+    <div class="row2"><div class="field"><label>Set source</label><select id="b-set">${SETS.map(s=>`<option value="${esc(s.id)}" ${s.id===b.set_id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div>
+    <div class="field"><label>Prix (or)</label><input type="number" id="b-price" min="1" value="${esc(b.price)}"></div></div>
+    ${imageField('b',b.image_url)}
+    <div class="field"><label>Répartition des raretés (%) — total : <b id="b-total"></b>/100</label>
+    <div class="rar">${RARS.map(r=>`<div><label>${r}</label><input type="number" min="0" max="100" class="b-rar" data-r="${r}" value="${esc(d[r]!=null?d[r]:0)}"></div>`).join('')}</div></div>
+    <div class="actions"><button class="btn primary" data-act="save-b">💾 Enregistrer</button>${b.id?`<button class="btn danger" data-act="del-b">🗑 Supprimer</button>`:''}<span id="b-status" class="hint"></span></div>`;
+  }
+  $('v-boosters').innerHTML=`<div class="split"><div class="panel"><h2>Boosters (${BOOSTERS.length})</h2>${list}<button class="btn sm" data-act="new-b">+ Nouveau booster</button></div><div class="panel"><h2>${b?(b.id?'Modifier le booster':'Nouveau booster'):'Booster'}</h2>${form}</div></div>`;
+  updTotal();
+}
+function updTotal(){const t=[...document.querySelectorAll('.b-rar')].reduce((a,i)=>a+(parseInt(i.value)||0),0);const e=$('b-total'); if(e){e.textContent=t;e.style.color=t===100?'#6fd39a':'#e46a6a';}}
+async function saveBooster(){
+  const name=$('b-name').value.trim(); if(!name) return say('b-status','Donne un nom au booster.',false);
+  const dist={}; document.querySelectorAll('.b-rar').forEach(i=>dist[i.dataset.r]=parseInt(i.value)||0);
+  const total=Object.values(dist).reduce((a,b)=>a+b,0);
+  if(total!==100 && !confirm(`La répartition fait ${total} % au lieu de 100 %. Enregistrer quand même ?`)) return;
+  const cur=BOOSTERS.find(x=>x.id===SEL.boosters);
+  const row={id:cur?cur.id:'booster_'+Date.now(),name,set_id:$('b-set').value,price:parseInt($('b-price').value)||120,image_url:$('b-image').value.trim()||null,rarity_distribution:dist};
+  const {error}=await sb.from('boosters').upsert(row);
+  if(error) return say('b-status','Erreur : '+error.message,false);
+  await loadAll(); SEL.boosters=row.id; renderBoosters(); say('b-status','✓ Enregistré',true);
+}
+async function delBooster(){
+  const b=BOOSTERS.find(x=>x.id===SEL.boosters); if(!b||!confirm(`Supprimer le booster « ${b.name} » ?`)) return;
+  const {error}=await sb.from('boosters').delete().eq('id',b.id);
+  if(error) return say('b-status','Erreur : '+error.message,false);
+  SEL.boosters=null; await loadAll(); renderBoosters();
+}
+
+/* ---------- Dos de cartes ---------- */
+function renderBacks(){
+  const sel=SEL.backs, c=BACKS.find(x=>x.id===sel)||(sel==='new'?{id:null,name:'',price:150,image_url:'',shop_visible:true}:null);
+  const list=BACKS.map(x=>`<div class="item ${sel===x.id?'sel':''}" data-act="sel-c" data-id="${esc(x.id)}">${x.image_url?`<img src="${esc(imgSrc(x.image_url))}">`:'<img>'}<div class="nm">${esc(x.name)}<small>${x.shop_visible===false?'🎁 récompense (hors boutique)':esc(x.price)+' or'}</small></div></div>`).join('')||'<div class="empty">Aucun dos créé.</div>';
+  let form='<div class="empty">Choisis un dos dans la liste, ou crée-en un.</div>';
+  if(c){
+    form=`<div class="row2"><div class="field"><label>Nom</label><input type="text" id="c-name" value="${esc(c.name)}" placeholder="Ex : Dos flammes"></div>
+    <div class="field"><label>Prix (or)</label><input type="number" id="c-price" min="1" value="${esc(c.price)}"></div></div>
+    ${imageField('c',c.image_url)}
+    <div class="field"><label style="display:flex;gap:8px;align-items:center;text-transform:none;font-size:13px;color:#efe6c8;cursor:pointer;"><input type="checkbox" id="c-shop" ${c.shop_visible!==false?'checked':''} style="width:auto;"> Vendu dans la boutique</label>
+    <div class="hint" style="margin-top:4px;">Décoché = dos « récompense » : il n'apparaît jamais dans la boutique et s'obtient par les coffres de Velkrin ou par distribution.</div></div>
+    <div class="actions"><button class="btn primary" data-act="save-c">💾 Enregistrer</button>${c.id?`<button class="btn danger" data-act="del-c">🗑 Supprimer</button>`:''}<span id="c-status" class="hint"></span></div>`;
+  }
+  $('v-backs').innerHTML=`<div class="split"><div class="panel"><h2>Dos de cartes (${BACKS.length})</h2>${list}<button class="btn sm" data-act="new-c">+ Nouveau dos</button></div><div class="panel"><h2>${c?(c.id?'Modifier le dos':'Nouveau dos'):'Dos de carte'}</h2>${form}</div></div>`;
+}
+async function saveBack(){
+  const name=$('c-name').value.trim(); if(!name) return say('c-status','Donne un nom au dos.',false);
+  const cur=BACKS.find(x=>x.id===SEL.backs);
+  const row={id:cur?cur.id:'back_'+Date.now(),name,price:parseInt($('c-price').value)||150,image_url:$('c-image').value.trim()||null,shop_visible:$('c-shop').checked};
+  const {error}=await sb.from('card_backs').upsert(row);
+  if(error) return say('c-status','Erreur : '+error.message,false);
+  await loadAll(); SEL.backs=row.id; renderBacks(); renderGold(); say('c-status','✓ Enregistré',true);
+}
+async function delBack(){
+  const c=BACKS.find(x=>x.id===SEL.backs); if(!c||!confirm(`Supprimer le dos « ${c.name} » ?`)) return;
+  const {error}=await sb.from('card_backs').delete().eq('id',c.id);
+  if(error) return say('c-status','Erreur : '+error.message,false);
+  SEL.backs=null; await loadAll(); renderBacks(); renderGold();
+}
+
+/* ---------- Or & distribution ---------- */
+function renderGold(){
+  $('v-or').innerHTML=`<div class="split" style="grid-template-columns:1fr 1fr;">
+  <div class="panel"><h2>🪙 Donner de l'or</h2><p class="hint">Crédite le compte d'un joueur (ou de tous), sans passer par une quête ou un achat. Un montant négatif retire de l'or.</p>
+    <div class="field"><label>Cible</label><select id="g-mode"><option value="single">Un joueur précis</option><option value="all">Tous les joueurs</option></select></div>
+    <div class="field" id="g-user-f"><label>Pseudo</label><input type="text" id="g-user" placeholder="Ex : Kroquette"></div>
+    <div class="field"><label>Montant</label><input type="number" id="g-amount" value="100" step="1"></div>
+    <div class="actions"><button class="btn primary" data-act="gold">💰 Valider</button><span id="g-status" class="hint"></span></div></div>
+  <div class="panel"><h2>🎁 Donner un dos de carte</h2><p class="hint">Donne un dos à un joueur précis, vendable ou non (récompense d'événement, par exemple).</p>
+    <div class="field"><label>Pseudo</label><input type="text" id="d-user" placeholder="Ex : Kroquette"></div>
+    <div class="field"><label>Dos</label><select id="d-back">${BACKS.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}${c.shop_visible===false?' (récompense)':''}</option>`).join('')}</select></div>
+    <div class="actions"><button class="btn primary" data-act="grant-back">🎁 Donner</button><span id="d-status" class="hint"></span></div></div></div>`;
+}
+async function giveGold(){
+  const all=$('g-mode').value==='all', user=$('g-user').value.trim(), amount=parseInt($('g-amount').value,10);
+  if(!amount||isNaN(amount)) return say('g-status','Indique un montant non nul.',false);
+  if(!all&&!user) return say('g-status','Indique le pseudo du joueur.',false);
+  if(all&&!confirm(`Confirmer : donner ${amount} or à TOUS les joueurs ?`)) return;
+  say('g-status','Envoi…');
+  const {data,error}=await sb.functions.invoke('game-action',{body:all?{action:'adminGrantGoldAll',amount}:{action:'adminGrantGold',username:user,amount}});
+  if(error||(data&&data.error)){const code=(data&&data.error)||(error&&error.message)||'erreur';
+    const m={'not-authorized':"Seul le compte Kroquette peut donner de l'or.",'not-logged-in':'Tu dois être connecté.','player-not-found':`Aucun joueur « ${user} ».`,'invalid-amount':'Montant invalide.','missing-params':'Champs manquants.'};
+    return say('g-status',m[code]||('Erreur : '+code),false);}
+  say('g-status',all?`✓ ${amount} or donné à ${data.player_count} joueur(s).`:`✓ ${amount} or donné à ${data.username} (solde : ${data.new_balance}).`,true);
+}
+async function giveBack(){
+  const user=$('d-user').value.trim(), id=$('d-back').value;
+  if(!user) return say('d-status','Indique le pseudo du joueur.',false);
+  if(!id) return say('d-status',"Crée d'abord un dos de carte.",false);
+  say('d-status','Envoi…');
+  const {data,error}=await sb.functions.invoke('game-action',{body:{action:'grantCardBack',username:user,cardBackId:id}});
+  if(error||(data&&data.error)){const code=(data&&data.error)||(error&&error.message)||'erreur';
+    const m={'not-authorized':'Seul le compte Kroquette peut distribuer des dos.','not-logged-in':'Tu dois être connecté.','player-not-found':`Aucun joueur « ${user} ».`,'unknown-card-back':"Ce dos n'existe plus (rafraîchis la page).",'already-owned':`${user} possède déjà ce dos.`};
+    return say('d-status',m[code]||('Erreur : '+code),false);}
+  say('d-status',`✓ « ${data.card_back_name} » donné à ${data.username}.`,true); $('d-user').value='';
+}
+
+/* ---------- Sélecteur d'illustration ---------- */
+function pickerGrid(){
+  const files=$('picker-list').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  $('picker-grid').innerHTML=files.length?files.map(f=>`<div data-act="picker-pick" data-f="${esc(f)}"><img src="${FOLDER}${esc(f)}" onerror="this.style.opacity=.25;this.title='Introuvable : vérifie le nom exact'">${esc(f)}</div>`).join(''):'<div class="empty">Colle des noms de fichiers ci-dessus.</div>';
+}
+
+/* ---------- Événements ---------- */
+document.addEventListener('click',async e=>{
+  const t=e.target.closest('[data-act]'); if(!t) return; const a=t.dataset.act;
+  if(a==='tab'){TAB=t.dataset.v;render();}
+  else if(a==='sel-b'){SEL.boosters=t.dataset.id;renderBoosters();}
+  else if(a==='new-b'){SEL.boosters='new';renderBoosters();}
+  else if(a==='save-b') saveBooster(); else if(a==='del-b') delBooster();
+  else if(a==='sel-c'){SEL.backs=t.dataset.id;renderBacks();}
+  else if(a==='new-c'){SEL.backs='new';renderBacks();}
+  else if(a==='save-c') saveBack(); else if(a==='del-c') delBack();
+  else if(a==='gold') giveGold(); else if(a==='grant-back') giveBack();
+  else if(a==='picker-open'){pickTarget=t.dataset.p;try{$('picker-list').value=localStorage.getItem(STORE)||'';}catch(x){}pickerGrid();$('picker').classList.add('show');}
+  else if(a==='picker-close') $('picker').classList.remove('show');
+  else if(a==='picker-pick'){const inp=$(pickTarget+'-image'); inp.value=FOLDER+t.dataset.f; inp.dispatchEvent(new Event('input')); $('picker').classList.remove('show');}
+});
+document.addEventListener('input',e=>{
+  if(e.target.classList.contains('b-rar')) updTotal();
+  if(e.target.id==='picker-list'){try{localStorage.setItem(STORE,e.target.value);}catch(x){} pickerGrid();}
+  if(e.target.dataset&&e.target.dataset.prev){const im=$(e.target.dataset.prev+'-prev'),v=e.target.value.trim(); if(v){im.src=imgSrc(v);im.style.display='inline-block';}else{im.style.display='none';}}
+});
+document.addEventListener('change',e=>{ if(e.target.id==='g-mode') $('g-user-f').style.display=e.target.value==='all'?'none':''; });
+
+(async function init(){
+  try{
+    await initSpellcraftAuth();
+    atelierNav('boutique');
+    const user=await scGetCurrentUser();
+    if(!user){ $('root').innerHTML='<div class="denied">Connecte-toi pour accéder à cette page.</div>'; return; }
+    const {data:adm}=await sb.rpc('is_admin');
+    if(adm!==true){ $('root').innerHTML='<div class="denied">Accès réservé à l\'administrateur.</div>'; return; }
+    await loadAll(); render();
+  }catch(err){ $('root').innerHTML='<div class="denied">Erreur de chargement : '+esc(err.message)+'</div>'; }
+})();
+})();
+</script>
+</body>
+</html>

@@ -299,8 +299,7 @@ header .spacer{flex:1;}
 
 <div id="app">
   <header>
-    <a href="spellcraft-hub.html" class="btn small" title="Retour à l'accueil" style="text-decoration:none;">🏠 Hub</a>
-    <h1>🃏 Spellcraft — Éditeur de cartes</h1>
+    <h1>🃏 Éditeur de cartes</h1>
     <span class="save-indicator" id="save-indicator">✓ Sauvegardé</span>
     <div class="spacer"></div>
     <div id="sc-auth-slot"></div>
@@ -314,16 +313,10 @@ header .spacer{flex:1;}
     <label style="font-size:11px;color:var(--parchment-dim);display:flex;align-items:center;gap:5px;cursor:pointer;" title="Les cartes de ce set sont automatiquement données à tous les comptes">
       <input type="checkbox" id="set-is-base-checkbox" onchange="onSetIsBaseChange()"> Set de base
     </label>
-    <button class="btn" onclick="openGoldModal()" title="Donner de l'or à un joueur précis ou à tous les joueurs">🪙 Donner de l'or</button>
     <button class="btn" onclick="openImportModal()">Importer</button>
     <button class="btn" onclick="openExportModal('backup')">Exporter (sauvegarde)</button>
     <button class="btn primary" onclick="openExportModal('code')">Exporter le code moteur</button>
   </header>
-
-  <div style="display:flex;gap:8px;padding:12px 20px 0;max-width:1400px;margin:0 auto;width:100%;box-sizing:border-box;">
-    <button class="btn primary" id="page-tab-cards" onclick="switchEditorPage('cards')">🃏 Cartes</button>
-    <button class="btn" id="page-tab-announce" onclick="switchEditorPage('announce')">🖼️ Cadrage héros — écran d'annonce</button>
-  </div>
 
   <div id="body">
 
@@ -648,101 +641,6 @@ header .spacer{flex:1;}
       <div id="gallery-grid"></div>
     </div>
 
-    <div class="panel" id="calendar-admin-link">
-      <h2>Coffres de Velkrin <span class="hint">saison, récompenses, ouverture aux joueurs</span></h2>
-      <a class="btn small" href="spellcraft-calendar-admin.html" style="text-decoration:none;display:inline-block;">Ouvrir l'administration des coffres de Velkrin →</a>
-    </div>
-
-    <div class="panel" id="shop-admin-panel">
-      <h2>Boutique <span class="hint">boosters et dos de cartes vendables — visible immédiatement dans la boutique</span></h2>
-      <div style="display:flex;gap:24px;flex-wrap:wrap;">
-
-        <div style="flex:1;min-width:340px;">
-          <h3 style="font-family:'Cinzel',serif;font-size:13px;color:var(--gold);margin:0 0 10px;">📦 Boosters</h3>
-          <div id="booster-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;"></div>
-          <button class="btn small" onclick="newBoosterForm()">+ Nouveau booster</button>
-          <div id="booster-form" style="display:none;margin-top:14px;background:var(--bg-panel-2);border-radius:10px;padding:14px;">
-            <div class="field"><label>Nom</label><input type="text" id="bf-name" placeholder="Ex : Booster Aube"></div>
-            <div class="grid2">
-              <div class="field"><label>Set source</label><select id="bf-set"></select></div>
-              <div class="field"><label>Prix (or)</label><input type="number" id="bf-price" value="120" min="1"></div>
-            </div>
-            <div class="field">
-              <label>Image (URL ou fichier dans images/card/back/)</label>
-              <div style="display:flex;gap:8px;align-items:center;">
-                <input type="text" id="bf-image" placeholder="https://... ou nom-fichier.png" style="flex:1;" oninput="updateImgPreview('bf-image','bf-image-preview')">
-                <button type="button" class="btn small" onclick="openImagePicker('bf-image','bf-image-preview')">📁 Parcourir</button>
-                <img id="bf-image-preview" style="width:34px;height:34px;object-fit:cover;border-radius:6px;border:1px solid #3a3260;display:none;">
-              </div>
-            </div>
-            <div class="field">
-              <label>Répartition des raretés (%) — <span id="bf-total">100</span>/100</label>
-              <div class="grid3" style="grid-template-columns:repeat(5,1fr);gap:6px;">
-                <div><label class="mini-field">Basique</label><input type="number" class="bf-rarity" data-rarity="Basique" value="30" min="0" max="100" oninput="updateBoosterTotal()"></div>
-                <div><label class="mini-field">Commune</label><input type="number" class="bf-rarity" data-rarity="Commune" value="40" min="0" max="100" oninput="updateBoosterTotal()"></div>
-                <div><label class="mini-field">Rare</label><input type="number" class="bf-rarity" data-rarity="Rare" value="20" min="0" max="100" oninput="updateBoosterTotal()"></div>
-                <div><label class="mini-field">Épique</label><input type="number" class="bf-rarity" data-rarity="Épique" value="8" min="0" max="100" oninput="updateBoosterTotal()"></div>
-                <div><label class="mini-field">Mythique</label><input type="number" class="bf-rarity" data-rarity="Mythique" value="2" min="0" max="100" oninput="updateBoosterTotal()"></div>
-              </div>
-            </div>
-            <div style="display:flex;gap:8px;margin-top:10px;">
-              <button class="btn primary small" onclick="saveBoosterForm()">💾 Enregistrer</button>
-              <button class="btn small" onclick="closeBoosterForm()">Annuler</button>
-            </div>
-          </div>
-        </div>
-
-        <div style="flex:1;min-width:340px;">
-          <h3 style="font-family:'Cinzel',serif;font-size:13px;color:var(--gold);margin:0 0 10px;">🎴 Dos de cartes</h3>
-          <div id="cardback-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;"></div>
-          <button class="btn small" onclick="newCardBackForm()">+ Nouveau dos de carte</button>
-          <div id="cardback-form" style="display:none;margin-top:14px;background:var(--bg-panel-2);border-radius:10px;padding:14px;">
-            <div class="grid2">
-              <div class="field"><label>Nom</label><input type="text" id="cf-name" placeholder="Ex : Dos flammes"></div>
-              <div class="field"><label>Prix (or)</label><input type="number" id="cf-price" value="150" min="1"></div>
-            </div>
-            <div class="field">
-              <label>Image (URL ou fichier dans images/card/back/)</label>
-              <div style="display:flex;gap:8px;align-items:center;">
-                <input type="text" id="cf-image" placeholder="https://... ou nom-fichier.png" style="flex:1;" oninput="updateImgPreview('cf-image','cf-image-preview')">
-                <button type="button" class="btn small" onclick="openImagePicker('cf-image','cf-image-preview')">📁 Parcourir</button>
-                <img id="cf-image-preview" style="width:34px;height:34px;object-fit:cover;border-radius:6px;border:1px solid #3a3260;display:none;">
-              </div>
-            </div>
-            <div class="field">
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:normal;">
-                <input type="checkbox" id="cf-shop-visible" checked style="width:auto;">
-                Visible dans la boutique (vendable contre de l'or)
-              </label>
-              <div class="hint" style="margin-top:4px;">
-                Décoche pour un dos "récompense" : il n'apparaît jamais dans la boutique et ne peut être obtenu que via la distribution ci-dessous (événement, condition spéciale...). Le prix reste utile pour référence interne mais n'est affiché à personne.
-              </div>
-            </div>
-            <div style="display:flex;gap:8px;margin-top:10px;">
-              <button class="btn primary small" onclick="saveCardBackForm()">💾 Enregistrer</button>
-              <button class="btn small" onclick="closeCardBackForm()">Annuler</button>
-            </div>
-          </div>
-
-          <h3 style="font-family:'Cinzel',serif;font-size:13px;color:var(--gold);margin:20px 0 10px;">🎁 Distribuer un dos à un joueur</h3>
-          <div class="hint" style="margin-bottom:8px;">
-            Donne directement un dos de carte à un joueur précis, sans passer par la boutique — utile pour une récompense d'événement. Fonctionne pour n'importe quel dos (vendable ou non), mais c'est surtout fait pour les dos "récompense" ci-dessus.
-          </div>
-          <div style="background:var(--bg-panel-2);border-radius:10px;padding:14px;">
-            <div class="grid2">
-              <div class="field"><label>Pseudo du joueur</label><input type="text" id="grant-username" placeholder="Ex : Kroquette"></div>
-              <div class="field"><label>Dos de carte</label><select id="grant-cardback"></select></div>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center;margin-top:10px;">
-              <button class="btn primary small" onclick="grantCardBackToPlayer()">🎁 Donner</button>
-              <span id="grant-status" style="font-size:12px;color:var(--parchment-dim);"></span>
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
     </div><!-- /cards-left-col -->
 
     <div id="preview-panel">
@@ -775,61 +673,6 @@ header .spacer{flex:1;}
   </div>
 </div>
 
-<div class="modal-overlay" id="imgpicker-modal" onclick="if(event.target===this) closeImagePicker()">
-  <div class="modal-box">
-    <h2>📁 Illustrations — images/card/back/</h2>
-    <div class="hint" style="margin-bottom:8px;">
-      Ce site est statique : il ne peut pas lister le dossier tout seul. Colle ici les noms de fichiers présents dans <code>images/card/back/</code> (un par ligne), puis clique sur une vignette pour l'utiliser. La liste est mémorisée sur cet ordinateur.
-    </div>
-    <textarea id="imgpicker-filelist" rows="4" placeholder="dos-flammes.png
-dos-arcane.png
-booster-aube.png" oninput="saveImgPickerFileList()"></textarea>
-    <div id="imgpicker-grid" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;max-height:320px;overflow-y:auto;"></div>
-    <div class="modal-actions">
-      <button class="btn" onclick="closeImagePicker()">Fermer</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-overlay" id="gold-modal" onclick="if(event.target===this) closeModal('gold-modal')">
-  <div class="modal-box">
-    <h2>🪙 Donner de l'or</h2>
-    <div class="hint" style="margin-bottom:12px;">
-      Crédite directement le compte d'un joueur (ou de tous les joueurs), sans passer par une récompense de quête ou d'achat.
-    </div>
-
-    <div class="field">
-      <label>Cible</label>
-      <div style="display:flex;gap:16px;font-size:12.5px;">
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:normal;">
-          <input type="radio" name="gold-target-mode" id="gold-mode-single" value="single" checked onchange="onGoldTargetModeChange()" style="width:auto;">
-          Un joueur précis
-        </label>
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-weight:normal;">
-          <input type="radio" name="gold-target-mode" id="gold-mode-all" value="all" onchange="onGoldTargetModeChange()" style="width:auto;">
-          Tous les joueurs
-        </label>
-      </div>
-    </div>
-
-    <div class="field" id="gold-username-field">
-      <label>Pseudo du joueur</label>
-      <input type="text" id="gold-username" placeholder="Ex : Kroquette">
-    </div>
-
-    <div class="field">
-      <label>Montant (or) <span class="hint" style="text-transform:none;letter-spacing:0;">— négatif pour retirer de l'or</span></label>
-      <input type="number" id="gold-amount" value="100" step="1">
-    </div>
-
-    <div style="display:flex;gap:8px;align-items:center;margin-top:14px;">
-      <button class="btn primary small" onclick="submitGoldGrant()">💰 Valider</button>
-      <button class="btn small" onclick="closeModal('gold-modal')">Annuler</button>
-      <span id="gold-status" style="font-size:12px;color:var(--parchment-dim);"></span>
-    </div>
-  </div>
-</div>
-
 <div class="modal-overlay" id="export-modal" onclick="if(event.target===this) closeModal('export-modal')">
   <div class="modal-box">
     <h2 id="export-title">Export</h2>
@@ -856,6 +699,7 @@ booster-aube.png" oninput="saveImgPickerFileList()"></textarea>
 <script src="spellcraft-shared.js"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>
+<script src="spellcraft-atelier-nav.js"></script>
 <script>
 /* ============================================================
    RÉFÉRENTIELS
@@ -1416,13 +1260,9 @@ async function deleteCurrentSet(){
 function switchEditorPage(page){
   const cardsSection = document.getElementById('cards-section');
   const announcePanel = document.getElementById('hero-announce-panel');
-  const tabCards = document.getElementById('page-tab-cards');
-  const tabAnnounce = document.getElementById('page-tab-announce');
   const showAnnounce = page === 'announce';
   cardsSection.style.display = showAnnounce ? 'none' : '';
   announcePanel.style.display = showAnnounce ? 'block' : 'none';
-  tabCards.classList.toggle('primary', !showAnnounce);
-  tabAnnounce.classList.toggle('primary', showAnnounce);
   if(showAnnounce){
     const announceSel = document.getElementById('announce-set-selector');
     if(announceSel) announceSel.value = currentSetId;
@@ -5017,10 +4857,7 @@ function openModal(id){ document.getElementById(id).classList.add('show'); }
 function closeModal(id){ document.getElementById(id).classList.remove('show'); }
 
 /* ---------- Sélecteur d'illustrations : images/card/back/ ---------- */
-const IMG_PICKER_FOLDER = 'images/card/back/';
-const IMG_PICKER_STORAGE_KEY = 'spellcraft_cardback_filelist';
-let imgPickerTargetInput = null;
-let imgPickerTargetPreview = null;
+
 
 function addEmoteRow(){
   currentEmotes.push({ id: 'em_'+Date.now()+'_'+Math.floor(Math.random()*1000), image:'', label:'' });
@@ -5057,43 +4894,6 @@ function updateImgPreview(inputId, previewId){
   const img = document.getElementById(previewId);
   if(val){ img.src = val; img.style.display = 'inline-block'; }
   else { img.style.display = 'none'; img.src = ''; }
-}
-
-function openImagePicker(inputId, previewId){
-  imgPickerTargetInput = inputId;
-  imgPickerTargetPreview = previewId;
-  const saved = localStorage.getItem(IMG_PICKER_STORAGE_KEY) || '';
-  document.getElementById('imgpicker-filelist').value = saved;
-  renderImgPickerGrid();
-  document.getElementById('imgpicker-modal').classList.add('show');
-}
-function closeImagePicker(){
-  document.getElementById('imgpicker-modal').classList.remove('show');
-}
-function saveImgPickerFileList(){
-  localStorage.setItem(IMG_PICKER_STORAGE_KEY, document.getElementById('imgpicker-filelist').value);
-  renderImgPickerGrid();
-}
-function renderImgPickerGrid(){
-  const raw = document.getElementById('imgpicker-filelist').value;
-  const files = raw.split('\n').map(s=>s.trim()).filter(Boolean);
-  const grid = document.getElementById('imgpicker-grid');
-  if(files.length===0){
-    grid.innerHTML = `<div class="empty-state" style="width:100%;">Colle des noms de fichiers ci-dessus pour les voir apparaître ici.</div>`;
-    return;
-  }
-  grid.innerHTML = files.map(f => `
-    <div onclick="pickImgPickerFile('${f.replace(/'/g,"\\'")}')" style="cursor:pointer;width:84px;text-align:center;">
-      <img src="${IMG_PICKER_FOLDER}${f}" style="width:84px;height:84px;object-fit:cover;border-radius:8px;border:2px solid #3a3260;display:block;" onerror="this.style.opacity=0.25;this.title='Introuvable : vérifie le nom exact du fichier';">
-      <div style="font-size:9.5px;color:var(--parchment-dim);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(f)}</div>
-    </div>
-  `).join('');
-}
-function pickImgPickerFile(filename){
-  if(!imgPickerTargetInput) return;
-  document.getElementById(imgPickerTargetInput).value = IMG_PICKER_FOLDER + filename;
-  if(imgPickerTargetPreview) updateImgPreview(imgPickerTargetInput, imgPickerTargetPreview);
-  closeImagePicker();
 }
 
 function openExportModal(mode){
@@ -5167,14 +4967,7 @@ function doImport(){
   }
 }
 
-/* ============================================================
-   BOUTIQUE — boosters et dos de cartes
-   ============================================================ */
-let boostersCache = [];
-let cardBacksCache = [];
-let editingBoosterId = null;
-let editingCardBackId = null;
-const RARITY_KEYS = ['Basique','Commune','Rare','Épique','Mythique'];
+
 
 /* ============================================================
    VARIANTES D'ILLUSTRATION
@@ -5289,262 +5082,6 @@ async function deleteVariant(id){
   await refreshVariantsPanel();
 }
 
-async function loadShopAdmin(){
-  const [{data: boosters}, {data: backs}] = await Promise.all([
-    sb.from('boosters').select('*').order('created_at'),
-    sb.from('card_backs').select('*').order('created_at')
-  ]);
-  boostersCache = boosters || [];
-  cardBacksCache = backs || [];
-  renderBoosterList();
-  renderCardBackList();
-}
-
-function renderBoosterList(){
-  const el = document.getElementById('booster-list');
-  if(boostersCache.length===0){ el.innerHTML = `<div class="empty-state">Aucun booster créé.</div>`; return; }
-  el.innerHTML = boostersCache.map(b=>{
-    const setName = (setsIndex.find(s=>s.id===b.set_id)||{}).name || '(set introuvable)';
-    return `
-    <div style="display:flex;align-items:center;gap:8px;background:var(--bg-panel-2);border-radius:8px;padding:8px 10px;font-size:12px;">
-      <span style="flex:1;">${escapeHtml(b.name)} <span style="color:var(--parchment-dim);">— ${escapeHtml(setName)} · ${b.price} or</span></span>
-      <button class="mini-btn" onclick="editBoosterForm('${b.id}')" title="Modifier">✎</button>
-      <button class="mini-btn" onclick="deleteBoosterEntry('${b.id}')" title="Supprimer">🗑</button>
-    </div>`;
-  }).join('');
-}
-
-function populateBoosterSetSelect(){
-  const sel = document.getElementById('bf-set');
-  sel.innerHTML = setsIndex.map(s=>`<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)}</option>`).join('');
-}
-
-function newBoosterForm(){
-  editingBoosterId = null;
-  populateBoosterSetSelect();
-  document.getElementById('bf-name').value = '';
-  document.getElementById('bf-price').value = 120;
-  document.getElementById('bf-image').value = '';
-  updateImgPreview('bf-image','bf-image-preview');
-  const defaults = {Basique:30, Commune:40, Rare:20, 'Épique':8, 'Mythique':2};
-  document.querySelectorAll('.bf-rarity').forEach(inp=>{ inp.value = defaults[inp.dataset.rarity]; });
-  updateBoosterTotal();
-  document.getElementById('booster-form').style.display = 'block';
-}
-
-function editBoosterForm(id){
-  const b = boostersCache.find(x=>x.id===id);
-  if(!b) return;
-  editingBoosterId = id;
-  populateBoosterSetSelect();
-  document.getElementById('bf-name').value = b.name;
-  document.getElementById('bf-set').value = b.set_id;
-  document.getElementById('bf-price').value = b.price;
-  document.getElementById('bf-image').value = b.image_url || '';
-  updateImgPreview('bf-image','bf-image-preview');
-  document.querySelectorAll('.bf-rarity').forEach(inp=>{ inp.value = (b.rarity_distribution||{})[inp.dataset.rarity] ?? 0; });
-  updateBoosterTotal();
-  document.getElementById('booster-form').style.display = 'block';
-}
-
-function closeBoosterForm(){ document.getElementById('booster-form').style.display = 'none'; editingBoosterId = null; }
-
-function updateBoosterTotal(){
-  let total = 0;
-  document.querySelectorAll('.bf-rarity').forEach(inp=>{ total += parseInt(inp.value)||0; });
-  const span = document.getElementById('bf-total');
-  span.textContent = total;
-  span.style.color = total===100 ? 'var(--green)' : 'var(--blood)';
-}
-
-async function saveBoosterForm(){
-  const name = document.getElementById('bf-name').value.trim();
-  if(!name){ alert('Donne un nom au booster.'); return; }
-  const distribution = {};
-  document.querySelectorAll('.bf-rarity').forEach(inp=>{ distribution[inp.dataset.rarity] = parseInt(inp.value)||0; });
-  const total = Object.values(distribution).reduce((a,b)=>a+b,0);
-  if(total!==100 && !confirm(`La répartition fait ${total}% au lieu de 100%. Enregistrer quand même ?`)) return;
-
-  const row = {
-    id: editingBoosterId || ('booster_' + Date.now()),
-    name,
-    set_id: document.getElementById('bf-set').value,
-    price: parseInt(document.getElementById('bf-price').value) || 120,
-    image_url: document.getElementById('bf-image').value.trim() || null,
-    rarity_distribution: distribution
-  };
-  const { error } = await sb.from('boosters').upsert(row);
-  if(error){ alert('Erreur : ' + error.message); return; }
-  closeBoosterForm();
-  await loadShopAdmin();
-}
-
-async function deleteBoosterEntry(id){
-  const b = boostersCache.find(x=>x.id===id);
-  if(b && !confirm(`Supprimer le booster "${b.name}" ?`)) return;
-  const { error } = await sb.from('boosters').delete().eq('id', id);
-  if(error){ alert('Erreur : ' + error.message); return; }
-  await loadShopAdmin();
-}
-
-function renderCardBackList(){
-  const el = document.getElementById('cardback-list');
-  if(cardBacksCache.length===0){ el.innerHTML = `<div class="empty-state">Aucun dos de carte créé.</div>`; return; }
-  el.innerHTML = cardBacksCache.map(cb=>{
-    const isReward = cb.shop_visible === false;
-    const priceOrBadge = isReward
-      ? `<span style="color:var(--gold);">— 🎁 récompense (hors boutique)</span>`
-      : `<span style="color:var(--parchment-dim);">— ${cb.price} or</span>`;
-    return `
-    <div style="display:flex;align-items:center;gap:8px;background:var(--bg-panel-2);border-radius:8px;padding:8px 10px;font-size:12px;">
-      <span style="flex:1;">${escapeHtml(cb.name)} ${priceOrBadge}</span>
-      <button class="mini-btn" onclick="editCardBackForm('${cb.id}')" title="Modifier">✎</button>
-      <button class="mini-btn" onclick="deleteCardBackEntry('${cb.id}')" title="Supprimer">🗑</button>
-    </div>`;
-  }).join('');
-  populateGrantCardBackSelect();
-}
-
-function populateGrantCardBackSelect(){
-  const sel = document.getElementById('grant-cardback');
-  if(!sel) return;
-  const prevValue = sel.value;
-  sel.innerHTML = cardBacksCache.map(cb=>{
-    const tag = cb.shop_visible === false ? ' (récompense)' : '';
-    return `<option value="${escapeHtml(cb.id)}">${escapeHtml(cb.name)}${tag}</option>`;
-  }).join('');
-  if(prevValue && cardBacksCache.some(cb=>cb.id===prevValue)) sel.value = prevValue;
-}
-
-function newCardBackForm(){
-  editingCardBackId = null;
-  document.getElementById('cf-name').value = '';
-  document.getElementById('cf-price').value = 150;
-  document.getElementById('cf-image').value = '';
-  document.getElementById('cf-shop-visible').checked = true;
-  updateImgPreview('cf-image','cf-image-preview');
-  document.getElementById('cardback-form').style.display = 'block';
-}
-
-function editCardBackForm(id){
-  const cb = cardBacksCache.find(x=>x.id===id);
-  if(!cb) return;
-  editingCardBackId = id;
-  document.getElementById('cf-name').value = cb.name;
-  document.getElementById('cf-price').value = cb.price;
-  document.getElementById('cf-image').value = cb.image_url || '';
-  document.getElementById('cf-shop-visible').checked = cb.shop_visible !== false;
-  updateImgPreview('cf-image','cf-image-preview');
-  document.getElementById('cardback-form').style.display = 'block';
-}
-
-function closeCardBackForm(){ document.getElementById('cardback-form').style.display = 'none'; editingCardBackId = null; }
-
-async function saveCardBackForm(){
-  const name = document.getElementById('cf-name').value.trim();
-  if(!name){ alert('Donne un nom au dos de carte.'); return; }
-  const row = {
-    id: editingCardBackId || ('back_' + Date.now()),
-    name,
-    price: parseInt(document.getElementById('cf-price').value) || 150,
-    image_url: document.getElementById('cf-image').value.trim() || null,
-    shop_visible: document.getElementById('cf-shop-visible').checked
-  };
-  const { error } = await sb.from('card_backs').upsert(row);
-  if(error){ alert('Erreur : ' + error.message); return; }
-  closeCardBackForm();
-  await loadShopAdmin();
-}
-
-async function deleteCardBackEntry(id){
-  const cb = cardBacksCache.find(x=>x.id===id);
-  if(cb && !confirm(`Supprimer le dos de carte "${cb.name}" ?`)) return;
-  const { error } = await sb.from('card_backs').delete().eq('id', id);
-  if(error){ alert('Erreur : ' + error.message); return; }
-  await loadShopAdmin();
-}
-
-async function grantCardBackToPlayer(){
-  const statusEl = document.getElementById('grant-status');
-  const username = document.getElementById('grant-username').value.trim();
-  const cardBackId = document.getElementById('grant-cardback').value;
-  if(!username){ statusEl.textContent = 'Indique le pseudo du joueur.'; statusEl.style.color = 'var(--blood)'; return; }
-  if(!cardBackId){ statusEl.textContent = 'Crée d\'abord au moins un dos de carte.'; statusEl.style.color = 'var(--blood)'; return; }
-  statusEl.textContent = 'Envoi...';
-  statusEl.style.color = 'var(--parchment-dim)';
-  const { data, error } = await sb.functions.invoke('game-action', {
-    body: { action: 'grantCardBack', username, cardBackId }
-  });
-  if(error || (data && data.error)){
-    const code = (data && data.error) || (error && error.message) || 'erreur inconnue';
-    const messages = {
-      'not-authorized': "Seul le compte Kroquette peut distribuer des dos de carte.",
-      'not-logged-in': "Tu dois être connecté.",
-      'player-not-found': `Aucun joueur avec le pseudo "${username}".`,
-      'unknown-card-back': "Ce dos de carte n'existe plus (rafraîchis la page).",
-      'already-owned': `${username} possède déjà ce dos de carte.`
-    };
-    statusEl.textContent = messages[code] || ('Erreur : ' + code);
-    statusEl.style.color = 'var(--blood)';
-    return;
-  }
-  statusEl.textContent = `✓ "${data.card_back_name}" donné à ${data.username} !`;
-  statusEl.style.color = 'var(--green)';
-  document.getElementById('grant-username').value = '';
-}
-
-function openGoldModal(){
-  document.getElementById('gold-status').textContent = '';
-  document.getElementById('gold-mode-single').checked = true;
-  onGoldTargetModeChange();
-  openModal('gold-modal');
-}
-function onGoldTargetModeChange(){
-  const isAll = document.getElementById('gold-mode-all').checked;
-  document.getElementById('gold-username-field').style.display = isAll ? 'none' : '';
-}
-async function submitGoldGrant(){
-  const statusEl = document.getElementById('gold-status');
-  const isAll = document.getElementById('gold-mode-all').checked;
-  const username = document.getElementById('gold-username').value.trim();
-  const amount = parseInt(document.getElementById('gold-amount').value, 10);
-
-  if(!amount || isNaN(amount)){ statusEl.textContent = 'Indique un montant non nul.'; statusEl.style.color = 'var(--blood)'; return; }
-  if(!isAll && !username){ statusEl.textContent = 'Indique le pseudo du joueur.'; statusEl.style.color = 'var(--blood)'; return; }
-  if(isAll && !confirm(`Confirmer : donner ${amount} or à TOUS les joueurs ?`)) return;
-
-  statusEl.textContent = 'Envoi...';
-  statusEl.style.color = 'var(--parchment-dim)';
-
-  const { data, error } = await sb.functions.invoke('game-action', {
-    body: isAll
-      ? { action: 'adminGrantGoldAll', amount }
-      : { action: 'adminGrantGold', username, amount }
-  });
-
-  if(error || (data && data.error)){
-    const code = (data && data.error) || (error && error.message) || 'erreur inconnue';
-    const messages = {
-      'not-authorized': "Seul le compte Kroquette peut donner de l'or.",
-      'not-logged-in': "Tu dois être connecté.",
-      'player-not-found': `Aucun joueur avec le pseudo "${username}".`,
-      'invalid-amount': "Montant invalide.",
-      'missing-params': "Champs manquants."
-    };
-    statusEl.textContent = messages[code] || ('Erreur : ' + code);
-    statusEl.style.color = 'var(--blood)';
-    return;
-  }
-
-  if(isAll){
-    statusEl.textContent = `✓ ${amount} or donné à ${data.player_count} joueur(s) !`;
-  } else {
-    statusEl.textContent = `✓ ${amount} or donné à ${data.username} (nouveau solde : ${data.new_balance}) !`;
-    document.getElementById('gold-username').value = '';
-  }
-  statusEl.style.color = 'var(--green)';
-}
-
 /* ============================================================
    INIT
    ============================================================ */
@@ -5552,16 +5089,25 @@ async function initEditorData(){
   const user = await scGetCurrentUser();
   if(user) await migrateLocalCatalogToSupabaseIfNeeded();
   await loadCards();
-  await loadShopAdmin();
 }
-initSpellcraftAuth().then(initEditorData);
+// Barre Atelier + choix de la page (cartes / cadrage des héros) d'après l'adresse (#heros).
+function applyEditorHash(){
+  const heros = location.hash === '#heros';
+  switchEditorPage(heros ? 'announce' : 'cards');
+  document.querySelectorAll('#atelier-nav .an-tab').forEach(a=>{
+    const isHeros = a.getAttribute('href').endsWith('#heros'), isCartes = a.getAttribute('href') === 'spellcraft-card-editor.html';
+    a.classList.toggle('active', heros ? isHeros : isCartes);
+  });
+}
+window.addEventListener('hashchange', applyEditorHash);
+atelierNav('cartes');
+initSpellcraftAuth().then(initEditorData).then(applyEditorHash);
 playMenuMusicRotation(0.35);
 sb.auth.onAuthStateChange(async (event)=>{
   if(event==='SIGNED_IN'){
     await migrateLocalCatalogToSupabaseIfNeeded();
     await loadCards();
-    await loadShopAdmin();
-  }
+    }
 });
 </script>
 </body>
