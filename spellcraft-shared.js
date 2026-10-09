@@ -192,7 +192,7 @@ function migrateCard(c){
   if(c.imageMirrorAnnounce===undefined) c.imageMirrorAnnounce = false;
   if(c.imageMirrorAnnounceRight===undefined) c.imageMirrorAnnounceRight = true;
   if(c.classSecondary===undefined) c.classSecondary = '';
-  if(!c.heroMultiClass) c.heroMultiClass = {enabled:false, allowedClasses:[], maxCount:6, scope:'Toutes'};
+  if(!c.heroMultiClass) c.heroMultiClass = {enabled:false, mode:'allowed', anySource:'', allowedClasses:[], maxCount:6, scope:'Toutes'};
   if(!c.class) c.class = 'Neutre';
   if(!c.rarity) c.rarity = 'Commune';
   if(!c.type || !CARD_TYPES.includes(c.type)) c.type = 'Créature';

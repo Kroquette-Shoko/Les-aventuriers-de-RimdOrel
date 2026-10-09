@@ -156,7 +156,7 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
         <div class="cardtype"><h4>Sortilège</h4><p>Effet ponctuel : la carte est défaussée dès que vous la jouez, puis ses effets se résolvent. Souvent, demande une cible : sans cible valide, le sort ne se joue pas et reste en main. Voir <a href="#sortileges">les sortilèges en détail</a>.</p></div>
         <div class="cardtype"><h4>Piège</h4><p>Se pose face cachée, sans effet immédiat et sans payer de mana. Se déclenche automatiquement plus tard, dès que sa condition est remplie ; son coût en mana est alors payé (voir section 10).</p></div>
       </div>
-      <p class="dim" style="margin-top:12px;">Chaque carte a aussi une <strong>classe</strong> (Aube, Crépuscule, Volonté, Prima, Arcane ou Neutre) qui la relie à une couleur/identité de jeu, et une <strong>rareté</strong> (Basique, Commune, Rare, Épique, Mythique) qui influence surtout la collection et le craft, pas les règles elles-mêmes.</p>
+      <p class="dim" style="margin-top:12px;">Chaque carte a aussi une <strong>source</strong> de magie (Aube, Crépuscule, Volonté, Prima, Arcane ou Neutre) qui la relie à une couleur/identité de jeu, et une <strong>rareté</strong> (Basique, Commune, Rare, Épique, Mythique) qui influence surtout la collection et le craft, pas les règles elles-mêmes.</p>
       <h3 id="sortileges">Les sortilèges en détail</h3>
       <p>Un sortilège se joue depuis la main pendant votre phase principale. <strong>Dès que vous le jouez, la carte part en défausse</strong> ; ses effets se résolvent ensuite. Il n'y a <strong>aucune limite</strong> au nombre de sorts par tour : seul votre mana compte.</p>
       <ul>
@@ -182,8 +182,8 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
       <h3 id="regions">Les régions en détail</h3>
       <p>Votre <strong>région</strong> reste toujours en jeu à côté de votre héros. Chaque début de tour, vous gagnez normalement votre mana ; certaines régions donnent en plus une <strong>chance</strong> de faire autre chose <strong>à la place</strong> de ce gain de mana : conjurer une carte, gagner de la vie, infliger des dégâts...</p>
       <ul>
-        <li><strong>Choix au deck</strong> — une seule région, hors des 30 cartes, facultative. Sans région, ou avec une région invalide (introuvable, mauvais type, mauvaise classe), la <strong>Côte de Rimd'Orël</strong> est utilisée.</li>
-        <li><strong>Classe</strong> — une région n'est utilisable que si elle est de la classe de votre héros (ou de sa classe secondaire), ou <strong>Neutre</strong>. Le deckbuilder ne propose que celles-là, et le serveur le vérifie aussi.</li>
+        <li><strong>Choix au deck</strong> — une seule région, hors des 30 cartes, facultative. Sans région, ou avec une région invalide (introuvable, mauvais type, mauvaise source), la <strong>Côte de Rimd'Orël</strong> est utilisée.</li>
+        <li><strong>Source</strong> — une région n'est utilisable que si elle est de la source de votre héros (ou de sa seconde source), ou <strong>Neutre</strong>. Le deckbuilder ne propose que celles-là, et le serveur le vérifie aussi.</li>
         <li><strong>Tours personnels</strong> — « à partir du tour 5 » veut dire à partir de <em>votre</em> 5<sup>e</sup> tour, pas du 5<sup>e</sup> tour de la partie. Chaque joueur a son propre compteur et son propre tirage.</li>
         <li><strong>Remplacement du gain de mana</strong> — si les conditions sont remplies (tour atteint, puis chance), l'effet de la région a lieu à la place du gain de mana du tour. Sinon, vous gagnez votre mana normalement.</li>
         <li><strong>Jamais détruite, jamais ciblée</strong> — aucun effet ne peut détruire une région ni la prendre pour cible. De futurs effets (chance accrue, remplacement de la région) sont envisagés, mais pas encore définis.</li>
@@ -192,7 +192,7 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
         <li><strong>Début de partie</strong> — les effets « Au début de la partie » se déclenchent une seule fois, à la fin du mulligan.</li>
       </ul>
       <table class="kw">
-        <tr><th>Région</th><th>Classe</th><th>Effet</th></tr>
+        <tr><th>Région</th><th>Source</th><th>Effet</th></tr>
         <tr><td class="kwname">Côte de Rimd'Orël</td><td>Neutre</td><td>Région par défaut : vous gagnez 1 mana au début de votre tour.</td></tr>
         <tr><td class="kwname">Conduit de Clébreaux</td><td>Prima</td><td>À partir de votre tour 6, 30&nbsp;% de chance, à la place du gain de mana, d'infliger 3 points de dégâts répartis au hasard : chaque point touche une cible tirée au hasard parmi les créatures adverses et le héros adverse (une cible peut en recevoir plusieurs).</td></tr>
         <tr><td class="kwname">Château des Arlow</td><td>Aube</td><td>À partir de votre tour 5, 30&nbsp;% de chance, à la place du gain de mana, de conjurer une créature Aube de coût 2 ou moins avec +1/+1.</td></tr>
