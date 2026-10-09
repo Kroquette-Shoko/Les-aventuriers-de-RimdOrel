@@ -923,11 +923,29 @@ function applyNCardArtFree(art, card, sfx){
   const sc = Math.max(1, num(card['imageScale'+sfx], 100)) / 100;
   const rot = num(card['imageRot'+sfx], 0);
   const fx = card['imageFlipX'+sfx] ? -1 : 1, fy = card['imageFlipY'+sfx] ? -1 : 1;
+  /* Le calque « inner » a exactement la taille de la fenêtre ; l'image (type « cover »)
+     est posée dedans SANS être rognée à la fenêtre : sinon, dès qu'on décale l'image,
+     on verrait une bande vide à la place de la partie déjà coupée. */
   const inner = document.createElement('div');
   inner.className = 'nart-free';
-  inner.style.cssText = "position:absolute;left:0;top:0;width:100%;height:100%;background-repeat:no-repeat;background-size:cover;background-position:center;transform-origin:50% 50%;"
-    + "background-image:url('" + String(card.image).replace(/'/g, '') + "');"
+  inner.style.cssText = "position:absolute;left:0;top:0;width:100%;height:100%;transform-origin:50% 50%;"
     + "transform:translate(" + ox + "%," + oy + "%) rotate(" + rot + "deg) scale(" + (fx*sc) + "," + (fy*sc) + ");";
+  const im = document.createElement('img');
+  im.alt = ''; im.draggable = false;
+  im.src = String(card.image);
+  im.style.cssText = "position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:none;max-height:none;pointer-events:none;user-select:none;width:100%;height:100%;";
+  /* taille « cover » = l'image remplit la fenêtre sans déformation ; calculée avec le ratio réel de la fenêtre */
+  const fit = function(){
+    const iw = im.naturalWidth, ih = im.naturalHeight, r = art.getBoundingClientRect();
+    if(!iw || !ih || !r.width || !r.height) return;
+    const ia = iw/ih, wa = r.width/r.height;
+    if(ia >= wa){ im.style.height = '100%'; im.style.width = (ia/wa*100) + '%'; }
+    else { im.style.width = '100%'; im.style.height = (wa/ia*100) + '%'; }
+  };
+  im.addEventListener('load', fit);
+  if(typeof ResizeObserver !== 'undefined'){ try{ new ResizeObserver(fit).observe(art); }catch(e){} }
+  setTimeout(fit, 0); setTimeout(fit, 150);
+  inner.appendChild(im);
   art.appendChild(inner);
   return true;
 }
