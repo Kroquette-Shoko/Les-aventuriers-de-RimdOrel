@@ -107,6 +107,27 @@ header .spacer{flex:1;}
 .tgt-suggest-title{flex-basis:100%;font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--parchment-dim);}
 .tgt-chip{padding:5px 10px;border-radius:14px;border:1px solid #3a3260;background:rgba(255,255,255,.05);color:var(--parchment);cursor:pointer;font:inherit;font-size:12px;}
 .tgt-chip:hover{border-color:var(--gold);color:var(--gold);}
+
+/* Studio d'illustration (cadrage libre) */
+#art-studio .as-box{background:var(--bg-panel-2);border:1px solid #3a3260;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:12px;}
+#art-studio .as-fmts{display:flex;gap:6px;flex-wrap:wrap;}
+#art-studio .as-fmt{padding:6px 12px;border-radius:16px;border:1px solid #3a3260;background:rgba(255,255,255,.05);color:var(--parchment);cursor:pointer;font:inherit;font-size:12px;}
+#art-studio .as-fmt.on{border-color:var(--gold);color:var(--gold);background:rgba(212,175,55,.14);}
+#art-studio .as-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+#art-studio .as-lab{width:92px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--parchment-dim);flex:none;}
+#art-studio .as-num{width:92px;text-align:center;}
+#art-studio .as-unit{font-size:11px;color:var(--parchment-dim);width:16px;}
+#art-studio .as-n{min-width:34px;padding:5px 6px;border-radius:6px;border:1px solid #3a3260;background:rgba(255,255,255,.05);color:var(--parchment);cursor:pointer;font:inherit;font-size:12px;}
+#art-studio .as-n:hover,#art-studio .as-tog:hover{border-color:var(--gold);}
+#art-studio .as-tog{padding:7px 12px;border-radius:8px;border:1px solid #3a3260;background:rgba(255,255,255,.05);color:var(--parchment);cursor:pointer;font:inherit;font-size:12.5px;}
+#art-studio .as-tog.on{border-color:var(--gold);color:var(--gold);background:rgba(212,175,55,.16);}
+#art-studio .as-dial{width:74px;height:74px;border-radius:50%;border:2px solid #3a3260;position:relative;background:radial-gradient(circle,rgba(255,255,255,.06),transparent 70%);cursor:grab;touch-action:none;flex:none;}
+#art-studio .as-dial i{position:absolute;left:50%;top:50%;width:2px;height:32px;margin-left:-1px;margin-top:-32px;background:var(--gold);transform-origin:1px 32px;border-radius:2px;pointer-events:none;}
+#art-studio .as-dial i::after{content:'';position:absolute;top:-4px;left:-4px;width:10px;height:10px;border-radius:50%;background:var(--gold);}
+#art-studio .as-help{font-size:11.5px;color:var(--parchment-dim);line-height:1.45;}
+#art-studio .as-warn{border:1px solid #c9a86a;border-radius:8px;padding:10px 12px;font-size:12px;color:#e6cf9c;display:flex;flex-direction:column;gap:8px;}
+#new-preview-big .nart-layer, #new-preview-small .nart-layer{cursor:grab;}
+.legacy-frame{display:none !important;}
 .conditions-box, .effects-box, .trigger-list-box, .targets-box{background:var(--bg-panel-3);border-radius:8px;padding:10px 12px;margin-top:10px;}
 .conditions-box h4, .effects-box h4, .trigger-list-box h4, .targets-box h4{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--parchment-dim);margin:0 0 8px;display:flex;align-items:center;gap:8px;}
 .target-entry-row{display:flex;gap:8px;align-items:flex-end;margin-bottom:8px;flex-wrap:wrap;padding-bottom:8px;border-bottom:1px dashed #3a3260;}
@@ -543,8 +564,9 @@ header .spacer{flex:1;}
           <label>Image (URL)</label>
           <input type="url" id="f-image" placeholder="https://..." oninput="onFormChange()">
         </div>
+<div class="field" id="art-studio" style="display:none"></div>
 <div class="field" id="f-image-frame-wrap" style="display:none">
-          <label>Cadrage de l'image</label>
+          <label>Cadrage du portrait (rond) <span class="hint" style="text-transform:none;letter-spacing:0;">— utilisé pour le portrait du héros</span></label>
           <div style="display:flex;flex-direction:column;gap:6px;background:var(--bg-panel-2);border:1px solid #3a3260;border-radius:8px;padding:10px 12px;">
             <div style="display:flex;align-items:center;gap:8px;">
               <span class="mini-field" style="width:80px;flex-shrink:0;">Horizontal</span>
@@ -561,7 +583,7 @@ header .spacer{flex:1;}
             <button class="btn small" style="align-self:flex-start;" onclick="resetImageFrame()">↺ Recentrer</button>
           </div>
         </div>
-<div class="field" id="f-image-frame-small-wrap" style="display:none">
+<div class="field legacy-frame" id="f-image-frame-small-wrap" style="display:none">
           <label>Cadrage de l'image — petit format (plateau) <span class="hint" style="text-transform:none;letter-spacing:0;">— réglage indépendant du grand format</span></label>
           <div style="display:flex;flex-direction:column;gap:6px;background:var(--bg-panel-2);border:1px solid #3a3260;border-radius:8px;padding:10px 12px;">
             <div style="display:flex;align-items:center;gap:8px;">
@@ -582,7 +604,7 @@ header .spacer{flex:1;}
             </div>
           </div>
         </div>
-<div class="field" id="f-image-frame-herocard-wrap" style="display:none">
+<div class="field legacy-frame" id="f-image-frame-herocard-wrap" style="display:none">
           <label>Cadrage de l'image — version carte (bigframe) <span class="hint" style="text-transform:none;letter-spacing:0;">— réglage indépendant du portrait</span></label>
           <div style="display:flex;flex-direction:column;gap:6px;background:var(--bg-panel-2);border:1px solid #3a3260;border-radius:8px;padding:10px 12px;">
             <div style="display:flex;align-items:center;gap:8px;">
@@ -4314,6 +4336,7 @@ function readForm(){
     imagePosXHeroCard: parseInt(document.getElementById('f-image-x-herocard').value) || 50,
     imagePosYHeroCard: parseInt(document.getElementById('f-image-y-herocard').value) || 50,
     imageZoomHeroCard: parseInt(document.getElementById('f-image-zoom-herocard').value) || 100,
+    ...artFields(),
     heroNameCurveTop: parseInt(document.getElementById('f-herocard-curve-top').value) ?? 4,
     heroNameCurveStrength: parseInt(document.getElementById('f-herocard-curve-strength').value) ?? 34,
     setLogo: document.getElementById('f-set-logo').value.trim(),
@@ -4392,6 +4415,7 @@ function loadCardIntoForm(card){
   document.getElementById('f-image-x-herocard').value = card.imagePosXHeroCard ?? 50;
   document.getElementById('f-image-y-herocard').value = card.imagePosYHeroCard ?? 50;
   document.getElementById('f-image-zoom-herocard').value = card.imageZoomHeroCard ?? 100;
+  artLoad(card);
   document.getElementById('f-herocard-curve-top').value = card.heroNameCurveTop ?? 4;
   document.getElementById('f-herocard-curve-strength').value = card.heroNameCurveStrength ?? 34;
   document.getElementById('f-image-frame-wrap').style.display = card.image ? 'block' : 'none';
@@ -4421,6 +4445,7 @@ function loadCardIntoForm(card){
 }
 
 function newCard(){
+  artReset();
   variantMode = null; hideVariantBanner(); setTimeout(refreshVariantsPanel, 0);
   editingId = null;
   currentType = 'Créature';
@@ -4484,12 +4509,207 @@ function onFormChange(){
   if(!manualMode) document.getElementById('generated-text-box').textContent = buildCardText();
   const hasImg = document.getElementById('f-image').value.trim();
   const isHeroType = currentType==='Héros';
-  document.getElementById('f-image-frame-wrap').style.display = hasImg ? 'block' : 'none';
+  document.getElementById('f-image-frame-wrap').style.display = (hasImg && isHeroType) ? 'block' : 'none';
   document.getElementById('f-image-frame-small-wrap').style.display = (hasImg && !isHeroType) ? 'block' : 'none';
   document.getElementById('f-image-frame-herocard-wrap').style.display = (hasImg && isHeroType) ? 'block' : 'none';
   document.getElementById('f-herocard-curve-wrap').style.display = isHeroType ? 'block' : 'none';
+  artStudioRefresh();
   renderPreview();
 }
+/* ============================================================
+   STUDIO D'ILLUSTRATION — cadrage libre
+   ============================================================
+   Remplace les curseurs bornés. Pour chaque format (grande carte,
+   miniature plateau, carte héros) : déplacement X/Y, zoom, rotation 360°,
+   miroirs horizontal et vertical. Les valeurs sont libres (aucune borne) ;
+   on peut aussi glisser l'image directement dans l'aperçu à droite et
+   zoomer à la molette. Stockage : champs imageFree/OffX/OffY/Scale/Rot/
+   FlipX/FlipY (+ suffixe de format), lus par applyNCardArtFree().
+   ============================================================ */
+const ART_SFX = ['', 'Small', 'HeroCard'];
+const ART_LABELS = { '':'Grande carte', 'Small':'Miniature (plateau)', 'HeroCard':'Carte héros' };
+let ART = {};
+let artFmt = '';
+let artRenderKey = '';
+function artBlank(free){ return { free:!!free, ox:0, oy:0, scale:100, rot:0, fx:false, fy:false }; }
+function artReset(){ ART = { '':artBlank(true), 'Small':artBlank(true), 'HeroCard':artBlank(true) }; artFmt = ''; artRenderKey=''; }
+function artLoad(src){
+  ART = {};
+  const n = (v,d)=> (typeof v==='number' && isFinite(v)) ? v : d;
+  ART_SFX.forEach(s=>{
+    if(src['imageFree'+s]){
+      ART[s] = { free:true, ox:n(src['imageOffX'+s],0), oy:n(src['imageOffY'+s],0), scale:n(src['imageScale'+s],100),
+                 rot:n(src['imageRot'+s],0), fx:!!src['imageFlipX'+s], fy:!!src['imageFlipY'+s] };
+    } else {
+      const px = src['imagePosX'+s] ?? 50, py = src['imagePosY'+s] ?? 50, z = src['imageZoom'+s] ?? 100;
+      ART[s] = (px===50 && py===50 && z===100) ? artBlank(true) : artBlank(false);   // ancien cadrage non standard : conservé tel quel jusqu'à conversion
+    }
+  });
+  artRenderKey = '';
+  artStudioRefresh();
+}
+function artFields(){
+  const o = {};
+  ART_SFX.forEach(s=>{
+    const a = ART[s] || artBlank(true);
+    o['imageFree'+s] = !!a.free;
+    if(a.free){
+      o['imageOffX'+s] = Math.round(a.ox*100)/100; o['imageOffY'+s] = Math.round(a.oy*100)/100;
+      o['imageScale'+s] = Math.round(a.scale*100)/100; o['imageRot'+s] = Math.round(a.rot*100)/100;
+      o['imageFlipX'+s] = !!a.fx; o['imageFlipY'+s] = !!a.fy;
+    }
+  });
+  return o;
+}
+function artFormats(){ return currentType==='Héros' ? ['HeroCard'] : ['', 'Small']; }
+function artConvertLegacy(s){
+  const px = parseFloat(document.getElementById('f-image-x'+(s?'-'+s.toLowerCase():'')).value);
+  const py = parseFloat(document.getElementById('f-image-y'+(s?'-'+s.toLowerCase():'')).value);
+  const z = parseFloat(document.getElementById('f-image-zoom'+(s?'-'+s.toLowerCase():'')).value) || 100;
+  const a = artBlank(true);
+  a.scale = Math.max(100, z);
+  a.ox = Math.round((50-(isFinite(px)?px:50))*(a.scale-100)/100*100)/100;
+  a.oy = Math.round((50-(isFinite(py)?py:50))*(a.scale-100)/100*100)/100;
+  ART[s] = a;
+}
+function artSet(s, key, val){
+  const a = ART[s]; if(!a) return;
+  a[key] = val;
+  artSyncInputs();
+  onFormChange();
+}
+function artSyncInputs(){
+  const root = document.getElementById('art-studio');
+  const a = ART[artFmt]; if(!root || !a || !a.free) return;
+  root.querySelectorAll('input[data-k]').forEach(inp=>{
+    if(document.activeElement===inp) return;
+    const v = a[inp.dataset.k];
+    inp.value = (Math.round(v*100)/100);
+  });
+  root.querySelectorAll('.as-tog[data-flip]').forEach(b=> b.classList.toggle('on', !!a[b.dataset.flip]));
+  const dial = root.querySelector('.as-dial i');
+  if(dial) dial.style.transform = `rotate(${a.rot}deg)`;
+}
+function artStudioRefresh(){
+  const root = document.getElementById('art-studio');
+  if(!root) return;
+  const hasImg = !!document.getElementById('f-image').value.trim();
+  root.style.display = hasImg ? 'block' : 'none';
+  if(!hasImg) return;
+  const fmts = artFormats();
+  if(!fmts.includes(artFmt)) artFmt = fmts[0];
+  const a = ART[artFmt] || (ART[artFmt] = artBlank(true));
+  const key = [currentType==='Héros', artFmt, a.free].join('|');
+  if(key !== artRenderKey){ artRenderKey = key; artStudioRender(); }
+  artSyncInputs();
+}
+function artStudioRender(){
+  const root = document.getElementById('art-studio');
+  const fmts = artFormats();
+  const a = ART[artFmt];
+  let h = `<label>Illustration — cadrage libre <span class="hint" style="text-transform:none;letter-spacing:0;">— aucune limite : glisse l'image dans l'aperçu, molette = zoom</span></label><div class="as-box">`;
+  h += `<div class="as-fmts">` + fmts.map(f=>`<button type="button" class="as-fmt ${f===artFmt?'on':''}" data-fmt="${f}">${ART_LABELS[f]}</button>`).join('') + `</div>`;
+  if(!a.free){
+    h += `<div class="as-warn">Cette illustration utilise l'ancien cadrage (curseurs bornés). Pour utiliser le cadrage libre (rotation, miroirs, valeurs sans limite), convertis-la : la position sera reprise approximativement — vérifie l'aperçu et ajuste.
+      <div class="as-row"><button type="button" class="as-tog" data-act="convert">Passer en cadrage libre</button><button type="button" class="as-tog" data-act="fresh">Repartir d'un cadrage centré</button></div></div>`;
+  } else {
+    const num = (k, lab, unit)=>`<div class="as-row"><span class="as-lab">${lab}</span>
+      <button type="button" class="as-n" data-nudge="${k}" data-d="-10">−10</button><button type="button" class="as-n" data-nudge="${k}" data-d="-1">−1</button>
+      <input type="number" step="any" class="as-num" data-k="${k}"><span class="as-unit">${unit}</span>
+      <button type="button" class="as-n" data-nudge="${k}" data-d="1">+1</button><button type="button" class="as-n" data-nudge="${k}" data-d="10">+10</button></div>`;
+    h += num('ox','Horizontal','%') + num('oy','Vertical','%') + num('scale','Zoom','%');
+    h += `<div class="as-row"><span class="as-lab">Rotation</span><div class="as-dial" data-dial><i></i></div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <div class="as-row"><button type="button" class="as-n" data-nudge="rot" data-d="-15">−15°</button><button type="button" class="as-n" data-nudge="rot" data-d="-1">−1°</button>
+        <input type="number" step="any" class="as-num" data-k="rot"><span class="as-unit">°</span>
+        <button type="button" class="as-n" data-nudge="rot" data-d="1">+1°</button><button type="button" class="as-n" data-nudge="rot" data-d="15">+15°</button></div>
+        <div class="as-row"><button type="button" class="as-n" data-rotset="-90">⟲ 90°</button><button type="button" class="as-n" data-rotset="90">⟳ 90°</button><button type="button" class="as-n" data-rotset="180">180°</button><button type="button" class="as-n" data-rotset="0">0°</button></div>
+      </div></div>`;
+    h += `<div class="as-row"><span class="as-lab">Miroir</span>
+      <button type="button" class="as-tog" data-flip="fx">⇋ Horizontal</button><button type="button" class="as-tog" data-flip="fy">⇵ Vertical</button></div>`;
+    h += `<div class="as-row"><button type="button" class="as-tog" data-act="reset">↺ Recentrer et tout remettre à zéro</button>`
+       + (artFmt==='Small' ? `<button type="button" class="as-tog" data-act="copybig">⇩ Copier le cadrage de la grande carte</button>` : '')
+       + `</div>`;
+    h += `<div class="as-help">Déplacement : en % de la fenêtre d'illustration (0 = centré, valeurs négatives et supérieures à 100 acceptées). Zoom : 100 = l'image remplit la fenêtre ; moins = plus petite (des bords vides peuvent apparaître). Rotation : tourne autour du centre de l'image. Dans l'aperçu : glisser = déplacer, molette = zoom.</div>`;
+  }
+  h += `</div>`;
+  root.innerHTML = h;
+}
+(function artStudioInit(){
+  const root = document.getElementById('art-studio');
+  root.addEventListener('click', e=>{
+    const t = e.target.closest('button'); if(!t) return;
+    if(t.dataset.fmt!==undefined){ artFmt = t.dataset.fmt; artRenderKey=''; artStudioRefresh(); return; }
+    const a = ART[artFmt];
+    if(t.dataset.act==='convert'){ artConvertLegacy(artFmt); artRenderKey=''; artStudioRefresh(); onFormChange(); return; }
+    if(t.dataset.act==='fresh'){ ART[artFmt]=artBlank(true); artRenderKey=''; artStudioRefresh(); onFormChange(); return; }
+    if(t.dataset.act==='reset'){ ART[artFmt]=artBlank(true); artSyncInputs(); onFormChange(); return; }
+    if(t.dataset.act==='copybig'){ ART.Small = Object.assign({}, ART['']); ART.Small.free = true; artSyncInputs(); onFormChange(); return; }
+    if(!a) return;
+    if(t.dataset.nudge){ const k=t.dataset.nudge; let v=(a[k]||0)+parseFloat(t.dataset.d); if(k==='scale') v=Math.max(1,v); artSet(artFmt,k,Math.round(v*100)/100); return; }
+    if(t.dataset.rotset!==undefined){ const d=parseFloat(t.dataset.rotset); artSet(artFmt,'rot', d===0?0:(d===180?((a.rot+180)%360):(a.rot+d))); return; }
+    if(t.dataset.flip){ artSet(artFmt, t.dataset.flip, !a[t.dataset.flip]); return; }
+  });
+  root.addEventListener('input', e=>{
+    const inp = e.target.closest('input[data-k]'); if(!inp) return;
+    const a = ART[artFmt]; if(!a) return;
+    let v = parseFloat(inp.value); if(!isFinite(v)) return;
+    if(inp.dataset.k==='scale') v = Math.max(1, v);
+    a[inp.dataset.k] = v;
+    const dial = root.querySelector('.as-dial i'); if(dial) dial.style.transform = `rotate(${a.rot}deg)`;
+    onFormChange();
+  });
+  // cadran de rotation
+  let dialDrag = false;
+  const setFromPointer = (e)=>{
+    const dial = root.querySelector('[data-dial]'); const a = ART[artFmt]; if(!dial || !a) return;
+    const r = dial.getBoundingClientRect();
+    let ang = Math.atan2(e.clientX-(r.left+r.width/2), -(e.clientY-(r.top+r.height/2))) * 180/Math.PI;
+    if(ang<0) ang += 360;
+    if(e.shiftKey) ang = Math.round(ang/15)*15;
+    a.rot = Math.round(ang*10)/10;
+    artSyncInputs(); onFormChange();
+  };
+  root.addEventListener('pointerdown', e=>{ const d=e.target.closest('[data-dial]'); if(!d) return; dialDrag=true; d.setPointerCapture(e.pointerId); setFromPointer(e); });
+  root.addEventListener('pointermove', e=>{ if(dialDrag) setFromPointer(e); });
+  root.addEventListener('pointerup', ()=>{ dialDrag=false; });
+
+  // glisser / molette directement dans l'aperçu
+  let drag = null;
+  const fmtOfBox = (box)=> box.id==='new-preview-small' ? 'Small' : (currentType==='Héros' ? 'HeroCard' : '');
+  ['new-preview-big','new-preview-small'].forEach(id=>{
+    const box = document.getElementById(id);
+    const layerRect = ()=>{ const l = box.querySelector('.nart-layer'); return l ? l.getBoundingClientRect() : null; };
+    const inside = (e, r)=> r && e.clientX>=r.left && e.clientX<=r.right && e.clientY>=r.top && e.clientY<=r.bottom;
+    box.addEventListener('pointerdown', e=>{
+      if(!document.getElementById('f-image').value.trim()) return;
+      const f = fmtOfBox(box), a = ART[f], r = layerRect();
+      if(!a || !a.free || !inside(e, r)) return;
+      artFmt = f; artRenderKey=''; artStudioRefresh();
+      drag = { box, f, x:e.clientX, y:e.clientY, ox:a.ox, oy:a.oy, w:r.width, h:r.height };
+      box.setPointerCapture(e.pointerId); e.preventDefault();
+    });
+    box.addEventListener('pointermove', e=>{
+      if(!drag || drag.box!==box) return;
+      const a = ART[drag.f];
+      a.ox = Math.round((drag.ox + (e.clientX-drag.x)/drag.w*100)*100)/100;
+      a.oy = Math.round((drag.oy + (e.clientY-drag.y)/drag.h*100)*100)/100;
+      artSyncInputs(); onFormChange();
+    });
+    const end = ()=>{ drag = null; };
+    box.addEventListener('pointerup', end); box.addEventListener('pointercancel', end);
+    box.addEventListener('wheel', e=>{
+      if(!document.getElementById('f-image').value.trim()) return;
+      const f = fmtOfBox(box), a = ART[f];
+      if(!a || !a.free || !inside(e, layerRect())) return;
+      e.preventDefault();
+      artFmt = f;
+      a.scale = Math.max(1, Math.round(a.scale*Math.exp(-e.deltaY*0.0015)*100)/100);
+      artRenderKey=''; artStudioRefresh(); artSyncInputs(); onFormChange();
+    }, { passive:false });
+  });
+})();
+
 function resetImageFrame(){
   document.getElementById('f-image-x').value = 50;
   document.getElementById('f-image-y').value = 50;
@@ -4738,7 +4958,7 @@ function buildNewCardEl(card, size, opts={}){
   const posY = isHero ? (card.imagePosYHeroCard ?? 50) : size==='big' ? (card.imagePosY ?? 50) : (card.imagePosYSmall ?? 50);
   const zoom = isHero ? (card.imageZoomHeroCard ?? 100) : size==='big' ? (card.imageZoom ?? 100) : (card.imageZoomSmall ?? 100);
   const art = nEl('div', 'nart-layer');
-  if(card.image){
+  if(card.image && !applyNCardArtFree(art, card, isHero ? 'HeroCard' : size==='big' ? '' : 'Small')){
     art.style.backgroundImage = `url('${card.image.replace(/'/g,'')}')`;
     art.style.backgroundPosition = `${posX}% ${posY}%`;
     art.style.backgroundSize = zoom>100 ? zoom+'%' : 'cover';
@@ -5192,13 +5412,14 @@ function readImageFields(){
     const v = document.getElementById(VARIANT_INPUTS[k]).value;
     o[k] = k==='image' ? v.trim() : (parseInt(v) || VARIANT_DEFAULTS[k]);
   });
-  return o;
+  return Object.assign(o, artFields());
 }
 function writeImageFields(o){
   Object.keys(VARIANT_INPUTS).forEach(k=>{
     const v = (o && o[k] !== undefined && o[k] !== null) ? o[k] : VARIANT_DEFAULTS[k];
     document.getElementById(VARIANT_INPUTS[k]).value = v;
   });
+  artLoad(o || {});
   onFormChange();
 }
 function hideVariantBanner(){
