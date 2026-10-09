@@ -4,9 +4,8 @@
 (function(){
   var PAGES = [
     { key:'cartes',   label:'🃏 Cartes',        href:'spellcraft-card-editor.html' },
-    { key:'boutique', label:'🛒 Boutique & or', href:'spellcraft-atelier-boutique.html' },
-    { key:'heros',    label:'🖼️ Cadrage héros', href:'spellcraft-card-editor.html#heros' },
-    { key:'coffres',  label:'🎁 Coffres de Velkrin', href:'spellcraft-calendar-admin.html' },
+    { key:'boutique', label:'🛒 Boutique & coffres', href:'spellcraft-atelier-boutique.html' },
+    { key:'heros',    label:'🖼️ Écrans d\'annonce', href:'spellcraft-card-editor.html#heros' },
     { key:'succes',   label:'🏅 Succès',        href:'spellcraft-achievements-editor.html' }
   ];
   var CSS = '#atelier-nav{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 16px;background:#110e1c;border-bottom:1px solid #3a3260;font-family:Inter,sans-serif;}'
@@ -17,6 +16,7 @@
     + '#atelier-nav a.an-tab.active{background:#d4af37;color:#1c1830;border-color:#d4af37;}';
   window.atelierNav = function(active){
     if(document.getElementById('atelier-nav')) return;
+    if(new URLSearchParams(location.search).get('embed') === '1') return; // intégré dans un onglet : pas de barre
     var st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
     var nav = document.createElement('div'); nav.id = 'atelier-nav';
     nav.innerHTML = '<a class="an-home" href="spellcraft-hub.html">🏠 Hub</a><span class="an-title">Atelier</span>'

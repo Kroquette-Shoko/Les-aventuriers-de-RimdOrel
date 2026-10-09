@@ -293,6 +293,33 @@ header .spacer{flex:1;}
 .modal-box h2{font-family:'Cinzel',serif;font-size:16px;margin:0;color:var(--gold);}
 .modal-box textarea{width:100%;flex:1;min-height:260px;background:var(--bg-panel-2);border:1px solid #3a3260;color:var(--parchment);border-radius:8px;padding:12px;font-family:'Menlo',monospace;font-size:12px;resize:vertical;}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;}
+
+/* ---------- Nouvelle mise en page de la page Cartes ---------- */
+.hint{font-size:11.5px;color:var(--parchment-dim);line-height:1.45;}
+#body{max-width:1500px;}
+#ed-grid{display:flex;gap:20px;align-items:flex-start;}
+#ed-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:14px;}
+#ed-workbench{display:flex;gap:0;padding:0;overflow:hidden;}
+#ed-rail{flex:0 0 132px;display:flex;flex-direction:column;gap:4px;padding:12px 8px;background:var(--bg-panel-2);border-right:1px solid #2b2440;}
+.ed-tab{display:flex;align-items:center;gap:9px;padding:11px 10px;border-radius:8px;background:none;border:1px solid transparent;color:var(--parchment-dim);font-family:'Inter';font-size:13px;font-weight:600;cursor:pointer;text-align:left;}
+.ed-tab:hover{color:var(--parchment);border-color:#3a3260;}
+.ed-tab.active{background:rgba(212,175,55,.1);border-color:var(--gold);color:var(--gold);}
+.ed-ic{font-size:17px;}
+#ed-panes{flex:1;min-width:0;padding:18px 20px;}
+.ed-pane{display:none;}
+.ed-pane.active{display:block;}
+.ed-pane>h2{font-family:'Cinzel',serif;font-size:16px;color:var(--gold);margin:0 0 14px;}
+.ed-sub{margin-top:18px;padding-top:16px;border-top:1px solid #2b2440;}
+.ed-sub>h2{font-family:'Cinzel',serif;font-size:14px;color:var(--gold);margin:0 0 10px;}
+#ed-actions{position:sticky;bottom:0;z-index:20;display:flex;gap:8px;padding:10px 14px;background:var(--bg-panel);border:1px solid #2b2440;border-radius:12px;box-shadow:0 -6px 18px rgba(0,0,0,.45);}
+#lib-filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+#lib-filters input,#lib-filters select{background:var(--bg-panel-2);border:1px solid #3a3260;color:var(--parchment);border-radius:8px;padding:7px 10px;font-size:12.5px;}
+#lib-filters input{min-width:150px;}
+#preview-panel{width:360px;}
+#new-preview-wrap{gap:10px;}
+.kw-badge-stack{position:absolute;top:2px;right:2px;z-index:10;display:flex;flex-direction:column;gap:2px;pointer-events:none;}
+.kw-badge-stack img{width:36px;height:36px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.8));}
+@media(max-width:1100px){#ed-grid{flex-direction:column;}#preview-panel{width:100%;position:static;}}
 </style>
 </head>
 <body>
@@ -321,19 +348,24 @@ header .spacer{flex:1;}
   <div id="body">
 
     <div id="cards-section">
-    <div id="cards-main-row">
-    <div id="cards-left-col">
-      <div id="fields-panel" class="panel">
-        <h2>Informations principales</h2>
+    <div id="ed-grid">
+    <div id="ed-main">
 
-        <div class="type-tabs" id="type-tabs"></div>
-
-        <div class="field">
+      <div class="panel" id="ed-workbench">
+        <nav id="ed-rail" aria-label="Sections de la carte">
+          <button type="button" class="ed-tab active" data-tab="identite"><span class="ed-ic">🪪</span><span>Identité</span></button>
+          <button type="button" class="ed-tab" data-tab="illustration"><span class="ed-ic">🖼️</span><span>Illustration</span></button>
+          <button type="button" class="ed-tab" data-tab="capacites"><span class="ed-ic">⚡</span><span>Capacités</span></button>
+        </nav>
+        <div id="ed-panes">
+          <section class="ed-pane active" id="pane-identite">
+            <h2>Identité</h2>
+<div class="type-tabs" id="type-tabs"></div>
+<div class="field">
           <label>Nom</label>
           <input type="text" id="f-name" placeholder="Ex : Sentinelle de Pierre" oninput="onFormChange()">
         </div>
-
-        <div class="field">
+<div class="field">
           <label>Taille du titre sur la carte <span class="hint" style="text-transform:none;letter-spacing:0;">— pour les noms très longs</span></label>
           <div style="display:flex;align-items:center;gap:8px;background:var(--bg-panel-2);border:1px solid #3a3260;border-radius:8px;padding:8px 10px;">
             <label style="display:flex;align-items:center;gap:5px;font-size:11px;white-space:nowrap;">
@@ -346,8 +378,7 @@ header .spacer{flex:1;}
             <input type="checkbox" id="f-name-wrap" onchange="onFormChange()" style="width:auto;"> Autoriser le titre sur 2 lignes
           </label>
         </div>
-
-        <div class="grid2">
+<div class="grid2">
           <div class="field">
             <label>Classe</label>
             <select id="f-class" onchange="onClassFieldChange()">
@@ -367,22 +398,19 @@ header .spacer{flex:1;}
             <div class="hint" style="margin-top:4px;">Un seul exemplaire autorisé par deck, quelle que soit la rareté.</div>
           </div>
         </div>
-
-        <div class="field">
+<div class="field">
           <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;cursor:pointer;">
             <input type="checkbox" id="f-foil" onchange="onFormChange()"> ✨ Carte Foil (reflet arc-en-ciel)
           </label>
         </div>
-
-        <div class="field">
+<div class="field">
           <label>Classe secondaire (optionnel) <span class="hint" style="text-transform:none;letter-spacing:0;">— rend la carte bicolore</span></label>
           <select id="f-class2" onchange="onFormChange()">
             <option value="">Aucune</option>
             <option>Aube</option><option>Crépuscule</option><option>Volonté</option><option>Prima</option><option>Arcane</option><option>Neutre</option>
           </select>
         </div>
-
-        <div class="field">
+<div class="field">
           <label>Sous-types</label>
           <div class="chip-input" id="subtype-chip-input">
             <input type="text" id="f-subtype-entry" placeholder="Tape puis Entrée..." onkeydown="onSubtypeKeydown(event)">
@@ -396,8 +424,7 @@ header .spacer{flex:1;}
             <span class="chip-suggest" onclick="addSubtype('Esprit')">+ Esprit</span>
           </div>
         </div>
-
-        <div class="grid3">
+<div class="grid3">
           <div class="field" id="f-cost-wrap">
             <label>Coût de mana</label>
             <input type="number" id="f-cost" min="0" max="15" value="2" oninput="onFormChange()">
@@ -415,8 +442,7 @@ header .spacer{flex:1;}
             <input type="number" id="f-charges" min="1" max="10" value="3" oninput="onFormChange()">
           </div>
         </div>
-
-        <div class="field" id="f-extracost-wrap">
+<div class="field" id="f-extracost-wrap">
           <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;cursor:pointer;">
             <input type="checkbox" id="f-extracost-enabled" onchange="onCardExtraCostToggle()"> Coût additionnel pour jouer cette carte (sacrifice, défausse...)
           </label>
@@ -442,8 +468,7 @@ header .spacer{flex:1;}
             </div>
           </div>
         </div>
-
-        <div class="grid2">
+<div class="grid2">
           <div class="field">
             <label>Héros requis (optionnel)</label>
             <input type="text" id="f-hero" list="hero-suggestions" placeholder="Ex : Pyra" oninput="onFormChange()">
@@ -455,120 +480,12 @@ header .spacer{flex:1;}
             <datalist id="set-suggestions"></datalist>
           </div>
         </div>
-        <datalist id="card-name-suggestions"></datalist>
-
-        <div id="variant-banner" style="display:none;background:#2a2146;border:2px solid var(--gold);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
-          <div style="font-family:'Cinzel',serif;color:var(--gold);font-size:13px;margin-bottom:8px;">🎨 Mode variante d'illustration</div>
-          <div style="font-size:11.5px;color:var(--parchment-dim);margin-bottom:8px;">Tu modifies <b>uniquement l'illustration et son cadrage</b> (champ Image et curseurs ci-dessous). La carte elle-même n'est pas modifiée, et le bouton « Enregistrer » de la carte est désactivé tant que tu es dans ce mode.</div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <input type="text" id="variant-name" placeholder="Nom de la variante (ex : Version hivernale)" style="flex:1;min-width:200px;">
-            <button type="button" class="btn primary small" onclick="saveVariant()">💾 Enregistrer la variante</button>
-            <button type="button" class="btn small" onclick="exitVariantMode()">✖ Quitter sans enregistrer</button>
-          </div>
-          <div id="variant-status" style="font-size:11.5px;margin-top:6px;"></div>
-        </div>
-        <div class="field">
-          <label>Image (URL)</label>
-          <input type="url" id="f-image" placeholder="https://..." oninput="onFormChange()">
-        </div>
-
-        <div class="field" id="f-image-frame-wrap" style="display:none">
-          <label>Cadrage de l'image</label>
-          <div style="display:flex;flex-direction:column;gap:6px;background:var(--bg-panel-2);border:1px solid #3a3260;border-radius:8px;padding:10px 12px;">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span class="mini-field" style="width:80px;flex-shrink:0;">Horizontal</span>
-              <input type="range" id="f-image-x" min="0" max="100" value="50" oninput="onFormChange()" style="flex:1;">
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span class="mini-field" style="width:80px;flex-shrink:0;">Vertical</span>
-              <input type="range" id="f-image-y" min="0" max="100" value="50" oninput="onFormChange()" style="flex:1;">
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span class="mini-field" style="width:80px;flex-shrink:0;">Zoom</span>
-              <input type="range" id="f-image-zoom" min="100" max="250" value="100" oninput="onFormChange()" style="flex:1;">
-            </div>
-            <button class="btn small" style="align-self:flex-start;" onclick="resetImageFrame()">↺ Recentrer</button>
-          </div>
-        </div>
-
-        <div class="field" id="f-image-frame-small-wrap" style="display:none">
-          <label>Cadrage de l'image — petit format (plateau) <span class="hint" style="text-transform:none;letter-spacing:0;">— réglage indépendant du grand format</span></label>
-          <div style="display:flex;flex-direction:column;gap:6px;background:var(--bg-panel-2);border:1px solid #3a3260;border-radius:8px;padding:10px 12px;">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span class="mini-field" style="width:80px;flex-shrink:0;">Horizontal</span>
-              <input type="range" id="f-image-x-small" min="0" max="100" value="50" oninput="onFormChange()" style="flex:1;">
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span class="mini-field" style="width:80px;flex-shrink:0;">Vertical</span>
-              <input type="range" id="f-image-y-small" min="0" max="100" value="50" oninput="onFormChange()" style="flex:1;">
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span class="mini-field" style="width:80px;flex-shrink:0;">Zoom</span>
-              <input type="range" id="f-image-zoom-small" min="100" max="250" value="100" oninput="onFormChange()" style="flex:1;">
-            </div>
-            <div style="display:flex;gap:8px;">
-              <button class="btn small" onclick="resetImageFrameSmall()">↺ Recentrer</button>
-              <button class="btn small" onclick="copyImageFrameFromBig()">⇩ Copier le cadrage du grand format</button>
-            </div>
-          </div>
-        </div>
-
-        <div class="field" id="f-image-frame-herocard-wrap" style="display:none">
-          <label>Cadrage de l'image — version carte (bigframe) <span class="hint" style="text-transform:none;letter-spacing:0;">— réglage indépendant du portrait</span></label>
-          <div style="display:flex;flex-direction:column;gap:6px;background:var(--bg-panel-2);border:1px solid #3a3260;border-radius:8px;padding:10px 12px;">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span class="mini-field" style="width:80px;flex-shrink:0;">Horizontal</span>
-              <input type="range" id="f-image-x-herocard" min="0" max="100" value="50" oninput="onFormChange()" style="flex:1;">
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span class="mini-field" style="width:80px;flex-shrink:0;">Vertical</span>
-              <input type="range" id="f-image-y-herocard" min="0" max="100" value="50" oninput="onFormChange()" style="flex:1;">
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span class="mini-field" style="width:80px;flex-shrink:0;">Zoom</span>
-              <input type="range" id="f-image-zoom-herocard" min="100" max="250" value="100" oninput="onFormChange()" style="flex:1;">
-            </div>
-            <button class="btn small" style="align-self:flex-start;" onclick="resetImageFrameHeroCard()">↺ Recentrer</button>
-          </div>
-        </div>
-
-        <div class="field" id="f-herocard-curve-wrap" style="display:none">
-          <label>Nom du héros — position et courbure</label>
-          <div style="display:flex;flex-direction:column;gap:6px;background:var(--bg-panel-2);border:1px solid #3a3260;border-radius:8px;padding:10px 12px;">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span class="mini-field" style="width:80px;flex-shrink:0;">Hauteur</span>
-              <input type="range" id="f-herocard-curve-top" min="0" max="30" value="4" oninput="onFormChange()" style="flex:1;">
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;">
-              <span class="mini-field" style="width:80px;flex-shrink:0;">Courbure</span>
-              <input type="range" id="f-herocard-curve-strength" min="0" max="100" value="34" oninput="onFormChange()" style="flex:1;">
-            </div>
-            <button class="btn small" style="align-self:flex-start;" onclick="resetHeroCardCurve()">↺ Réinitialiser</button>
-          </div>
-        </div>
-
-        <div class="field">
-          <label>Logo du set (URL, optionnel)</label>
-          <input type="url" id="f-set-logo" placeholder="https://... (sinon l'initiale du set s'affiche)" oninput="onFormChange()">
-        </div>
-
-        <div class="field" id="f-keywords-wrap" style="display:none">
-          <label>Mots-clés</label>
-          <div class="keyword-grid" id="keyword-grid"></div>
-        </div>
-
-        <div class="field" id="f-manarule-wrap" style="display:none">
-          <label>Règle de mana <span class="hint" style="text-transform:none;letter-spacing:0;">— remplace ou modifie le gain de mana normal</span></label>
-          <textarea id="f-manarule" placeholder="Ex : +1 mana normal et +1 mana fragile par tour." oninput="onFormChange()"></textarea>
-          <div class="hint" style="margin-top:8px;">Pour une chance conditionnelle (ex : "à partir du tour X, Y% de chance de faire Z"), utilise une vraie capacité ci-dessous : déclencheur "Début de tour", avec les conditions "À partir du tour X" et "Vous avez X% de chance".</div>
-        </div>
-
-        <div class="field">
+<datalist id="card-name-suggestions"></datalist>
+<div class="field">
           <label>Lore <span class="hint" style="text-transform:none;letter-spacing:0;">— texte narratif affiché dans la fiche de craft, sans effet sur le jeu</span></label>
           <textarea id="f-lore" placeholder="Ex : On raconte que cette lame fut forgée dans les cendres du dernier dragon d'Aube..." oninput="onFormChange()"></textarea>
         </div>
-
-        <div class="field" id="f-multiclass-wrap" style="display:none">
+<div class="field" id="f-multiclass-wrap" style="display:none">
           <label>Règle de deck</label>
           <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;text-transform:none;letter-spacing:0;cursor:pointer;margin-bottom:8px;">
             <input type="checkbox" id="f-mc-enabled" onchange="onMcEnabledChange()"> Autorise des cartes d'une autre classe dans le deck
@@ -590,21 +507,122 @@ header .spacer{flex:1;}
             </div>
           </div>
         </div>
-
-        <div class="field" id="f-emotes-wrap" style="display:none">
+<div class="field" id="f-emotes-wrap" style="display:none">
           <label>Émotes de ce héros (utilisées en partie, à la place du chat)</label>
           <div id="emotes-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:8px;"></div>
           <button type="button" class="btn small" onclick="addEmoteRow()">+ Ajouter une émote</button>
         </div>
-
-        <div class="form-actions" style="display:flex;gap:8px;margin-top:16px;">
-          <button class="btn primary" onclick="saveCurrentCard()">💾 Enregistrer</button>
-          <button class="btn" onclick="newCard()">➕ Nouvelle carte</button>
-          <button class="btn danger" onclick="deleteCurrentCard()">🗑 Supprimer</button>
+          </section>
+          <section class="ed-pane" id="pane-illustration">
+            <h2>Illustration</h2>
+<div id="variant-banner" style="display:none;background:#2a2146;border:2px solid var(--gold);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
+          <div style="font-family:'Cinzel',serif;color:var(--gold);font-size:13px;margin-bottom:8px;">🎨 Mode variante d'illustration</div>
+          <div style="font-size:11.5px;color:var(--parchment-dim);margin-bottom:8px;">Tu modifies <b>uniquement l'illustration et son cadrage</b> (champ Image et curseurs ci-dessous). La carte elle-même n'est pas modifiée, et le bouton « Enregistrer » de la carte est désactivé tant que tu es dans ce mode.</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <input type="text" id="variant-name" placeholder="Nom de la variante (ex : Version hivernale)" style="flex:1;min-width:200px;">
+            <button type="button" class="btn primary small" onclick="saveVariant()">💾 Enregistrer la variante</button>
+            <button type="button" class="btn small" onclick="exitVariantMode()">✖ Quitter sans enregistrer</button>
+          </div>
+          <div id="variant-status" style="font-size:11.5px;margin-top:6px;"></div>
         </div>
-      </div>
-
-    <div class="panel" id="abilities-panel">
+<div class="field">
+          <label>Image (URL)</label>
+          <input type="url" id="f-image" placeholder="https://..." oninput="onFormChange()">
+        </div>
+<div class="field" id="f-image-frame-wrap" style="display:none">
+          <label>Cadrage de l'image</label>
+          <div style="display:flex;flex-direction:column;gap:6px;background:var(--bg-panel-2);border:1px solid #3a3260;border-radius:8px;padding:10px 12px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="mini-field" style="width:80px;flex-shrink:0;">Horizontal</span>
+              <input type="range" id="f-image-x" min="0" max="100" value="50" oninput="onFormChange()" style="flex:1;">
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="mini-field" style="width:80px;flex-shrink:0;">Vertical</span>
+              <input type="range" id="f-image-y" min="0" max="100" value="50" oninput="onFormChange()" style="flex:1;">
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="mini-field" style="width:80px;flex-shrink:0;">Zoom</span>
+              <input type="range" id="f-image-zoom" min="100" max="250" value="100" oninput="onFormChange()" style="flex:1;">
+            </div>
+            <button class="btn small" style="align-self:flex-start;" onclick="resetImageFrame()">↺ Recentrer</button>
+          </div>
+        </div>
+<div class="field" id="f-image-frame-small-wrap" style="display:none">
+          <label>Cadrage de l'image — petit format (plateau) <span class="hint" style="text-transform:none;letter-spacing:0;">— réglage indépendant du grand format</span></label>
+          <div style="display:flex;flex-direction:column;gap:6px;background:var(--bg-panel-2);border:1px solid #3a3260;border-radius:8px;padding:10px 12px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="mini-field" style="width:80px;flex-shrink:0;">Horizontal</span>
+              <input type="range" id="f-image-x-small" min="0" max="100" value="50" oninput="onFormChange()" style="flex:1;">
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="mini-field" style="width:80px;flex-shrink:0;">Vertical</span>
+              <input type="range" id="f-image-y-small" min="0" max="100" value="50" oninput="onFormChange()" style="flex:1;">
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="mini-field" style="width:80px;flex-shrink:0;">Zoom</span>
+              <input type="range" id="f-image-zoom-small" min="100" max="250" value="100" oninput="onFormChange()" style="flex:1;">
+            </div>
+            <div style="display:flex;gap:8px;">
+              <button class="btn small" onclick="resetImageFrameSmall()">↺ Recentrer</button>
+              <button class="btn small" onclick="copyImageFrameFromBig()">⇩ Copier le cadrage du grand format</button>
+            </div>
+          </div>
+        </div>
+<div class="field" id="f-image-frame-herocard-wrap" style="display:none">
+          <label>Cadrage de l'image — version carte (bigframe) <span class="hint" style="text-transform:none;letter-spacing:0;">— réglage indépendant du portrait</span></label>
+          <div style="display:flex;flex-direction:column;gap:6px;background:var(--bg-panel-2);border:1px solid #3a3260;border-radius:8px;padding:10px 12px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="mini-field" style="width:80px;flex-shrink:0;">Horizontal</span>
+              <input type="range" id="f-image-x-herocard" min="0" max="100" value="50" oninput="onFormChange()" style="flex:1;">
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="mini-field" style="width:80px;flex-shrink:0;">Vertical</span>
+              <input type="range" id="f-image-y-herocard" min="0" max="100" value="50" oninput="onFormChange()" style="flex:1;">
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="mini-field" style="width:80px;flex-shrink:0;">Zoom</span>
+              <input type="range" id="f-image-zoom-herocard" min="100" max="250" value="100" oninput="onFormChange()" style="flex:1;">
+            </div>
+            <button class="btn small" style="align-self:flex-start;" onclick="resetImageFrameHeroCard()">↺ Recentrer</button>
+          </div>
+        </div>
+<div class="field" id="f-herocard-curve-wrap" style="display:none">
+          <label>Nom du héros — position et courbure</label>
+          <div style="display:flex;flex-direction:column;gap:6px;background:var(--bg-panel-2);border:1px solid #3a3260;border-radius:8px;padding:10px 12px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="mini-field" style="width:80px;flex-shrink:0;">Hauteur</span>
+              <input type="range" id="f-herocard-curve-top" min="0" max="30" value="4" oninput="onFormChange()" style="flex:1;">
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span class="mini-field" style="width:80px;flex-shrink:0;">Courbure</span>
+              <input type="range" id="f-herocard-curve-strength" min="0" max="100" value="34" oninput="onFormChange()" style="flex:1;">
+            </div>
+            <button class="btn small" style="align-self:flex-start;" onclick="resetHeroCardCurve()">↺ Réinitialiser</button>
+          </div>
+        </div>
+<div class="field">
+          <label>Logo du set (URL, optionnel)</label>
+          <input type="url" id="f-set-logo" placeholder="https://... (sinon l'initiale du set s'affiche)" oninput="onFormChange()">
+        </div>
+<div class="ed-sub" id="variants-panel">
+      <h2>Variantes d'illustration <span class="hint">illustrations alternatives de cette carte — débloquées par les joueurs via les récompenses, choisies dans le deckbuilder</span></h2>
+      <div id="variants-hint" style="font-size:12px;color:var(--parchment-dim);margin-bottom:10px;"></div>
+      <div id="variants-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;"></div>
+      <button class="btn small" id="btn-new-variant" onclick="enterVariantMode(null)">➕ Nouvelle variante</button>
+    </div>
+          </section>
+          <section class="ed-pane" id="pane-capacites">
+            <h2>Capacités</h2>
+<div class="field" id="f-keywords-wrap" style="display:none">
+          <label>Mots-clés</label>
+          <div class="keyword-grid" id="keyword-grid"></div>
+        </div>
+<div class="field" id="f-manarule-wrap" style="display:none">
+          <label>Règle de mana <span class="hint" style="text-transform:none;letter-spacing:0;">— remplace ou modifie le gain de mana normal</span></label>
+          <textarea id="f-manarule" placeholder="Ex : +1 mana normal et +1 mana fragile par tour." oninput="onFormChange()"></textarea>
+          <div class="hint" style="margin-top:8px;">Pour une chance conditionnelle (ex : "à partir du tour X, Y% de chance de faire Z"), utilise une vraie capacité ci-dessous : déclencheur "Début de tour", avec les conditions "À partir du tour X" et "Vous avez X% de chance".</div>
+        </div>
+<div class="ed-sub" id="abilities-panel">
       <h2>Capacités <span class="hint">déclencheur + conditions + effets, générés en texte automatiquement</span></h2>
       <div id="abilities-list"></div>
       <button class="add-row-btn" style="margin-top:12px" onclick="addAbility()">+ Ajouter une capacité</button>
@@ -618,44 +636,47 @@ header .spacer{flex:1;}
         <textarea id="manual-text-box" oninput="onManualTextInput()" placeholder="Écris le texte final de la carte ici..."></textarea>
       </div>
 
-      <div class="form-actions" style="display:flex;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid #2b2440;">
+    </div>
+          </section>
+        </div>
+      </div>
+
+      <div id="ed-actions">
         <button class="btn primary" onclick="saveCurrentCard()">💾 Enregistrer</button>
         <button class="btn" onclick="newCard()">➕ Nouvelle carte</button>
         <button class="btn danger" onclick="deleteCurrentCard()">🗑 Supprimer</button>
       </div>
-    </div>
 
-    <div class="panel" id="variants-panel">
-      <h2>Variantes d'illustration <span class="hint">illustrations alternatives de cette carte — débloquées par les joueurs via les récompenses, choisies dans le deckbuilder</span></h2>
-      <div id="variants-hint" style="font-size:12px;color:var(--parchment-dim);margin-bottom:10px;"></div>
-      <div id="variants-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;"></div>
-      <button class="btn small" id="btn-new-variant" onclick="enterVariantMode(null)">➕ Nouvelle variante</button>
-    </div>
-
-    <div class="panel">
-      <div class="gallery-header">
-        <h2 style="margin:0">Toutes les cartes (<span id="gallery-count">0</span>)</h2>
-        <div class="filter-tabs" id="filter-tabs"></div>
+      <div class="panel" id="library">
+        <div class="gallery-header">
+          <h2 style="margin:0">Bibliothèque (<span id="gallery-count">0</span>)</h2>
+          <span id="gallery-shown" class="hint"></span>
+        </div>
+        <div id="lib-filters">
+          <input type="text" id="lf-search" placeholder="🔍 Nom…" oninput="onLibFilter()">
+          <select id="lf-color" onchange="onLibFilter()"></select>
+          <select id="lf-type" onchange="onLibFilter()"></select>
+          <select id="lf-sub" onchange="onLibFilter()"></select>
+          <select id="lf-cost" onchange="onLibFilter()"></select>
+          <button type="button" class="btn small" onclick="resetLibFilters()">↺ Réinitialiser</button>
+        </div>
+        <div id="gallery-grid"></div>
       </div>
-      <div class="filter-tabs" id="class-filter-tabs" style="margin-top:6px;"></div>
-      <div id="gallery-grid"></div>
-    </div>
 
-    </div><!-- /cards-left-col -->
+    </div><!-- /ed-main -->
 
-    <div id="preview-panel">
+    <aside id="preview-panel">
       <div class="preview-label">Aperçu</div>
       <div id="preview-big"></div>
       <div id="new-preview-wrap" style="display:none">
-        <div class="n-preview-label">Nouveau template — Big</div>
+        <div class="n-preview-label">Grande carte</div>
         <div id="new-preview-big"></div>
-        <div class="n-preview-label" id="new-preview-small-label">Nouveau template — Small (plateau)</div>
+        <div class="n-preview-label" id="new-preview-small-label">Miniature (plateau) — mots-clés en badges</div>
         <div id="new-preview-small"></div>
       </div>
       <div class="preview-meta" id="preview-meta"></div>
-    </div>
-
-    </div><!-- /cards-main-row -->
+    </aside>
+    </div><!-- /ed-grid -->
 
     </div><!-- /cards-section -->
 
@@ -1013,8 +1034,6 @@ const TRACKED_EVENTS = [
 let cards = [];
 let editingId = null;
 let currentType = 'Créature';
-let currentFilter = 'all';
-let currentClassFilter = 'all';
 let subtypes = [];
 let mcAllowedClasses = [];
 let currentEmotes = [];
@@ -4758,6 +4777,13 @@ function buildHeroProfileEl(card){
   return box;
 }
 
+const KW_BADGE_FILES = {
+  charge:'kw-charge.png', flying:'kw-envol.png', reach:'kw-portee.png', pierce:'kw-brutalite.png',
+  lifesteal:'kw-volDeVie.png', initiative:'kw-initiative.png', armor:'kw-armure.png',
+  stealth:'kw-parade.png', relentless:'kw-tenace.png', fearful:'kw-peureux.png',
+  protecteur:'kw-protecteur.png', toxic:'kw-toxique.png',
+  discret:'kw-discret.png', imparable:'kw-imparable.png', fugace:'kw-fugace.png'
+};
 function renderPreview(){
   const card = readForm();
   const box = document.getElementById('preview-big');
@@ -4785,6 +4811,14 @@ function renderPreview(){
   document.getElementById('new-preview-small-label').style.display = isHeroCard ? 'none' : '';
   if(!isHeroCard){
     const smallEl = buildNewCardEl(card, 'small', {heroCardFrame:true});
+    // Badges de mots-clés posés sur la miniature, comme sur une créature en partie
+    // (Assaut et Final sont déjà dessinés sur le cadre : pas de doublon).
+    const badgeKw = (card.keywords||[]).filter((k,i,arr)=>arr.indexOf(k)===i && KW_BADGE_FILES[k] && !['assault','final'].includes(k));
+    if(badgeKw.length && card.type==='Créature'){
+      const stack = document.createElement('div'); stack.className='kw-badge-stack';
+      badgeKw.forEach(k=>{ const im=document.createElement('img'); im.src='images/'+KW_BADGE_FILES[k]; im.title=k; stack.appendChild(im); });
+      smallEl.appendChild(stack);
+    }
     smallBox.appendChild(smallEl);
     fitNewCard(smallEl);
   }
@@ -4795,40 +4829,44 @@ function renderPreview(){
 /* ============================================================
    GALERIE
    ============================================================ */
-function buildFilterTabs(){
-  const wrap = document.getElementById('filter-tabs');
-  wrap.innerHTML='';
-  const all = [{key:'all', label:'Toutes'}, ...CARD_TYPES.map(t=>({key:t,label:t}))];
-  all.forEach(t=>{
-    const tab = document.createElement('div');
-    tab.className = 'filter-tab' + (currentFilter===t.key?' active':'');
-    tab.textContent = t.label;
-    tab.onclick = ()=>{ currentFilter = t.key; renderGallery(); };
-    wrap.appendChild(tab);
-  });
-
-  const classWrap = document.getElementById('class-filter-tabs');
-  classWrap.innerHTML='';
-  const allClasses = [{key:'all', label:'Toutes classes'}, ...CLASSES.map(c=>({key:c,label:c}))];
-  allClasses.forEach(c=>{
-    const tab = document.createElement('div');
-    tab.className = 'filter-tab' + (currentClassFilter===c.key?' active':'');
-    tab.textContent = c.label;
-    tab.onclick = ()=>{ currentClassFilter = c.key; renderGallery(); };
-    classWrap.appendChild(tab);
-  });
+const LIB = { color:'all', type:'all', sub:'all', cost:'all', q:'' };
+function fillSelect(id, placeholder, options, current){
+  const el = document.getElementById(id); if(!el) return;
+  el.innerHTML = `<option value="all">${placeholder}</option>` + options.map(o=>`<option value="${escapeHtml(String(o.v))}">${escapeHtml(o.l)}</option>`).join('');
+  el.value = options.some(o=>String(o.v)===String(current)) ? current : 'all';
 }
-function renderGallery(){
-  buildFilterTabs();
+function buildFilterTabs(){
+  const subs = [...new Set(cards.flatMap(c=>c.subtypes||[]))].sort((a,b)=>a.localeCompare(b,'fr'));
+  const costs = [...new Set(cards.filter(c=>c.cost!=null).map(c=>c.cost))].sort((a,b)=>a-b);
+  fillSelect('lf-color','Toutes les couleurs', CLASSES.map(c=>({v:c,l:c})), LIB.color);
+  fillSelect('lf-type','Tous les types', CARD_TYPES.map(t=>({v:t,l:t})), LIB.type);
+  fillSelect('lf-sub','Tous les sous-types', subs.map(t=>({v:t,l:t})), LIB.sub);
+  fillSelect('lf-cost','Tous les coûts', costs.map(c=>({v:c,l:'Coût '+c})), LIB.cost);
+  document.getElementById('lf-search').value = LIB.q;
+}
+function onLibFilter(){
+  LIB.q = document.getElementById('lf-search').value.trim().toLowerCase();
+  LIB.color = document.getElementById('lf-color').value;
+  LIB.type = document.getElementById('lf-type').value;
+  LIB.sub = document.getElementById('lf-sub').value;
+  LIB.cost = document.getElementById('lf-cost').value;
+  renderGallery(true);
+}
+function resetLibFilters(){ Object.assign(LIB,{color:'all',type:'all',sub:'all',cost:'all',q:''}); renderGallery(); }
+function renderGallery(keepFilters){
+  if(!keepFilters) buildFilterTabs();
   const grid = document.getElementById('gallery-grid');
   grid.innerHTML = '';
-  let filtered = currentFilter==='all' ? cards : cards.filter(c=>c.type===currentFilter);
-  if(currentClassFilter!=='all'){
-    filtered = filtered.filter(c=>c.class===currentClassFilter || c.classSecondary===currentClassFilter);
-  }
+  const filtered = cards.filter(c=>
+    (LIB.color==='all' || c.class===LIB.color || c.classSecondary===LIB.color) &&
+    (LIB.type==='all' || c.type===LIB.type) &&
+    (LIB.sub==='all' || (c.subtypes||[]).includes(LIB.sub)) &&
+    (LIB.cost==='all' || String(c.cost)===LIB.cost) &&
+    (!LIB.q || (c.name||'').toLowerCase().includes(LIB.q)));
+  const shown = document.getElementById('gallery-shown'); if(shown) shown.textContent = filtered.length===cards.length ? '' : `${filtered.length} affichée(s)`;
   document.getElementById('gallery-count').textContent = cards.length;
   if(filtered.length===0){
-    grid.innerHTML = `<div class="empty-state">Aucune carte pour l'instant. Crée-en une avec le formulaire ci-dessus !</div>`;
+    grid.innerHTML = `<div class="empty-state">${cards.length ? 'Aucune carte ne correspond à ces filtres.' : 'Aucune carte pour l\'instant. Crée-en une avec le formulaire ci-dessus !'}</div>`;
     return;
   }
   filtered.forEach(card=>{
@@ -5091,6 +5129,11 @@ async function initEditorData(){
   await loadCards();
 }
 // Barre Atelier + choix de la page (cartes / cadrage des héros) d'après l'adresse (#heros).
+function edTab(name){
+  document.querySelectorAll('.ed-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  document.querySelectorAll('.ed-pane').forEach(p=>p.classList.toggle('active', p.id==='pane-'+name));
+}
+document.getElementById('ed-rail').addEventListener('click', e=>{ const b=e.target.closest('.ed-tab'); if(b) edTab(b.dataset.tab); });
 function applyEditorHash(){
   const heros = location.hash === '#heros';
   switchEditorPage(heros ? 'announce' : 'cards');

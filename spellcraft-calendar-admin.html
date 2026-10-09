@@ -7,6 +7,7 @@
 <title>Spellcraft — Administration — Les coffres de Velkrin</title>
 <link rel="stylesheet" href="spellcraft-ui-kit.css">
 <style>
+html.embed .hint a, html.embed #embed-hide{display:none;}
 body{margin:0;background:var(--bg-void,#0b0a12);color:var(--parchment,#efe6c8);font-family:'Inter',sans-serif;}
 .wrap{max-width:1000px;margin:0 auto;padding:16px;}
 h1,h2{font-family:'Cinzel',serif;margin:0 0 8px;}
@@ -237,7 +238,11 @@ document.addEventListener('change', async e=>{
   const root=document.getElementById('root');
   try{
     await initSpellcraftAuth();
-    atelierNav('coffres');
+    if(new URLSearchParams(location.search).get('embed')==='1'){
+      document.documentElement.classList.add('embed');
+      const sendH=()=>{ try{ parent.postMessage({type:'coffres-admin-height',h:document.documentElement.scrollHeight},'*'); }catch(e){} };
+      new ResizeObserver(sendH).observe(root); window.addEventListener('load',sendH);
+    } else { atelierNav('boutique'); }
     const user=await scGetCurrentUser();
     if(!user){ root.innerHTML='<div class="denied">Connecte-toi pour accéder à cette page.</div>'; return; }
     const {data:adm}=await sb.rpc('is_admin');

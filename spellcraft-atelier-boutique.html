@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" href="data:,">
-<title>Atelier — Boutique et or</title>
+<title>Atelier — Boutique et coffres</title>
 <link rel="stylesheet" href="spellcraft-ui-kit.css">
 <style>
 body{margin:0;background:var(--bg-void,#0b0a12);color:var(--parchment,#efe6c8);font-family:'Inter',sans-serif;}
@@ -87,16 +87,19 @@ async function loadAll(){
 
 /* ---------- Vues ---------- */
 function render(){
-  $('root').innerHTML=`<h1>Boutique & or</h1><p class="sub">Boosters et dos de cartes vendus aux joueurs, distribution de dos et dons d'or.</p>
+  $('root').innerHTML=`<h1>Boutique & coffres</h1><p class="sub">Boosters et dos de cartes, dons d'or, et les récompenses des coffres de Velkrin.</p>
   <div class="tabs">
     <button class="tab ${TAB==='boosters'?'active':''}" data-act="tab" data-v="boosters">📦 Boosters</button>
     <button class="tab ${TAB==='backs'?'active':''}" data-act="tab" data-v="backs">🎴 Dos de cartes</button>
     <button class="tab ${TAB==='or'?'active':''}" data-act="tab" data-v="or">🪙 Or & distribution</button>
+    <button class="tab ${TAB==='coffres'?'active':''}" data-act="tab" data-v="coffres">🎁 Coffres de Velkrin</button>
   </div>
   <div class="view ${TAB==='boosters'?'active':''}" id="v-boosters"></div>
   <div class="view ${TAB==='backs'?'active':''}" id="v-backs"></div>
-  <div class="view ${TAB==='or'?'active':''}" id="v-or"></div>`;
+  <div class="view ${TAB==='or'?'active':''}" id="v-or"></div>
+  <div class="view ${TAB==='coffres'?'active':''}" id="v-coffres"></div>`;
   renderBoosters(); renderBacks(); renderGold();
+  if(TAB==='coffres') showCoffres();
 }
 
 function imageField(prefix,val){
@@ -213,6 +216,12 @@ async function giveBack(){
   say('d-status',`✓ « ${data.card_back_name} » donné à ${data.username}.`,true); $('d-user').value='';
 }
 
+/* ---------- Coffres de Velkrin (page d'administration intégrée) ---------- */
+function showCoffres(){
+  const v=$('v-coffres'); if(v.firstChild) return;
+  v.innerHTML='<iframe id="coffres-frame" src="spellcraft-calendar-admin.html?embed=1" title="Coffres de Velkrin" style="width:100%;border:0;min-height:1200px;background:transparent;"></iframe>';
+}
+
 /* ---------- Sélecteur d'illustration ---------- */
 function pickerGrid(){
   const files=$('picker-list').value.split('\n').map(s=>s.trim()).filter(Boolean);
@@ -239,6 +248,7 @@ document.addEventListener('input',e=>{
   if(e.target.id==='picker-list'){try{localStorage.setItem(STORE,e.target.value);}catch(x){} pickerGrid();}
   if(e.target.dataset&&e.target.dataset.prev){const im=$(e.target.dataset.prev+'-prev'),v=e.target.value.trim(); if(v){im.src=imgSrc(v);im.style.display='inline-block';}else{im.style.display='none';}}
 });
+window.addEventListener('message',e=>{ if(e.data&&e.data.type==='coffres-admin-height'){const f=$('coffres-frame'); if(f) f.style.height=Math.ceil(e.data.h)+20+'px';} });
 document.addEventListener('change',e=>{ if(e.target.id==='g-mode') $('g-user-f').style.display=e.target.value==='all'?'none':''; });
 
 (async function init(){
@@ -249,6 +259,7 @@ document.addEventListener('change',e=>{ if(e.target.id==='g-mode') $('g-user-f')
     if(!user){ $('root').innerHTML='<div class="denied">Connecte-toi pour accéder à cette page.</div>'; return; }
     const {data:adm}=await sb.rpc('is_admin');
     if(adm!==true){ $('root').innerHTML='<div class="denied">Accès réservé à l\'administrateur.</div>'; return; }
+    if(location.hash==='#coffres') TAB='coffres';
     await loadAll(); render();
   }catch(err){ $('root').innerHTML='<div class="denied">Erreur de chargement : '+esc(err.message)+'</div>'; }
 })();
