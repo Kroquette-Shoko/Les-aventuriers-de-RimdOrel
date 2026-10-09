@@ -19,9 +19,19 @@
    ============================================================ */
 
 async function loadSetsIndex(){
-  const { data, error } = await sb.from('card_sets').select('id, name, is_base').order('created_at');
-  if(error){ console.error('Erreur de chargement des sets', error); return []; }
-  return data || [];
+  // in_shop / in_rewards / rarity_icon_dir : réglages du set (colonnes ajoutées plus tard —
+  // si elles n'existent pas encore côté base, on retombe sur la requête d'origine)
+  let res = await sb.from('card_sets').select('id, name, is_base, in_shop, in_rewards, rarity_icon_dir').order('created_at');
+  if(res.error) res = await sb.from('card_sets').select('id, name, is_base').order('created_at');
+  if(res.error){ console.error('Erreur de chargement des sets', res.error); return []; }
+  return res.data || [];
+}
+
+/* Réglages d'un set : { in_shop, in_rewards, rarity_icon_dir } */
+async function updateCardSetSettings(id, settings){
+  const { error } = await sb.from('card_sets').update(settings).eq('id', id);
+  if(error) return { error: error.message };
+  return { ok: true };
 }
 
 async function createCardSet(name){

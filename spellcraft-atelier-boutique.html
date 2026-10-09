@@ -113,9 +113,9 @@ function imageField(prefix,val){
 
 /* ---------- Boosters ---------- */
 function renderBoosters(){
-  const sel=SEL.boosters, b=BOOSTERS.find(x=>x.id===sel)||(sel==='new'?{id:null,name:'',set_id:(SETS[0]||{}).id,price:120,image_url:'',rarity_distribution:RAR_DEFAULT}:null);
+  const sel=SEL.boosters, b=BOOSTERS.find(x=>x.id===sel)||(sel==='new'?{id:null,name:'',set_id:(SETS[0]||{}).id,price:120,image_url:'',in_shop:true,rarity_distribution:RAR_DEFAULT}:null);
   const list=BOOSTERS.map(x=>{const set=(SETS.find(s=>s.id===x.set_id)||{}).name||'(set introuvable)';
-    return `<div class="item ${sel===x.id?'sel':''}" data-act="sel-b" data-id="${esc(x.id)}">${x.image_url?`<img src="${esc(imgSrc(x.image_url))}">`:'<img>'}<div class="nm">${esc(x.name)}<small>${esc(set)} · ${esc(x.price)} or</small></div></div>`;}).join('')||'<div class="empty">Aucun booster créé.</div>';
+    return `<div class="item ${sel===x.id?'sel':''}" data-act="sel-b" data-id="${esc(x.id)}">${x.image_url?`<img src="${esc(imgSrc(x.image_url))}">`:'<img>'}<div class="nm">${esc(x.name)}<small>${esc(set)} · ${x.in_shop===false?'🎁 hors boutique':esc(x.price)+' or'}</small></div></div>`;}).join('')||'<div class="empty">Aucun booster créé.</div>';
   let form='<div class="empty">Choisis un booster dans la liste, ou crée-en un.</div>';
   if(b){
     const d=b.rarity_distribution||{};
@@ -123,6 +123,7 @@ function renderBoosters(){
     <div class="row2"><div class="field"><label>Set source</label><select id="b-set">${SETS.map(s=>`<option value="${esc(s.id)}" ${s.id===b.set_id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div>
     <div class="field"><label>Prix (or)</label><input type="number" id="b-price" min="1" value="${esc(b.price)}"></div></div>
     ${imageField('b',b.image_url)}
+    <div class="field"><label style="display:flex;gap:8px;align-items:center;text-transform:none;font-size:13px;color:#efe6c8;cursor:pointer;"><input type="checkbox" id="b-shop" ${b.in_shop!==false?'checked':''} style="width:auto;"> Vendu dans la boutique (décoché : le booster reste utilisable comme récompense, mais n'apparaît pas en boutique)</label></div>
     <div class="field"><label>Répartition des raretés (%) — total : <b id="b-total"></b>/100</label>
     <div class="rar">${RARS.map(r=>`<div><label>${r}</label><input type="number" min="0" max="100" class="b-rar" data-r="${r}" value="${esc(d[r]!=null?d[r]:0)}"></div>`).join('')}</div></div>
     <div class="actions"><button class="btn primary" data-act="save-b">💾 Enregistrer</button>${b.id?`<button class="btn danger" data-act="del-b">🗑 Supprimer</button>`:''}<span id="b-status" class="hint"></span></div>`;
@@ -138,6 +139,9 @@ async function saveBooster(){
   if(total!==100 && !confirm(`La répartition fait ${total} % au lieu de 100 %. Enregistrer quand même ?`)) return;
   const cur=BOOSTERS.find(x=>x.id===SEL.boosters);
   const row={id:cur?cur.id:'booster_'+Date.now(),name,set_id:$('b-set').value,price:parseInt($('b-price').value)||120,image_url:$('b-image').value.trim()||null,rarity_distribution:dist};
+  const hasCol=BOOSTERS.some(x=>'in_shop' in x);
+  if(hasCol) row.in_shop=$('b-shop').checked;
+  else if(!$('b-shop').checked) return say('b-status',"La colonne « in_shop » n'existe pas encore : exécute d'abord le fichier SQL de la livraison (boutique_recompenses_rarete).",false);
   const {error}=await sb.from('boosters').upsert(row);
   if(error) return say('b-status','Erreur : '+error.message,false);
   await loadAll(); SEL.boosters=row.id; renderBoosters(); say('b-status','✓ Enregistré',true);

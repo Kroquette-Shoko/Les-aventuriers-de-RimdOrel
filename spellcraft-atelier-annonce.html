@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<title>Atelier — Écrans d'annonce</title>
+<link rel="stylesheet" href="spellcraft-ui-kit.css">
+<style>
+body{margin:0;background:var(--bg-void,#0b0a12);color:var(--parchment,#efe6c8);font-family:'Inter',sans-serif;}
+.wrap{max-width:1100px;margin:0 auto;padding:18px 16px 60px;}
+h1{font-family:'Cinzel',serif;font-size:22px;margin:0 0 4px;color:#d4af37;}
+.sub{font-size:13px;color:#a89f86;margin:0 0 16px;line-height:1.5;}
+.bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
+.bar select{background:#0f0c1a;color:#efe6c8;border:1px solid #3a3260;border-radius:6px;padding:8px 10px;font-size:14px;}
+#saved{font-size:12px;color:#7ad08a;opacity:0;transition:opacity .3s;}
+#saved.on{opacity:1;}
+.hero{background:#171325;border:1px solid #2b2440;border-radius:12px;padding:16px 18px;margin-bottom:18px;display:flex;flex-direction:column;gap:14px;}
+.hero h2{font-family:'Cinzel',serif;font-size:16px;color:#d4af37;margin:0;}
+.hint{font-size:12px;color:#a89f86;line-height:1.45;}
+.pv{width:480px;max-width:100%;aspect-ratio:16/9;position:relative;overflow:hidden;border-radius:8px;border:2px solid #3a3260;background:#0b0905;margin:0 auto;cursor:grab;touch-action:none;}
+.pv .half{position:absolute;inset:0;}
+.pv .bg{position:absolute;inset:0;background-repeat:no-repeat;}
+.pv svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+.sides{display:flex;gap:24px;flex-wrap:wrap;}
+.side{flex:1;min-width:260px;display:flex;flex-direction:column;gap:8px;}
+.side .t{font-size:11px;font-weight:600;color:#a89f86;text-transform:uppercase;letter-spacing:.5px;}
+.row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.lab{width:84px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#a89f86;flex:none;}
+.row input[type=number]{width:88px;text-align:center;background:#0f0c1a;color:#efe6c8;border:1px solid #3a3260;border-radius:6px;padding:6px 8px;font-size:13px;}
+.n,.btn{padding:5px 9px;border-radius:6px;border:1px solid #3a3260;background:rgba(255,255,255,.05);color:#efe6c8;cursor:pointer;font:inherit;font-size:12px;}
+.n:hover,.btn:hover{border-color:#d4af37;}
+.empty{padding:30px;text-align:center;color:#a89f86;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Écrans d'annonce</h1>
+  <p class="sub">Cadrage des héros sur l'écran qui s'affiche au début d'un match (deux moitiés séparées par une diagonale). Réglage indépendant de celui des cartes. Les valeurs sont libres, sans limite : tape un nombre, utilise les boutons −/+, ou glisse l'image directement dans l'aperçu (molette = zoom). Chaque côté se règle séparément ; le côté droit est en miroir par défaut pour que le héros regarde son adversaire.</p>
+  <div class="bar">
+    <label style="font-size:12px;color:#a89f86;">Set : <select id="set-sel"></select></label>
+    <span id="saved">✓ Enregistré</span>
+  </div>
+  <div id="grid"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="spellcraft-shared.js"></script>
+<script src="spellcraft-auth.js"></script>
+<script src="spellcraft-catalog.js"></script>
+<script src="spellcraft-atelier-nav.js"></script>
+<script>
+(function(){
+  const SIDES = [
+    { key:'left',  label:'Côté gauche (vous)', fx:'imagePosXAnnounce', fy:'imagePosYAnnounce', fz:'imageZoomAnnounce', fm:'imageMirrorAnnounce', mirror:false },
+    { key:'right', label:'Côté droit (adversaire) — image inversée par défaut', fx:'imagePosXAnnounceRight', fy:'imagePosYAnnounceRight', fz:'imageZoomAnnounceRight', fm:'imageMirrorAnnounceRight', mirror:true }
+  ];
+  let sets = [], setId = null, cards = [], saveTimer = null;
+  const ratioCache = {};
+  const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const num = (v,d) => (typeof v==='number' && isFinite(v)) ? v : d;
+
+  function save(){
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(async ()=>{
+      const user = await scGetCurrentUser();
+      if(!user){ alert('Connecte-toi (en haut à droite) pour enregistrer.'); return; }
+      try{
+        await saveSetCards(setId, cards);
+        const s = document.getElementById('saved'); s.classList.add('on'); setTimeout(()=>s.classList.remove('on'), 1400);
+      }catch(e){ console.error('Erreur de sauvegarde', e); alert('Erreur de sauvegarde : ' + (e.message||e)); }
+    }, 400);
+  }
+
+  function styleBg(hero, side){
+    const el = document.getElementById(`bg-${hero.id}-${side.key}`); if(!el) return;
+    const x = num(hero[side.fx],50), y = num(hero[side.fy],50), z = num(hero[side.fz],100);
+    const mir = (hero[side.fm] ?? side.mirror) === true;
+    if(hero.image){
+      el.style.backgroundImage = `url('${String(hero.image).replace(/'/g,'')}')`;
+      el.style.backgroundPosition = `${x}% ${y}%`;
+      el.style.backgroundSize = z>100 ? z+'%' : 'cover';
+      el.style.transform = mir ? 'scaleX(-1)' : 'none';
+    } else { el.style.backgroundImage = 'none'; }
+    const box = document.querySelector(`[data-vals="${hero.id}-${side.key}"]`);
+    if(box){
+      box.querySelectorAll('input[data-f]').forEach(i=>{ if(document.activeElement!==i) i.value = Math.round(num(hero[side[i.dataset.f]], i.dataset.f==='fz'?100:50)*100)/100; });
+      const m = box.querySelector('input[type=checkbox]'); if(m) m.checked = mir;
+    }
+  }
+  function set(hero, side, f, v){ hero[side[f]] = v; styleBg(hero, side); save(); }
+
+  function preview(hero){
+    const accent = (typeof CLASS_COLORS!=='undefined' && CLASS_COLORS[hero.class]) || '#d4af37';
+    const w = document.createElement('div'); w.className = 'pv'; w.dataset.hero = hero.id;
+    w.innerHTML = `
+      <div class="half" style="clip-path:polygon(0 0,33.333% 0,66.667% 100%,0 100%);background:linear-gradient(145deg,${accent} 0%,#241a10 55%,#120d08 100%);"><div class="bg" id="bg-${hero.id}-left"></div></div>
+      <div class="half" style="clip-path:polygon(33.333% 0,100% 0,100% 100%,66.667% 100%);background:linear-gradient(215deg,${accent} 0%,#241a10 55%,#120d08 100%);"><div class="bg" id="bg-${hero.id}-right"></div></div>
+      <svg viewBox="0 0 1280 720" preserveAspectRatio="none"><line x1="426.667" y1="0" x2="853.333" y2="720" stroke="#D4AF37" stroke-width="5"/></svg>`;
+    return w;
+  }
+
+  function controls(hero, side){
+    const b = document.createElement('div'); b.className = 'side'; b.dataset.vals = `${hero.id}-${side.key}`;
+    const line = (f, lab, unit, steps) => `<div class="row"><span class="lab">${lab}</span>
+      ${steps.slice().reverse().map(s=>`<button type="button" class="n" data-f="${f}" data-d="${-s}">−${s}</button>`).join('')}
+      <input type="number" step="any" data-f="${f}"><span class="hint">${unit}</span>
+      ${steps.map(s=>`<button type="button" class="n" data-f="${f}" data-d="${s}">+${s}</button>`).join('')}</div>`;
+    b.innerHTML = `<div class="t">${side.label}</div>`
+      + line('fx','Horizontal','%',[1,10]) + line('fy','Vertical','%',[1,10]) + line('fz','Zoom','%',[1,10])
+      + `<label class="hint" style="display:flex;gap:8px;align-items:center;cursor:pointer;"><input type="checkbox"> Image inversée (miroir) sur ce côté</label>`
+      + `<button type="button" class="btn" data-reset style="align-self:flex-start;">↺ Recentrer</button>`;
+    b.addEventListener('click', e=>{
+      const t = e.target.closest('button'); if(!t) return;
+      if(t.dataset.reset!==undefined){ hero[side.fx]=50; hero[side.fy]=50; hero[side.fz]=100; styleBg(hero, side); save(); return; }
+      const f = t.dataset.f; if(!f) return;
+      const base = num(hero[side[f]], f==='fz'?100:50);
+      let v = Math.round((base + parseFloat(t.dataset.d))*100)/100; if(f==='fz') v = Math.max(1, v);
+      set(hero, side, f, v);
+    });
+    b.addEventListener('input', e=>{
+      const i = e.target; if(i.type==='checkbox'){ hero[side.fm] = i.checked; styleBg(hero, side); save(); return; }
+      if(!i.dataset.f) return;
+      let v = parseFloat(i.value); if(!isFinite(v)) return; if(i.dataset.f==='fz') v = Math.max(1, v);
+      set(hero, side, i.dataset.f, v);
+    });
+    return b;
+  }
+
+  function aspect(url){
+    return new Promise(res=>{
+      if(ratioCache[url]) return res(ratioCache[url]);
+      const im = new Image(); im.onload = ()=>{ ratioCache[url] = im.naturalHeight/im.naturalWidth || 1; res(ratioCache[url]); };
+      im.onerror = ()=>res(1); im.src = url;
+    });
+  }
+  function bindDrag(pv, hero){
+    let d = null;
+    const sideAt = e => { const r = pv.getBoundingClientRect(); return (e.clientX - r.left) < r.width/2 ? SIDES[0] : SIDES[1]; };
+    pv.addEventListener('pointerdown', async e=>{
+      if(!hero.image) return;
+      const side = sideAt(e), r = pv.getBoundingClientRect();
+      const ar = await aspect(hero.image);
+      d = { side, x:e.clientX, y:e.clientY, px:num(hero[side.fx],50), py:num(hero[side.fy],50), r, ar };
+      pv.setPointerCapture(e.pointerId); e.preventDefault();
+    });
+    pv.addEventListener('pointermove', e=>{
+      if(!d) return;
+      const z = num(hero[d.side.fz],100); const W = d.r.width, H = d.r.height;
+      const imgW = z>100 ? W*z/100 : Math.max(W, H/d.ar), imgH = z>100 ? imgW*d.ar : imgW*d.ar;
+      const ovX = imgW - W, ovY = imgH - H;
+      const mir = (hero[d.side.fm] ?? d.side.mirror) === true;
+      let dx = e.clientX - d.x; if(mir) dx = -dx;
+      if(ovX > 1) hero[d.side.fx] = Math.round((d.px - dx/ovX*100)*100)/100;
+      if(ovY > 1) hero[d.side.fy] = Math.round((d.py - (e.clientY-d.y)/ovY*100)*100)/100;
+      styleBg(hero, d.side); save();
+    });
+    const end = ()=>{ d = null; };
+    pv.addEventListener('pointerup', end); pv.addEventListener('pointercancel', end);
+    pv.addEventListener('wheel', e=>{
+      if(!hero.image) return; e.preventDefault();
+      const side = sideAt(e);
+      hero[side.fz] = Math.max(1, Math.round(num(hero[side.fz],100)*Math.exp(-e.deltaY*0.0015)*100)/100);
+      styleBg(hero, side); save();
+    }, { passive:false });
+  }
+
+  function render(){
+    const grid = document.getElementById('grid');
+    const heroes = cards.filter(c=>c.type==='Héros');
+    if(!heroes.length){ grid.innerHTML = '<div class="empty">Ce set ne contient aucun héros pour l\'instant.</div>'; return; }
+    grid.innerHTML = '';
+    heroes.forEach(h=>{
+      const box = document.createElement('div'); box.className = 'hero';
+      box.innerHTML = `<h2>${esc(h.name || '(héros sans nom)')}</h2>` + (h.image ? '' : '<div class="hint">Ce héros n\'a pas encore d\'illustration (champ « Image » de sa fiche carte).</div>');
+      const pv = preview(h); box.appendChild(pv);
+      const cap = document.createElement('div'); cap.className = 'hint'; cap.style.textAlign = 'center';
+      cap.textContent = "Aperçu de l'écran d'annonce complet — à gauche votre cadrage, à droite celui de l'adversaire (image inversée). Glisse l'image dans l'aperçu, molette = zoom.";
+      box.appendChild(cap);
+      const sides = document.createElement('div'); sides.className = 'sides';
+      SIDES.forEach(s=>sides.appendChild(controls(h, s)));
+      box.appendChild(sides);
+      grid.appendChild(box);
+      SIDES.forEach(s=>styleBg(h, s));
+      bindDrag(pv, h);
+    });
+  }
+
+  async function loadSet(id){
+    setId = id; localStorage.setItem('spellcraft-last-set-id', id);
+    cards = await loadSetCards(id);
+    render();
+  }
+  async function init(){
+    atelierNav('heros');
+    sets = await loadSetsIndex();
+    const sel = document.getElementById('set-sel');
+    sel.innerHTML = sets.map(s=>`<option value="${esc(s.id)}">${esc(s.name)}</option>`).join('');
+    if(!sets.length){ document.getElementById('grid').innerHTML = '<div class="empty">Aucun set de cartes.</div>'; return; }
+    const remembered = localStorage.getItem('spellcraft-last-set-id');
+    const start = sets.some(s=>s.id===remembered) ? remembered : sets[0].id;
+    sel.value = start;
+    sel.onchange = ()=>loadSet(sel.value);
+    await loadSet(start);
+  }
+  initSpellcraftAuth().then(init);
+})();
+</script>
+</body>
+</html>

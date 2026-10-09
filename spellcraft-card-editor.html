@@ -375,6 +375,7 @@ header .spacer{flex:1;}
     <label style="font-size:11px;color:var(--parchment-dim);display:flex;align-items:center;gap:5px;cursor:pointer;" title="Les cartes de ce set sont automatiquement données à tous les comptes">
       <input type="checkbox" id="set-is-base-checkbox" onchange="onSetIsBaseChange()"> Set de base
     </label>
+    <button class="btn small" onclick="openSetSettings()" title="Boutique, récompenses, logos de rareté de ce set">⚙ Réglages du set</button>
     <button class="btn" onclick="openImportModal()">Importer</button>
     <button class="btn" onclick="openExportModal('backup')">Exporter (sauvegarde)</button>
     <button class="btn primary" onclick="openExportModal('code')">Exporter le code moteur</button>
@@ -727,6 +728,27 @@ header .spacer{flex:1;}
       <div id="hero-announce-grid" style="display:flex;flex-direction:column;gap:20px;"></div>
     </div>
 
+  </div>
+</div>
+
+<div class="modal-overlay" id="set-settings-modal" onclick="if(event.target===this) closeModal('set-settings-modal')">
+  <div class="modal-box">
+    <h2>Réglages du set : <span id="ss-name"></span></h2>
+    <div style="display:flex;flex-direction:column;gap:12px;font-size:13px;">
+      <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;"><input type="checkbox" id="ss-shop" style="margin-top:3px;"> <span><b>Les cartes de ce set peuvent apparaître en boutique</b><br><span class="hint">Boosters du set, offres du jour, cartes à l'unité, héros à acheter. Décoché : rien de ce set n'est proposé à l'achat.</span></span></label>
+      <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;"><input type="checkbox" id="ss-rewards" style="margin-top:3px;"> <span><b>Les cartes de ce set peuvent être données en récompense</b><br><span class="hint">Quêtes, succès, coffres : cartes tirées au hasard par rareté, et boosters « dernier set » / « set de base ». Une récompense qui désigne un booster précis reste donnée telle quelle.</span></span></label>
+      <div>
+        <div style="font-weight:600;margin-bottom:4px;">Logos de rareté de ce set</div>
+        <input type="text" id="ss-icons" placeholder="images/card/icon/rare (par défaut)" style="width:100%;box-sizing:border-box;background:var(--bg-panel-2);border:1px solid #3a3260;color:var(--parchment);border-radius:6px;padding:8px 10px;" oninput="renderSetIconPreview()">
+        <div class="hint" style="margin:4px 0 8px;">Dossier du dépôt contenant les 6 images <code>basique.png, commun.png, rare.png, epique.png, mythique.png, legendaire.png</code>. Laisse vide pour les logos actuels. Un logo manquant dans le dossier retombe sur le logo par défaut.</div>
+        <div id="ss-icon-preview" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;"></div>
+      </div>
+      <div id="ss-status" class="hint"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('set-settings-modal')">Fermer</button>
+      <button class="btn primary" onclick="saveSetSettings()">💾 Enregistrer</button>
+    </div>
   </div>
 </div>
 
@@ -1310,6 +1332,52 @@ async function deleteCurrentSet(){
 }
 
 /* ============================================================
+   RÉGLAGES DU SET : boutique, récompenses, logos de rareté
+   ============================================================ */
+const RARITY_ICON_SLUGS = ['basique','commun','rare','epique','mythique','legendaire'];
+function currentSetRarityDir(){
+  const cur = setsIndex.find(s=>s.id===currentSetId);
+  const d = cur && cur.rarity_icon_dir ? String(cur.rarity_icon_dir).trim().replace(/\/+$/,'') : '';
+  return d || null;
+}
+function openSetSettings(){
+  const cur = setsIndex.find(s=>s.id===currentSetId);
+  if(!cur){ alert('Aucun set sélectionné.'); return; }
+  document.getElementById('ss-name').textContent = cur.name;
+  document.getElementById('ss-shop').checked = cur.in_shop !== false;
+  document.getElementById('ss-rewards').checked = cur.in_rewards !== false;
+  document.getElementById('ss-icons').value = cur.rarity_icon_dir || '';
+  document.getElementById('ss-status').textContent = ('in_shop' in cur) ? '' : "Les colonnes de réglage n'existent pas encore dans la base : exécute d'abord le fichier SQL de la livraison (boutique_recompenses_rarete), sinon seuls les logos de rareté seront pris en compte.";
+  renderSetIconPreview();
+  openModal('set-settings-modal');
+}
+function renderSetIconPreview(){
+  const dir = (document.getElementById('ss-icons').value || '').trim().replace(/\/+$/,'') || 'images/card/icon/rare';
+  document.getElementById('ss-icon-preview').innerHTML = RARITY_ICON_SLUGS.map(sl=>
+    `<div style="text-align:center;font-size:10px;color:var(--parchment-dim);"><img src="${escapeHtml(dir)}/${sl}.png" style="height:44px;display:block;margin:0 auto 3px;" onerror="this.style.opacity=.25;this.title='introuvable'">${sl}</div>`).join('');
+}
+async function saveSetSettings(){
+  if(!(await requireLoginForEdit())) return;
+  const cur = setsIndex.find(s=>s.id===currentSetId); if(!cur) return;
+  const dir = (document.getElementById('ss-icons').value || '').trim().replace(/\/+$/,'') || null;
+  const settings = { rarity_icon_dir: dir };
+  if('in_shop' in cur){ settings.in_shop = document.getElementById('ss-shop').checked; settings.in_rewards = document.getElementById('ss-rewards').checked; }
+  const st = document.getElementById('ss-status');
+  const prevDir = cur.rarity_icon_dir || null;
+  const res = await updateCardSetSettings(currentSetId, settings);
+  if(res.error){ st.style.color = 'var(--blood)'; st.textContent = 'Erreur : ' + res.error; return; }
+  const dirChanged = prevDir !== dir;
+  Object.assign(cur, settings);
+  if(dirChanged){
+    // les rendus de cartes lisent le dossier des logos dans la carte elle-même : on le met à jour pour tout le set
+    cards.forEach(c=>{ if(dir) c.rarityIconDir = dir; else delete c.rarityIconDir; });
+    await saveSetCards(currentSetId, cards);
+    renderPreview(); renderGallery(true);
+  }
+  st.style.color = 'var(--green)'; st.textContent = '✓ Réglages enregistrés';
+}
+
+/* ============================================================
    PAGE : CADRAGE HÉROS — ÉCRAN D'ANNONCE DE MATCH
    ============================================================ */
 function switchEditorPage(page){
@@ -1520,6 +1588,8 @@ function persistCards(){
   saveTimer = setTimeout(async ()=>{
     if(!(await requireLoginForEdit())) return;
     try{
+      const rd = currentSetRarityDir();
+      cards.forEach(c=>{ if(rd) c.rarityIconDir = rd; else delete c.rarityIconDir; });
       await saveSetCards(currentSetId, cards);
       flashSaved();
       refreshSuggestionLists();
@@ -4337,6 +4407,7 @@ function readForm(){
     imagePosYHeroCard: parseInt(document.getElementById('f-image-y-herocard').value) || 50,
     imageZoomHeroCard: parseInt(document.getElementById('f-image-zoom-herocard').value) || 100,
     ...artFields(),
+    ...(currentSetRarityDir() ? { rarityIconDir: currentSetRarityDir() } : {}),
     heroNameCurveTop: parseInt(document.getElementById('f-herocard-curve-top').value) ?? 4,
     heroNameCurveStrength: parseInt(document.getElementById('f-herocard-curve-strength').value) ?? 34,
     setLogo: document.getElementById('f-set-logo').value.trim(),
@@ -4513,8 +4584,8 @@ function onFormChange(){
   document.getElementById('f-image-frame-small-wrap').style.display = (hasImg && !isHeroType) ? 'block' : 'none';
   document.getElementById('f-image-frame-herocard-wrap').style.display = (hasImg && isHeroType) ? 'block' : 'none';
   document.getElementById('f-herocard-curve-wrap').style.display = isHeroType ? 'block' : 'none';
-  artStudioRefresh();
-  renderPreview();
+  try{ artStudioRefresh(); }catch(e){ console.error('studio illustration', e); }
+  try{ renderPreview(); }catch(e){ console.error('aperçu', e); }
 }
 /* ============================================================
    STUDIO D'ILLUSTRATION — cadrage libre
@@ -4958,7 +5029,7 @@ function buildNewCardEl(card, size, opts={}){
   const posY = isHero ? (card.imagePosYHeroCard ?? 50) : size==='big' ? (card.imagePosY ?? 50) : (card.imagePosYSmall ?? 50);
   const zoom = isHero ? (card.imageZoomHeroCard ?? 100) : size==='big' ? (card.imageZoom ?? 100) : (card.imageZoomSmall ?? 100);
   const art = nEl('div', 'nart-layer');
-  if(card.image && !applyNCardArtFree(art, card, isHero ? 'HeroCard' : size==='big' ? '' : 'Small')){
+  if(card.image && !(typeof applyNCardArtFree==='function' && applyNCardArtFree(art, card, isHero ? 'HeroCard' : size==='big' ? '' : 'Small'))){
     art.style.backgroundImage = `url('${card.image.replace(/'/g,'')}')`;
     art.style.backgroundPosition = `${posX}% ${posY}%`;
     art.style.backgroundSize = zoom>100 ? zoom+'%' : 'cover';
@@ -5031,10 +5102,10 @@ function buildNewCardEl(card, size, opts={}){
 
   // Rareté + super-type Légendaire (jamais affiché sur un Héros)
   if(!isHero && card.rarity && NRARITY_TO_SLUG[card.rarity]){
-    root.appendChild(nImg(`images/card/icon/rare/${NRARITY_TO_SLUG[card.rarity]}.png`, 'nrarity-gem'));
+    root.appendChild(typeof rarityGemImg==='function' ? rarityGemImg(card, NRARITY_TO_SLUG[card.rarity], 'nrarity-gem', nImg) : nImg(`images/card/icon/rare/${NRARITY_TO_SLUG[card.rarity]}.png`, 'nrarity-gem'));
   }
   if(!isHero && card.isLegendary){
-    root.appendChild(nImg('images/card/icon/rare/legendaire.png', 'nlegendary-gem'));
+    root.appendChild(typeof rarityGemImg==='function' ? rarityGemImg(card, 'legendaire', 'nlegendary-gem', nImg) : nImg('images/card/icon/rare/legendaire.png', 'nlegendary-gem'));
   }
 
   return root;
@@ -5517,7 +5588,8 @@ function edTab(name){
 }
 document.getElementById('ed-rail').addEventListener('click', e=>{ const b=e.target.closest('.ed-tab'); if(b) edTab(b.dataset.tab); });
 function applyEditorHash(){
-  const heros = location.hash === '#heros';
+  if(location.hash === '#heros'){ location.replace('spellcraft-atelier-annonce.html'); return; }
+  const heros = false;
   switchEditorPage(heros ? 'announce' : 'cards');
   document.querySelectorAll('#atelier-nav .an-tab').forEach(a=>{
     const isHeros = a.getAttribute('href').endsWith('#heros'), isCartes = a.getAttribute('href') === 'spellcraft-card-editor.html';
