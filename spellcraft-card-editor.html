@@ -807,7 +807,7 @@ header .spacer{flex:1;}
 /* CLASSES, CLASS_COLORS, RARITIES, CARD_TYPES, KEYWORDS, escapeHtml et migrateCard
    viennent maintenant de spellcraft-shared.js (chargé juste avant ce script). */
 
-const WATCH_TRIGGERS = ['watchPlay','watchArrival','watchDeath','watchAttack','watchDamaged','watchHealed','watchHeroHealed','watchSpell','watchTrap','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchAfterReveal','watchReveal','watchExplore','watchRetrieveDiscard','watchRetrieveDeck','watchTargeted','watchDiscovered','watchDrawFromOpponentDeck','watchHeroPowerActivated','onTargeted'];
+const WATCH_TRIGGERS = ['watchPlay','watchArrival','watchDeath','watchAttack','watchDamaged','watchHealed','watchHeroHealed','watchSpell','watchTrap','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchAfterReveal','watchReveal','watchExplore','watchRetrieveDiscard','watchRetrieveDeck','watchTargeted','watchDiscovered','watchDrawFromOpponentDeck','watchHeroPowerActivated','watchArtifactActivated','onTargeted'];
 
 const TRIGGERS_BY_TYPE = {
   'Créature': ['onPlay','onAttack','onBlocked','onWasBlocked','onDealtHeroDamage','onDamaged','onHealed','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
@@ -884,6 +884,7 @@ const TRIGGER_TEXT = {
   watchDiscovered: 'Quand vous découvrez une carte',
   watchDrawFromOpponentDeck: "Quand vous piochez une carte dans le deck adverse",
   watchHeroPowerActivated: "Quand un héros déclenche son pouvoir",
+  watchArtifactActivated: 'Quand un artefact est activé',
   watchExplore: 'Quand un joueur explore',
   watchRetrieveDiscard: 'Quand une carte est récupérée depuis la défausse',
   watchRetrieveDeck: 'Quand une carte est récupérée depuis le deck',
@@ -4274,7 +4275,10 @@ function buildAbilitySentence(cardType, ab){
       if(te.trigger==='onSummonSubtype') prefix = `Quand vous invoquez une créature du sous-type ${te.triggerSubtype || '?'}`;
       if(WATCH_TRIGGERS.includes(te.trigger)){
         const ownerSuffix = {ally:' alliée', enemy:' ennemie', both:''}[te.triggerOwner||'ally'];
-        if(ownerSuffix) prefix += ` (carte${ownerSuffix})`;
+        if(te.trigger==='watchArtifactActivated'){
+          const art = {ally:' allié', enemy:' ennemi', both:''}[te.triggerOwner||'ally'];
+          if(art) prefix += ` (artefact${art})`;
+        } else if(ownerSuffix) prefix += ` (carte${ownerSuffix})`;
       }
       if(te.trigger==='startOfTurnX') prefix = `Au début de votre tour ${te.triggerTurn||1}`;
       if(te.trigger==='endOfTurnX') prefix = `À la fin de votre tour ${te.triggerTurn||1}`;
