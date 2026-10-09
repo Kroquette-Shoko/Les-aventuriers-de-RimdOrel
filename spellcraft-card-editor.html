@@ -126,7 +126,10 @@ header .spacer{flex:1;}
 #art-studio .as-dial i::after{content:'';position:absolute;top:-4px;left:-4px;width:10px;height:10px;border-radius:50%;background:var(--gold);}
 #art-studio .as-help{font-size:11.5px;color:var(--parchment-dim);line-height:1.45;}
 #art-studio .as-warn{border:1px solid #c9a86a;border-radius:8px;padding:10px 12px;font-size:12px;color:#e6cf9c;display:flex;flex-direction:column;gap:8px;}
-#new-preview-big .nart-layer, #new-preview-small .nart-layer{cursor:grab;}
+#art-studio .as-canvas{position:relative;height:360px;overflow:hidden;border-radius:8px;background:#0d0a16;cursor:grab;touch-action:none;border:1px solid #3a3260;}
+#art-studio .as-canvas:active{cursor:grabbing;}
+#art-studio .as-img{position:absolute;max-width:none;user-select:none;pointer-events:none;display:none;}
+#art-studio .as-frame{position:absolute;box-sizing:border-box;border:2px solid var(--gold);box-shadow:0 0 0 9999px rgba(8,6,14,.66);pointer-events:none;}
 .legacy-frame{display:none !important;}
 .conditions-box, .effects-box, .trigger-list-box, .targets-box{background:var(--bg-panel-3);border-radius:8px;padding:10px 12px;margin-top:10px;}
 .conditions-box h4, .effects-box h4, .trigger-list-box h4, .targets-box h4{font-size:10.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--parchment-dim);margin:0 0 8px;display:flex;align-items:center;gap:8px;}
@@ -4649,6 +4652,45 @@ function artSet(s, key, val){
   artSyncInputs();
   onFormChange();
 }
+
+/* ---- zone de travail : image entière sous un cadre fixe ---- */
+const ART_IMG = { url:'', w:0, h:0 };
+function artFrameAspect(){
+  const box = document.getElementById(artFmt==='Small' ? 'new-preview-small' : 'new-preview-big');
+  const l = box && box.querySelector('.nart-layer');
+  if(l){ const r = l.getBoundingClientRect(); if(r.width>0 && r.height>0) return r.width/r.height; }
+  return artFmt==='HeroCard' ? 0.68 : (artFmt==='Small' ? 1.3 : 1.07);
+}
+function artCanvasGeom(){
+  const root = document.getElementById('art-studio'); const c = root && root.querySelector('[data-canvas]');
+  if(!c) return null;
+  const cw = c.clientWidth || 480, ch = c.clientHeight || 360;
+  const asp = artFrameAspect();
+  const fw = Math.min(cw*0.6, ch*0.78*asp), fh = fw/asp;
+  const iw = ART_IMG.w, ih = ART_IMG.h;
+  return { c, cw, ch, fw, fh, iw, ih };
+}
+function artCanvasLayout(){
+  const g = artCanvasGeom(); const a = ART[artFmt];
+  if(!g || !a || !a.free) return;
+  const url = document.getElementById('f-image').value.trim();
+  if(url !== ART_IMG.url){
+    ART_IMG.url = url; ART_IMG.w = 0; ART_IMG.h = 0;
+    const im = new Image();
+    im.onload = ()=>{ if(ART_IMG.url===url){ ART_IMG.w = im.naturalWidth; ART_IMG.h = im.naturalHeight; artCanvasLayout(); } };
+    im.src = url;
+  }
+  const frame = g.c.querySelector('.as-frame'), img = g.c.querySelector('.as-img');
+  frame.style.cssText = `width:${g.fw}px;height:${g.fh}px;left:${(g.cw-g.fw)/2}px;top:${(g.ch-g.fh)/2}px;`;
+  if(!ART_IMG.w){ img.style.display = 'none'; return; }
+  const s0 = Math.max(g.fw/ART_IMG.w, g.fh/ART_IMG.h);
+  const w = ART_IMG.w*s0, h = ART_IMG.h*s0;
+  img.src = url; img.style.display = 'block';
+  img.style.width = w+'px'; img.style.height = h+'px';
+  img.style.left = (g.cw-w)/2+'px'; img.style.top = (g.ch-h)/2+'px';
+  img.style.transformOrigin = '50% 50%';
+  img.style.transform = `translate(${a.ox*g.fw/100}px, ${a.oy*g.fh/100}px) rotate(${a.rot}deg) scale(${(a.fx?-1:1)*Math.max(1,a.scale)/100}, ${(a.fy?-1:1)*Math.max(1,a.scale)/100})`;
+}
 function artSyncInputs(){
   const root = document.getElementById('art-studio');
   const a = ART[artFmt]; if(!root || !a || !a.free) return;
@@ -4660,6 +4702,7 @@ function artSyncInputs(){
   root.querySelectorAll('.as-tog[data-flip]').forEach(b=> b.classList.toggle('on', !!a[b.dataset.flip]));
   const dial = root.querySelector('.as-dial i');
   if(dial) dial.style.transform = `rotate(${a.rot}deg)`;
+  artCanvasLayout();
 }
 function artStudioRefresh(){
   const root = document.getElementById('art-studio');
@@ -4678,7 +4721,7 @@ function artStudioRender(){
   const root = document.getElementById('art-studio');
   const fmts = artFormats();
   const a = ART[artFmt];
-  let h = `<label>Illustration — cadrage libre <span class="hint" style="text-transform:none;letter-spacing:0;">— aucune limite : glisse l'image dans l'aperçu, molette = zoom</span></label><div class="as-box">`;
+  let h = `<label>Illustration — cadrage libre <span class="hint" style="text-transform:none;letter-spacing:0;">— aucune limite</span></label><div class="as-box">`;
   h += `<div class="as-fmts">` + fmts.map(f=>`<button type="button" class="as-fmt ${f===artFmt?'on':''}" data-fmt="${f}">${ART_LABELS[f]}</button>`).join('') + `</div>`;
   if(!a.free){
     h += `<div class="as-warn">Cette illustration utilise l'ancien cadrage (curseurs bornés). Pour utiliser le cadrage libre (rotation, miroirs, valeurs sans limite), convertis-la : la position sera reprise approximativement — vérifie l'aperçu et ajuste.
@@ -4688,6 +4731,9 @@ function artStudioRender(){
       <button type="button" class="as-n" data-nudge="${k}" data-d="-10">−10</button><button type="button" class="as-n" data-nudge="${k}" data-d="-1">−1</button>
       <input type="number" step="any" class="as-num" data-k="${k}"><span class="as-unit">${unit}</span>
       <button type="button" class="as-n" data-nudge="${k}" data-d="1">+1</button><button type="button" class="as-n" data-nudge="${k}" data-d="10">+10</button></div>`;
+    h += `<div class="as-canvas" data-canvas><img class="as-img" alt="" draggable="false"><div class="as-frame"></div></div>
+      <div class="as-help">Le cadre doré est la fenêtre de la carte : tout ce qui est dedans sera visible sur la carte, le reste (assombri) est coupé. <b>Glisse l'image</b> pour la déplacer sous le cadre, <b>molette</b> pour zoomer.</div>
+      <div class="as-row"><button type="button" class="as-tog" data-act="cover">▣ Remplir le cadre</button><button type="button" class="as-tog" data-act="contain">⛶ Voir l'image entière</button></div>`;
     h += num('ox','Horizontal','%') + num('oy','Vertical','%') + num('scale','Zoom','%');
     h += `<div class="as-row"><span class="as-lab">Rotation</span><div class="as-dial" data-dial><i></i></div>
       <div style="display:flex;flex-direction:column;gap:6px;">
@@ -4701,7 +4747,7 @@ function artStudioRender(){
     h += `<div class="as-row"><button type="button" class="as-tog" data-act="reset">↺ Recentrer et tout remettre à zéro</button>`
        + (artFmt==='Small' ? `<button type="button" class="as-tog" data-act="copybig">⇩ Copier le cadrage de la grande carte</button>` : '')
        + `</div>`;
-    h += `<div class="as-help">Déplacement : en % de la fenêtre d'illustration (0 = centré, valeurs négatives et supérieures à 100 acceptées). Zoom : 100 = l'image remplit la fenêtre ; moins = plus petite (des bords vides peuvent apparaître). Rotation : tourne autour du centre de l'image. Dans l'aperçu : glisser = déplacer, molette = zoom.</div>`;
+    h += `<div class="as-help">Déplacement : en % de la fenêtre d'illustration (0 = centré, valeurs négatives et supérieures à 100 acceptées). Zoom : 100 = l'image remplit la fenêtre ; moins = plus petite (des bords vides peuvent apparaître). Rotation : tourne autour du centre de l'image. </div>`;
   }
   h += `</div>`;
   root.innerHTML = h;
@@ -4714,6 +4760,8 @@ function artStudioRender(){
     const a = ART[artFmt];
     if(t.dataset.act==='convert'){ artConvertLegacy(artFmt); artRenderKey=''; artStudioRefresh(); onFormChange(); return; }
     if(t.dataset.act==='fresh'){ ART[artFmt]=artBlank(true); artRenderKey=''; artStudioRefresh(); onFormChange(); return; }
+    if(t.dataset.act==='cover'){ ART[artFmt].scale = 100; ART[artFmt].ox = 0; ART[artFmt].oy = 0; artSyncInputs(); onFormChange(); return; }
+    if(t.dataset.act==='contain'){ const g = artCanvasGeom(); if(g && g.iw){ const sc = Math.min(g.fw/g.iw, g.fh/g.ih) / Math.max(g.fw/g.iw, g.fh/g.ih) * 100; ART[artFmt].scale = Math.round(sc*100)/100; ART[artFmt].ox = 0; ART[artFmt].oy = 0; artSyncInputs(); onFormChange(); } return; }
     if(t.dataset.act==='reset'){ ART[artFmt]=artBlank(true); artSyncInputs(); onFormChange(); return; }
     if(t.dataset.act==='copybig'){ ART.Small = Object.assign({}, ART['']); ART.Small.free = true; artSyncInputs(); onFormChange(); return; }
     if(!a) return;
@@ -4728,6 +4776,7 @@ function artStudioRender(){
     if(inp.dataset.k==='scale') v = Math.max(1, v);
     a[inp.dataset.k] = v;
     const dial = root.querySelector('.as-dial i'); if(dial) dial.style.transform = `rotate(${a.rot}deg)`;
+    artCanvasLayout();
     onFormChange();
   });
   // cadran de rotation
@@ -4745,40 +4794,32 @@ function artStudioRender(){
   root.addEventListener('pointermove', e=>{ if(dialDrag) setFromPointer(e); });
   root.addEventListener('pointerup', ()=>{ dialDrag=false; });
 
-  // glisser / molette directement dans l'aperçu
-  let drag = null;
-  const fmtOfBox = (box)=> box.id==='new-preview-small' ? 'Small' : (currentType==='Héros' ? 'HeroCard' : '');
-  ['new-preview-big','new-preview-small'].forEach(id=>{
-    const box = document.getElementById(id);
-    const layerRect = ()=>{ const l = box.querySelector('.nart-layer'); return l ? l.getBoundingClientRect() : null; };
-    const inside = (e, r)=> r && e.clientX>=r.left && e.clientX<=r.right && e.clientY>=r.top && e.clientY<=r.bottom;
-    box.addEventListener('pointerdown', e=>{
-      if(!document.getElementById('f-image').value.trim()) return;
-      const f = fmtOfBox(box), a = ART[f], r = layerRect();
-      if(!a || !a.free || !inside(e, r)) return;
-      artFmt = f; artRenderKey=''; artStudioRefresh();
-      drag = { box, f, x:e.clientX, y:e.clientY, ox:a.ox, oy:a.oy, w:r.width, h:r.height };
-      box.setPointerCapture(e.pointerId); e.preventDefault();
-    });
-    box.addEventListener('pointermove', e=>{
-      if(!drag || drag.box!==box) return;
-      const a = ART[drag.f];
-      a.ox = Math.round((drag.ox + (e.clientX-drag.x)/drag.w*100)*100)/100;
-      a.oy = Math.round((drag.oy + (e.clientY-drag.y)/drag.h*100)*100)/100;
-      artSyncInputs(); onFormChange();
-    });
-    const end = ()=>{ drag = null; };
-    box.addEventListener('pointerup', end); box.addEventListener('pointercancel', end);
-    box.addEventListener('wheel', e=>{
-      if(!document.getElementById('f-image').value.trim()) return;
-      const f = fmtOfBox(box), a = ART[f];
-      if(!a || !a.free || !inside(e, layerRect())) return;
-      e.preventDefault();
-      artFmt = f;
-      a.scale = Math.max(1, Math.round(a.scale*Math.exp(-e.deltaY*0.0015)*100)/100);
-      artRenderKey=''; artStudioRefresh(); artSyncInputs(); onFormChange();
-    }, { passive:false });
+  // zone de travail : l'image entière glisse SOUS le cadre fixe
+  const cv = ()=>root.querySelector('[data-canvas]');
+  let cdrag = null;
+  root.addEventListener('pointerdown', e=>{
+    const c = e.target.closest('[data-canvas]'); const a = ART[artFmt];
+    if(!c || !a || !a.free) return;
+    const g = artCanvasGeom(); if(!g) return;
+    cdrag = { x:e.clientX, y:e.clientY, ox:a.ox, oy:a.oy, fw:g.fw, fh:g.fh };
+    c.setPointerCapture(e.pointerId); e.preventDefault();
   });
+  root.addEventListener('pointermove', e=>{
+    if(!cdrag) return; const a = ART[artFmt]; if(!a) return;
+    a.ox = Math.round((cdrag.ox + (e.clientX-cdrag.x)/cdrag.fw*100)*100)/100;
+    a.oy = Math.round((cdrag.oy + (e.clientY-cdrag.y)/cdrag.fh*100)*100)/100;
+    artSyncInputs(); onFormChange();
+  });
+  const cend = ()=>{ cdrag = null; };
+  root.addEventListener('pointerup', cend); root.addEventListener('pointercancel', cend);
+  root.addEventListener('wheel', e=>{
+    const c = e.target.closest('[data-canvas]'); const a = ART[artFmt];
+    if(!c || !a || !a.free) return;
+    e.preventDefault();
+    a.scale = Math.max(1, Math.round(a.scale*Math.exp(-e.deltaY*0.0015)*100)/100);
+    artSyncInputs(); onFormChange();
+  }, { passive:false });
+  window.addEventListener('resize', ()=>artCanvasLayout());
 })();
 
 function resetImageFrame(){
