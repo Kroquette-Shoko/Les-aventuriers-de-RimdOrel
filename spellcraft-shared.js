@@ -905,3 +905,29 @@ document.addEventListener('click', (e)=>{
   const btn = e.target.closest('.btn, .phase-btn, .poster, button, .nav-arrow');
   if(btn && !btn.disabled) playSfx('clic', 0.35);
 });
+
+/* ============================================================
+   Illustration en « cadrage libre » (éditeur de cartes)
+   ============================================================
+   Une carte peut avoir, pour chaque format (sfx = '' grande carte,
+   'Small' miniature plateau, 'HeroCard' carte héros) :
+     imageFree<sfx> (true), imageOffX/Y<sfx> (décalage en % de la fenêtre),
+     imageScale<sfx> (zoom en %), imageRot<sfx> (degrés),
+     imageFlipX<sfx> / imageFlipY<sfx> (miroirs).
+   Sans imageFree<sfx>, l'ancien cadrage (imagePosX/Y + imageZoom) reste utilisé.
+   Renvoie true si l'illustration a été posée en mode libre. */
+function applyNCardArtFree(art, card, sfx){
+  if(!card || !card.image || !card['imageFree'+sfx]) return false;
+  const num = (v, d) => (typeof v === 'number' && isFinite(v)) ? v : d;
+  const ox = num(card['imageOffX'+sfx], 0), oy = num(card['imageOffY'+sfx], 0);
+  const sc = Math.max(1, num(card['imageScale'+sfx], 100)) / 100;
+  const rot = num(card['imageRot'+sfx], 0);
+  const fx = card['imageFlipX'+sfx] ? -1 : 1, fy = card['imageFlipY'+sfx] ? -1 : 1;
+  const inner = document.createElement('div');
+  inner.className = 'nart-free';
+  inner.style.cssText = "position:absolute;left:0;top:0;width:100%;height:100%;background-repeat:no-repeat;background-size:cover;background-position:center;transform-origin:50% 50%;"
+    + "background-image:url('" + String(card.image).replace(/'/g, '') + "');"
+    + "transform:translate(" + ox + "%," + oy + "%) rotate(" + rot + "deg) scale(" + (fx*sc) + "," + (fy*sc) + ");";
+  art.appendChild(inner);
+  return true;
+}

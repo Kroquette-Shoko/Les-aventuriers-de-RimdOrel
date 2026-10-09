@@ -246,7 +246,7 @@ function buildNewCardEl(card, size, opts={}){
   const posY = isHero ? (card.imagePosYHeroCard ?? 50) : size==='big' ? (card.imagePosY ?? 50) : (card.imagePosYSmall ?? 50);
   const zoom = isHero ? (card.imageZoomHeroCard ?? 100) : size==='big' ? (card.imageZoom ?? 100) : (card.imageZoomSmall ?? 100);
   const art = nEl('div', 'nart-layer');
-  if(card.image){
+  if(card.image && !applyNCardArtFree(art, card, isHero ? 'HeroCard' : size==='big' ? '' : 'Small')){
     art.style.backgroundImage = `url('${card.image.replace(/'/g,'')}')`;
     art.style.backgroundPosition = `${posX}% ${posY}%`;
     art.style.backgroundSize = zoom>100 ? zoom+'%' : 'cover';
