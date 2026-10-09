@@ -71,18 +71,19 @@ input[type=text],input[type=number],select{box-sizing:border-box;width:100%;back
 const FOLDER='images/card/back/', STORE='spellcraft_cardback_filelist';
 const RARS=['Basique','Commune','Rare','Épique','Mythique'];
 const RAR_DEFAULT={Basique:30,Commune:40,Rare:20,'Épique':8,Mythique:2};
-let SETS=[], BOOSTERS=[], BACKS=[], TAB='boosters', SEL={boosters:null,backs:null}, pickTarget=null;
+let SETS=[], BOOSTERS=[], BACKS=[], TITLES=[], TAB='boosters', SEL={boosters:null,backs:null}, pickTarget=null;
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const $=id=>document.getElementById(id);
 function say(id,t,ok){const e=$(id); if(!e) return; e.textContent=t; e.className=ok===true?'ok':ok===false?'ko':'hint';}
 const imgSrc=u=>u?(/^(https?:|data:|\/)/.test(u)?u:u):'';
 
 async function loadAll(){
-  const [s,b,c]=await Promise.all([
+  const [s,b,c,t]=await Promise.all([
     sb.from('card_sets').select('id,name').order('name'),
     sb.from('boosters').select('*').order('created_at'),
-    sb.from('card_backs').select('*').order('created_at')]);
-  SETS=s.data||[]; BOOSTERS=b.data||[]; BACKS=c.data||[];
+    sb.from('card_backs').select('*').order('created_at'),
+    sb.from('achievement_definitions').select('id,name,description,category,active,title_masculine,title_feminine').eq('grants_title',true).order('created_at')]);
+  SETS=s.data||[]; BOOSTERS=b.data||[]; BACKS=c.data||[]; TITLES=t.data||[];
 }
 
 /* ---------- Vues ---------- */
@@ -194,7 +195,84 @@ function renderGold(){
   <div class="panel"><h2>🎁 Donner un dos de carte</h2><p class="hint">Donne un dos à un joueur précis, vendable ou non (récompense d'événement, par exemple).</p>
     <div class="field"><label>Pseudo</label><input type="text" id="d-user" placeholder="Ex : Kroquette"></div>
     <div class="field"><label>Dos</label><select id="d-back">${BACKS.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}${c.shop_visible===false?' (récompense)':''}</option>`).join('')}</select></div>
-    <div class="actions"><button class="btn primary" data-act="grant-back">🎁 Donner</button><span id="d-status" class="hint"></span></div></div></div>`;
+    <div class="actions"><button class="btn primary" data-act="grant-back">🎁 Donner</button><span id="d-status" class="hint"></span></div></div></div>
+  <div class="split" style="grid-template-columns:1fr 1fr;margin-top:16px;">
+  <div class="panel"><h2>🏷️ Donner un titre</h2><p class="hint">Offre un titre de profil à un joueur (ou à tous). Le joueur l'équipe ensuite depuis son profil. « Retirer » reprend le titre (et le déséquipe s'il le portait).</p>
+    <div class="field"><label>Titre</label><select id="t-title">${titleOptions()}</select></div>
+    <div class="field"><label>Cible</label><select id="t-mode"><option value="single">Un joueur précis</option><option value="all">Tous les joueurs</option></select></div>
+    <div class="field" id="t-user-f"><label>Pseudo</label><input type="text" id="t-user" placeholder="Ex : Kroquette"></div>
+    <div class="actions"><button class="btn primary" data-act="title-give">🏷️ Donner</button><button class="btn danger" data-act="title-revoke">Retirer</button><button class="btn" data-act="title-owners">Qui l'a ?</button></div>
+    <p id="t-status" class="hint" style="margin-top:8px;"></p></div>
+  <div class="panel"><h2>✏️ Créer un titre</h2><p class="hint">Crée un nouveau titre de profil (il n'apparaît pas dans la liste des succès). Si les deux formes sont identiques, laisse le féminin vide.</p>
+    <div class="row2"><div class="field"><label>Titre (masculin)</label><input type="text" id="tc-m" placeholder="Ex : Champion"></div>
+    <div class="field"><label>Titre (féminin)</label><input type="text" id="tc-f" placeholder="Ex : Championne"></div></div>
+    <div class="actions"><button class="btn primary" data-act="title-create">➕ Créer le titre</button><span id="tc-status" class="hint"></span></div>
+    <div id="t-mine" style="margin-top:14px;">${myTitlesHtml()}</div></div></div>`;
+}
+const MANUAL='manual';
+const titleLabel=t=>{const m=t.title_masculine||t.name, f=t.title_feminine; return f&&f!==m?m+' / '+f:m;};
+function titleOptions(){
+  const mine=TITLES.filter(t=>t.category===MANUAL), other=TITLES.filter(t=>t.category!==MANUAL);
+  const opt=t=>`<option value="${esc(t.id)}">${esc(titleLabel(t))}</option>`;
+  return (mine.length?`<optgroup label="Titres créés ici">${mine.map(opt).join('')}</optgroup>`:'')
+    + (other.length?`<optgroup label="Autres titres (succès, calendrier, pass…)">${other.map(opt).join('')}</optgroup>`:'')
+    || '<option value="">Aucun titre : crées-en un →</option>';
+}
+function myTitlesHtml(){
+  const mine=TITLES.filter(t=>t.category===MANUAL);
+  if(!mine.length) return '<div class="empty">Aucun titre créé ici pour l\'instant.</div>';
+  return mine.map(t=>`<div class="item" style="cursor:default"><div class="nm">${esc(titleLabel(t))}<small>${esc(t.id)}</small></div><button class="btn sm danger" data-act="title-del" data-id="${esc(t.id)}">Supprimer</button></div>`).join('');
+}
+const RPC_MISSING="Fonction manquante : exécute d'abord le fichier titres_donnes_20261009.sql dans Supabase (SQL Editor).";
+function titleErr(r,user){
+  const e=r.error, code=(r.data&&r.data.error)||(e&&(e.message||e.code))||'erreur';
+  if(e&&(e.code==='PGRST202'||/could not find the function|schema cache/i.test(e.message||''))) return RPC_MISSING;
+  const m={'not-authorized':"Seul le compte Kroquette peut gérer les titres.",'player-not-found':`Aucun joueur « ${user} ».`,'unknown-title':"Ce titre n'existe plus (rafraîchis la page).",'already-owned':`${user} possède déjà ce titre.`,'not-owned':`${user} n'a pas ce titre.`};
+  return m[code]||('Erreur : '+code);
+}
+async function createTitle(){
+  const m=$('tc-m').value.trim(), f=$('tc-f').value.trim()||m;
+  if(!m) return say('tc-status','Indique le titre (masculin).',false);
+  const id='title_'+Date.now();
+  say('tc-status','Création…');
+  const {error}=await sb.from('achievement_definitions').insert({id,name:m,description:'Titre offert par l\'équipe',condition_type:'manual',category:MANUAL,target_count:1,rewards:[],active:false,order_index:9200,grants_title:true,title_masculine:m,title_feminine:f});
+  if(error) return say('tc-status','Erreur : '+error.message,false);
+  await loadAll(); renderGold(); $('t-title').value=id; say('t-status',`✓ Titre « ${m}${f!==m?' / '+f:''} » créé : tu peux le donner.`,true);
+}
+async function deleteTitle(id){
+  const t=TITLES.find(x=>x.id===id); if(!t||t.category!==MANUAL) return;
+  if(!confirm(`Supprimer le titre « ${titleLabel(t)} » ? Les joueurs qui l'ont le perdent.`)) return;
+  const {error}=await sb.from('achievement_definitions').delete().eq('id',id);
+  if(error) return say('tc-status','Erreur : '+error.message,false);
+  await loadAll(); renderGold(); say('t-status','✓ Titre supprimé.',true);
+}
+async function giveTitle(revoke){
+  const id=$('t-title').value, all=$('t-mode').value==='all', user=$('t-user').value.trim();
+  const t=TITLES.find(x=>x.id===id);
+  if(!id||!t) return say('t-status',"Choisis un titre (ou crée-en un).",false);
+  if(revoke){
+    if(all) return say('t-status','Pour retirer un titre, indique un joueur précis.',false);
+    if(!user) return say('t-status','Indique le pseudo du joueur.',false);
+    say('t-status','Envoi…');
+    const r=await sb.rpc('admin_revoke_title',{p_username:user,p_title_id:id});
+    if(r.error||(r.data&&r.data.error)) return say('t-status',titleErr(r,user),false);
+    return say('t-status',`✓ Titre « ${titleLabel(t)} » retiré à ${r.data.username}.`,true);
+  }
+  if(!all&&!user) return say('t-status','Indique le pseudo du joueur.',false);
+  if(all&&!confirm(`Confirmer : donner le titre « ${titleLabel(t)} » à TOUS les joueurs ?`)) return;
+  say('t-status','Envoi…');
+  const r=all?await sb.rpc('admin_grant_title_all',{p_title_id:id}):await sb.rpc('admin_grant_title',{p_username:user,p_title_id:id});
+  if(r.error||(r.data&&r.data.error)) return say('t-status',titleErr(r,user),false);
+  say('t-status',all?`✓ Titre « ${titleLabel(t)} » donné à ${r.data.new_count} joueur(s) (sur ${r.data.player_count}, les autres l'avaient déjà).`:`✓ Titre « ${titleLabel(t)} » donné à ${r.data.username}.`,true);
+}
+async function titleOwners(){
+  const id=$('t-title').value, t=TITLES.find(x=>x.id===id);
+  if(!id||!t) return say('t-status',"Choisis un titre.",false);
+  say('t-status','Recherche…');
+  const r=await sb.rpc('admin_title_owners',{p_title_id:id});
+  if(r.error||(r.data&&r.data.error)) return say('t-status',titleErr(r,''),false);
+  const o=r.data.owners||[];
+  say('t-status',o.length?`« ${titleLabel(t)} » : ${o.length} joueur(s) — ${o.join(', ')}`:`Personne n'a encore « ${titleLabel(t)} ».`, o.length?true:undefined);
 }
 async function giveGold(){
   const all=$('g-mode').value==='all', user=$('g-user').value.trim(), amount=parseInt($('g-amount').value,10);
@@ -243,6 +321,8 @@ document.addEventListener('click',async e=>{
   else if(a==='new-c'){SEL.backs='new';renderBacks();}
   else if(a==='save-c') saveBack(); else if(a==='del-c') delBack();
   else if(a==='gold') giveGold(); else if(a==='grant-back') giveBack();
+  else if(a==='title-create') createTitle(); else if(a==='title-del') deleteTitle(t.dataset.id);
+  else if(a==='title-give') giveTitle(false); else if(a==='title-revoke') giveTitle(true); else if(a==='title-owners') titleOwners();
   else if(a==='picker-open'){pickTarget=t.dataset.p;try{$('picker-list').value=localStorage.getItem(STORE)||'';}catch(x){}pickerGrid();$('picker').classList.add('show');}
   else if(a==='picker-close') $('picker').classList.remove('show');
   else if(a==='picker-pick'){const inp=$(pickTarget+'-image'); inp.value=FOLDER+t.dataset.f; inp.dispatchEvent(new Event('input')); $('picker').classList.remove('show');}
@@ -253,7 +333,7 @@ document.addEventListener('input',e=>{
   if(e.target.dataset&&e.target.dataset.prev){const im=$(e.target.dataset.prev+'-prev'),v=e.target.value.trim(); if(v){im.src=imgSrc(v);im.style.display='inline-block';}else{im.style.display='none';}}
 });
 window.addEventListener('message',e=>{ if(e.data&&e.data.type==='coffres-admin-height'){const f=$('coffres-frame'); if(f) f.style.height=Math.ceil(e.data.h)+20+'px';} });
-document.addEventListener('change',e=>{ if(e.target.id==='g-mode') $('g-user-f').style.display=e.target.value==='all'?'none':''; });
+document.addEventListener('change',e=>{ if(e.target.id==='g-mode') $('g-user-f').style.display=e.target.value==='all'?'none':''; if(e.target.id==='t-mode') $('t-user-f').style.display=e.target.value==='all'?'none':''; });
 
 (async function init(){
   try{
