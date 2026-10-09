@@ -419,7 +419,7 @@ header .spacer{flex:1;}
         </div>
 <div class="grid2">
           <div class="field">
-            <label>Classe</label>
+            <label>Source</label>
             <select id="f-class" onchange="onClassFieldChange()">
               <option>Aube</option><option>Crépuscule</option><option>Volonté</option><option>Prima</option><option>Arcane</option><option>Neutre</option>
             </select>
@@ -443,7 +443,7 @@ header .spacer{flex:1;}
           </label>
         </div>
 <div class="field">
-          <label>Classe secondaire (optionnel) <span class="hint" style="text-transform:none;letter-spacing:0;">— rend la carte bicolore</span></label>
+          <label>Seconde source (optionnel) <span class="hint" style="text-transform:none;letter-spacing:0;">— rend la carte bicolore</span></label>
           <select id="f-class2" onchange="onFormChange()">
             <option value="">Aucune</option>
             <option>Aube</option><option>Crépuscule</option><option>Volonté</option><option>Prima</option><option>Arcane</option><option>Neutre</option>
@@ -525,24 +525,42 @@ header .spacer{flex:1;}
           <textarea id="f-lore" placeholder="Ex : On raconte que cette lame fut forgée dans les cendres du dernier dragon d'Aube..." oninput="onFormChange()"></textarea>
         </div>
 <div class="field" id="f-multiclass-wrap" style="display:none">
-          <label>Règle de deck</label>
+          <label>Règle de deck (sources)</label>
           <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;text-transform:none;letter-spacing:0;cursor:pointer;margin-bottom:8px;">
-            <input type="checkbox" id="f-mc-enabled" onchange="onMcEnabledChange()"> Autorise des cartes d'une autre classe dans le deck
+            <input type="checkbox" id="f-mc-enabled" onchange="onMcEnabledChange()"> Règle spéciale : ce héros peut utiliser des cartes d'autres sources
           </label>
           <div id="f-mc-details" style="display:none">
-            <div class="chip-suggestions" id="f-mc-classes" style="margin-bottom:10px;"></div>
-            <div class="grid2">
+            <div class="field">
+              <label class="mini-field">Type de règle</label>
+              <select id="f-mc-mode" onchange="onMcModeChange()">
+                <option value="allowed">Autoriser des sources précises (avec une limite de cartes)</option>
+                <option value="multiAny">Toute carte multi-source dont l'une des sources est…</option>
+                <option value="freeSecond">Une seconde source au choix (le deck se verrouille sur celle choisie)</option>
+              </select>
+            </div>
+            <div id="f-mc-box-allowed">
+              <div class="chip-suggestions" id="f-mc-classes" style="margin-bottom:10px;"></div>
               <div class="field">
                 <label class="mini-field">Jusqu'à combien de cartes</label>
                 <input type="number" id="f-mc-max" min="1" max="30" value="6" oninput="onFormChange()">
               </div>
+            </div>
+            <div id="f-mc-box-any" style="display:none">
               <div class="field">
-                <label class="mini-field">Restreint à</label>
-                <select id="f-mc-scope" onchange="onFormChange()">
-                  <option value="Toutes">Toutes les cartes</option>
-                  <option>Créature</option><option>Sortilège</option><option>Piège</option><option>Artefact</option><option>Région</option>
-                </select>
+                <label class="mini-field">… cette source</label>
+                <select id="f-mc-any" onchange="onFormChange()"></select>
               </div>
+              <div class="hint" style="margin-bottom:8px;">Le deck peut contenir n'importe quelle carte à deux sources dont l'une est celle choisie ici, quelle que soit l'autre.</div>
+            </div>
+            <div id="f-mc-box-free" style="display:none">
+              <div class="hint" style="margin-bottom:8px;">Le joueur choisit une seconde source en ajoutant une première carte de cette source. Ensuite, le deck ne peut plus contenir que la source du héros, la seconde source choisie et les cartes Neutre. Retirer toutes les cartes de la seconde source débloque à nouveau le choix.</div>
+            </div>
+            <div class="field">
+              <label class="mini-field">Restreint aux cartes de type</label>
+              <select id="f-mc-scope" onchange="onFormChange()">
+                <option value="Toutes">Tous les types de cartes</option>
+                <option>Créature</option><option>Sortilège</option><option>Piège</option><option>Artefact</option><option>Région</option>
+              </select>
             </div>
           </div>
         </div>
@@ -1682,8 +1700,23 @@ function onClassFieldChange(){
 function onMcEnabledChange(){
   const enabled = document.getElementById('f-mc-enabled').checked;
   document.getElementById('f-mc-details').style.display = enabled ? 'block':'none';
-  if(enabled) buildMcClassChips();
+  if(enabled){ buildMcClassChips(); updateMcBoxes(); }
   onFormChange();
+}
+function onMcModeChange(){ updateMcBoxes(); onFormChange(); }
+// Affiche seulement les réglages utiles pour le type de règle choisi, et remplit la liste « cette source ».
+function updateMcBoxes(){
+  const mode = document.getElementById('f-mc-mode').value || 'allowed';
+  document.getElementById('f-mc-box-allowed').style.display = mode==='allowed' ? 'block':'none';
+  document.getElementById('f-mc-box-any').style.display = mode==='multiAny' ? 'block':'none';
+  document.getElementById('f-mc-box-free').style.display = mode==='freeSecond' ? 'block':'none';
+  const sel = document.getElementById('f-mc-any');
+  const keep = sel.dataset.value !== undefined ? sel.dataset.value : sel.value;
+  sel.innerHTML = '';
+  const o0 = document.createElement('option'); o0.value=''; o0.textContent='La source du héros'; sel.appendChild(o0);
+  CLASSES.filter(c=>c!=='Neutre').forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; sel.appendChild(o); });
+  sel.value = keep || '';
+  delete sel.dataset.value;
 }
 
 function buildMcClassChips(){
@@ -2539,14 +2572,14 @@ function rebuildAbilitiesUI(){
         row.appendChild(makeCondSelectField(cond, 'statCompareMode', [['greater','Supérieure ou égale'],['less','Inférieure ou égale'],['equal','Égale']], 'greater', 'Comparaison'));
       }
       if(ctDef && ctDef.isDeckComposition){
-        row.appendChild(makeCondSelectField(cond, 'deckCompMode', [['singleClassSpecific','Uniquement une classe précise'],['singleClassAny','Une seule classe (peu importe laquelle)'],['maxClasses','Au plus N classes différentes'],['minPerClass','Au moins X cartes de chaque classe']], 'singleClassAny', 'Règle', true));
+        row.appendChild(makeCondSelectField(cond, 'deckCompMode', [['singleClassSpecific','Uniquement une source précise'],['singleClassAny','Une seule source (peu importe laquelle)'],['maxClasses','Au plus N sources différentes'],['minPerClass','Au moins X cartes de chaque source']], 'singleClassAny', 'Règle', true));
         if((cond.deckCompMode||'singleClassAny')==='singleClassSpecific'){
-          row.appendChild(makeCondSelectField(cond, 'deckCompClass', [['Aube','Aube'],['Crépuscule','Crépuscule'],['Volonté','Volonté'],['Prima','Prima'],['Arcane','Arcane']], 'Aube', 'Classe'));
+          row.appendChild(makeCondSelectField(cond, 'deckCompClass', [['Aube','Aube'],['Crépuscule','Crépuscule'],['Volonté','Volonté'],['Prima','Prima'],['Arcane','Arcane']], 'Aube', 'Source'));
         }
         if(cond.deckCompMode==='maxClasses' || cond.deckCompMode==='minPerClass'){
           const valField2 = document.createElement('div');
           valField2.className='field';
-          valField2.innerHTML = `<label class="mini-field">${cond.deckCompMode==='maxClasses' ? 'Nombre max de classes' : 'Cartes minimum par classe'}</label>`;
+          valField2.innerHTML = `<label class="mini-field">${cond.deckCompMode==='maxClasses' ? 'Nombre max de sources' : 'Cartes minimum par source'}</label>`;
           const valInput2 = document.createElement('input');
           valInput2.type='number'; valInput2.min=1; valInput2.value=cond.deckCompValue||1;
           valInput2.oninput=()=>{ cond.deckCompValue=parseInt(valInput2.value)||1; onFormChange(); };
@@ -2992,7 +3025,7 @@ function buildEffectRow(ab, eff, choiceKey){
       typesField.appendChild(chipsWrap);
       row.appendChild(typesField);
 
-      row.appendChild(makeSelectField('Classe', [{key:'any',label:'Peu importe'}, ...CLASSES.map(c=>({key:c,label:c}))], eff.conjureClass, v=>{ eff.conjureClass=v; onFormChange(); }));
+      row.appendChild(makeSelectField('Source', [{key:'any',label:'Peu importe'}, ...CLASSES.map(c=>({key:c,label:c}))], eff.conjureClass, v=>{ eff.conjureClass=v; onFormChange(); }));
       const subF = document.createElement('div');
       subF.className='field'; subF.innerHTML = `<label class="mini-field">Sous-type (optionnel)</label>`;
       const subInp = document.createElement('input');
@@ -3602,7 +3635,7 @@ function buildValueField(eff, modeKey, fixedKey, dynKey, label, shareMode, allow
       const evKey = dynKey+'PdEvent', dimKey = dynKey+'PdDim', valKey = dynKey+'PdValue';
       wrap.appendChild(makeSelectField('Événement', [{key:'played',label:'Jouées'},{key:'drawn',label:'Piochées'}], eff[evKey]||'played', v=>{ eff[evKey]=v; onFormChange(); }));
       const dim = eff[dimKey]||'type';
-      wrap.appendChild(makeSelectField('Critère', [{key:'type',label:'Type de carte'},{key:'subtype',label:'Sous-type'},{key:'class',label:'Classe'},{key:'cost',label:'Coût'},{key:'atk',label:'Force'},{key:'hp',label:'Endurance'},{key:'name',label:'Nom précis'}], dim, v=>{ eff[dimKey]=v; rebuildAbilitiesUI(); onFormChange(); }));
+      wrap.appendChild(makeSelectField('Critère', [{key:'type',label:'Type de carte'},{key:'subtype',label:'Sous-type'},{key:'class',label:'Source'},{key:'cost',label:'Coût'},{key:'atk',label:'Force'},{key:'hp',label:'Endurance'},{key:'name',label:'Nom précis'}], dim, v=>{ eff[dimKey]=v; rebuildAbilitiesUI(); onFormChange(); }));
       const vf = document.createElement('div'); vf.className='field'; vf.innerHTML=`<label class="mini-field">Valeur</label>`;
       if(dim==='type'){
         const sel = document.createElement('select');
@@ -4176,9 +4209,9 @@ function conditionClause(cond){
     case 'deckComposition': {
       switch(cond.deckCompMode){
         case 'singleClassSpecific': return `votre deck de base ne contient que des cartes ${cond.deckCompClass||'?'} (Neutre exclu)`;
-        case 'maxClasses': return `votre deck de base contient au plus ${cond.deckCompValue||'X'} classe(s) différente(s) (Neutre exclu)`;
-        case 'minPerClass': return `votre deck de base contient au moins ${cond.deckCompValue||'X'} carte(s) de chaque classe qu'il utilise`;
-        default: return `votre deck de base est d'une seule classe (Neutre exclu)`;
+        case 'maxClasses': return `votre deck de base contient au plus ${cond.deckCompValue||'X'} source(s) différente(s) (Neutre exclu)`;
+        case 'minPerClass': return `votre deck de base contient au moins ${cond.deckCompValue||'X'} carte(s) de chaque source qu'il utilise`;
+        default: return `votre deck de base est d'une seule source (Neutre exclu)`;
       }
     }
     case 'manaNotFromRegion': return `le mana utilisé pour la payer ne vient pas de votre région`;
@@ -4342,12 +4375,20 @@ function buildCardText(){
     const manaRuleText = manaRuleEl ? manaRuleEl.value.trim() : '';
     if(manaRuleText) parts.push(manaRuleText);
   }
-  if(currentType==='Héros' && document.getElementById('f-mc-enabled').checked && mcAllowedClasses.length){
-    const max = document.getElementById('f-mc-max').value || 6;
+  if(currentType==='Héros' && document.getElementById('f-mc-enabled').checked){
+    const mode = document.getElementById('f-mc-mode').value || 'allowed';
     const scope = document.getElementById('f-mc-scope').value;
     const scopeLabel = scope==='Toutes' ? 'cartes' : (scope==='Créature'?'créatures':scope.toLowerCase()+'s');
-    const classesLabel = mcAllowedClasses.join(' ou ');
-    parts.push(`Règle de deck : votre deck peut contenir jusqu'à ${max} ${scopeLabel} de ${classesLabel}.`);
+    const typeTxt = scope==='Toutes' ? '' : ` de type ${scope}`;
+    if(mode==='allowed' && mcAllowedClasses.length){
+      const max = document.getElementById('f-mc-max').value || 6;
+      parts.push(`Règle de deck : votre deck peut contenir jusqu'à ${max} ${scopeLabel} de ${mcAllowedClasses.join(' ou ')}.`);
+    } else if(mode==='multiAny'){
+      const src = document.getElementById('f-mc-any').value || document.getElementById('f-class').value || 'sa source';
+      parts.push(`Règle de deck : votre deck peut contenir n'importe quelle carte multi-source${typeTxt} dont l'une des sources est ${src}.`);
+    } else if(mode==='freeSecond'){
+      parts.push(`Règle de deck : votre deck peut avoir une seconde source au choix${typeTxt ? ' pour les cartes'+typeTxt : ''}. Dès qu'une carte de cette seconde source est ajoutée, le deck ne peut contenir que celle-là en plus de la source du héros.`);
+    }
   }
   if(keywords.length){
     parts.push(keywords.map(k=>{
@@ -4423,6 +4464,8 @@ function readForm(){
     manaRule: currentType==='Région' ? document.getElementById('f-manarule').value.trim() : '',
     heroMultiClass: {
       enabled: currentType==='Héros' ? document.getElementById('f-mc-enabled').checked : false,
+      mode: document.getElementById('f-mc-mode').value || 'allowed',
+      anySource: document.getElementById('f-mc-any').value || '',
       allowedClasses: [...mcAllowedClasses],
       maxCount: parseInt(document.getElementById('f-mc-max').value) || 6,
       scope: document.getElementById('f-mc-scope').value
@@ -4504,6 +4547,9 @@ function loadCardIntoForm(card){
   document.getElementById('f-mc-enabled').checked = !!card.heroMultiClass?.enabled;
   document.getElementById('f-mc-details').style.display = card.heroMultiClass?.enabled ? 'block' : 'none';
   document.getElementById('f-mc-max').value = card.heroMultiClass?.maxCount ?? 6;
+  document.getElementById('f-mc-mode').value = card.heroMultiClass?.mode || 'allowed';
+  document.getElementById('f-mc-any').dataset.value = card.heroMultiClass?.anySource || '';
+  updateMcBoxes();
   document.getElementById('f-mc-scope').value = card.heroMultiClass?.scope || 'Toutes';
   document.getElementById('manual-text-box').value = card.text || '';
   document.getElementById('f-lore').value = card.lore || '';
@@ -4569,6 +4615,9 @@ function newCard(){
   document.getElementById('f-mc-details').style.display = 'none';
   document.getElementById('f-mc-max').value = 6;
   document.getElementById('f-mc-scope').value = 'Toutes';
+  document.getElementById('f-mc-mode').value = 'allowed';
+  document.getElementById('f-mc-any').dataset.value = '';
+  updateMcBoxes();
   document.getElementById('manual-text-box').value = '';
 
   renderSubtypeChips();
@@ -5331,7 +5380,7 @@ function fillSelect(id, placeholder, options, current){
 function buildFilterTabs(){
   const subs = [...new Set(cards.flatMap(c=>c.subtypes||[]))].sort((a,b)=>a.localeCompare(b,'fr'));
   const costs = [...new Set(cards.filter(c=>c.cost!=null).map(c=>c.cost))].sort((a,b)=>a-b);
-  fillSelect('lf-color','Toutes les couleurs', CLASSES.map(c=>({v:c,l:c})), LIB.color);
+  fillSelect('lf-color','Toutes les sources', CLASSES.map(c=>({v:c,l:c})), LIB.color);
   fillSelect('lf-type','Tous les types', CARD_TYPES.map(t=>({v:t,l:t})), LIB.type);
   fillSelect('lf-sub','Tous les sous-types', subs.map(t=>({v:t,l:t})), LIB.sub);
   fillSelect('lf-cost','Tous les coûts', costs.map(c=>({v:c,l:'Coût '+c})), LIB.cost);

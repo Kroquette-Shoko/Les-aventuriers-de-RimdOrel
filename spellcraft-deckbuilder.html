@@ -451,12 +451,12 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, #3a
           <button class="btn" onclick="jumpToHeroPage()">🦸 Voir les héros</button>
           <button class="btn" onclick="jumpToCardBackPage()">🎴 Voir les dos de carte</button>
           <select class="select-mini" id="sort-select" onchange="onFilterChange()">
-            <option value="class-cost-name">Tri : Classe → Coût → Alphabétique</option>
+            <option value="class-cost-name">Tri : Source → Coût → Alphabétique</option>
             <option value="name-asc">Nom (A → Z)</option>
             <option value="name-desc">Nom (Z → A)</option>
             <option value="cost-asc">Coût (croissant)</option>
             <option value="cost-desc">Coût (décroissant)</option>
-            <option value="class">Classe</option>
+            <option value="class">Source</option>
             <option value="rarity">Rareté</option>
           </select>
           <span class="results-count" id="results-count"></span>
@@ -587,9 +587,9 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, #3a
     <p style="font-size:12px;color:var(--parchment-dim);line-height:1.6;margin:0 0 12px;">
       Voici ta collection : toutes les cartes que tu possèdes (dont celles de tes boosters offerts, si tu les as déjà ouverts).<br><br>
       Un deck se construit en 3 étapes, avec le petit guide doré en haut de l'écran :<br>
-      1. Choisis ton <strong>Héros</strong> — il fixe la classe de ton deck.<br>
-      2. Choisis ta <strong>Région</strong> (de ta classe, ou Neutre).<br>
-      3. Ajoute des cartes jusqu'à 30, en respectant la classe de ton Héros (+ Neutre) et le nombre d'exemplaires autorisé par rareté.<br><br>
+      1. Choisis ton <strong>Héros</strong> — il fixe la source de ton deck.<br>
+      2. Choisis ta <strong>Région</strong> (de ta source, ou Neutre).<br>
+      3. Ajoute des cartes jusqu'à 30, en respectant la source de ton Héros (+ Neutre) et le nombre d'exemplaires autorisé par rareté.<br><br>
       Clique sur « Créer mon deck » pour démarrer — le guide te prend par la main.
     </p>
     <div class="modal-actions">
@@ -790,11 +790,11 @@ function renderFilterPanel(){
       <div class="ff-checks" id="ff-types"></div>
     </div>
     <div class="ff-group">
-      <label>Classe</label>
+      <label>Source</label>
       <div class="ff-checks" id="ff-classes"></div>
       <select id="ff-class-mode" style="margin-top:6px;">
-        <option value="any" ${filters.classMode==='any'?'selected':''}>Doit avoir une des classes cochées</option>
-        <option value="all" ${filters.classMode==='all'?'selected':''}>Doit avoir toutes les classes cochées</option>
+        <option value="any" ${filters.classMode==='any'?'selected':''}>Doit avoir une des sources cochées</option>
+        <option value="all" ${filters.classMode==='all'?'selected':''}>Doit avoir toutes les sources cochées</option>
       </select>
     </div>
     <div class="ff-group">
@@ -858,7 +858,7 @@ function renderFilterPanel(){
     </div>
   `;
   fillCheckGroup('ff-types', CARD_TYPES.filter(t=>t!=='Héros'), filters.types);
-  fillCheckGroup('ff-classes', [...CLASSES.slice(0,5), 'Multiclasse', 'Neutre'], filters.classes);
+  fillCheckGroup('ff-classes', [...CLASSES.slice(0,5), 'Multi-source', 'Neutre'], filters.classes);
   fillCheckGroup('ff-rarities', RARITIES, filters.rarities);
   fillCheckGroup('ff-keywords', KEYWORDS.map(k=>k.label), filters.keywords, KEYWORDS.map(k=>k.key));
 }
@@ -1002,8 +1002,8 @@ function getFilteredSortedCollection(){
     }
     if(filters.setId && c.set!==filters.setId) return false;
     if(filters.classes.size){
-      const realClasses = [...filters.classes].filter(k=>k!=='Multiclasse');
-      const wantsMulti = filters.classes.has('Multiclasse');
+      const realClasses = [...filters.classes].filter(k=>k!=='Multi-source');
+      const wantsMulti = filters.classes.has('Multi-source');
       const cardClasses = c.classSecondary ? [c.class, c.classSecondary] : [c.class];
       let matches;
       if(filters.classMode==='all'){
@@ -1922,6 +1922,24 @@ function multiClassCount(deck, hero){
   return count;
 }
 
+// Sources « étrangères » (ni celles du héros, ni Neutre) déjà présentes dans le deck.
+function deckForeignSources(deck, hero){
+  const own = [hero.class, hero.classSecondary].filter(Boolean);
+  const set = new Set();
+  (deck.cards||[]).forEach(entry=>{
+    const c = collection.find(x=>x.id===entry.cardId);
+    if(!c) return;
+    [c.class, c.classSecondary].filter(Boolean).forEach(k=>{ if(k!=='Neutre' && !own.includes(k)) set.add(k); });
+  });
+  return set;
+}
+
+// Seconde source choisie par le joueur (règle « seconde source au choix »), ou null si pas encore choisie.
+function deckChosenSecondSource(deck, hero){
+  const set = deckForeignSources(deck, hero);
+  return set.size ? [...set][0] : null;
+}
+
 function classAllowedByDeck(card){
   const hero = deckHeroCard();
   if(!hero) return true; // pas encore de héros choisi, pas de restriction pour l'instant
@@ -1930,22 +1948,46 @@ function classAllowedByDeck(card){
   if(card.hero && card.hero.trim().toLowerCase() !== (hero.name||'').trim().toLowerCase()) return false;
   const heroClasses = [hero.class, hero.classSecondary].filter(Boolean);
   const cardClasses = [card.class, card.classSecondary].filter(Boolean);
-  // Toutes les classes de la carte doivent être couvertes par celles du
+  // Toutes les sources de la carte doivent être couvertes par celles du
   // héros — un héros bicolore "Aube-Volonté" ne peut pas jouer une carte
   // "Volonté-Crépuscule" seulement parce qu'elles partagent Volonté :
-  // Crépuscule reste une classe à laquelle le héros n'a pas accès.
+  // Crépuscule reste une source à laquelle le héros n'a pas accès.
   if(heroCoversCardClasses(card, hero)) return true;
-  // Exception « multiclasse » du héros : seulement si CHAQUE couleur de la carte est soit une
-  // couleur du héros, soit une couleur explicitement autorisée par l'exception (avant, une seule
-  // couleur autorisée suffisait : une carte Crépuscule/Aube passait pour un héros Prima qui
-  // n'avait droit qu'à Aube).
+  // Règles spéciales du héros (champ heroMultiClass) ; sans mode = ancienne règle « allowed ».
   const mc = hero.heroMultiClass;
-  if(mc && mc.enabled && mc.allowedClasses && cardClasses.every(c=>heroClasses.includes(c) || mc.allowedClasses.includes(c))){
-    if(mc.scope && mc.scope!=='Toutes' && card.type!==mc.scope) return false;
+  if(!mc || !mc.enabled) return false;
+  if(mc.scope && mc.scope!=='Toutes' && card.type!==mc.scope) return false;
+  const mode = mc.mode || 'allowed';
+  if(mode==='multiAny'){
+    // N'importe quelle carte à deux sources dont l'une est la source désignée (par défaut celle du héros).
+    const src = mc.anySource || hero.class;
+    return !!card.classSecondary && cardClasses.includes(src);
+  }
+  if(mode==='freeSecond'){
+    // Une seule source étrangère par carte ; la première carte étrangère ajoutée verrouille le choix.
+    const foreign = cardClasses.filter(k=>!heroClasses.includes(k));
+    if(foreign.length!==1) return false;
+    const chosen = deckForeignSources(currentDeck, hero);
+    return chosen.size===0 || chosen.has(foreign[0]);
+  }
+  // mode 'allowed' : seulement si CHAQUE source de la carte est soit une source du héros, soit une
+  // source explicitement autorisée, dans la limite du nombre de cartes.
+  if(mc.allowedClasses && cardClasses.every(c=>heroClasses.includes(c) || mc.allowedClasses.includes(c))){
     const already = multiClassCount(currentDeck, hero);
     return already < (mc.maxCount||0);
   }
   return false;
+}
+
+// Message d'erreur précis quand une carte est refusée à cause de la source.
+function classRefusalMessage(card, hero){
+  const mc = hero.heroMultiClass;
+  const mode = mc && mc.enabled ? (mc.mode || 'allowed') : null;
+  if(mode==='freeSecond'){
+    const chosen = deckChosenSecondSource(currentDeck, hero);
+    if(chosen) return `${card.name} (${card.class}${card.classSecondary?'/'+card.classSecondary:''}) refusée : ton deck est verrouillé sur ${[hero.class, hero.classSecondary].filter(Boolean).join('/')} + ${chosen} (seconde source choisie). Retire les cartes ${chosen} pour changer.`;
+  }
+  return `${card.name} (${card.class}${card.classSecondary?'/'+card.classSecondary:''}) n'est pas autorisée avec ${hero.name} (${hero.class}).`;
 }
 
 function onCardClick(card){
@@ -1959,9 +2001,12 @@ function onCardClick(card){
     if(card.type!=='Héros') return;
     currentDeck.heroId = card.id;
     const nbCartesAvant = currentDeck.cards.length;
-    currentDeck.cards = currentDeck.cards.filter(entry=>{
+    // Filtre progressif (l'ordre compte pour « seconde source au choix » : la première carte étrangère gagne).
+    const cartesAvant = currentDeck.cards;
+    currentDeck.cards = [];
+    cartesAvant.forEach(entry=>{
       const c = cardById(entry.cardId);
-      return c ? classAllowedByDeck(c) : true;
+      if(!c || classAllowedByDeck(c)) currentDeck.cards.push(entry);
     });
     const nbRetirees = nbCartesAvant - currentDeck.cards.length;
     deckBuildStep = 'region';
@@ -1988,7 +2033,7 @@ function onCardClick(card){
   if(card.type==='Héros' || card.type==='Région') return;
   if(!classAllowedByDeck(card)){
     const hero = deckHeroCard();
-    flashError(`${card.name} (${card.class}) n'est pas autorisée avec ${hero.name} (${hero.class}).`);
+    flashError(classRefusalMessage(card, hero));
     return;
   }
   if(card.hero){
@@ -1999,7 +2044,14 @@ function onCardClick(card){
       return;
     }
   }
+  const heroNow = deckHeroCard();
+  const lockBefore = (heroNow && heroNow.heroMultiClass && heroNow.heroMultiClass.enabled && heroNow.heroMultiClass.mode==='freeSecond')
+    ? deckChosenSecondSource(currentDeck, heroNow) : 'n/a';
   addCardToDeck(card);
+  if(lockBefore===null){
+    const chosen = deckChosenSecondSource(currentDeck, heroNow);
+    if(chosen) flashSaved(`✓ Seconde source choisie : ${chosen}. Ton deck ne pourra plus contenir que ${[heroNow.class, heroNow.classSecondary].filter(Boolean).join('/')}, ${chosen} et Neutre.`);
+  }
   renderDeckPanel();
   renderBinder();
 }
@@ -2267,7 +2319,7 @@ function renderWizardHint(){
   if(!el) return;
   if(!currentDeck || !deckBuildStep){ el.style.display='none'; return; }
   el.style.display='flex';
-  const labels = { hero:'Étape 1/3 — Choisis ton Héros', region:'Étape 2/3 — Choisis ta Région (de ta classe ou Neutre) — facultatif : sans choix, la Côte de Rimd\'Orël est utilisée', cards:'Étape 3/3 — Construis ton deck (30 cartes)' };
+  const labels = { hero:'Étape 1/3 — Choisis ton Héros', region:'Étape 2/3 — Choisis ta Région (de ta source ou Neutre) — facultatif : sans choix, la Côte de Rimd\'Orël est utilisée', cards:'Étape 3/3 — Construis ton deck (30 cartes)' };
   const showBack = deckBuildStep==='region' || deckBuildStep==='cards';
   const skipBtn = deckBuildStep==='region' ? '<button class="btn small" onclick="skipRegionStep()">Utiliser la Côte de Rimd\'Orël (défaut) →</button>' : '';
   el.innerHTML = `${showBack?'<button class="btn small" onclick="wizardBack()">← Retour</button>':''}<span>${labels[deckBuildStep]}</span>${skipBtn}`;
