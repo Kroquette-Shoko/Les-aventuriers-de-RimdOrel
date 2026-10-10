@@ -906,6 +906,8 @@ const CONDITION_TYPES = [
   {key:'drawnThisTurn', label:'Un héros a pioché [comparaison] X cartes ce tour-ci', hasValue:true, isDrawnThisTurn:true},
   {key:'selfDrawnThisTurn', label:'Cette carte a été piochée ce tour-ci', hasValue:false},
   {key:'countThisTurn', label:'[Comparaison] X cartes mortes/arrivées/activées ce tour-ci', hasValue:true, isCountThisTurn:true},
+  {key:'deadCreatureCause', label:'Une créature est morte à cause de [Cible A/B/C…]', hasValue:false, isDeadCreatureCause:true},
+  {key:'deadCreatureSubtype', label:'Les créatures mortes sont du sous-type [X]', hasValue:false, isDeadCreatureSubtype:true},
   {key:'boardEmpty', label:'Le plateau adverse est vide', hasValue:false},
   {key:'subtypeCount', label:"Vous avez [comparaison] X cartes d'un sous-type précis", hasValue:true, isSubtypeCount:true},
   {key:'statCompare', label:"La Force/Endurance d'une créature est [comparaison] à X", hasValue:true, isStatCompare:true},
@@ -2548,6 +2550,29 @@ function rebuildAbilitiesUI(){
         row.appendChild(makeCondSelectField(cond, 'countThisTurnEvent', eventOptions, 'died', 'Événement'));
         row.appendChild(makeCondSelectField(cond, 'compareMode', [['atLeast','Au moins'],['exactly','Exactement']], 'atLeast', 'Comparaison'));
       }
+      if(ctDef && ctDef.isDeadCreatureCause){
+        const tg = ab.targets||[];
+        if(!tg.length){
+          const hint = document.createElement('div');
+          hint.className='hint';
+          hint.textContent = "Aucune cible définie : ajoute d'abord une cible (A, B, C…) dans l'étape « Cibles » de cette capacité.";
+          row.appendChild(hint);
+        } else {
+          if(!tg.some(t=>t.id===cond.deadCauseTarget)) cond.deadCauseTarget = tg[0].id;
+          row.appendChild(makeSelectField('Cible responsable de la mort', tg.map((t,i)=>({key:t.id,label:'Cible '+String.fromCharCode(65+i)})), cond.deadCauseTarget, v=>{ cond.deadCauseTarget=v; onFormChange(); }));
+        }
+      }
+      if(ctDef && ctDef.isDeadCreatureSubtype){
+        row.appendChild(makeCondSelectField(cond, 'deadSubtypeMode', [['all','Toutes les créatures mortes'],['any','Au moins une créature morte']], 'all', 'Combien'));
+        const dsField = document.createElement('div');
+        dsField.className='field';
+        dsField.innerHTML = `<label class="mini-field">Sous-type</label>`;
+        const dsInput = document.createElement('input');
+        dsInput.type='text'; dsInput.value=cond.deadSubtype||''; dsInput.placeholder='Ex : Zombie';
+        dsInput.oninput=()=>{ cond.deadSubtype=dsInput.value; onFormChange(); };
+        dsField.appendChild(dsInput);
+        row.appendChild(dsField);
+      }
       if(ctDef && ctDef.isSubtypeCount){
         row.appendChild(makeCondSelectField(cond, 'owner', [['self','Vous'],['enemy','Adversaire']], 'self', 'Qui'));
         row.appendChild(makeCondSelectField(cond, 'subtypeCardType', [['creature','Créature'],['artifact','Artefact'],['sortilege','Sortilège'],['piege','Piège'],['any','Peu importe']], 'creature', 'Type de carte'));
@@ -4161,7 +4186,7 @@ function condValueText(cond){
   return String(cond.valueFixed ?? cond.value ?? 'X');
 }
 
-function conditionClause(cond){
+function conditionClause(cond, ab){
   const def = CONDITION_TYPES.find(c=>c.key===cond.conditionType);
   if(!def) return '';
   switch(cond.conditionType){
@@ -4190,6 +4215,14 @@ function conditionClause(cond){
       const comp = cond.compareMode==='exactly' ? 'exactement' : 'au moins';
       const ownerLabel = {self:'alliées ',enemy:'ennemies ',both:''}[cond.owner||'self'];
       return `${comp} ${condValueText(cond)} ${typeLabel} ${ownerLabel}${evLabel} ce tour-ci`;
+    }
+    case 'deadCreatureCause': {
+      const idx = ab && ab.targets ? ab.targets.findIndex(t=>t.id===cond.deadCauseTarget) : -1;
+      return `une créature est morte à cause de la cible ${idx>=0 ? String.fromCharCode(65+idx) : '?'}`;
+    }
+    case 'deadCreatureSubtype': {
+      const quant = cond.deadSubtypeMode==='any' ? "au moins une des créatures mortes est" : 'les créatures mortes sont toutes';
+      return `${quant} du sous-type ${cond.deadSubtype||'?'}`;
     }
     case 'boardEmpty': return 'le plateau adverse est vide';
     case 'subtypeCount': {
@@ -4260,7 +4293,7 @@ function buildAbilitySentence(cardType, ab){
     clause = capitalize(effectClauses.join(joiner));
   }
 
-  const condClauses = (ab.conditions||[]).map(conditionClause).filter(Boolean);
+  const condClauses = (ab.conditions||[]).map(c=>conditionClause(c, ab)).filter(Boolean);
   const condText = condClauses.length ? condClauses.join(' et ') : '';
 
   let sentence;
