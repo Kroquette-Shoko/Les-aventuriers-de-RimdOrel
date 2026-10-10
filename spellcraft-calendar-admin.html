@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="icon" href="data:,">
-<title>Spellcraft — Administration — Les coffres de Velkrin</title>
+<title>Rimd'Orël — Administration — Les coffres de Velkrin</title>
 <link rel="stylesheet" href="spellcraft-ui-kit.css">
 <style>
 html.embed .hint a, html.embed #embed-hide{display:none;}
@@ -63,14 +63,14 @@ async function loadAll(){
   const [fl,se,bo,ba,va,ca,ti]=await Promise.all([
     sb.from('app_flags').select('value').eq('key','calendar_enabled').maybeSingle(),
     sb.from('cal_seasons').select('*').order('starts_at',{ascending:false}),
-    sb.from('boosters').select('id,name,set_id'),
+    sb.from('boosters').select('*'),
     sb.from('card_backs').select('id,name'),
     sb.from('card_variants').select('id,card_id,name'),
     sb.from('cards').select('id,data'),
     sb.from('achievement_definitions').select('id,name,title_masculine,title_feminine,grants_title,category').eq('grants_title',true)
   ]);
   FLAG = !!(fl.data && fl.data.value);
-  SEASONS = se.data||[]; BOOSTERS=bo.data||[]; BACKS=ba.data||[]; VARIANTS=va.data||[]; TITLES=ti.data||[];
+  SEASONS = se.data||[]; BOOSTERS=(bo.data||[]).filter(b=>b.kind!=='miniset'); BACKS=ba.data||[]; VARIANTS=va.data||[]; TITLES=ti.data||[];
   CARDNAMES={}; (ca.data||[]).forEach(c=>{CARDNAMES[c.id]=(c.data&&c.data.name)||c.id;});
 }
 async function loadSeason(id){

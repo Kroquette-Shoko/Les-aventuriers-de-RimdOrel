@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
 <meta charset="UTF-8">
-<title>Spellcraft — Boutique</title>
+<title>Rimd'Orël — Boutique</title>
 <script>
 // Anti-flash : applique le thème choisi AVANT le premier rendu.
 (function(){
@@ -438,6 +438,10 @@
       <h2>📦 Boosters</h2>
       <div class="shelf-items" id="shelf-boosters"></div>
     </div>
+    <div class="shelf" id="shelf-minisets-wrap" style="display:none;">
+      <h2>🗂️ Mini-sets</h2>
+      <div class="shelf-items" id="shelf-minisets"></div>
+    </div>
     <div class="shelf">
       <h2>🃏 Cartes à l'unité</h2>
       <div class="shelf-items" id="shelf-singles"></div>
@@ -574,7 +578,7 @@ async function renderBoosterShelf(){
   let data = res.data, error = res.error;
   if(data){
     // masque les boosters marqués « hors boutique » et ceux dont le set est masqué
-    data = data.filter(b => b.in_shop !== false);
+    data = data.filter(b => b.in_shop !== false && b.kind !== 'miniset');
     const sr = await sb.from('card_sets').select('id, in_shop');
     if(!sr.error && sr.data){
       const hidden = new Set(sr.data.filter(s => s.in_shop === false).map(s => s.id));
@@ -600,6 +604,63 @@ async function renderBoosterShelf(){
     </div>
   `).join('');
 }
+// ---- Mini-sets : tout le set d'un coup, achat unique par joueur ----
+async function renderMinisetShelf(){
+  const wrap = document.getElementById('shelf-minisets-wrap');
+  const el = document.getElementById('shelf-minisets');
+  let list = [];
+  try{
+    const res = await sb.from('boosters').select('*').order('price');
+    list = (res.data || []).filter(b => b.kind === 'miniset' && b.in_shop !== false);
+  }catch(e){ list = []; }
+  if(!list.length){ wrap.style.display = 'none'; return; }
+  let owned = new Set();
+  const user = await scGetCurrentUser();
+  if(user){
+    try{
+      const o = await sb.from('user_minisets').select('booster_id');
+      if(!o.error && o.data) owned = new Set(o.data.map(x => x.booster_id));
+    }catch(e){}
+  }
+  const counts = {};
+  await Promise.all(list.map(async b => {
+    try{
+      const c = await sb.from('cards').select('id', { count: 'exact', head: true }).eq('set_id', b.set_id);
+      counts[b.id] = (c && c.count != null) ? c.count : null;
+    }catch(e){ counts[b.id] = null; }
+  }));
+  wrap.style.display = '';
+  el.innerHTML = list.map(b => {
+    const n = counts[b.id];
+    const has = owned.has(b.id);
+    const copies = b.miniset_copies === 'one' ? '1 exemplaire de chaque carte' : 'le maximum autorisé en deck de chaque carte';
+    return `
+    <div class="shop-item">
+      <div class="shop-item-art" style="${b.image_url?`background-image:url('${b.image_url}');background-size:cover;`:''}">${b.image_url?'':'🗂️'}</div>
+      <div class="shop-item-name">${escapeHtmlShop(b.name)}</div>
+      <div class="shop-item-desc">Toutes les cartes du set${n!=null?` (${n} cartes)`:''} d'un seul coup : ${copies}. Achat unique.</div>
+      <div class="shop-item-price"><span class="money-icon"></span> ${b.price}</div>
+      ${has
+        ? `<button class="buy-btn" disabled style="opacity:.6;cursor:default;">✓ Possédé</button>`
+        : `<button class="buy-btn" onclick="buyMiniset('${b.id}')">Acheter</button>`}
+    </div>`;
+  }).join('');
+}
+
+async function buyMiniset(boosterId){
+  const user = await scGetCurrentUser();
+  if(!user){ alert('Connecte-toi pour acheter dans la boutique.'); return; }
+  if(!confirm("Acheter ce mini-set ? Tu recevras toutes ses cartes d'un coup. L'achat est unique et ne peut pas être refait.")) return;
+  const { data, error } = await sb.rpc('buy_miniset', { p_booster_id: boosterId });
+  if(error){ alert('Erreur : ' + error.message); return; }
+  if(data.error){ alert(shopErrorMessage(data.error)); return; }
+  playSfx('coin');
+  showBrunoThanks();
+  refreshCurrency();
+  renderMinisetShelf();
+  showRevealModal(`Mini-set obtenu : ${data.set_name || ''} (${data.cards_added} cartes)`, data.cards || []);
+}
+
 function adjustBoosterQty(boosterId, delta){
   const el = document.getElementById('qty-'+boosterId);
   const next = Math.max(1, Math.min(99, (parseInt(el.textContent)||1) + delta));
@@ -1450,6 +1511,12 @@ function shopErrorMessage(code){
     'no-card-available': "Toutes les cartes disponibles sont déjà au maximum dans ta collection !",
     'already-maxed': "Tu as déjà le maximum de cette carte, choisis-en une autre.",
     'unknown-booster': "Ce booster n'existe plus.",
+    'unknown-miniset': "Ce mini-set n'existe plus.",
+    'miniset-already-owned': "Tu as déjà acheté ce mini-set (achat unique).",
+    'miniset-nothing-to-add': "Tu possèdes déjà toutes les cartes de ce mini-set au maximum, rien à ajouter.",
+    'use-buy-miniset': "Ce produit est un mini-set : utilise le bouton d'achat du mini-set.",
+    'not-in-shop': "Ce produit n'est plus en vente.",
+    'Solde insuffisant': "Pas assez d'or pour cet achat.",
     'no-booster-owned': "Tu n'as plus ce booster en réserve.",
     'not-purchasable': "Ce héros fait partie du set de base, il n'est pas à vendre.",
     'hero-already-owned': "Tu possèdes déjà ce héros.",
@@ -1491,6 +1558,12 @@ async function showRevealModal(title, items){
       revealCardEl.style.transformOrigin = 'top left';
       revealHolder.appendChild(revealCardEl);
       slot.appendChild(revealHolder);
+      if(it.qty > 1){
+        const q = document.createElement('div');
+        q.textContent = '×' + it.qty;
+        q.style.cssText = 'font-size:12px;color:var(--gold);font-weight:700;';
+        slot.appendChild(q);
+      }
       if(it.foil){
         const badge = document.createElement('div');
         badge.textContent = '✨ Foil';
@@ -1509,6 +1582,7 @@ async function initShop(){
   renderBrunoLine();
   playMenuMusicRotation(0.3);
   await renderBoosterShelf();
+  await renderMinisetShelf();
   await renderSingleShelf();
   await renderCardBackShelf();
   await renderHeroShelf();
@@ -1542,7 +1616,7 @@ async function maybeGrantTutorialBoosters(){
 // d'enregistrer la réplique vue — voir le commentaire dans renderBrunoLine.
 const __spellcraftAuthReadyForBruno = initSpellcraftAuth();
 initShop();
-sb.auth.onAuthStateChange(()=>{ refreshCurrency(); renderCardBackShelf(); renderSingleShelf(); renderHeroShelf(); flashBoosterInventoryBadge(); });
+sb.auth.onAuthStateChange(()=>{ refreshCurrency(); renderMinisetShelf(); renderCardBackShelf(); renderSingleShelf(); renderHeroShelf(); flashBoosterInventoryBadge(); });
 </script>
 
 <div id="card-preview"></div>

@@ -129,7 +129,7 @@ Toute carte manipulée par un des trois outils doit être passée dans `migrateC
 | `atk`, `hp` | Créature (les deux), Héros (`hp` seul) | — |
 | `charges` | Artefact | — |
 | `manaRule`, `altEffectEnabled`, `altEffectChance`, `altEffectText` | Région | `''`, `false`, `30`, `''` |
-| `heroMultiClass` | Héros | `{enabled:false, allowedClasses:[], maxCount:6, scope:'Toutes'}` |
+| `heroMultiClass` | Héros | `{enabled:false, mode:'allowed'\|'multiAny'\|'freeSecond', anySource:'', allowedClasses:[], maxCount:6, scope:'Toutes'}` — `mode` absent = `'allowed'` ; `anySource` vide = source du héros ; `scope` = type de carte concerné ou `'Toutes'` |
 | `extraCostEnabled`, `extraCostType`, `extraCostAmount`, `extraCostCustom` | Créature/Sortilège/Artefact/Piège | `false`, `'sacrificeCreature'`, `1`, `''` |
 
 ### Une capacité (`Ability`)
