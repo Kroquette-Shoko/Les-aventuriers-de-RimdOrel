@@ -334,7 +334,38 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, #3a
 
 #card-preview{position:fixed;z-index:200;pointer-events:none;display:none;opacity:0;transition:opacity .15s ease;}
 
-#craft-modal-overlay{position:fixed;inset:0;background:rgba(5,4,10,.88);z-index:150;display:none;align-items:center;justify-content:center;padding:24px;}
+/* ===== ATELIER DE FRAGMENTS ===== */
+#atelier-overlay{position:fixed;inset:0;background:rgba(5,4,10,.88);z-index:160;display:none;align-items:center;justify-content:center;padding:16px;}
+#atelier-overlay.show{display:flex;}
+#atelier-box{background:var(--bg-panel,#171325);border:1.5px solid var(--gold,#d4af37);border-radius:14px;width:min(980px,100%);height:min(780px,94vh);display:flex;flex-direction:column;overflow:hidden;position:relative;}
+#atelier-head{display:flex;align-items:center;gap:10px;padding:14px 18px 10px;flex-wrap:wrap;}
+#atelier-head h2{font-family:'Cinzel',serif;font-size:16px;margin:0;color:var(--gold,#d4af37);margin-right:auto;}
+.at-tab{background:var(--bg-panel-3,#241f38);border:1.5px solid var(--line,#3a3260);color:var(--parchment,#efe6c8);border-radius:8px;padding:7px 14px;font-weight:700;font-size:12.5px;cursor:pointer;}
+.at-tab.active{border-color:var(--gold,#d4af37);color:var(--gold,#d4af37);}
+#atelier-close{background:none;border:none;color:var(--parchment,#efe6c8);font-size:20px;cursor:pointer;}
+#at-bal{display:flex;gap:6px;flex-wrap:wrap;padding:0 18px 8px;font-size:11.5px;}
+#at-filters,#at-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:6px 18px;}
+#at-filters input,#at-filters select,#at-tools select,#at-tools input[type=number]{background:var(--bg-panel-2,#1f1a30);border:1px solid var(--line,#3a3260);color:var(--parchment,#efe6c8);border-radius:6px;padding:6px 8px;font-size:12px;}
+#at-tools{border-top:1px solid var(--line,#3a3260);}
+#at-tools .at-hint{font-size:11.5px;color:var(--parchment-dim,#d9cfae);flex-basis:100%;}
+#at-list{flex:1;overflow-y:auto;padding:6px 18px;border-top:1px solid var(--line,#3a3260);}
+.at-row{display:flex;align-items:center;gap:10px;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.06);font-size:12.5px;}
+.at-row.sel{background:rgba(212,175,55,.10);}
+.at-row.warn .at-warn{display:inline;}
+.at-warn{display:none;color:#e88;font-size:11px;}
+.at-name{flex:1;min-width:120px;font-weight:700;cursor:pointer;}
+.at-tag{font-size:10.5px;opacity:.85;width:70px;flex:none;}
+.at-meta{font-size:11.5px;color:var(--parchment-dim,#d9cfae);width:112px;flex:none;}
+.at-step{display:flex;align-items:center;gap:4px;}
+.at-step button{width:26px;height:26px;border-radius:6px;border:1px solid var(--line,#3a3260);background:var(--bg-panel-3,#241f38);color:var(--parchment,#efe6c8);cursor:pointer;font-weight:700;}
+.at-step input{width:42px;text-align:center;background:var(--bg-panel-2,#1f1a30);border:1px solid var(--line,#3a3260);color:var(--parchment,#efe6c8);border-radius:6px;padding:4px 2px;}
+.at-star{background:none;border:none;font-size:17px;cursor:pointer;color:var(--gold,#d4af37);}
+#at-foot{padding:10px 18px 14px;border-top:1px solid var(--line,#3a3260);display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+#at-sum{flex:1;min-width:220px;font-size:12.5px;line-height:1.45;}
+#at-sum .bad{color:#e88;}
+#at-sum .good{color:var(--green,#7de08f);}
+@media(max-width:640px){.at-meta{display:none;}}
+#craft-modal-overlay{position:fixed;inset:0;background:rgba(5,4,10,.88);z-index:170;display:none;align-items:center;justify-content:center;padding:24px;}
 #craft-modal-overlay.show{display:flex;}
 #craft-modal-box{background:var(--bg-panel,#171325);border:1.5px solid var(--gold,#d4af37);border-radius:16px;padding:26px;
   max-width:820px;width:100%;max-height:88vh;overflow-y:auto;display:flex;gap:26px;position:relative;}
@@ -462,6 +493,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, #3a
           <span class="results-count" id="results-count"></span>
           <div id="fragments-bar"></div>
           <button class="btn small" id="craftable-toggle" onclick="toggleCraftableOnly()">🔨 Fabriquer des cartes</button>
+          <button class="btn small" id="atelier-open" onclick="openAtelier()" title="Désassembler ou fabriquer plusieurs cartes d'un coup">🧰 Atelier de fragments</button>
           <button class="btn small" id="bulk-disenchant-toggle" onclick="toggleBulkDisenchantMode()">♻️ Désassembler en masse</button>
         </div>
 
@@ -520,6 +552,27 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, #3a
   </div>
 </div>
 <div id="card-preview"></div>
+
+<div id="atelier-overlay" onclick="if(event.target===this) closeAtelier()">
+  <div id="atelier-box">
+    <div id="atelier-head">
+      <h2>🧰 Atelier de fragments</h2>
+      <button class="at-tab" id="at-tab-dis" onclick="atTab('dis')">♻️ Désassembler</button>
+      <button class="at-tab" id="at-tab-cr" onclick="atTab('cr')">🔨 Fabriquer</button>
+      <button id="atelier-close" onclick="closeAtelier()">✕</button>
+    </div>
+    <div id="at-bal"></div>
+    <div id="at-filters">
+      <input type="search" id="at-q" placeholder="Rechercher une carte…" oninput="atRenderList()">
+      <select id="at-rarity" onchange="atRenderList()"><option value="">Toutes raretés</option><option>Commune</option><option>Rare</option><option>Épique</option><option>Mythique</option></select>
+      <select id="at-src" onchange="atRenderList()"><option value="">Toutes sources</option><option>Aube</option><option>Crépuscule</option><option>Volonté</option><option>Prima</option><option>Arcane</option><option>Neutre</option></select>
+      <select id="at-set" onchange="atRenderList()"><option value="">Tous les sets</option></select>
+    </div>
+    <div id="at-tools"></div>
+    <div id="at-list"></div>
+    <div id="at-foot"><div id="at-sum"></div><button class="btn" id="at-clear" onclick="atClear()">Tout décocher</button><button class="btn primary" id="at-go" onclick="atGo()" disabled>Valider</button></div>
+  </div>
+</div>
 
 <div id="craft-modal-overlay" onclick="if(event.target===this) closeCraftModal()">
   <div id="craft-modal-box">
@@ -974,7 +1027,7 @@ function jumpToBinderStart(){
 }
 
 function getFilteredSortedCollection(){
-  const sourceList = (!currentDeck && (filters.showUnowned || filters.craftableOnly)) ? allCardsCache : collection;
+  const sourceList = ((!currentDeck || deckBuildStep==='cards') && (filters.showUnowned || filters.craftableOnly)) ? allCardsCache : collection;
   let list = sourceList.filter(c=>{
     if((c.subtypes||[]).some(s=>s.trim().toLowerCase()==='conjuration')) return false;
     if(c.type==='Héros') return false; // les héros ont leur propre page dédiée à la fin du classeur
@@ -1800,7 +1853,7 @@ function renderBinder(animate){
         const isOwned = owned!==undefined && owned>0;
         if(!isOwned && card.type!=='Héros' && card.type!=='Région'){
           el.style.filter = 'grayscale(85%) brightness(.6)';
-          el.title = 'Tu ne possèdes pas encore cette carte';
+          el.title = currentDeck ? 'Tu ne la possèdes pas : clique pour la fabriquer' : 'Tu ne possèdes pas encore cette carte';
         }
         if(owned!==undefined && card.type!=='Héros' && card.type!=='Région'){
           const ownedBadge = document.createElement('div');
@@ -2056,6 +2109,14 @@ function onCardClick(card){
   const heroNow = deckHeroCard();
   const lockBefore = (heroNow && heroNow.heroMultiClass && heroNow.heroMultiClass.enabled && heroNow.heroMultiClass.mode==='freeSecond')
     ? deckChosenSecondSource(currentDeck, heroNow) : 'n/a';
+  // Carte pas (assez) possédée : on propose de la fabriquer plutôt que de refuser
+  if(!currentDeck.isExempt){
+    const ownedNow = ownedCollection[card.id] || 0, ruleMax = card.isLegendary ? 1 : MAX_COPIES;
+    if(deckCountFor(card.id) >= ownedNow){
+      if(ownedNow < ruleMax && CRAFT_COST_BY_RARITY[card.rarity]){ showCraftModal(card); flashError(`${card.name} : tu n'en as pas assez (×${ownedNow}). Fabrique-en une ici, puis reclique sur la carte.`); return; }
+      flashError(`${card.name} : maximum ${Math.min(ruleMax, ownedNow)} exemplaire(s) possédé(s).`); return;
+    }
+  }
   addCardToDeck(card);
   if(lockBefore===null){
     const chosen = deckChosenSecondSource(currentDeck, heroNow);
@@ -2211,6 +2272,15 @@ function renderCraftAction(card){
     box.appendChild(note);
   }
 
+  if(owned<max && cost && card.type!=='Héros' && card.type!=='Région'){
+    const wbtn = document.createElement('button');
+    wbtn.className = 'craft-btn craft-disenchant';
+    wbtn.style.borderColor = 'var(--line,#3a3260)'; wbtn.style.color = 'var(--gold,#d4af37)';
+    const wished = !!AT.wish[card.id];
+    wbtn.textContent = wished ? '★ Dans ma liste de souhaits (retirer)' : '☆ Ajouter à ma liste de souhaits';
+    wbtn.onclick = ()=>{ if(AT.wish[card.id]) delete AT.wish[card.id]; else AT.wish[card.id] = Math.max(1, max-owned); atWishSave(); renderCraftAction(card); };
+    box.appendChild(wbtn);
+  }
   if(owned>=1 && card.rarity!=='Basique' && cost){
     const dbtn = document.createElement('button');
     dbtn.className = 'craft-btn craft-disenchant';
@@ -2233,6 +2303,8 @@ async function doCraft(cardId, btn){
   }
   flashSaved(`✓ ${data.name} fabriquée !`);
   ownedCollection = await loadUserCollection();
+  collection = allCardsCache.filter(c=>(ownedCollection[c.id]||0) > 0);
+  renderFragmentsBar();
   showCraftModal(craftModalCard);
   renderBinder();
 }
@@ -2247,8 +2319,301 @@ async function doDisenchant(cardId, btn){
   }
   flashSaved(`✓ ${data.refund} fragments récupérés`);
   ownedCollection = await loadUserCollection();
+  collection = allCardsCache.filter(c=>(ownedCollection[c.id]||0) > 0);
+  renderFragmentsBar();
   showCraftModal(craftModalCard);
   renderBinder();
+}
+
+/* ============================================================
+   ATELIER DE FRAGMENTS — désassembler / fabriquer plusieurs cartes d'un coup
+   ============================================================ */
+const AT_CLASSES = ['Aube','Crépuscule','Volonté','Prima','Arcane'];
+const AT_FRAG_KEY = {Aube:'fragments_aube','Crépuscule':'fragments_crepuscule','Volonté':'fragments_volonte',Prima:'fragments_prima',Arcane:'fragments_arcane',Opale:'fragments_opale'};
+const AT = { tab:'dis', owned:{}, profile:null, dis:{}, cr:{}, wish:{}, wishOnly:false, deckPick:'' };
+function atWishLoad(){ try{ return JSON.parse(localStorage.getItem('sc-wishlist')||'{}') || {}; }catch(e){ return {}; } }
+function atWishSave(){ try{ localStorage.setItem('sc-wishlist', JSON.stringify(AT.wish)); }catch(e){} }
+AT.wish = atWishLoad();
+function atCard(id){ return allCardsCache.find(c=>c.id===id); }
+function atCap(card){ return card.isLegendary ? 1 : MAX_COPIES; }
+function atTotal(id){ const o = AT.owned[id]; return o ? (o.quantity||0) + (o.foil||0) : 0; }
+function atFragClass(card){ if(card.classSecondary) return 'Opale'; if(card.class && card.class!=='Neutre') return card.class; return null; }
+function atEligible(card){
+  if(card.type==='Héros' || card.type==='Région') return false;
+  if((card.subtypes||[]).some(s=>String(s).trim().toLowerCase()==='conjuration')) return false;
+  return !!CRAFT_COST_BY_RARITY[card.rarity];
+}
+function atDeckNeed(id){
+  let m = 0;
+  (savedDecks||[]).forEach(d=>{ const e = (d.cards||[]).find(c=>c.cardId===id); if(e) m = Math.max(m, e.count); });
+  return m;
+}
+function atMatchFilters(card){
+  const q = (document.getElementById('at-q').value||'').trim().toLowerCase();
+  const r = document.getElementById('at-rarity').value;
+  const s = document.getElementById('at-src').value;
+  const st = document.getElementById('at-set').value;
+  if(q && !(card.name||'').toLowerCase().includes(q) && !(card.text||'').toLowerCase().includes(q)) return false;
+  if(r && card.rarity!==r) return false;
+  if(s && card.class!==s && card.classSecondary!==s) return false;
+  if(st && card.set!==st) return false;
+  return true;
+}
+const AT_RARITY_ORDER = {Mythique:0,'Épique':1,Rare:2,Commune:3};
+function atSortCards(a,b){ return (AT_RARITY_ORDER[a.rarity]??9)-(AT_RARITY_ORDER[b.rarity]??9) || (a.name||'').localeCompare(b.name||'','fr'); }
+
+async function openAtelier(tab){
+  if(!isLoggedInCache){ flashError('Connecte-toi pour utiliser l\'atelier.'); return; }
+  AT.owned = await loadUserCollectionWithFoil();
+  AT.profile = await loadUserProfile();
+  AT.dis = {}; AT.cr = {};
+  // nettoie la liste de souhaits : une carte déjà au maximum n'a plus à y être
+  allCardsCache.forEach(c=>{ if(AT.wish[c.id] && atTotal(c.id) >= atCap(c)) delete AT.wish[c.id]; });
+  atWishSave();
+  const setSel = document.getElementById('at-set');
+  const sets = [...new Set(allCardsCache.map(c=>c.set).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fr'));
+  setSel.innerHTML = '<option value="">Tous les sets</option>' + sets.map(s=>`<option>${escapeHtml(s)}</option>`).join('');
+  document.getElementById('atelier-overlay').classList.add('show');
+  atTab(tab || AT.tab);
+}
+function closeAtelier(){ document.getElementById('atelier-overlay').classList.remove('show'); }
+function atTab(t){
+  AT.tab = t;
+  document.getElementById('at-tab-dis').classList.toggle('active', t==='dis');
+  document.getElementById('at-tab-cr').classList.toggle('active', t==='cr');
+  document.getElementById('at-go').textContent = t==='dis' ? 'Désassembler' : 'Fabriquer';
+  atRenderBal();
+  atRenderTools();
+  atRenderList();
+}
+function atRenderBal(){
+  const p = AT.profile || {};
+  document.getElementById('at-bal').innerHTML = 'Tes fragments : ' + FRAGMENT_COLUMNS.map(f=>`<span class="currency-chip ${f.chipClass}" title="${f.label}"><span class="gem-icon"></span> ${p[f.key]||0}</span>`).join(' ');
+}
+function atRenderTools(){
+  const el = document.getElementById('at-tools');
+  if(AT.tab==='dis'){
+    el.innerHTML = `
+      <span style="font-weight:700;">Remplir automatiquement (cartes affichées) :</span>
+      <button class="btn small" onclick="atPreset('keep',1)" title="Garde 1 exemplaire de chaque carte, sélectionne tout le reste">Doublons (garder 1)</button>
+      <button class="btn small" onclick="atPreset('cap')" title="Garde 2 exemplaires (1 pour les légendaires) — le maximum jouable en deck">Surplus (au-delà du max en deck)</button>
+      <button class="btn small" onclick="atPreset('decks')" title="Garde seulement ce dont tes decks sauvegardés ont besoin">Hors de mes decks</button>
+      <span>Garder <input type="number" id="at-keep" min="0" max="9" value="1" style="width:56px;"> exemplaire(s) de chaque</span>
+      <button class="btn small" onclick="atPreset('keep',parseInt(document.getElementById('at-keep').value)||0)">Appliquer</button>
+      <div class="at-hint">Ensuite tu peux ajuster chaque carte avec − / + ou en tapant un nombre. Les decks pris en compte sont tes decks <b>sauvegardés</b>. ⚠ s'affiche si tu retires des exemplaires utilisés par un de tes decks.</div>`;
+  } else {
+    const decks = (savedDecks||[]).map(d=>`<option value="${escapeHtml(d.id)}" ${AT.deckPick===d.id?'selected':''}>${escapeHtml(d.name||'Deck')}</option>`).join('');
+    const nW = Object.keys(AT.wish).length;
+    el.innerHTML = `
+      <span style="font-weight:700;">Compléter un deck :</span>
+      <select id="at-deck" onchange="AT.deckPick=this.value"><option value="">— choisir un deck sauvegardé —</option>${decks}</select>
+      <button class="btn small" onclick="atCompleteDeck()">Ajouter les cartes manquantes</button>
+      <span style="margin-left:10px;font-weight:700;">☆ Liste de souhaits (${nW}) :</span>
+      <button class="btn small" onclick="atAddWish()">Ajouter à la sélection</button>
+      <label style="font-size:12px;"><input type="checkbox" id="at-wishonly" ${AT.wishOnly?'checked':''} onchange="AT.wishOnly=this.checked;atRenderList()"> la voir seule</label>
+      <div class="at-hint">Clique sur ☆ pour mettre une carte dans ta liste de souhaits (elle reste sur cet appareil). Le total en fragments est calculé en bas ; la fabrication est « tout ou rien ».</div>`;
+  }
+}
+function atClamp(kind, id, v){
+  const card = atCard(id);
+  if(!card) return 0;
+  const t = atTotal(id);
+  const max = kind==='dis' ? t : Math.max(0, atCap(card) - t);
+  return Math.max(0, Math.min(max, Math.floor(Number(v)||0)));
+}
+function atSet(kind, id, v){
+  const map = kind==='dis' ? AT.dis : AT.cr;
+  const n = atClamp(kind, id, v);
+  if(n>0) map[id] = n; else delete map[id];
+  atRenderList(true);
+}
+function atClear(){ AT.dis = {}; AT.cr = {}; atRenderList(true); }
+function atPreset(kind, n){
+  const cards = allCardsCache.filter(c=>atEligible(c) && atTotal(c.id)>0 && atMatchFilters(c));
+  cards.forEach(c=>{
+    const t = atTotal(c.id);
+    let keep = 0;
+    if(kind==='keep') keep = n;
+    else if(kind==='cap') keep = atCap(c);
+    else if(kind==='decks') keep = atDeckNeed(c.id);
+    const give = Math.max(0, t - keep);
+    if(give>0) AT.dis[c.id] = give; else delete AT.dis[c.id];
+  });
+  atRenderList(true);
+}
+function atCompleteDeck(){
+  const d = (savedDecks||[]).find(x=>x.id===AT.deckPick);
+  if(!d){ flashError('Choisis d\'abord un deck.'); return; }
+  let added = 0, copies = 0, notCraftable = [];
+  (d.cards||[]).forEach(e=>{
+    const card = allCardsCache.find(c=>c.id===e.cardId);
+    if(!card) return;
+    const missing = e.count - atTotal(card.id);
+    if(missing<=0) return;
+    if(!atEligible(card)){ notCraftable.push(card.name); return; }
+    const n = atClamp('cr', card.id, Math.max(AT.cr[card.id]||0, missing));
+    if(n>0){ if(!AT.cr[card.id]) added++; copies += (n-(AT.cr[card.id]||0)); AT.cr[card.id] = n; }
+  });
+  document.getElementById('at-q').value = ''; document.getElementById('at-rarity').value=''; document.getElementById('at-src').value=''; document.getElementById('at-set').value='';
+  atRenderList(true);
+  flashSaved(added||copies ? `✓ ${copies} exemplaire(s) ajouté(s) à la sélection` : 'Ce deck est déjà complet.');
+  if(notCraftable.length) flashError('Non fabricables (rareté Basique…) : ' + notCraftable.join(', '));
+}
+function atAddWish(){
+  let n = 0;
+  Object.keys(AT.wish).forEach(id=>{
+    const card = allCardsCache.find(c=>c.id===id); if(!card) return;
+    const want = atClamp('cr', id, AT.wish[id]);
+    if(want>0){ AT.cr[id] = Math.max(AT.cr[id]||0, want); n++; }
+  });
+  atRenderList(true);
+  flashSaved(n ? `✓ ${n} carte(s) de ta liste ajoutée(s) à la sélection` : 'Ta liste de souhaits est vide.');
+}
+function atToggleWish(id){
+  const card = allCardsCache.find(c=>c.id===id); if(!card) return;
+  if(AT.wish[id]) delete AT.wish[id]; else AT.wish[id] = Math.max(1, atCap(card) - atTotal(id));
+  atWishSave(); atRenderTools(); atRenderList(true);
+}
+
+function atRowHtml(card){
+  const id = card.id, t = atTotal(id), cost = CRAFT_COST_BY_RARITY[card.rarity];
+  const fc = atFragClass(card);
+  const gem = fc ? (GEM_NAMES[fc]||fc) : 'au hasard';
+  const eid = escapeHtml(id).replace(/'/g,'&#39;');
+  if(AT.tab==='dis'){
+    const q = AT.dis[id]||0, need = atDeckNeed(id);
+    const warn = q>0 && (t-q) < need;
+    return `<div class="at-row ${q>0?'sel':''} ${warn?'warn':''}" data-id="${eid}">
+      <span class="at-name" onclick="showCraftModal(atCard('${eid}'))">${escapeHtml(card.name)}</span>
+      <span class="at-tag">${escapeHtml(card.rarity)}</span><span class="at-tag">${escapeHtml(card.class||'')}${card.classSecondary?'/'+escapeHtml(card.classSecondary):''}</span>
+      <span class="at-meta">possédé ×${t}${need?` · decks ×${need}`:''}</span>
+      <span class="at-meta">+${Math.floor(cost/4)} ${escapeHtml(gem)}</span>
+      <span class="at-warn">⚠ utilisée dans un deck</span>
+      <span class="at-step"><button onclick="atSet('dis','${eid}',${q-1})">−</button><input type="number" min="0" max="${t}" value="${q}" onchange="atSet('dis','${eid}',this.value)"><button onclick="atSet('dis','${eid}',${q+1})">+</button></span>
+    </div>`;
+  }
+  const q = AT.cr[id]||0, room = Math.max(0, atCap(card)-t), wished = !!AT.wish[id];
+  return `<div class="at-row ${q>0?'sel':''}" data-id="${eid}">
+    <button class="at-star" title="Liste de souhaits" onclick="atToggleWish('${eid}')">${wished?'★':'☆'}</button>
+    <span class="at-name" onclick="showCraftModal(atCard('${eid}'))">${escapeHtml(card.name)}</span>
+    <span class="at-tag">${escapeHtml(card.rarity)}</span><span class="at-tag">${escapeHtml(card.class||'')}${card.classSecondary?'/'+escapeHtml(card.classSecondary):''}</span>
+    <span class="at-meta">possédé ×${t} / ${atCap(card)}</span>
+    <span class="at-meta">${cost} ${escapeHtml(gem)}</span>
+    <span class="at-step"><button onclick="atSet('cr','${eid}',${q-1})">−</button><input type="number" min="0" max="${room}" value="${q}" onchange="atSet('cr','${eid}',this.value)"><button onclick="atSet('cr','${eid}',${q+1})">+</button></span>
+  </div>`;
+}
+function atRenderList(keepScroll){
+  const list = document.getElementById('at-list');
+  const top = keepScroll ? list.scrollTop : 0;
+  let cards;
+  if(AT.tab==='dis'){
+    cards = allCardsCache.filter(c=>atEligible(c) && atTotal(c.id)>0 && atMatchFilters(c));
+  } else {
+    cards = allCardsCache.filter(c=>{
+      if(!atEligible(c) || atTotal(c.id) >= atCap(c) || !atMatchFilters(c)) return false;
+      if(hiddenSetNames.has(c.set) && atTotal(c.id)===0 && !AT.cr[c.id]) return false; // set pas encore ouvert à la collection
+      if(AT.wishOnly && !AT.wish[c.id]) return false;
+      return true;
+    });
+  }
+  cards.sort(atSortCards);
+  const MAXROWS = 400;
+  list.innerHTML = cards.length
+    ? cards.slice(0,MAXROWS).map(atRowHtml).join('') + (cards.length>MAXROWS ? `<div class="at-row">… ${cards.length-MAXROWS} autres cartes : affine les filtres pour les voir.</div>` : '')
+    : `<div class="at-row">${AT.tab==='dis' ? 'Aucune carte à désassembler avec ces filtres.' : 'Aucune carte à fabriquer avec ces filtres.'}</div>`;
+  list.scrollTop = top;
+  atRenderSummary();
+}
+
+// --- Simule la dépense de fragments comme le serveur (cartes d'une source d'abord, puis neutres) ---
+function atCraftPlan(){
+  const ids = [];
+  const entries = Object.entries(AT.cr).map(([id,q])=>({card:allCardsCache.find(c=>c.id===id), q})).filter(e=>e.card && e.q>0);
+  const spec = entries.filter(e=>atFragClass(e.card)), neutral = entries.filter(e=>!atFragClass(e.card));
+  const rem = {}; Object.keys(AT_FRAG_KEY).forEach(k=>rem[k] = (AT.profile && AT.profile[AT_FRAG_KEY[k]]) || 0);
+  const spent = {}; const problems = [];
+  const pay = (card, cls)=>{ const cost = CRAFT_COST_BY_RARITY[card.rarity]; rem[cls]-=cost; spent[cls]=(spent[cls]||0)+cost; };
+  spec.forEach(e=>{ for(let i=0;i<e.q;i++){ ids.push(e.card.id); const cls = atFragClass(e.card); pay(e.card, cls); } });
+  Object.keys(rem).forEach(k=>{ if(rem[k]<0) problems.push(`il manque ${-rem[k]} ${GEM_NAMES[k]||k}`); });
+  const rem2 = {...rem}; let neutralFail = 0;
+  neutral.forEach(e=>{ for(let i=0;i<e.q;i++){
+    ids.push(e.card.id);
+    const cost = CRAFT_COST_BY_RARITY[e.card.rarity];
+    const cls = AT_CLASSES.find(c=>rem[c]>=cost);
+    if(cls) pay(e.card, cls); else neutralFail++;
+  }});
+  if(neutralFail) problems.push(`${neutralFail} carte(s) neutre(s) sans assez de fragments dans un seul type`);
+  return { ids, spent, problems, copies: ids.length };
+}
+function atRenderSummary(){
+  const sum = document.getElementById('at-sum'), go = document.getElementById('at-go');
+  if(AT.tab==='dis'){
+    const gains = {}; let copies = 0, random = 0, warn = 0;
+    Object.entries(AT.dis).forEach(([id,q])=>{
+      const card = allCardsCache.find(c=>c.id===id); if(!card) return;
+      copies += q;
+      const refund = Math.floor(CRAFT_COST_BY_RARITY[card.rarity]/4) * q;
+      const fc = atFragClass(card);
+      if(fc) gains[fc] = (gains[fc]||0) + refund; else random += refund;
+      if(atTotal(id)-q < atDeckNeed(id)) warn++;
+    });
+    const parts = Object.keys(gains).map(k=>`+${gains[k]} ${GEM_NAMES[k]||k}`);
+    if(random) parts.push(`+${random} aléatoires (cartes neutres)`);
+    sum.innerHTML = copies ? `<b>${copies}</b> exemplaire(s) sélectionné(s) → ${parts.join(', ')}${warn?`<br><span class="bad">⚠ ${warn} carte(s) seront en dessous de ce que tes decks utilisent.</span>`:''}` : 'Aucune carte sélectionnée.';
+    go.disabled = copies===0;
+  } else {
+    const plan = atCraftPlan();
+    if(!plan.copies){ sum.textContent = 'Aucune carte sélectionnée.'; go.disabled = true; return; }
+    const parts = Object.keys(plan.spent).map(k=>`${plan.spent[k]} ${GEM_NAMES[k]||k}`);
+    sum.innerHTML = `<b>${plan.copies}</b> exemplaire(s) → coût : ${parts.join(', ')||'—'}` + (plan.problems.length ? `<br><span class="bad">Impossible pour l'instant : ${plan.problems.join(' ; ')}.</span>` : `<br><span class="good">✓ Tu as assez de fragments.</span>`);
+    go.disabled = plan.problems.length>0;
+  }
+}
+async function atAfterChange(){
+  ownedCollection = await loadUserCollection();
+  collection = allCardsCache.filter(c=>(ownedCollection[c.id]||0) > 0);
+  AT.owned = await loadUserCollectionWithFoil();
+  AT.profile = await loadUserProfile();
+  AT.dis = {}; AT.cr = {};
+  Object.keys(AT.wish).forEach(id=>{ const c = allCardsCache.find(x=>x.id===id); if(!c || atTotal(id)>=atCap(c)) delete AT.wish[id]; });
+  atWishSave();
+  renderFragmentsBar(); renderBinder();
+  atRenderBal(); atRenderTools(); atRenderList();
+}
+async function atGo(){
+  const go = document.getElementById('at-go');
+  if(AT.tab==='dis'){
+    const ids = []; Object.entries(AT.dis).forEach(([id,q])=>{ for(let i=0;i<q;i++) ids.push(id); });
+    if(!ids.length) return;
+    if(!confirm(`Désassembler ${ids.length} exemplaire(s) ? Cette action est irréversible.`)) return;
+    go.disabled = true;
+    const { data, error } = await sb.rpc('disenchant_cards_bulk', { p_card_ids: ids });
+    if(error || (data && data.error)){ flashError('Désassemblage impossible : ' + (data ? data.error : error.message)); await atAfterChange(); return; }
+    const done = (data.disenchanted||[]).length;
+    await atAfterChange();
+    flashSaved(`✓ ${done} exemplaire(s) désassemblé(s) — ${data.total_refund} fragments récupérés` + (done<ids.length ? ` (${ids.length-done} ignoré(s))` : ''));
+  } else {
+    const plan = atCraftPlan();
+    if(!plan.copies || plan.problems.length) return;
+    if(!confirm(`Fabriquer ${plan.copies} exemplaire(s) pour ${Object.keys(plan.spent).map(k=>plan.spent[k]+' '+(GEM_NAMES[k]||k)).join(', ')} ?`)) return;
+    go.disabled = true;
+    let res = await sb.rpc('craft_cards_bulk', { p_card_ids: plan.ids });
+    let crafted = 0, errMsg = null;
+    const fnMissing = res.error && (res.error.code==='PGRST202' || /craft_cards_bulk/i.test(res.error.message||''));
+    if(fnMissing){
+      // La fonction « en bloc » n'est pas encore installée en base : on fabrique une carte à la fois.
+      for(const id of plan.ids){
+        const r = await sb.rpc('craft_card', { p_card_id: id });
+        if(r.error || (r.data && r.data.error)){ errMsg = r.data ? r.data.error : r.error.message; break; }
+        crafted++;
+      }
+    } else if(res.error || (res.data && res.data.error)){
+      errMsg = res.data ? res.data.error : res.error.message;
+    } else crafted = res.data.crafted;
+    await atAfterChange();
+    if(errMsg) flashError(`Fabrication interrompue (${errMsg==='not-enough-fragments'?'pas assez de fragments':errMsg}) — ${crafted} carte(s) fabriquée(s)` + (fnMissing ? '' : ' (rien n\'a été dépensé)'));
+    else flashSaved(`✓ ${crafted} exemplaire(s) fabriqué(s)`);
+  }
 }
 
 /* ============================================================
@@ -2294,6 +2659,8 @@ async function confirmBulkDisenchant(){
   }
   flashSaved(`✓ ${data.total_refund} fragments récupérés au total`);
   ownedCollection = await loadUserCollection();
+  collection = allCardsCache.filter(c=>(ownedCollection[c.id]||0) > 0);
+  renderFragmentsBar();
   bulkDisenchantSelection.clear();
   updateBulkDisenchantSummary();
   renderBinder();

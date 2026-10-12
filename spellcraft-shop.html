@@ -641,7 +641,7 @@ async function renderMinisetShelf(){
       <div class="shop-item-desc">Toutes les cartes du set${n!=null?` (${n} cartes)`:''} d'un seul coup : ${copies}. Achat unique.</div>
       <div class="shop-item-price"><span class="money-icon"></span> ${b.price}</div>
       ${has
-        ? `<button class="buy-btn" disabled style="opacity:.6;cursor:default;">✓ Possédé</button>`
+        ? `<button class="buy-btn" disabled style="opacity:.6;cursor:default;" title="Achat unique : tu as déjà acheté ce mini-set, il ne peut pas être racheté.">✓ Déjà acheté (achat unique)</button>`
         : `<button class="buy-btn" onclick="buyMiniset('${b.id}')">Acheter</button>`}
     </div>`;
   }).join('');
