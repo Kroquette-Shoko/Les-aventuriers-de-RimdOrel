@@ -1280,6 +1280,7 @@ async function onSetIsBaseChange(){
   const checkbox = document.getElementById('set-is-base-checkbox');
   const current = setsIndex.find(s=>s.id===currentSetId);
   if(!current) return;
+  if(checkbox.checked && !confirm("ATTENTION : « set de base » donne immédiatement TOUTES les cartes de ce set (2 exemplaires chacune) à TOUS les joueurs, et aussi à chaque carte que tu créeras ensuite dans ce set. Décocher la case ne reprend pas les cartes déjà données.\n\nContinuer ?")){ checkbox.checked = false; return; }
   const res = await setCardSetIsBase(currentSetId, checkbox.checked);
   if(res.error){ alert('Erreur : ' + res.error); checkbox.checked = !checkbox.checked; return; }
   current.is_base = checkbox.checked;
