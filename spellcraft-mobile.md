@@ -1,6 +1,6 @@
 # Chantier « jeu sur téléphone »
 
-Statut : **état des lieux fait, aucun code modifié**. Rien n'a été testé sur un vrai téléphone.
+Statut : étapes 1, 2 (partie) et 3 faites ; plateau, éditeur et admin restent à faire. Vérifié uniquement par simulation (Chromium 390×844 avec faux Supabase), jamais sur un vrai téléphone.
 
 ## État des lieux (11 pages sans balise `viewport` ou sans règles adaptées)
 

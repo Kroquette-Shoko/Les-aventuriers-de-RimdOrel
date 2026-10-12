@@ -371,3 +371,25 @@ html,body{
 *::-webkit-scrollbar-track{background:transparent;}
 *::-webkit-scrollbar-thumb{background:var(--bg-panel-3);border-radius:999px;border:1px solid var(--line);}
 *::-webkit-scrollbar-thumb:hover{background:var(--line);}
+
+/* ============================================================
+   Petits écrans / tactile (téléphone) — chantier mobile
+   N'agit que sous 640 px de large ou sur écran sans survol, donc
+   rien ne change sur ordinateur.
+   ============================================================ */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;-webkit-tap-highlight-color:transparent;}
+button,a,select,summary,[role=button]{touch-action:manipulation;}
+@media (max-width:640px){
+  .sc-page{padding-bottom:72px;} /* laisse la place au bouton Feedback flottant */
+  .sc-topbar{padding:8px 12px;gap:8px;}
+  .sc-topbar-back{padding:9px 11px;font-size:0;gap:0;} /* flèche seule : le titre garde la place */
+  .sc-topbar-back svg{width:18px;height:18px;}
+  .sc-topbar-right{min-width:0;flex-shrink:1;gap:6px;}
+  .sc-topbar-title{font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .sc-container{padding:16px 12px 0;gap:16px;}
+  .sc-panel{padding-left:14px;padding-right:14px;}
+  .sc-btn{min-height:40px;}
+  .sc-btn-sm{min-height:36px;}
+  input,select,textarea{font-size:16px;} /* évite le zoom automatique d'iOS au clic dans un champ */
+  table{display:block;overflow-x:auto;max-width:100%;}
+}
