@@ -759,6 +759,8 @@ body.targeting *{cursor:crosshair !important;}
 }
 </style>
 <script src="spellcraft-card-render.js"></script>
+<link rel="stylesheet" href="spellcraft-board-compact.css">
+<script src="spellcraft-board-fit.js"></script>
 </head>
 <body>
 
@@ -1553,6 +1555,7 @@ const BOARD_REF_WIDTH = 1920, BOARD_REF_HEIGHT = 1080;
 function updateBoardScale(){
   const outer = document.getElementById('app-outer');
   if(!outer) return;
+  if(window.SCBoardFit){ SCBoardFit.fit(outer, {refW:BOARD_REF_WIDTH, baseH:BOARD_REF_HEIGHT, topReserve:0}); return; }
   const scale = Math.min(window.innerWidth / BOARD_REF_WIDTH, window.innerHeight / BOARD_REF_HEIGHT);
   outer.style.transform = `scale(${scale})`;
 }
