@@ -18,11 +18,11 @@ FR={'big':{t:cls(fit(big_svg(t,U))) for t in BIG},'small':{t:cls(fit(small_svg(t
 FX={}
 for s,k in {'Aube':'aube','Crépuscule':'crepuscule','Volonté':'volonte','Prima':'prima','Arcane':'arcane','Neutre':'neutre'}.items():
     FX[s]={'big':cls(ids(fx2(FXSRC[s],300,423),U)),'small':cls(ids(fx2(FXSRC[s],240,240),U))}
-CLIP={'big':{t:BIG[t]['O']+' '+BIG[t]['W'] for t in BIG},'small':{t:SMALL[t]['O']+' '+SMALL[t]['W'] for t in SMALL}}
+CLIP={'big':{t:[BIG[t]['O'],BIG[t]['W']] for t in BIG},'small':{t:[SMALL[t]['O'],SMALL[t]['W']] for t in SMALL}}
 LEG=cls(leg_A()).replace('id="LGg"',f'id="{U}LGg"').replace('url(#LGg)',f'url(#{U}LGg)').replace('id="LGh"',f'id="{U}LGh"').replace('url(#LGh)',f'url(#{U}LGh)')
 LEG=LEG.replace('width="100%" height="100%"','width="100%" height="100%" preserveAspectRatio="none"')
 # fenêtres d'illustration : (x,y,w,h) + chemin
-BB={'big':{'creature':(28,24,244,168),'spell':(50,24,200,200),'trap':(32,16,236,206),'artefact':(50,24,200,200),'region':(26,24,248,200),'hero':(30,24,240,314)},
+BB={'big':{'creature':(28,24,244,168),'spell':(25,-13,250,250),'trap':(18,-14,264,246),'artefact':(50,24,200,200),'region':(26,24,248,200),'hero':(30,24,240,314)},
     'small':{'creature':(48,31,144,116),'artefact':(65,30,110,110)}}
 DIM={'big':(300,423.2),'small':(240,240)}
 art_defs=[]; css=[]
