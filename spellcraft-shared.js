@@ -801,6 +801,39 @@ function injectAppTopbar(){
 }
 injectAppTopbar();
 
+
+/* ---------- Petits écrans / tactile : barre du haut, options, retour testeur, connexion ----------
+   N'agit que sous 640 px de large (téléphone) : aucun effet sur ordinateur. */
+function injectMobileBase(){
+  if(document.getElementById('sc-mobile-base')) return;
+  const st = document.createElement('style');
+  st.id = 'sc-mobile-base';
+  st.textContent = `
+    html{-webkit-tap-highlight-color:transparent;}
+    @media (max-width:640px){
+      #app-topbar{padding:8px 10px;gap:8px;}
+      #app-topbar-title{font-size:13.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+      #app-topbar-right{gap:6px;flex-shrink:0;}
+      #app-topbar-menu{padding:9px 10px;font-size:12px;}
+      .sc-auth-account{padding:5px 6px 5px 10px;gap:6px;}
+      .sc-auth-name{display:none;}
+      .sc-auth-btn{padding:8px 10px;font-size:12px;}
+      #sc-options-gear.sc-options-inline{width:40px;height:40px;}
+      #sc-options-gear:not(.sc-options-inline){width:52px;height:52px;top:6px;right:6px;}
+      #sc-options-gear:not(.sc-options-inline) .sc-gear-icon{width:34px;height:34px;}
+      #sc-options-modal,#sc-options-modal.sc-options-inline-modal{left:8px !important;right:8px !important;top:58px !important;width:auto;max-height:calc(100vh - 70px);max-height:calc(100dvh - 70px);}
+      #sc-options-modal select,#sc-options-modal .sc-opt-mute{min-height:40px;font-size:14px;}
+      #sc-options-modal input[type=range]{height:28px;}
+      #sc-feedback-btn{bottom:calc(10px + env(safe-area-inset-bottom, 0px));left:10px;padding:9px 13px;}
+      #sc-feedback-modal{left:8px;right:8px;width:auto;bottom:calc(58px + env(safe-area-inset-bottom, 0px));max-height:70vh;overflow-y:auto;}
+      .sc-auth-modal{width:92vw;padding:18px;}
+      .sc-auth-modal input{font-size:16px;}
+    }
+  `;
+  document.head.appendChild(st);
+}
+injectMobileBase();
+
 function injectFeedbackButton(){
   if(document.getElementById('sc-feedback-btn')) return; // déjà injecté
   // Les jetons var(--x, repli) suivent le thème actif sur les pages qui

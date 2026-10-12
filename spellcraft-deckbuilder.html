@@ -365,7 +365,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, #3a
 #at-sum{flex:1;min-width:220px;font-size:12.5px;line-height:1.45;}
 #at-sum .bad{color:#e88;}
 #at-sum .good{color:var(--green,#7de08f);}
-@media(max-width:640px){.at-meta{display:none;}}
+@media(max-width:640px){.at-meta{display:none;}.save-indicator{display:none;}}
 #craft-modal-overlay{position:fixed;inset:0;background:rgba(5,4,10,.88);z-index:170;display:none;align-items:center;justify-content:center;padding:24px;}
 #craft-modal-overlay.show{display:flex;}
 #craft-modal-box{background:var(--bg-panel,#171325);border:1.5px solid var(--gold,#d4af37);border-radius:16px;padding:26px;
@@ -450,6 +450,17 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, #3a
   .db-collection-col{width:100%;}
   .db-deck-col{width:100%;}
   #deck-col{position:static;max-height:none;}
+}
+/* Téléphone : cartes du classeur à 50 % (150 px) pour tenir 2 par ligne. */
+@media (max-width:640px){
+  .sc-container.db-shell{padding-left:8px;padding-right:8px;}
+  #binder-frame{padding:12px 6px;min-height:0;}
+  #binder-pages{gap:12px;}
+  .binder-page-half{width:100%;max-width:340px;grid-template-columns:repeat(2,150px);gap:22px 22px;justify-content:center;}
+  .binder-spine{display:none;}
+  .binder-slot{width:150px;}
+  .binder-slot .ncard{transform:scale(0.5);}
+  .binder-slot .ncard:hover{transform:scale(0.5);}
 }
 </style>
 <script src="spellcraft-card-render.js"></script>
