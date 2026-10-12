@@ -593,7 +593,7 @@ async function renderBoosterShelf(){
     <div class="shop-item">
       <div class="shop-item-art" style="${b.image_url?`background-image:url('${b.image_url}');background-size:cover;`:''}">${b.image_url?'':'📦'}</div>
       <div class="shop-item-name">${escapeHtmlShop(b.name)}</div>
-      <div class="shop-item-desc">6 cartes du set correspondant. Rejoint ton inventaire — s'ouvre séparément.</div>
+      <div class="shop-item-desc">${b.content_mode==='all' ? 'Toutes les cartes du set correspondant.' : ((Array.isArray(b.slots)&&b.slots.length ? b.slots.length : 6)+' cartes du set correspondant.')} Rejoint ton inventaire — s'ouvre séparément.</div>
       <div class="shop-item-price"><span class="money-icon"></span> ${b.price} <span style="font-size:10px;color:var(--parchment-dim);">/ unité</span></div>
       <div class="booster-qty-row">
         <button class="qty-btn" onclick="adjustBoosterQty('${b.id}', -1)">−</button>
@@ -1512,6 +1512,7 @@ function shopErrorMessage(code){
     'already-maxed': "Tu as déjà le maximum de cette carte, choisis-en une autre.",
     'unknown-booster': "Ce booster n'existe plus.",
     'unknown-miniset': "Ce mini-set n'existe plus.",
+    'open-one-at-a-time': "Ce booster donne tout le set : ouvre-le un par un.",
     'miniset-already-owned': "Tu as déjà acheté ce mini-set (achat unique).",
     'miniset-nothing-to-add': "Tu possèdes déjà toutes les cartes de ce mini-set au maximum, rien à ajouter.",
     'use-buy-miniset': "Ce produit est un mini-set : utilise le bouton d'achat du mini-set.",

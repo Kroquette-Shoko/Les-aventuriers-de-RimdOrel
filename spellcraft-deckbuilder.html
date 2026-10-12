@@ -624,6 +624,7 @@ let isLoggedInCache = false;
    ÉTAT
    ============================================================ */
 let collection = [];
+let hiddenSetNames = new Set(); // noms des sets masqués par défaut dans la collection (réglage du set)
 let allCardsCache = []; // toutes les cartes du catalogue, possédées ou non (pour le mode "afficher non-possédées")
 let currentPage = 0;
 let deckBuildStep = null; // null | 'hero' | 'region' | 'cards'
@@ -730,6 +731,12 @@ async function refreshCollection(silent){
   ownedCollection = await loadUserCollection();
   allCardsCache = allCards;
   collection = allCards.filter(c => (ownedCollection[c.id]||0) > 0);
+  // Sets « masqués par défaut » (nouveaux sets) : leurs cartes non possédées n'apparaissent
+  // pas tant que le joueur n'a pas choisi ce set dans le filtre.
+  try{
+    const idx = await loadSetsIndex();
+    hiddenSetNames = new Set(idx.filter(s => s.in_collection === false).map(s => s.name));
+  }catch(e){ hiddenSetNames = new Set(); }
   if(!silent){
     buildFilterDropdowns();
     renderAll();
@@ -1001,6 +1008,7 @@ function getFilteredSortedCollection(){
       if(!inName && !inText && !inSubtypes) return false;
     }
     if(filters.setId && c.set!==filters.setId) return false;
+    if(!filters.setId && hiddenSetNames.has(c.set) && (ownedCollection[c.id]||0) === 0) return false;
     if(filters.classes.size){
       const realClasses = [...filters.classes].filter(k=>k!=='Multi-source');
       const wantsMulti = filters.classes.has('Multi-source');

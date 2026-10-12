@@ -757,6 +757,7 @@ header .spacer{flex:1;}
     <h2>Réglages du set : <span id="ss-name"></span></h2>
     <div style="display:flex;flex-direction:column;gap:12px;font-size:13px;">
       <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;"><input type="checkbox" id="ss-shop" style="margin-top:3px;"> <span><b>Les cartes de ce set peuvent apparaître en boutique</b><br><span class="hint">Boosters du set, offres du jour, cartes à l'unité, héros à acheter. Décoché : rien de ce set n'est proposé à l'achat.</span></span></label>
+      <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;"><input type="checkbox" id="ss-collection" style="margin-top:3px;"> <span><b>Les cartes de ce set apparaissent par défaut dans la collection</b><br><span class="hint">Décoché (cas d'un nouveau set) : les cartes non possédées de ce set ne s'affichent pas dans « Afficher les non possédées ». Le joueur les voit en choisissant ce set dans le filtre, et voit toujours les cartes qu'il possède.</span></span></label>
       <label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer;"><input type="checkbox" id="ss-rewards" style="margin-top:3px;"> <span><b>Les cartes de ce set peuvent être données en récompense</b><br><span class="hint">Quêtes, succès, coffres : cartes tirées au hasard par rareté, et boosters « dernier set » / « set de base ». Une récompense qui désigne un booster précis reste donnée telle quelle.</span></span></label>
       <div>
         <div style="font-weight:600;margin-bottom:4px;">Logos de rareté de ce set</div>
@@ -1370,6 +1371,8 @@ function openSetSettings(){
   document.getElementById('ss-name').textContent = cur.name;
   document.getElementById('ss-shop').checked = cur.in_shop !== false;
   document.getElementById('ss-rewards').checked = cur.in_rewards !== false;
+  document.getElementById('ss-collection').checked = cur.in_collection !== false;
+  document.getElementById('ss-collection').disabled = !('in_collection' in cur);
   document.getElementById('ss-icons').value = cur.rarity_icon_dir || '';
   document.getElementById('ss-status').textContent = ('in_shop' in cur) ? '' : "Les colonnes de réglage n'existent pas encore dans la base : exécute d'abord le fichier SQL de la livraison (boutique_recompenses_rarete), sinon seuls les logos de rareté seront pris en compte.";
   renderSetIconPreview();
@@ -1386,6 +1389,7 @@ async function saveSetSettings(){
   const dir = (document.getElementById('ss-icons').value || '').trim().replace(/\/+$/,'') || null;
   const settings = { rarity_icon_dir: dir };
   if('in_shop' in cur){ settings.in_shop = document.getElementById('ss-shop').checked; settings.in_rewards = document.getElementById('ss-rewards').checked; }
+  if('in_collection' in cur) settings.in_collection = document.getElementById('ss-collection').checked;
   const st = document.getElementById('ss-status');
   const prevDir = cur.rarity_icon_dir || null;
   const res = await updateCardSetSettings(currentSetId, settings);

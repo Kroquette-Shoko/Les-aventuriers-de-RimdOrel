@@ -21,7 +21,8 @@
 async function loadSetsIndex(){
   // in_shop / in_rewards / rarity_icon_dir : réglages du set (colonnes ajoutées plus tard —
   // si elles n'existent pas encore côté base, on retombe sur la requête d'origine)
-  let res = await sb.from('card_sets').select('id, name, is_base, in_shop, in_rewards, rarity_icon_dir').order('created_at');
+  let res = await sb.from('card_sets').select('id, name, is_base, in_shop, in_rewards, rarity_icon_dir, in_collection').order('created_at');
+  if(res.error) res = await sb.from('card_sets').select('id, name, is_base, in_shop, in_rewards, rarity_icon_dir').order('created_at');
   if(res.error) res = await sb.from('card_sets').select('id, name, is_base').order('created_at');
   if(res.error){ console.error('Erreur de chargement des sets', res.error); return []; }
   return res.data || [];
@@ -40,7 +41,10 @@ async function createCardSet(name){
   const usedIds = new Set(existing.map(s=>s.id));
   let uniqueId = id, n = 2;
   while(usedIds.has(uniqueId)){ uniqueId = `${id}-${n}`; n++; }
-  const { error } = await sb.from('card_sets').insert({ id: uniqueId, name });
+  // Un nouveau set n'apparaît pas par défaut dans la collection (in_collection = false) ;
+  // si la colonne n'existe pas encore côté base, on crée le set sans ce réglage.
+  let { error } = await sb.from('card_sets').insert({ id: uniqueId, name, in_collection: false });
+  if(error) ({ error } = await sb.from('card_sets').insert({ id: uniqueId, name }));
   if(error) return { error: error.message };
   return { id: uniqueId, name };
 }
