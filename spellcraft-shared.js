@@ -688,8 +688,8 @@ function injectOptionsMenu(){
     </select>
     <label class="sc-opt-label" for="sc-card-anim-select">Animations des fonds</label>
     <select id="sc-card-anim-select">
-      <option value="hover">Au survol de la carte</option>
-      <option value="always">Toujours (plus gourmand)</option>
+      <option value="always">Toujours</option>
+      <option value="hover">Au survol de la carte (plus léger)</option>
     </select>
     <div class="sc-opt-theme-label" id="sc-card-style-note"></div>
     ${onHubPage ? '' : '<a class="sc-opt-hub" href="spellcraft-hub.html">🏠 Menu principal</a>'}
@@ -749,7 +749,7 @@ function injectOptionsMenu(){
   const lsGet = (k)=>{ try{ return localStorage.getItem(k); }catch(e){ return null; } };
   const lsSet = (k,v)=>{ try{ localStorage.setItem(k,v); }catch(e){} };
   cardStyleSel.value = lsGet('sc-card-style')==='png' ? 'png' : 'drawn';
-  cardAnimSel.value = lsGet('sc-card-anim')==='always' ? 'always' : 'hover';
+  cardAnimSel.value = lsGet('sc-card-anim')==='hover' ? 'hover' : 'always';
   const cardNoteMsg = ()=>{ cardNote.textContent = 'Rechargez la page pour voir le changement.'; };
   cardStyleSel.onchange = (e)=>{ lsSet('sc-card-style', e.target.value); cardNoteMsg(); };
   cardAnimSel.onchange = (e)=>{ lsSet('sc-card-anim', e.target.value); document.documentElement.classList.toggle('nd-anim-on', e.target.value==='always'); cardNoteMsg(); };

@@ -31,7 +31,7 @@
   }
   function getStyle(){ return ls('sc-card-style') === 'png' ? 'png' : 'drawn'; }
   function setStyle(v){ ls('sc-card-style', v === 'png' ? 'png' : 'drawn'); }
-  function getAnim(){ return ls('sc-card-anim') === 'always' ? 'always' : 'hover'; }
+  function getAnim(){ return ls('sc-card-anim') === 'hover' ? 'hover' : 'always'; }
   function setAnim(v){ ls('sc-card-anim', v === 'always' ? 'always' : 'hover'); document.documentElement.classList.toggle('nd-anim-on', v === 'always'); }
 
   function install(){
