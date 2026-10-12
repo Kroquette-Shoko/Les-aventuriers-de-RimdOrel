@@ -31,6 +31,9 @@ input[type=text],input[type=number],select{box-sizing:border-box;width:100%;back
 .row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .rar{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
 .rar label{font-size:11px;color:#a89f86;display:block;margin-bottom:3px;}
+.slotrow{margin:8px 0;padding:8px 10px;border:1px solid #3a3350;border-radius:8px;background:rgba(255,255,255,.02);}
+.slotname{font-size:12px;font-weight:700;color:#efe6c8;margin-bottom:6px;}
+.slotname .hint{font-weight:400;}
 .hint{font-size:12px;color:#a89f86;line-height:1.5;}
 .btn{background:#1f1a30;border:1px solid #3a3260;color:#efe6c8;border-radius:8px;padding:8px 14px;font-weight:600;font-size:13px;cursor:pointer;}
 .btn:hover{border-color:#d4af37;}
@@ -121,17 +124,34 @@ function renderBoosters(){
   if(b){
     const d=b.rarity_distribution||{};
     const isMs=b.kind==='miniset';
+    const allMode=!isMs && b.content_mode==='all';
+    const custom=!isMs && !allMode && Array.isArray(b.slots);
+    SLOTS=Array.isArray(b.slots)?b.slots.map(x=>({...x})):[];
     form=`<div class="field"><label>Type</label><select id="b-kind"><option value="booster" ${isMs?'':'selected'}>📦 Booster (6 cartes au hasard, achetable à volonté)</option><option value="miniset" ${isMs?'selected':''}>🗂️ Mini-set (toutes les cartes du set, achat unique par joueur)</option></select></div>
     <div class="field"><label>Nom</label><input type="text" id="b-name" value="${esc(b.name)}" placeholder="Ex : Booster Aube"></div>
     <div class="row2"><div class="field"><label id="b-set-label">${isMs?'Set contenu (toutes ses cartes)':'Set source'}</label><select id="b-set">${SETS.map(s=>`<option value="${esc(s.id)}" ${s.id===b.set_id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div>
     <div class="field"><label>Prix (or)</label><input type="number" id="b-price" min="1" value="${esc(b.price)}"></div></div>
     ${imageField('b',b.image_url)}
     <div class="field"><label style="display:flex;gap:8px;align-items:center;text-transform:none;font-size:13px;color:#efe6c8;cursor:pointer;"><input type="checkbox" id="b-shop" ${b.in_shop!==false?'checked':''} style="width:auto;"> Vendu dans la boutique (décoché : le booster reste utilisable comme récompense, mais n'apparaît pas en boutique)</label></div>
-    <div id="b-box-booster" style="${isMs?'display:none':''}"><div class="field"><label>Répartition des raretés (%) — total : <b id="b-total"></b>/100</label>
-    <div class="rar">${RARS.map(r=>`<div><label>${r}</label><input type="number" min="0" max="100" class="b-rar" data-r="${r}" value="${esc(d[r]!=null?d[r]:0)}"></div>`).join('')}</div></div></div>
-    <div id="b-box-miniset" style="${isMs?'':'display:none'}"><div class="field"><label>Exemplaires donnés par carte</label><select id="b-copies"><option value="max" ${b.miniset_copies==='one'?'':'selected'}>Le maximum autorisé en deck (2 exemplaires ; 1 pour les héros, régions et légendaires)</option><option value="one" ${b.miniset_copies==='one'?'selected':''}>1 seul exemplaire de chaque carte</option></select></div>
+    <div id="b-box-booster" style="${isMs?'display:none':''}">
+      <div class="field"><label>Contenu du booster</label><select id="b-mode"><option value="slots" ${allMode?'':'selected'}>Cartes tirées au hasard (tu règles les raretés)</option><option value="all" ${allMode?'selected':''}>Toutes les cartes du set (le booster donne le set complet)</option></select></div>
+      <div id="b-box-slots" style="${allMode?'display:none':''}">
+        <div class="field"><label style="display:flex;gap:8px;align-items:center;text-transform:none;font-size:13px;color:#efe6c8;cursor:pointer;"><input type="checkbox" id="b-custom" ${custom?'checked':''} style="width:auto;"> Régler moi-même le nombre de cartes et les raretés possibles de chaque slot</label></div>
+        <div id="b-box-legacy" style="${custom?'display:none':''}"><div class="field"><label>Répartition des raretés (%) — total : <b id="b-total"></b>/100</label>
+        <div class="rar">${RARS.map(r=>`<div><label>${r}</label><input type="number" min="0" max="100" class="b-rar" data-r="${r}" value="${esc(d[r]!=null?d[r]:0)}"></div>`).join('')}</div></div>
+        <p class="hint">Fonctionnement classique : 6 cartes = 3 communes, 2 « rare ou mieux » et 1 tirée selon cette répartition. Coche la case au-dessus pour tout régler toi-même.</p></div>
+        <div id="b-box-custom" style="${custom?'':'display:none'}">
+          <div class="field"><label>Nombre de cartes dans le booster (1 à 60)</label><input type="number" id="b-nslots" min="1" max="60" value="${SLOTS.length||6}"></div>
+          <p class="hint">Chaque slot = une carte du booster. Pour chaque slot, mets un poids par rareté : un slot « 70 commune / 30 rare » donne une commune 7 fois sur 10. Les poids sont relatifs, le total n'a pas besoin de faire 100. Un poids à 0 = rareté impossible dans ce slot.</p>
+          <div id="b-slotlist">${slotsHtml()}</div>
+          <button class="btn sm" type="button" data-act="slots-copy">Copier le slot 1 sur tous les autres</button>
+        </div>
+      </div>
+    </div>
+    <div id="b-box-miniset" style="${(isMs||allMode)?'':'display:none'}"><div class="field"><label>Exemplaires donnés par carte</label><select id="b-copies"><option value="max" ${b.miniset_copies==='one'?'':'selected'}>Le maximum autorisé en deck (2 exemplaires ; 1 pour les héros, régions et légendaires)</option><option value="one" ${b.miniset_copies==='one'?'selected':''}>1 seul exemplaire de chaque carte</option></select></div>
     <p class="hint" id="b-count">Nombre de cartes du set : …</p>
-    <p class="hint">Achat unique : le joueur reçoit toutes les cartes d'un coup, une seule fois. S'il possède déjà des exemplaires, on complète sans dépasser le maximum, et le prix reste le même.</p></div>
+    <p class="hint" id="b-hint-ms" style="${isMs?'':'display:none'}">Achat unique : le joueur reçoit toutes les cartes d'un coup, une seule fois. S'il possède déjà des exemplaires, on complète sans dépasser le maximum, et le prix reste le même.</p>
+    <p class="hint" id="b-hint-all" style="${isMs?'display:none':''}">Chaque booster ouvert donne toutes les cartes du set, en complétant jusqu'au maximum sans dépasser. Un joueur qui possède déjà tout le set ne peut plus ouvrir ce booster (rien à ajouter). Les boosters sont ouverts un par un.</p></div>
     <div class="actions"><button class="btn primary" data-act="save-b">💾 Enregistrer</button>${b.id?`<button class="btn danger" data-act="del-b">🗑 Supprimer</button>`:''}<span id="b-status" class="hint"></span></div>`;
   }
   $('v-boosters').innerHTML=`<div class="split"><div class="panel"><h2>Boosters et mini-sets (${BOOSTERS.length})</h2>${list}<button class="btn sm" data-act="new-b">+ Nouveau booster</button> <button class="btn sm" data-act="new-ms">+ Nouveau mini-set</button></div><div class="panel"><h2>${b?(b.id?(b.kind==='miniset'?'Modifier le mini-set':'Modifier le booster'):(b.kind==='miniset'?'Nouveau mini-set':'Nouveau booster')):'Booster / mini-set'}</h2>${form}</div></div>`;
@@ -144,23 +164,63 @@ async function updMsCount(){
   e.textContent='Nombre de cartes du set : '+count+(count<30||count>50?' (conseillé pour un mini-set : 30 à 50)':'');
   e.style.color=(count<30||count>50)?'#e4b86a':'';
 }
-function onKindChange(){
-  const ms=$('b-kind').value==='miniset';
-  $('b-box-booster').style.display=ms?'none':''; $('b-box-miniset').style.display=ms?'':'none';
-  $('b-set-label').textContent=ms?'Set contenu (toutes ses cartes)':'Set source';
+function onKindChange(){ onBoosterModeChange(); }
+let SLOTS=[];
+function slotsHtml(){
+  return SLOTS.map((sl,i)=>`<div class="slotrow"><div class="slotname">Slot ${i+1} <span class="hint" id="b-slpct-${i}">${slotPctText(sl)}</span></div><div class="rar">${RARS.map(r=>`<div><label>${r}</label><input type="number" min="0" class="b-sl" data-i="${i}" data-r="${r}" value="${esc(sl[r]!=null?sl[r]:0)}"></div>`).join('')}</div></div>`).join('')||'<div class="empty">Aucun slot.</div>';
+}
+function slotPctText(sl){
+  const t=RARS.reduce((a,r)=>a+(parseFloat(sl[r])||0),0);
+  if(t<=0) return '— aucune rareté possible (à corriger)';
+  return '— '+RARS.filter(r=>(parseFloat(sl[r])||0)>0).map(r=>r+' '+Math.round((parseFloat(sl[r])||0)/t*1000)/10+' %').join(' · ');
+}
+function seedSlotsFromLegacy(){
+  const d={}; document.querySelectorAll('.b-rar').forEach(i=>d[i.dataset.r]=parseInt(i.value)||0);
+  let plus={Rare:d.Rare||0,'Épique':d['Épique']||0,Mythique:d.Mythique||0};
+  if(plus.Rare+plus['Épique']+plus.Mythique<=0) plus={Rare:1,'Épique':1,Mythique:1};
+  SLOTS=[{Commune:100},{Commune:100},{Commune:100},{...plus},{...plus},{...d}];
+}
+function resizeSlots(n){
+  n=Math.max(1,Math.min(60,parseInt(n)||1));
+  while(SLOTS.length<n) SLOTS.push({...(SLOTS[SLOTS.length-1]||{Commune:100})});
+  SLOTS.length=n;
+  $('b-slotlist').innerHTML=slotsHtml(); $('b-nslots').value=n;
+}
+function onBoosterModeChange(){
+  const kindMs=$('b-kind').value==='miniset';
+  const all=!kindMs && $('b-mode').value==='all';
+  const custom=$('b-custom').checked;
+  $('b-box-booster').style.display=kindMs?'none':'';
+  $('b-box-slots').style.display=all?'none':'';
+  $('b-box-legacy').style.display=custom?'none':'';
+  $('b-box-custom').style.display=custom?'':'none';
+  $('b-box-miniset').style.display=(kindMs||all)?'':'none';
+  $('b-hint-ms').style.display=kindMs?'':'none';
+  $('b-hint-all').style.display=kindMs?'none':'';
+  $('b-set-label').textContent=kindMs?'Set contenu (toutes ses cartes)':'Set source';
+  if(all||kindMs) updMsCount();
 }
 function updTotal(){const t=[...document.querySelectorAll('.b-rar')].reduce((a,i)=>a+(parseInt(i.value)||0),0);const e=$('b-total'); if(e){e.textContent=t;e.style.color=t===100?'#6fd39a':'#e46a6a';}}
 async function saveBooster(){
   const name=$('b-name').value.trim(); if(!name) return say('b-status','Donne un nom au booster.',false);
   const isMs=$('b-kind').value==='miniset';
+  const mode=isMs?'slots':$('b-mode').value;
+  const custom=!isMs && mode==='slots' && $('b-custom').checked;
+  if(custom){
+    if(SLOTS.length<1||SLOTS.length>60) return say('b-status','Un booster contient entre 1 et 60 cartes.',false);
+    for(let i=0;i<SLOTS.length;i++){ if(RARS.reduce((a,r)=>a+(parseFloat(SLOTS[i][r])||0),0)<=0) return say('b-status',`Le slot ${i+1} n'a aucune rareté possible : mets un poids sur au moins une rareté.`,false); }
+  }
   const dist={}; document.querySelectorAll('.b-rar').forEach(i=>dist[i.dataset.r]=parseInt(i.value)||0);
   const total=Object.values(dist).reduce((a,b)=>a+b,0);
-  if(!isMs && total!==100 && !confirm(`La répartition fait ${total} % au lieu de 100 %. Enregistrer quand même ?`)) return;
+  if(!isMs && mode==='slots' && !custom && total!==100 && !confirm(`La répartition fait ${total} % au lieu de 100 %. Enregistrer quand même ?`)) return;
   const cur=BOOSTERS.find(x=>x.id===SEL.boosters);
   const row={id:cur?cur.id:'booster_'+Date.now(),name,set_id:$('b-set').value,price:parseInt($('b-price').value)||120,image_url:$('b-image').value.trim()||null,rarity_distribution:isMs?(cur&&cur.rarity_distribution)||RAR_DEFAULT:dist};
   const hasKind=BOOSTERS.some(x=>'kind' in x);
   if(hasKind){row.kind=isMs?'miniset':'booster'; row.miniset_copies=$('b-copies').value;}
   else if(isMs) return say('b-status',"Les mini-sets n'existent pas encore dans la base : exécute d'abord le fichier SQL minisets_20261010.sql dans Supabase (SQL Editor).",false);
+  const hasSlots=BOOSTERS.some(x=>'slots' in x);
+  if(hasSlots){ row.slots=custom?SLOTS.map(sl=>{const o={}; RARS.forEach(r=>{const v=parseFloat(sl[r])||0; if(v>0) o[r]=v;}); return o;}):null; row.content_mode=mode; }
+  else if(custom||mode==='all') return say('b-status',"Les slots et le mode « tout le set » n'existent pas encore dans la base : exécute d'abord le fichier SQL boosters_slots_20261012.sql dans Supabase (SQL Editor).",false);
   const hasCol=BOOSTERS.some(x=>'in_shop' in x);
   if(hasCol) row.in_shop=$('b-shop').checked;
   else if(!$('b-shop').checked) return say('b-status',"La colonne « in_shop » n'existe pas encore : exécute d'abord le fichier SQL de la livraison (boutique_recompenses_rarete).",false);
@@ -343,6 +403,7 @@ document.addEventListener('click',async e=>{
   else if(a==='sel-b'){SEL.boosters=t.dataset.id;renderBoosters();}
   else if(a==='new-b'){SEL.boosters='new';renderBoosters();}
   else if(a==='new-ms'){SEL.boosters='new-miniset';renderBoosters();}
+  else if(a==='slots-copy'){ if(SLOTS.length){ const f=SLOTS[0]; SLOTS=SLOTS.map(()=>({...f})); $('b-slotlist').innerHTML=slotsHtml(); } }
   else if(a==='save-b') saveBooster(); else if(a==='del-b') delBooster();
   else if(a==='sel-c'){SEL.backs=t.dataset.id;renderBacks();}
   else if(a==='new-c'){SEL.backs='new';renderBacks();}
@@ -356,10 +417,14 @@ document.addEventListener('click',async e=>{
 });
 document.addEventListener('change',e=>{
   if(e.target.id==='b-kind') onKindChange();
+  if(e.target.id==='b-mode') onBoosterModeChange();
+  if(e.target.id==='b-custom'){ if(e.target.checked && !SLOTS.length){ seedSlotsFromLegacy(); $('b-slotlist').innerHTML=slotsHtml(); $('b-nslots').value=SLOTS.length; } onBoosterModeChange(); }
+  if(e.target.id==='b-nslots') resizeSlots(e.target.value);
   if(e.target.id==='b-set') updMsCount();
 });
 document.addEventListener('input',e=>{
   if(e.target.classList.contains('b-rar')) updTotal();
+  if(e.target.classList.contains('b-sl')){ const i=+e.target.dataset.i; SLOTS[i][e.target.dataset.r]=parseFloat(e.target.value)||0; const el=$('b-slpct-'+i); if(el) el.textContent=slotPctText(SLOTS[i]); }
   if(e.target.id==='picker-list'){try{localStorage.setItem(STORE,e.target.value);}catch(x){} pickerGrid();}
   if(e.target.dataset&&e.target.dataset.prev){const im=$(e.target.dataset.prev+'-prev'),v=e.target.value.trim(); if(v){im.src=imgSrc(v);im.style.display='inline-block';}else{im.style.display='none';}}
 });

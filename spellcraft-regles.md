@@ -13,9 +13,9 @@ Chaque joueur incarne un **Héros** avec des Points de Vie. Un joueur perd la pa
 ## 2. Construction d'un deck
 
 Un deck est composé de :
-- **1 Héros** (obligatoire, hors des 30 cartes)
-- **1 Région** (hors des 30 cartes) — elle peut remplacer le gain de mana du joueur (voir 3.4). Elle est facultative : sans Région (ou avec une Région invalide), la **Côte de Rimd'Orël** est utilisée.
-- **30 cartes** (Créatures, Sortilèges, Pièges, Artefacts)
+- **1 Héros** (obligatoire, hors des cartes du deck)
+- **1 Région** (hors des cartes du deck) — elle peut remplacer le gain de mana du joueur (voir 3.4). Elle est facultative : sans Région (ou avec une Région invalide), la **Côte de Rimd'Orël** est utilisée.
+- **30 à 45 cartes** (Créatures, Sortilèges, Pièges, Artefacts)
 
 **Règles de classe :**
 - Le Héros impose une **classe** au deck (Aube, Crépuscule, Volonté, Prima, Arcane).
@@ -78,7 +78,7 @@ Une carte peut aussi être marquée **Foil** : purement cosmétique, elle affich
 Votre **Région** est une carte qui reste toujours en jeu, à côté de votre Héros. À chaque début de tour, vous gagnez normalement du mana ; certaines Régions donnent en plus une **chance** (30 %, 40 %...) de faire autre chose **à la place** de ce gain de mana : conjurer une carte, gagner de la vie, infliger des dégâts, etc.
 
 #### Choisir sa Région
-- Un deck a **une** Région, choisie en plus de ses 30 cartes. Elle n'est pas obligatoire.
+- Un deck a **une** Région, choisie en plus de ses cartes. Elle n'est pas obligatoire.
 - **Classe :** une Région n'est utilisable que si sa classe est celle du Héros du deck (ou sa classe secondaire), ou **Neutre**. Le deckbuilder ne propose que ces Régions, et le serveur le vérifie aussi au lancement de la partie.
 - **Région par défaut :** si le deck n'a pas de Région, ou si la Région choisie est invalide (introuvable, pas de type Région, mauvaise classe), la **Côte de Rimd'Orël** est utilisée à la place. Cela n'empêche pas de lancer la partie : le deckbuilder et l'écran de lancement présentent la Côte comme Région du deck.
 
@@ -316,7 +316,7 @@ Comment les valeurs changent :
 |---|---|---|
 | **Plateau** | **8 créatures** par joueur | On ne peut pas jouer une créature depuis la main (la carte reste en main, aucun mana n'est dépensé). Pour une créature créée par un effet : les copies de soi s'arrêtent à la 8e ; une carte **conjurée** « directement en jeu » (par un sort ou une Région) est **perdue** : ni main ni défausse (voir 3.5) ; une carte **récupérée** « directement en jeu » va en main à la place (ou en défausse si la main est pleine) ; une copie de créature, un renvoi en jeu ou un contrôle (vol) n'ont pas lieu. |
 | **Main** | **8 cartes** | Toute carte qui arrive en main au-delà est **défaussée** : carte piochée (elle est perdue, sans déclencher « quand vous piochez »), carte renvoyée en main, carte volée, copiée, conjurée, récupérée depuis le deck. **Cas particulier** : une récupération depuis la **défausse** vers une main pleine n'a pas lieu, la carte reste dans la défausse. Chaque joueur commence avec 4 cartes en main. |
-| **Deck** | **30 cartes** exactement (hors Héros et Région) | **2 exemplaires** maximum d'une même carte, **1 seul** si elle porte le super-type Légendaire. Le serveur vérifie la taille et le nombre d'exemplaires au lancement d'une partie et la refuse sinon. |
+| **Deck** | **30 à 45 cartes** (hors Héros et Région) | **2 exemplaires** maximum d'une même carte, **1 seul** si elle porte le super-type Légendaire. Le serveur vérifie la taille et le nombre d'exemplaires au lancement d'une partie et la refuse sinon. |
 
 ### 7.4 Jetons et invocations
 
