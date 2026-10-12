@@ -34,3 +34,17 @@ html.bd-touch #board-back-btn{padding:9px 16px;}
 /* Le bouton « Feedback » flottant masquerait le héros / le mana sur un petit écran
    (le plateau a déjà son propre « Signaler un problème »). */
 html.bd-compact #sc-feedback-btn{display:none;}
+
+/* Mulligan (écran plein-fenêtre) : titre/bouton compacts, cartes réduites pour tenir dans la fenêtre */
+html.bd-compact #mulligan-overlay{gap:6px;padding:4px 8px;overflow:auto;}
+html.bd-compact #mulligan-overlay h2{font-size:16px;}
+html.bd-compact #mulligan-overlay .mulligan-sub{display:none;}
+html.bd-compact #mulligan-cards{gap:8px;}
+html.bd-compact .mulligan-card-wrap{gap:4px;}
+html.bd-compact .mulligan-card-wrap .ncard,
+html.bd-compact .mulligan-card-wrap .card{zoom:var(--bd-ovl-zoom, .4);}
+html.bd-compact .mulligan-tag{font-size:10px;padding:2px 8px;}
+html.bd-compact .mulligan-confirm-btn{padding:8px 20px;font-size:12px;margin-top:2px;}
+/* Révélation d'une carte jouée (grand zoom ×2,3) */
+html.bd-compact #card-reveal-inner .card,
+html.bd-compact #card-reveal-inner .ncard{zoom:var(--bd-ovl-zoom, .4);}

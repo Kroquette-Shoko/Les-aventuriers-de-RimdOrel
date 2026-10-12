@@ -63,6 +63,9 @@
     outer.style.transform = 'scale(' + scale + ')';
     root.style.setProperty('--bd-scale', String(scale));
     root.style.setProperty('--bd-canvas-h', ch + 'px');
+    // Écrans plein-fenêtre hors plateau (mulligan…) : cartes de 300 px de large, jusqu'à 5 côte à côte,
+    // + titre et bouton → on réduit pour que tout tienne dans la fenêtre réelle.
+    root.style.setProperty('--bd-ovl-zoom', String(Math.max(0.2, Math.min(1, (vh - 100) / 440, (vw - 40) / 1580))));
     root.style.setProperty('--bd-prev-zoom', String(Math.max(0.5, Math.min(1, (vh - 24) / 430))));
   }
 
