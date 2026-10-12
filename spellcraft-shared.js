@@ -680,6 +680,18 @@ function injectOptionsMenu(){
     <label class="sc-opt-mute">
       <input type="checkbox" id="sc-combat-skip-checkbox"> Afficher un bouton Passer pendant les animations
     </label>
+    <div class="sc-opt-title" style="margin-top:14px;">Cartes</div>
+    <label class="sc-opt-label" for="sc-card-style-select">Style des cartes</label>
+    <select id="sc-card-style-select">
+      <option value="drawn">Dessiné (nouveau)</option>
+      <option value="png">Images PNG (ancien)</option>
+    </select>
+    <label class="sc-opt-label" for="sc-card-anim-select">Animations des fonds</label>
+    <select id="sc-card-anim-select">
+      <option value="hover">Au survol de la carte</option>
+      <option value="always">Toujours (plus gourmand)</option>
+    </select>
+    <div class="sc-opt-theme-label" id="sc-card-style-note"></div>
     ${onHubPage ? '' : '<a class="sc-opt-hub" href="spellcraft-hub.html">🏠 Menu principal</a>'}
   `;
 
@@ -728,6 +740,19 @@ function injectOptionsMenu(){
   combatSkipCheckbox.checked = scGetShowSkipButton();
   combatSpeedSelect.onchange = (e)=>scSetCombatSpeedMode(e.target.value);
   combatSkipCheckbox.onchange = (e)=>scSetShowSkipButton(e.target.checked);
+  // Style des cartes : mêmes clés que spellcraft-card-render.js. Pas de
+  // rechargement automatique (on peut être en pleine partie) : la note
+  // invite à recharger la page pour voir le changement.
+  const cardStyleSel = document.getElementById('sc-card-style-select');
+  const cardAnimSel = document.getElementById('sc-card-anim-select');
+  const cardNote = document.getElementById('sc-card-style-note');
+  const lsGet = (k)=>{ try{ return localStorage.getItem(k); }catch(e){ return null; } };
+  const lsSet = (k,v)=>{ try{ localStorage.setItem(k,v); }catch(e){} };
+  cardStyleSel.value = lsGet('sc-card-style')==='png' ? 'png' : 'drawn';
+  cardAnimSel.value = lsGet('sc-card-anim')==='always' ? 'always' : 'hover';
+  const cardNoteMsg = ()=>{ cardNote.textContent = 'Rechargez la page pour voir le changement.'; };
+  cardStyleSel.onchange = (e)=>{ lsSet('sc-card-style', e.target.value); cardNoteMsg(); };
+  cardAnimSel.onchange = (e)=>{ lsSet('sc-card-anim', e.target.value); document.documentElement.classList.toggle('nd-anim-on', e.target.value==='always'); cardNoteMsg(); };
   modal.querySelectorAll('.sc-theme-swatch').forEach(btn=>{
     btn.onclick = ()=>{
       const id = btn.dataset.theme;

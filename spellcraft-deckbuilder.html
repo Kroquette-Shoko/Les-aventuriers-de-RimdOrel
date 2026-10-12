@@ -451,6 +451,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, #3a
   #deck-col{position:static;max-height:none;}
 }
 </style>
+<script src="spellcraft-card-render.js"></script>
 </head>
 <body>
 
@@ -1306,6 +1307,7 @@ function buildNewCardEl(card, size, opts={}){
     root.appendChild(typeof rarityGemImg==='function' ? rarityGemImg(card, 'legendaire', 'nlegendary-gem', nImg) : nImg('images/card/icon/rare/legendaire.png', 'nlegendary-gem'));
   }
 
+  if(window.SCCardRender) SCCardRender.decorate(root, card, size, opts);
   return root;
 }
 

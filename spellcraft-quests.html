@@ -111,6 +111,7 @@ main{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:22px;}
 .reward-card-mini .ncard{position:absolute;top:0;left:0;transform:scale(0.1467);transform-origin:top left;}
 #reward-card-preview .ncard{transform:scale(1.1);transform-origin:top left;box-shadow:0 16px 34px rgba(0,0,0,.65);}
 </style>
+<script src="spellcraft-card-render.js"></script>
 </head>
 <body>
 
@@ -315,6 +316,7 @@ function buildNewCardEl(card, size, opts={}){
     root.appendChild(typeof rarityGemImg==='function' ? rarityGemImg(card, 'legendaire', 'nlegendary-gem', nImg) : nImg('images/card/icon/rare/legendaire.png', 'nlegendary-gem'));
   }
 
+  if(window.SCCardRender) SCCardRender.decorate(root, card, size, opts);
   return root;
 }
 

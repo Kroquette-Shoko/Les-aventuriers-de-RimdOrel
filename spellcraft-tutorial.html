@@ -887,6 +887,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar{width:0;height:0;background:tra
 #reveal-hand-toggle-btn, #leave-game-btn, #report-bug-btn{display:none !important;}
 
 </style>
+<script src="spellcraft-card-render.js"></script>
 </head>
 <body>
 
@@ -1789,6 +1790,7 @@ function buildNewCardEl(card, size, effectiveCostOverride, opts={}){
     root.appendChild(nImg('images/card/icon/keyword/final.png', 'nkeyword-icon nkeyword-final'));
   }
 
+  if(window.SCCardRender) SCCardRender.decorate(root, card, size, opts);
   return root;
 }
 // Applique le réglage manuel de taille de police du nom fait dans l'éditeur
