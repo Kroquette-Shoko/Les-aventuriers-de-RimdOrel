@@ -882,12 +882,22 @@ html::-webkit-scrollbar, body::-webkit-scrollbar{width:0;height:0;background:tra
 #reveal-hand-toggle-btn.active{border-color:var(--gold,#d4af37);background:rgba(212,175,55,.25);}
 /* ---- Spécifique au tutoriel (la bande de narration remplace la barre du haut de la vraie partie) ---- */
 #board-scale-outer{inset:auto;top:92px;left:0;right:0;bottom:0;}
-#app-outer{display:none;height:1024px;}
+@media (max-height:600px){
+  #tut-topbar{height:66px;padding:0 12px;gap:10px;}
+  #tut-topbar .tut-title{font-size:12px;margin-bottom:0;}
+  #tut-topbar .tut-text{font-size:10.5px;line-height:1.25;max-width:none;}
+  #tut-topbar .tut-hint{display:none;}
+  #tut-topbar .tut-step-badge{font-size:10px;padding:4px 8px;}
+  #board-scale-outer{top:66px;}
+}
+#app-outer{display:none;height:1024px;} /* hauteur réelle posée par spellcraft-board-fit.js */
 #app-outer.show{display:flex;}
 #reveal-hand-toggle-btn, #leave-game-btn, #report-bug-btn{display:none !important;}
 
 </style>
 <script src="spellcraft-card-render.js"></script>
+<link rel="stylesheet" href="spellcraft-board-compact.css">
+<script src="spellcraft-board-fit.js"></script>
 </head>
 <body>
 
@@ -1078,11 +1088,13 @@ function escapeHtmlGS(s){ return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp;',
 // pour s'adapter à l'écran réel du joueur, en conservant les proportions
 // (letterboxing si le ratio d'écran diffère de 16:9).
 const BOARD_REF_WIDTH = 1920, BOARD_REF_HEIGHT = 1024; // 1080 de la vraie partie moins sa barre du haut (56px), remplacée ici par la bande de narration
+function tutTopbarHeight(){ return window.innerHeight <= 600 ? 66 : 92; }
 const TUT_TOPBAR_HEIGHT = 92; // doit rester synchronisé avec #board-scale-outer{top:...} et #tut-topbar{height:...}
 function updateBoardScale(){
   const outer = document.getElementById('app-outer');
   if(!outer) return;
-  const availableHeight = window.innerHeight - TUT_TOPBAR_HEIGHT;
+  const availableHeight = window.innerHeight - tutTopbarHeight();
+  if(window.SCBoardFit){ SCBoardFit.fit(outer, {refW:BOARD_REF_WIDTH, baseH:BOARD_REF_HEIGHT, topReserve:tutTopbarHeight()}); return; }
   const scale = Math.min(window.innerWidth / BOARD_REF_WIDTH, availableHeight / BOARD_REF_HEIGHT);
   outer.style.transform = `scale(${scale})`;
 }

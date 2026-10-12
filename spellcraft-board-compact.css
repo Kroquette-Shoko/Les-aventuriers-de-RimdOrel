@@ -1,0 +1,36 @@
+/* Plateau — mise en page « compact » pour les écrans peu hauts (téléphone en paysage).
+   La classe html.bd-compact est posée par spellcraft-board-fit.js quand la hauteur
+   disponible du plateau est nettement inférieure aux 1080 px d'origine.
+   Rien ne change sur un écran « normal ». */
+html.bd-compact #board-topbar{height:40px;padding:4px 16px;}
+html.bd-compact .enemy-hand-row{top:40px;padding:2px 14px 10px;}
+html.bd-compact .enemy-hand-card{width:64px;height:90px;}
+html.bd-compact #board{padding:4px 16px 36px;gap:2px;}
+html.bd-compact .board-row{min-height:150px;padding:2px 16px;}
+html.bd-compact .hero-frame,
+html.bd-compact .deck-zone,
+html.bd-compact .artifact-stack,
+html.bd-compact .mana-box{zoom:.72;}
+html.bd-compact .lane{height:150px;margin:0 90px;padding:4px;}
+html.bd-compact .slot-empty{width:122px;height:122px;}
+html.bd-compact .lane .ncard.n-small{zoom:.72;}
+html.bd-compact .hand-card-slot{zoom:.8;}
+html.bd-compact .board-divider{margin:0 4px;}
+
+/* Aperçu de carte : posé hors du plateau mis à l'échelle (taille réelle de l'écran),
+   donc 300×423 px serait plus haut qu'un téléphone en paysage → on le réduit à la hauteur dispo. */
+html.bd-compact #card-preview{zoom:var(--bd-prev-zoom, .8);}
+
+/* Écran tactile : pas de survol → la main reste à moitié sortie en permanence
+   (les cartes se glissent-déposent au doigt, géré par les événements de pointeur de la page). */
+html.bd-touch .hand-row{transform:translateY(58px);}
+html.bd-touch .hand-card-slot:hover{transform:none;}
+html.bd-touch{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;}
+html.bd-touch body{overscroll-behavior:none;}
+
+/* Boutons du plateau plus faciles à toucher */
+html.bd-touch #board-back-btn{padding:9px 16px;}
+
+/* Le bouton « Feedback » flottant masquerait le héros / le mana sur un petit écran
+   (le plateau a déjà son propre « Signaler un problème »). */
+html.bd-compact #sc-feedback-btn{display:none;}
