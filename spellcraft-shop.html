@@ -385,6 +385,7 @@
 .modal-actions button:hover{border-color:var(--gold);}
 .shop-msg{text-align:center;font-size:13px;color:var(--parchment-dim);padding:20px;}
 </style>
+<script src="spellcraft-card-render.js"></script>
 </head>
 <body>
 
@@ -1028,6 +1029,7 @@ function buildNewCardEl(card, size, opts={}){
     root.appendChild(badge);
   }
 
+  if(window.SCCardRender) SCCardRender.decorate(root, card, size, opts);
   return root;
 }
 
