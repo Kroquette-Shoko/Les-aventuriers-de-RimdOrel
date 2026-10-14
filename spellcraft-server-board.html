@@ -1132,7 +1132,7 @@ const KEYWORD_DESCRIPTIONS = {
 function isKeywordActiveNow(k, card, inPlay){
   if(!inPlay) return true;
   if(k==='armor') return !card.armorUsed;
-  if(k==='stealth') return !!card.summonSick;
+  if(k==='stealth') return !!card.summonSick || !!card._paradeRenewed;
   return true;
 }
 // ---------------- Couleur des stats d'une créature en jeu ----------------
@@ -1367,7 +1367,7 @@ function canAttackClient(c){ return reasonCannotAttack(c) === null; }
 // restent donc ciblables par mes sorts. `ownerKey` = camp de la créature,
 // `viewerKey` = camp de celui qui cible (moi).
 function isStealthProtectedClient(c, ownerKey, viewerKey){
-  return !!c && hasKw(c, 'stealth') && !!c.summonSick && ownerKey !== viewerKey;
+  return !!c && hasKw(c, 'stealth') && (!!c.summonSick || !!c._paradeRenewed) && ownerKey !== viewerKey;
 }
 
 // Étourdissement / gel : la créature « perd son prochain tour complet ». Le
