@@ -188,6 +188,7 @@ Le client traduit les refus du serveur : `no-valid-target` (aucune cible valide)
 
 1. **Mana normal** — gagné automatiquement chaque tour (sauf si votre Région le remplace ce tour-là, voir 3.4). Se réinitialise chaque tour. **Dépensé en premier.**
 2. **Mana fragile** — obtenu via un effet ponctuel. Reste disponible tant qu'il n'est pas dépensé (ne se réinitialise pas, ne se perd pas en fin de tour). **Dépensé en second**, après le mana normal.
+   - *Compensation du joueur qui joue en second :* il commence la partie avec **1 mana fragile** (donné à la fin des mulligans, avant les effets « Au début de la partie »). Ce n'est pas un gain de mana : il ne déclenche pas « Quand vous gagnez un point de mana ».
 3. **Mana vide** — augmente le mana **maximum** du joueur, mais pas le mana disponible ce tour-ci. Se comporte ensuite comme du mana normal les tours suivants (fait partie du total rechargé chaque tour). **Dépensé en dernier** parmi les mana disponibles au moment de payer un coût, si un choix doit être fait. Cette règle générale s'applique aussi au mana vide donné par une Région (par exemple le Village kobold) : il n'est pas utilisable le tour où il est gagné.
 
 > **Point à trancher :** Le mana vide, une fois gagné, augmente-t-il le max *pour toujours*, ou seulement le temps de la partie en cours (ce qui est de toute façon le cas, aucune persistance entre parties) ? Je pars du principe qu'il s'ajoute au maximum de façon permanente pour le reste de la partie.
