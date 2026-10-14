@@ -1192,6 +1192,8 @@ function blankEffect(){
     exploreOwner:'own',
     discoverCriteria:'random', discoverValue:'2', discoverCardType:'Créature', discoverSubtype:'', discoverSource:'deck',
     discoverSpecificNames:[],
+    discoverFTypes:['Créature'], discoverFClass:'any', discoverFSubtype:'', discoverFSet:'', discoverFRarity:'any', discoverFKeyword:'',
+    discoverFCostMode:'any', discoverFCostValue:2, discoverFAtkMode:'any', discoverFAtkValue:1, discoverFHpMode:'any', discoverFHpValue:1,
     setStatsScope:'board', setStatsOwner:'ally', setStatsAtk:1, setStatsHp:1,
     setStatTarget:'force', setStatScope:'board', setStatOwner:'ally', setStatValue:2,
     setCostScope:'deck', setCostOwner:'ally', setCostValue:1,
@@ -3218,10 +3220,74 @@ function buildEffectRow(ab, eff, choiceKey){
       {key:'enemyDiscard', label:'Défausse adverse'},
       {key:'elsewhere', label:"Ailleurs (n'importe quelle carte existante, possédée ou non)"}
     ], eff.discoverSource, v=>{ eff.discoverSource=v; onFormChange(); }));
-    const DISCOVER_CRITERIA = [...RETRIEVE_CRITERIA, {key:'specificList', label:'Liste de cartes précises (plusieurs, nommées)', hasValue:false}];
+    const DISCOVER_CRITERIA = [...RETRIEVE_CRITERIA, {key:'filter', label:'Selon plusieurs critères (comme la conjuration)', hasValue:false}, {key:'specificList', label:'Liste de cartes précises (plusieurs, nommées)', hasValue:false}];
     row.appendChild(makeSelectField('Critère', DISCOVER_CRITERIA, eff.discoverCriteria, v=>{ eff.discoverCriteria=v; rebuildAbilitiesUI(); onFormChange(); }));
     const dCritDef = DISCOVER_CRITERIA.find(c=>c.key===eff.discoverCriteria);
-    if(eff.discoverCriteria==='specificList'){
+    if(eff.discoverCriteria==='filter'){
+      if(!Array.isArray(eff.discoverFTypes)) eff.discoverFTypes=['Créature'];
+      ['Cost','Atk','Hp'].forEach(k=>{ if(!eff['discoverF'+k+'Mode']) eff['discoverF'+k+'Mode']='any'; });
+      const typesField = document.createElement('div');
+      typesField.className='field'; typesField.style.flexBasis='100%';
+      typesField.innerHTML = `<label class="mini-field">Type(s) de carte proposés</label>`;
+      const chipsWrap = document.createElement('div');
+      chipsWrap.style.cssText='display:flex;flex-wrap:wrap;gap:6px;';
+      CARD_TYPES.forEach(t=>{
+        const chip = document.createElement('label');
+        const checked = eff.discoverFTypes.includes(t);
+        chip.style.cssText='display:flex;align-items:center;gap:4px;font-size:11px;background:var(--bg-panel);border:1px solid #3a3260;border-radius:12px;padding:3px 8px;cursor:pointer;';
+        chip.innerHTML = `<input type="checkbox" ${checked?'checked':''} style="margin:0"> ${t}`;
+        chip.querySelector('input').onchange = (e)=>{
+          if(e.target.checked){ if(!eff.discoverFTypes.includes(t)) eff.discoverFTypes.push(t); }
+          else { eff.discoverFTypes = eff.discoverFTypes.filter(x=>x!==t); }
+          onFormChange();
+        };
+        chipsWrap.appendChild(chip);
+      });
+      typesField.appendChild(chipsWrap);
+      row.appendChild(typesField);
+      row.appendChild(makeSelectField('Source', [{key:'any',label:'Peu importe'}, ...CLASSES.map(c=>({key:c,label:c}))], eff.discoverFClass||'any', v=>{ eff.discoverFClass=v; onFormChange(); }));
+      const subF = document.createElement('div');
+      subF.className='field'; subF.innerHTML = `<label class="mini-field">Sous-type (optionnel)</label>`;
+      const subInp = document.createElement('input');
+      subInp.type='text'; subInp.value=eff.discoverFSubtype||''; subInp.placeholder='Ex : Elfe';
+      subInp.oninput=()=>{ eff.discoverFSubtype=subInp.value; onFormChange(); };
+      subF.appendChild(subInp);
+      row.appendChild(subF);
+      const setF = document.createElement('div');
+      setF.className='field'; setF.innerHTML = `<label class="mini-field">Set (optionnel)</label>`;
+      const setInp = document.createElement('input');
+      setInp.type='text'; setInp.value=eff.discoverFSet||''; setInp.placeholder='Ex : Édition de base';
+      setInp.setAttribute('list','set-suggestions');
+      setInp.oninput=()=>{ eff.discoverFSet=setInp.value; onFormChange(); };
+      setF.appendChild(setInp);
+      row.appendChild(setF);
+      row.appendChild(makeSelectField('Rareté', [{key:'any',label:'Peu importe'},{key:'Basique',label:'Basique'},{key:'Commune',label:'Commune'},{key:'Rare',label:'Rare'},{key:'Épique',label:'Épique'},{key:'Mythique',label:'Mythique'}], eff.discoverFRarity||'any', v=>{ eff.discoverFRarity=v; onFormChange(); }));
+      row.appendChild(makeSelectField('Mot-clé (optionnel)', [{key:'',label:'Peu importe'}, ...KEYWORDS.map(k=>({key:k.key,label:k.label}))], eff.discoverFKeyword||'', v=>{ eff.discoverFKeyword=v; onFormChange(); }));
+      const legField = document.createElement('div');
+      legField.className='field';
+      const legToggle = document.createElement('label');
+      legToggle.style.cssText='display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;margin-top:18px;';
+      legToggle.innerHTML = `<input type="checkbox" ${eff.discoverFLegendaryOnly?'checked':''} style="width:auto;"> Uniquement super-type Légendaire`;
+      legToggle.querySelector('input').onchange = (e)=>{ eff.discoverFLegendaryOnly=e.target.checked; onFormChange(); };
+      legField.appendChild(legToggle);
+      row.appendChild(legField);
+      const exField = document.createElement('div');
+      exField.className='field'; exField.style.flexBasis='100%';
+      exField.innerHTML = `<label class="mini-field">Cartes exclues (optionnel) — un nom exact par ligne</label>`;
+      const exArea = document.createElement('textarea');
+      exArea.rows = 2; exArea.placeholder = 'Ex : Don de savoir';
+      exArea.value = (eff.discoverFExcludeNames||[]).join('\n');
+      exArea.oninput = ()=>{
+        const names = exArea.value.split('\n').map(x=>x.trim()).filter(Boolean);
+        if(names.length) eff.discoverFExcludeNames = names; else delete eff.discoverFExcludeNames;
+        onFormChange();
+      };
+      exField.appendChild(exArea);
+      row.appendChild(exField);
+      row.appendChild(buildNumericFilterField(eff, 'discoverFCostMode', 'discoverFCostValue', 'Coût'));
+      row.appendChild(buildNumericFilterField(eff, 'discoverFAtkMode', 'discoverFAtkValue', 'Force'));
+      row.appendChild(buildNumericFilterField(eff, 'discoverFHpMode', 'discoverFHpValue', 'Endurance'));
+    } else if(eff.discoverCriteria==='specificList'){
       const listBox = document.createElement('div');
       listBox.className='field';
       listBox.style.width='100%';
@@ -4060,6 +4126,24 @@ function discoverClause(eff){
     return `choisissez une carte parmi ${namesPhrase} et ajoutez-la à votre main${followUpClause(eff)}`;
   }
   let critPhrase;
+  if(eff.discoverCriteria==='filter'){
+    const ts = (eff.discoverFTypes && eff.discoverFTypes.length) ? eff.discoverFTypes.map(t=>t.toLowerCase()).join(' ou ') : '';
+    const parts = [];
+    if(eff.discoverFClass && eff.discoverFClass!=='any') parts.push(`de ${eff.discoverFClass}`);
+    if(eff.discoverFSubtype) parts.push(`du sous-type ${eff.discoverFSubtype}`);
+    if(eff.discoverFSet) parts.push(`du set « ${eff.discoverFSet} »`);
+    if(eff.discoverFRarity && eff.discoverFRarity!=='any') parts.push(`de rareté ${eff.discoverFRarity}`);
+    if(eff.discoverFKeyword) parts.push(`avec ${(KEYWORDS.find(k=>k.key===eff.discoverFKeyword)||{}).label||eff.discoverFKeyword}`);
+    if(eff.discoverFLegendaryOnly) parts.push('de super-type Légendaire');
+    const nf = [
+      numericFilterPhrase(eff, 'discoverFCostMode', 'discoverFCostValue', 'coût'),
+      numericFilterPhrase(eff, 'discoverFAtkMode', 'discoverFAtkValue', 'Force'),
+      numericFilterPhrase(eff, 'discoverFHpMode', 'discoverFHpValue', 'Endurance')
+    ].filter(Boolean);
+    if(nf.length) parts.push(`(${nf.join(', ')})`);
+    if(eff.discoverFExcludeNames && eff.discoverFExcludeNames.length) parts.push(`(hors ${eff.discoverFExcludeNames.map(n=>'"'+n+'"').join(', ')})`);
+    critPhrase = [ts, ...parts].filter(Boolean).join(' ');
+  } else
   switch(eff.discoverCriteria){
     case 'random': critPhrase = 'au hasard'; break;
     case 'costExact': critPhrase = `coûtant exactement ${eff.discoverValue||0} mana`; break;
