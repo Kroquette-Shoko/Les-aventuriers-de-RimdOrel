@@ -111,6 +111,30 @@ main{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:22px;}
 .reward-card-mini{width:44px;height:61.6px;overflow:hidden;position:relative;cursor:pointer;flex-shrink:0;border-radius:6px;}
 .reward-card-mini .ncard{position:absolute;top:0;left:0;transform:scale(0.1467);transform-origin:top left;}
 #reward-card-preview .ncard{transform:scale(1.1);transform-origin:top left;box-shadow:0 16px 34px rgba(0,0,0,.65);}
+
+/* ---------- Carte gagnée : elle se retourne (même animation que sur le plateau) ----------
+   Elle reste affichée jusqu'à un clic n'importe où sur l'écran. */
+.rw-reveal-overlay{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;
+  background:rgba(5,4,10,0);opacity:0;cursor:pointer;transition:opacity .28s ease, background .28s ease;}
+.rw-reveal-overlay.show{opacity:1;background:rgba(5,4,10,.7);}
+.rw-reveal-overlay.closing{opacity:0;background:rgba(5,4,10,0);}
+.rw-reveal-flip{width:260px;height:366px;perspective:1400px;transform:scale(.72);transition:transform .3s cubic-bezier(.34,1.4,.64,1);}
+.rw-reveal-overlay.show .rw-reveal-flip{transform:scale(1);}
+.rw-reveal-inner{position:relative;width:100%;height:100%;transition:transform .55s cubic-bezier(.3,.1,.2,1);transform-style:preserve-3d;}
+.rw-reveal-inner.flipped{transform:rotateY(180deg);}
+.rw-reveal-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:12px;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;box-shadow:0 26px 60px rgba(0,0,0,.7), 0 0 70px rgba(124,92,255,.4);}
+.rw-reveal-back{background:linear-gradient(145deg,#241d3d,#100c1e);border:2px solid var(--gold);font-size:64px;background-size:cover;background-position:center;}
+.rw-reveal-front{transform:rotateY(180deg);overflow:visible;}
+.rw-reveal-front .ncard{transform:scale(0.8667);}
+#coffres-recap{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:99990;padding:20px;}
+#coffres-recap.show{display:flex;}
+#coffres-recap .box{background:var(--bg-panel-2);border:1px solid var(--gold);border-radius:14px;padding:20px 22px;max-width:460px;width:100%;max-height:80vh;overflow:auto;}
+#coffres-recap h3{font-family:'Cinzel',serif;color:var(--gold);margin:0 0 12px;}
+#coffres-recap ul{margin:0 0 14px;padding-left:18px;font-size:13px;line-height:1.6;}
+.rw-reveal-hint{font-size:13px;color:var(--parchment-dim);letter-spacing:.04em;text-align:center;min-height:18px;opacity:0;transition:opacity .3s ease .7s;}
+.rw-reveal-overlay.show .rw-reveal-hint{opacity:1;}
+@media (max-width:640px), (max-height:560px){ .rw-reveal-flip{zoom:.75;} }
 </style>
 <script src="spellcraft-card-render.js"></script>
 </head>
@@ -158,6 +182,7 @@ main{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:22px;}
 </div>
 
 <div id="reward-card-preview"></div>
+<div id="coffres-recap"><div class="box"><div id="coffres-recap-content"></div><button class="sc-btn sc-btn-gold" id="coffres-recap-close">Fermer</button></div></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>window.APP_TOPBAR_DISABLED = true;</script>
@@ -388,6 +413,81 @@ function hideRewardCardPreview(){
   document.getElementById('reward-card-preview').classList.remove('show');
 }
 
+// Dos de carte équipé par le joueur (affiché avant que la carte ne se retourne).
+async function getEquippedCardBackUrl(){
+  try{
+    const user = await scGetCurrentUser();
+    if(!user) return null;
+    const { data: prof } = await sb.from('profiles').select('equipped_card_back_id').eq('id', user.id).maybeSingle();
+    if(!prof || !prof.equipped_card_back_id) return null;
+    const { data } = await sb.from('card_backs').select('image_url').eq('id', prof.equipped_card_back_id).maybeSingle();
+    return data ? data.image_url : null;
+  }catch(e){ return null; }
+}
+
+// Montre UNE carte gagnée : dos, puis elle se retourne ; reste à l'écran jusqu'à un clic n'importe où.
+function revealOneRewardCard(card, backUrl, index, total){
+  return new Promise(resolve=>{
+    const overlay = document.createElement('div');
+    overlay.className = 'rw-reveal-overlay';
+    const flip = document.createElement('div');
+    flip.className = 'rw-reveal-flip';
+    const inner = document.createElement('div');
+    inner.className = 'rw-reveal-inner';
+    const back = document.createElement('div');
+    back.className = 'rw-reveal-face rw-reveal-back';
+    if(backUrl) back.style.backgroundImage = `url('${String(backUrl).replace(/'/g,'')}')`;
+    else back.textContent = '🃏';
+    const front = document.createElement('div');
+    front.className = 'rw-reveal-face rw-reveal-front';
+    try{ front.appendChild(buildCardEl(card)); }catch(e){ console.error('Erreur affichage carte gagnée :', e, card); }
+    inner.appendChild(back); inner.appendChild(front);
+    flip.appendChild(inner);
+    const hint = document.createElement('div');
+    hint.className = 'rw-reveal-hint';
+    hint.textContent = (total > 1 ? `Carte ${index + 1} / ${total} — ` : '') + 'Clique n\'importe où pour continuer';
+    overlay.appendChild(flip);
+    overlay.appendChild(hint);
+    document.body.appendChild(overlay);
+
+    const openedAt = Date.now();
+    let done = false;
+    const finish = ()=>{
+      if(done) return;
+      if(Date.now() - openedAt < 350) return; // évite de fermer par un double-clic involontaire
+      done = true;
+      overlay.classList.remove('show');
+      overlay.classList.add('closing');
+      setTimeout(()=>{ overlay.remove(); resolve(); }, 300);
+    };
+    overlay.addEventListener('click', finish);
+    requestAnimationFrame(()=>{
+      overlay.classList.add('show');
+      setTimeout(()=>{ inner.classList.add('flipped'); try{ fitNewCard(front.querySelector('.ncard')); }catch(e){} }, 220);
+    });
+  });
+}
+
+// Montre les cartes gagnées l'une après l'autre. `list` = [{ id, foil }].
+let rewardRevealRunning = Promise.resolve();
+function revealRewardCards(list){
+  rewardRevealRunning = rewardRevealRunning.then(async ()=>{
+    hideRewardCardPreview();
+    await ensureCardsCache();
+    const cards = [];
+    (list || []).forEach(it=>{
+      const base = allCardsCache && allCardsCache.find(c=>c.id===it.id);
+      if(base) cards.push(it.foil ? { ...base, foil: true } : base);
+    });
+    if(!cards.length) return;
+    const backUrl = await getEquippedCardBackUrl();
+    for(let i=0;i<cards.length;i++){
+      await revealOneRewardCard(cards[i], backUrl, i, cards.length);
+    }
+  }).catch(e=>console.error('Erreur révélation des cartes :', e));
+  return rewardRevealRunning;
+}
+
 function buildRewardEl(q){
   const rewards = q.rewards || [];
   const wrap = document.createElement('span');
@@ -464,10 +564,25 @@ async function claimQuest(instanceId, cardEl){
   if(error){ alert('Erreur : ' + error.message); return; }
   if(data.error){ alert(data.error); return; }
   playSfx('quest-loot');
+  hideRewardCardPreview();
   refreshGold();
   loadQuests();
   sb.rpc('progress_achievement', { p_condition_type: 'quests_completed_total', p_amount: 1 }).catch(()=>{});
   sb.rpc('progress_collection_achievements').catch(()=>{});
+  // Cartes gagnées : elles se retournent à l'écran, un clic pour continuer.
+  const won = [];
+  (data.granted || []).forEach(g=>{
+    if(g.type==='card') (g.card_ids || []).forEach(id=>won.push({ id, foil: !!g.foil }));
+  });
+  if(won.length) revealRewardCards(won);
+  // Boosters gagnés : ils sont mis de côté (à ouvrir depuis la boutique), pas ouverts tout de suite.
+  const boosters = (data.granted || []).filter(g=>g.type==='booster' && g.stocked);
+  if(boosters.length){
+    const lines = boosters.map(b=>`<li>📦 <b>${b.count > 1 ? b.count + ' boosters' : '1 booster'}${b.name ? ' « ' + escapeHtml(b.name) + ' »' : ''}</b> ajouté${b.count > 1 ? 's' : ''} à tes boosters — à ouvrir depuis la boutique</li>`).join('');
+    // Si des cartes se retournent d'abord, le message attend derrière (il est sous l'animation).
+    document.getElementById('coffres-recap-content').innerHTML = `<h3>Quête récupérée</h3><ul>${lines}</ul>`;
+    document.getElementById('coffres-recap').classList.add('show');
+  }
 }
 
 async function refreshGold(){
@@ -524,7 +639,19 @@ function showTab(name){
   try{ history.replaceState(null, '', coffres ? '#coffres' : location.pathname + location.search); }catch(e){}
 }
 document.addEventListener('click', e => { const b = e.target.closest('.quest-tab'); if(b) showTab(b.dataset.tab); });
+document.getElementById('coffres-recap-close').onclick = () => document.getElementById('coffres-recap').classList.remove('show');
 window.addEventListener('message', e => {
+  // La grille (iframe) demande à montrer les cartes gagnées dans la page entière, pas dans son petit cadre.
+  // Récapitulatif d'une case (or, boosters ajoutés…) venant de la grille intégrée.
+  if(e.origin === location.origin && e.data && e.data.type === 'coffres-recap' && typeof e.data.html === 'string'){
+    document.getElementById('coffres-recap-content').innerHTML = e.data.html;
+    document.getElementById('coffres-recap').classList.add('show');
+    return;
+  }
+  if(e.origin === location.origin && e.data && e.data.type === 'reveal-cards' && Array.isArray(e.data.cards)){
+    revealRewardCards(e.data.cards.filter(c => c && typeof c.id === 'string'));
+    return;
+  }
   if(e.data && e.data.type === 'coffres-height'){
     const f = document.querySelector('#coffres-view iframe');
     if(f) f.style.height = Math.max(600, Math.ceil(e.data.h) + 20) + 'px';

@@ -245,7 +245,7 @@ function render(){
     • <b>5 parties terminées contre des joueurs</b> le même jour te donnent <b>1 case de plus</b>. Au-delà de 3 parties en 24 h contre le même adversaire, les parties ne comptent plus pour ce bonus.<br>
     • Les cases non ouvertes <b>s'accumulent</b> : tu peux les ouvrir quand tu veux jusqu'à la fin de la saison.<br>
     • Les récompenses sont les mêmes pour tous les joueurs, mais <b>placées différemment</b> dans chaque grille.<br>
-    • Les boosters sont ouverts automatiquement et leurs cartes ajoutées à ta collection.<br>
+    • Les boosters gagnés sont <b>ajoutés à tes boosters</b> : tu peux les ouvrir quand tu veux depuis la boutique.<br>
     • La grille est remplacée par une nouvelle à la fin de la saison : ce qui n'est pas ouvert est perdu.`;
 }
 
@@ -260,9 +260,12 @@ async function cardNames(ids){
   return out;
 }
 async function showResult(title, granted){
-  let gold = 0, boosters = 0, fragments = 0, boosterCards = 0; const lines = []; const cardIds = [];
+  let gold = 0, boosters = 0, fragments = 0, boosterCards = 0; const lines = []; const cardIds = []; const stockedBoosters = [];
   (granted || []).forEach(g => {
     if(g.type === 'gold') gold += g.amount;
+    else if(g.type === 'booster' && g.stocked){
+      stockedBoosters.push(g);
+    }
     else if(g.type === 'booster'){
       boosters += g.count;
       (g.opened || []).forEach(o => (((o.result || {}).cards) || []).forEach(c => { if(c.result === 'fragments') fragments++; else boosterCards++; }));
@@ -276,9 +279,25 @@ async function showResult(title, granted){
   const items = [];
   if(gold) items.push(`<span class="money-icon"></span> <b>+${gold} or</b>`);
   if(boosters) items.push(`📦 <b>${boosters} booster${boosters > 1 ? 's' : ''} ouvert${boosters > 1 ? 's' : ''}</b> : ${boosterCards} carte${boosterCards > 1 ? 's' : ''} ajoutée${boosterCards > 1 ? 's' : ''}${fragments ? `, ${fragments} convertie${fragments > 1 ? 's' : ''} en fragments (exemplaires au maximum)` : ''}`);
-  cardIds.forEach(c => items.push(`🃏 <b>${esc(names[c.id] || c.id)}</b> (${esc(c.rarity)}${c.foil ? ' ✨ foil' : ''})`));
+  stockedBoosters.forEach(b => items.push(`📦 <b>${esc(b.count > 1 ? b.count + ' boosters' : '1 booster')}${b.name ? ' « ' + esc(b.name) + ' »' : ''}</b> ajouté${b.count > 1 ? 's' : ''} à tes boosters — à ouvrir depuis la boutique`));
+  // Dans les coffres intégrés à la page des quêtes, les cartes gagnées se retournent en plein écran (page parente).
+  // Si on est seul sur la page (hors onglet), on garde la liste écrite.
+  let revealed = false;
+  if(EMBED && cardIds.length){
+    try{
+      parent.postMessage({ type:'reveal-cards', cards: cardIds.map(c => ({ id: c.id, foil: !!c.foil })) }, location.origin);
+      revealed = true;
+    }catch(e){}
+  }
+  if(!revealed) cardIds.forEach(c => items.push(`🃏 <b>${esc(names[c.id] || c.id)}</b> (${esc(c.rarity)}${c.foil ? ' ✨ foil' : ''})`));
   lines.forEach(l => items.push(l));
-  document.getElementById('res-box').innerHTML = `<h3>${esc(title)}</h3><ul>${items.map(i => `<li>${i}</li>`).join('') || '<li>Rien à afficher.</li>'}</ul><button class="sc-btn sc-btn-gold" onclick="document.getElementById('res-back').classList.remove('show')">Fermer</button>`;
+  if(revealed && !items.length) return; // seulement des cartes : l'animation suffit, pas de fenêtre en plus
+  const recapHtml = `<h3>${esc(title)}</h3><ul>${items.map(i => `<li>${i}</li>`).join('') || '<li>Rien à afficher.</li>'}</ul>`;
+  // Dans l'onglet intégré (très haut), la fenêtre serait hors de l'écran : on la montre dans la page parente.
+  if(EMBED){
+    try{ parent.postMessage({ type:'coffres-recap', html: recapHtml }, location.origin); return; }catch(e){}
+  }
+  document.getElementById('res-box').innerHTML = recapHtml + `<button class="sc-btn sc-btn-gold" onclick="document.getElementById('res-back').classList.remove('show')">Fermer</button>`;
   document.getElementById('res-back').classList.add('show');
 }
 
