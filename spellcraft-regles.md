@@ -376,7 +376,7 @@ Cela vaut pour toutes les causes de mort : dégâts, Destruction, sacrifice (eff
 
 #### Résurrection (Tenace)
 
-Une créature Tenace dont l'Endurance courante tombe à 0 ou moins ne quitte pas le plateau : elle perd Tenace, son Endurance courante est remise à son plafond (Endurance de référence), et elle garde sa place, ses bonus, ses états et son Armure déjà utilisée. Ce n'est pas une mort : ni « Finale » ni « est détruite » ne se déclenchent, la créature n'est pas comptée comme morte ce tour-ci ; c'est « Quand cette carte revient du cimetière » qui se déclenche. Tenace n'agit qu'une fois. Elle ne protège de rien d'autre que d'une Endurance à 0 : elle sauve aussi d'une Destruction ou d'un sacrifice, et même d'un Fugace (la créature survit une fois à la fin du tour).
+Une créature Tenace dont l'Endurance courante tombe à 0 ou moins ne quitte pas le plateau : elle perd Tenace, son Endurance courante est remise à son plafond (Endurance de référence), et elle garde sa place, ses bonus, ses états et son Armure déjà utilisée. Ce n'est pas une mort : ni « Finale » ni « est détruite » ne se déclenchent, la créature n'est pas comptée comme morte ce tour-ci ; c'est « Quand cette carte revient du cimetière » qui se déclenche, **puis la capacité « Arrivée » de la créature se résout de nouveau** (elle « re-arrive » en jeu ; sans cible désignée à la pose, comme pour un déclencheur automatique). Les autres cartes qui surveillent « Quand une créature arrive en jeu » ne se déclenchent pas pour autant. Tenace n'agit qu'une fois. Elle ne protège de rien d'autre que d'une Endurance à 0 : elle sauve aussi d'une Destruction ou d'un sacrifice, et même d'un Fugace (la créature survit une fois à la fin du tour).
 
 #### Retour depuis la défausse
 
@@ -483,7 +483,7 @@ Une capacité se lit « déclencheur → conditions → effet » (voir section 9
 | Est soignée | Seulement si le soin lui a réellement rendu des PV. |
 | **Finale** (meurt) et « est détruite » | À la mort (7.5, étape 5). Identiques pour le moteur. Pas en cas de résurrection par Tenace. |
 | Élimine une créature | Voir 7.8 (combat, ou Combat forcé) : le tueur doit être encore en vie. |
-| Revient du cimetière | À la résurrection par Tenace. |
+| Revient du cimetière | À la résurrection par Tenace (suivie de la capacité « Arrivée » de la créature). |
 | Est désignée | Quand elle est ciblée par l'un de ces effets : Dégâts, Soin, Étourdissement/Gel, Renvoi en main, Destruction, Silence, Renforcement/Affaiblissement, Octroi de mot-clé, Choix de mot-clé. Un sort de zone désigne chaque créature touchée, une par une ; un artefact visé par l'un de ces effets est lui aussi « désigné ». Les effets Fixer une statistique, Vol, Transformation et Combat forcé ne comptent pas comme une désignation, pas plus que *Lancer* ni un héros visé. |
 | Début / fin de votre tour | Dans l'ordre : vos créatures (ordre du plateau), votre héros, votre région, vos artefacts (chaque capacité d'artefact résolue lui retire 1 charge, voir 8.4), vos Pièges armés. |
 | Quand une carte… (surveillance du plateau) | Voir 7.5 pour l'arrivée et la mort ; ces capacités surveillent les deux camps, le joueur n°1 d'abord. |
@@ -614,7 +614,7 @@ L'IA utilise désormais ses artefacts, **1 fois par tour chacun**, selon les mê
 | Finale *(onDeath)* | Quand la créature meurt (Endurance ≤ 0, quelle qu'en soit la cause) ; pas en cas de résurrection par Tenace |
 | Quand cette carte est détruite | Exactement comme Finale, à chaque mort : le moteur ne les distingue pas |
 | Quand cette carte élimine une créature | Chez la créature qui met sa cible à 0 PV au combat (attaque ou blocage) ou par « Combat forcé », **si elle est encore en vie** à la fin de l'échange (voir 7.8) |
-| Quand cette carte revient du cimetière | Réapparition d'elle-même par Tenace |
+| Quand cette carte revient du cimetière | Réapparition d'elle-même par Tenace (sa capacité « Arrivée » se déclenche ensuite aussi) |
 | Quand vous ramenez une créature de la défausse | Chaque fois qu'une carte (de n'importe quel type) est récupérée depuis votre défausse |
 | À chaque utilisation *(onUse)* | Artefacts : à chaque utilisation de l'artefact. Il ne retire pas de charge en plus de celle de l'utilisation (voir 8.8) |
 | Quand je suis détruit *(onDestroyed)* | Artefacts : quand un effet le détruit ou que sa dernière charge disparaît (voir 8.5). Ne retire pas de charge |
