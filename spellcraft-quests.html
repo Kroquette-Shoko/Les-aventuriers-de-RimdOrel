@@ -575,6 +575,14 @@ async function claimQuest(instanceId, cardEl){
     if(g.type==='card') (g.card_ids || []).forEach(id=>won.push({ id, foil: !!g.foil }));
   });
   if(won.length) revealRewardCards(won);
+  // Boosters gagnés : ils sont mis de côté (à ouvrir depuis la boutique), pas ouverts tout de suite.
+  const boosters = (data.granted || []).filter(g=>g.type==='booster' && g.stocked);
+  if(boosters.length){
+    const lines = boosters.map(b=>`<li>📦 <b>${b.count > 1 ? b.count + ' boosters' : '1 booster'}${b.name ? ' « ' + escapeHtml(b.name) + ' »' : ''}</b> ajouté${b.count > 1 ? 's' : ''} à tes boosters — à ouvrir depuis la boutique</li>`).join('');
+    // Si des cartes se retournent d'abord, le message attend derrière (il est sous l'animation).
+    document.getElementById('coffres-recap-content').innerHTML = `<h3>Quête récupérée</h3><ul>${lines}</ul>`;
+    document.getElementById('coffres-recap').classList.add('show');
+  }
 }
 
 async function refreshGold(){
