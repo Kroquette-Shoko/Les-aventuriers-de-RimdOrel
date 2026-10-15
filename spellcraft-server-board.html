@@ -1110,7 +1110,7 @@ const KEYWORD_DESCRIPTIONS = {
   reach: "Peut bloquer une créature avec Vol, sans avoir elle-même ce mot-clé.",
   pierce: "Les dégâts en excès par rapport aux PV restants du bloqueur sont infligés au héros adverse.",
   lifesteal: "Chaque point de dégât qu'elle inflige soigne d'autant votre héros.",
-  initiative: "Frappe la première lors d'un combat. Si ce premier coup suffit à tuer sa cible, elle ne subit aucun dégât en retour.",
+  initiative: "Frappe la première lors d'un combat. Si ce premier coup suffit à tuer sa cible, elle ne subit aucun dégât en retour. Ne sert qu'une fois : l'Initiative s'épuise dès que la créature inflige son premier dégât (un nouvel octroi la rend).",
   armor: "Absorbe le premier dégât subi (combat ou effet), une seule fois.",
   stealth: "Ne peut pas être ciblée par l'adversaire jusqu'au début du prochain tour de son propriétaire.",
   relentless: "À sa mort, revient automatiquement en jeu une fois — sans le mot-clé Tenace la seconde fois.",
@@ -1132,6 +1132,7 @@ const KEYWORD_DESCRIPTIONS = {
 function isKeywordActiveNow(k, card, inPlay){
   if(!inPlay) return true;
   if(k==='armor') return !card.armorUsed;
+  if(k==='initiative') return !card.initiativeUsed;
   if(k==='stealth') return !!card.summonSick || !!card._paradeRenewed;
   return true;
 }

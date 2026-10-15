@@ -239,7 +239,7 @@ Le client traduit les refus du serveur : `no-valid-target` (aucune cible valide)
    - Un attaquant peut être bloqué par **plusieurs** bloqueurs. Le mal d'invocation n'empêche pas de bloquer.
 4. **Résolution des dégâts** — **Chaque combat est résolu immédiatement**, au moment où le bloqueur est assigné (il n'y a pas de résolution simultanée à la fin du blocage) :
    - Attaquant bloqué : l'attaquant et le bloqueur s'infligent mutuellement des dégâts égaux à leur Force. Avec plusieurs bloqueurs, l'attaquant inflige **toute** sa Force à **chaque** bloqueur, et chaque bloqueur inflige la sienne à l'attaquant : chaque bloqueur subit donc un combat complet.
-   - **Initiative** : si une seule des deux créatures a Initiative, elle frappe en premier ; si sa cible survit, elle riposte, sinon elle ne subit aucun dégât en retour. Si les deux ou aucune n'ont Initiative, les coups sont simultanés.
+   - **Initiative** : si une seule des deux créatures a Initiative (non épuisée), elle frappe en premier ; si sa cible survit, elle riposte, sinon elle ne subit aucun dégât en retour. Si les deux ou aucune n'ont Initiative, les coups sont simultanés. L'Initiative s'épuise dès que la créature inflige son premier dégât.
    - **Brutalité** : un attaquant bloqué fait passer au héros adverse l'excédent de ses dégâts par rapport aux PV restants du ou des bloqueurs (avant le coup). Détails en 7.7.
    - **Vol de vie** : la créature qui inflige des dégâts (attaque ou blocage) soigne son propre héros d'autant.
    - **Toxique** : une créature à qui une créature Toxique inflige au moins 1 dégât au combat meurt (un coup absorbé par l'Armure ou de Force 0 n'a pas cet effet).
@@ -266,8 +266,8 @@ Le client traduit les refus du serveur : `no-valid-target` (aucune cible valide)
 | **Portée** | Peut bloquer les créatures avec Vol sans avoir elle-même Vol. |
 | **Brutalité** | Bloquée, elle fait passer au héros adverse l'excédent de ses dégâts par rapport aux PV restants du ou des bloqueurs. |
 | **Vol de vie** | Les dégâts infligés par cette créature soignent son héros d'autant. |
-| **Initiative** | Frappe avant son adversaire ; si elle élimine sa cible avec ce premier coup, elle ne subit aucun dégât en retour. |
-| **Armure** | Absorbe le premier dégât positif qu'elle subit (combat, sort ou effet), une seule fois, sans jamais se réarmer. |
+| **Initiative** | Frappe avant son adversaire ; si elle élimine sa cible avec ce premier coup, elle ne subit aucun dégât en retour. S'épuise au premier dégât infligé ; un nouvel octroi la rend. |
+| **Armure** | Absorbe le premier dégât positif qu'elle subit (combat, sort ou effet), une seule fois, sans se réarmer toute seule (un nouvel octroi la réarme). |
 | **Parade** | Tant qu'elle a le mal d'invocation (jusqu'au début du prochain tour de son propriétaire), l'adversaire ne peut pas la cibler. |
 | **Tenace** | Quand elle meurt, revient une fois à pleine Endurance (puis perd Tenace). |
 | **Peureux** | Ne peut jamais bloquer. |
@@ -422,7 +422,7 @@ Il y a 15 mots-clés de jeu et 3 étiquettes sans effet. Chacun n'a qu'**un seul
 
 **Vol de vie** (`lifesteal`) — Chaque fois que la créature inflige des dégâts au combat à une créature (coup non absorbé), son propriétaire soigne son héros du **montant des dégâts infligés** (pas seulement des PV réellement retirés). Une attaquante non bloquée soigne son héros de sa Force. Aucun effet pour les dégâts de sorts et d'effets, ni pour un « Combat forcé ». Un héros à qui un effet interdit de se soigner ne gagne rien.
 
-**Initiative** (`initiative`) — Au combat, si **une seule** des deux créatures a Initiative, elle frappe d'abord ; si sa cible a encore des PV après ce coup elle riposte, sinon elle ne subit **aucun** dégât. Si les deux ou aucune n'ont Initiative, les coups sont simultanés. Si le premier coup est absorbé par l'Armure, la cible survit et riposte normalement. Vaut pour l'attaquante comme pour la bloqueuse, combat par combat.
+**Initiative** (`initiative`) — Au combat, si **une seule** des deux créatures a Initiative, elle frappe d'abord ; si sa cible a encore des PV après ce coup elle riposte, sinon elle ne subit **aucun** dégât. Si les deux ou aucune n'ont Initiative, les coups sont simultanés. Si le premier coup est absorbé par l'Armure, la cible survit et riposte normalement. Vaut pour l'attaquante comme pour la bloqueuse, combat par combat. **L'Initiative est à usage unique** : elle s'épuise dès que la créature inflige son premier dégât (combat, coup au héros ou combat forcé ; un coup absorbé par l'Armure ou de Force 0 ne l'épuise pas). Comme l'Armure, elle ne se renouvelle pas toute seule : un nouvel octroi du mot-clé (octroi direct ou « Choix parmi 3 mots-clés ») la rend, et une créature qui revient grâce à Tenace la retrouve.
 
 **Armure** (`armor`) — Absorbe le **premier dégât positif** subi, **quelle qu'en soit la source** : combat, sort, jet de pièce, « Combat forcé », second coup de « Détruit la cible puis inflige sa Force ». Le coup est entièrement annulé : aucune perte de PV, pas de déclencheur « subit des dégâts », pas d'effet de Toxique ni de Vol de vie de l'adversaire pour ce coup. Elle ne sert qu'**une seule fois** : une fois utilisée, elle ne se réarme pas toute seule (même si Tenace ramène la créature). Seul un nouvel octroi du mot-clé Armure par un effet (octroi direct ou « Choix parmi 3 mots-clés ») la réarme. Un coup de Force 0 ne la consomme pas. L'Armure **n'arrête pas** : la Destruction, le sacrifice, la mort Fugace, les malus d'Endurance, « fixer une statistique », « voler une statistique », l'échange Force/Endurance, la disparition d'une aura, l'expiration d'un bonus temporaire, le Gel/Étourdissement, le Silence ni le renvoi en main.
 
