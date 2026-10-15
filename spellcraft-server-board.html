@@ -5657,11 +5657,10 @@ function renderPhaseBar(){
       btn.onclick = uiConfirmAttackers;
       phaseKey = 'attack-confirm';
     } else {
-      // Aucun attaquant choisi : « Passer le combat » termine seulement la
-      // phase de combat. Le joueur reste dans sa phase principale : il peut
-      // encore jouer des cartes (comme après une attaque) puis cliquer sur
-      // « Fin de tour ». Ce bouton ne termine PAS le tour.
-      btn.textContent = 'Passer le combat';
+      // Aucun attaquant choisi : la phase de combat est passée et, comme il n'y
+      // a pas eu de combat, la phase principale 2 n'a pas lieu : le serveur
+      // termine le tour (règle de la spec des phases du tour, 15 octobre 2026).
+      btn.textContent = 'Passer le combat (fin de tour)';
       btn.onclick = uiConfirmAttackers;
       phaseKey = 'attack-confirm';
     }
