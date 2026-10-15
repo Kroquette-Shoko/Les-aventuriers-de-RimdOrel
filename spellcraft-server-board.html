@@ -1494,7 +1494,7 @@ function liveDeclaredAttackers(state, oppKey){
 function blockPhaseNeedsAutoFinish(state, myKey, oppKey){
   if(!state || state.gameOver || state.phase!=='declareBlockersMe' || state.active!==oppKey) return false;
   if(!state[myKey] || !state[oppKey]) return false;
-  if(state.pendingDiscover || state.pendingKeywordChoice || state.pendingSacrifice) return false;
+  if(state.pendingDiscover || state.pendingKeywordChoice || state.pendingSacrifice || state.pendingTarget) return false;
   if(pickServerFlag(state, myKey, 'canBlock') === true) return false;
   const atk = liveDeclaredAttackers(state, oppKey);
   if(!atk.length) return true;
@@ -2803,7 +2803,7 @@ function finishStateUpdateTail(state){
   // toutes les 700ms pendant qu'il essayait lui-même de bloquer, entrant en
   // conflit avec son propre clic ("une action est déjà en cours").
   const activeIsAI = S[S.active] && S[S.active].isAI;
-  if(activeIsAI && !S.gameOver && S.phase==='main' && !ACTION_IN_FLIGHT){
+  if(activeIsAI && !S.gameOver && S.phase==='main' && !ACTION_IN_FLIGHT && !S.pendingTarget){
     scheduleAiTurn();
   }
 }
@@ -2815,7 +2815,7 @@ function scheduleAiTurn(){
   if(__aiTurnTimer) return;
   const attempt = ()=>{
     __aiTurnTimer = null;
-    if(!S || S.gameOver || S.phase!=='main' || !(S[S.active] && S[S.active].isAI)) return; // plus d'actualité
+    if(!S || S.gameOver || S.pendingTarget || S.phase!=='main' || !(S[S.active] && S[S.active].isAI)) return; // plus d'actualité
     if(__matchAnnounceActive || __combatAnimPlaying || __combatAnimQueue.length || ACTION_IN_FLIGHT){
       __aiTurnTimer = setTimeout(attempt, 150);
       return;
@@ -3422,6 +3422,29 @@ function showCardPreviewHover(card, ev, inPlay){
 // ---------------- Rendu principal ----------------
 
 
+// Choix de cible demandé par le SERVEUR (capacité déclenchée à cible choisie :
+// arrivée d'une créature conjurée, attaque, mort, début/fin de tour...).
+// Le serveur met la capacité en pause (S.pendingTarget) ; on ouvre le même mode
+// de ciblage que pour un sort, puis on renvoie les cibles avec « resolveTarget ».
+let __deferredTargetStamp = null;
+function syncServerPendingTarget(){
+  const pt = S && S.pendingTarget;
+  if(!pt || pt.playerKey!==MY_KEY){
+    if(UI.pendingNewTarget && UI.pendingNewTarget.kind==='deferred') UI.pendingNewTarget = null;
+    __deferredTargetStamp = null;
+    return;
+  }
+  if(UI.pendingNewTarget) return;
+  if(__deferredTargetStamp===pt.startedAt) return; // déjà envoyé, on attend la réponse
+  const defs = (pt.defs||[]).map(t=>({ ability:null, target:t }));
+  if(!defs.length || defs.some(d=>newFormatCandidates(d.target).length===0)){
+    // Aucun candidat visible côté client : le serveur tranche (cible au hasard ou capacité ignorée).
+    __deferredTargetStamp = pt.startedAt;
+    setTimeout(()=>runAction('Choix de cible', ()=>gsResolveTarget({})), 0);
+    return;
+  }
+  UI.pendingNewTarget = { kind:'deferred', queue:defs, step:0, collected:{}, target:defs[0].target, ability:null, selectedInstIds:[], extra:{} };
+}
 function render(){
   if(!S) return;
   // Écran d'annonce en cours : le plateau (et surtout le mulligan) ne doit
@@ -3430,6 +3453,7 @@ function render(){
   // Plateau gelé pendant une animation de combat : on note qu'il faudra
   // re-rendre (fait par unfreezeBoardRender à la fin de la file).
   if(__boardRenderFrozen){ __boardRenderDirty = true; return; }
+  syncServerPendingTarget(); // choix de cible demandé par le serveur (capacité déclenchée)
   const keywordBadgePlan = planKeywordBadgeAnim(); // avant la reconstruction du DOM
   renderManaBox(MY_KEY, 'p1');
   renderManaBox(OPP_KEY, 'p2');
@@ -3467,6 +3491,10 @@ function syncTargetingArrow(){
       sourceEl = document.getElementById('hero-frame-p1');
     } else if(UI.pendingNewTarget.kind==='permanent' && extra.permanentInstId){
       sourceEl = document.querySelector(`[data-instid="${extra.permanentInstId}"]`);
+    } else if(UI.pendingNewTarget.kind==='deferred' && S.pendingTarget){
+      const ref = S.pendingTarget.sourceRef || {};
+      if(ref.kind==='inst') sourceEl = document.querySelector(`[data-instid="${ref.instId}"]`);
+      else if(ref.kind==='hero') sourceEl = document.getElementById('hero-frame-p1');
     }
   } else if(UI.pendingCard && UI.pendingCard.index!==undefined){
     const slots = document.querySelectorAll('.hand-card-slot');
@@ -4219,6 +4247,11 @@ function advanceNewFormatTargeting(){
   const kind = pn.kind;
   const extra = pn.extra || {};
   UI.pendingNewTarget = null;
+  if(kind==='deferred'){
+    __deferredTargetStamp = S.pendingTarget ? S.pendingTarget.startedAt : null;
+    runAction('Choix de cible', ()=>gsResolveTarget(chosenTargets));
+    return;
+  }
   if(kind==='card') uiPlayCard(extra.index, null, chosenTargets, extra.choiceKey); // choiceKey conservé
   else if(kind==='hero') uiActivateHeroPower(null, chosenTargets);
   else if(kind==='permanent') uiActivatePermanent(extra.permanentType, extra.permanentInstId, null, chosenTargets);
@@ -4245,6 +4278,7 @@ function confirmNewFormatTargets(){
   advanceNewFormatTargeting();
 }
 function cancelPendingNewTarget(){
+  if(UI.pendingNewTarget && UI.pendingNewTarget.kind==='deferred') return; // choix obligatoire (demandé par le serveur)
   UI.pendingNewTarget = null;
   render();
 }
@@ -4475,7 +4509,7 @@ function renderHand(){
     const isLockedTrap = !!card.activeTrap; // un piège déjà armé, lui, reste verrouillé
     // Choix bloquant en attente pour nous (sacrifice, découverte, mot-clé) :
     // le serveur refuse toute autre action tant qu'il n'est pas résolu.
-    const hasBlockingChoice = [S.pendingSacrifice, S.pendingDiscover, S.pendingKeywordChoice].some(x=>x && x.playerKey===MY_KEY);
+    const hasBlockingChoice = [S.pendingSacrifice, S.pendingDiscover, S.pendingKeywordChoice, S.pendingTarget].some(x=>x && x.playerKey===MY_KEY);
     // Coût supplémentaire : porté par la carte ou par l'une de ses capacités (comme le serveur)
     const extraSrc = card.extraCostEnabled ? card : ((card.abilities||[]).find(a=>a.extraCostEnabled) || card);
     const hasSacrificeCost = !isTrapCard && extraSrc.extraCostEnabled && extraSrc.extraCostType==='sacrificeCreature';
@@ -5575,6 +5609,16 @@ function renderPhaseBar(){
     return;
   }
 
+  if(S.pendingTarget && S.pendingTarget.playerKey!==MY_KEY){
+    const btn = document.createElement('button');
+    btn.className = 'phase-btn';
+    btn.textContent = "L'adversaire choisit une cible...";
+    btn.disabled = true;
+    bar.appendChild(btn);
+    clearPhaseReminder();
+    return;
+  }
+
   if(UI.pendingCard || UI.pendingPower || UI.pendingNewTarget){
     const btn = document.createElement('button');
     btn.className = 'phase-btn';
@@ -5583,6 +5627,7 @@ function renderPhaseBar(){
       const got = pn.selectedInstIds.length;
       const max = newFormatTargetMax(pn.target, got + newFormatCandidates(pn.target, pn.selectedInstIds).length);
       let label = newFormatTargetPrompt(pn.target);
+      if(pn.kind==='deferred' && S.pendingTarget) label = `${S.pendingTarget.sourceName || 'Capacité'} : ${label}`;
       if(pn.queue && pn.queue.length>1) label += ` — cible ${pn.step+1}/${pn.queue.length}`;
       if(max>1) label += ` (${got}/${newFormatTargetIsDynamic(pn.target) ? '…' : max})`;
       btn.textContent = label + '...';
@@ -5599,11 +5644,13 @@ function renderPhaseBar(){
       ok.onclick = confirmNewFormatTargets;
       bar.appendChild(ok);
     }
-    const cancel = document.createElement('button');
-    cancel.className = 'phase-btn secondary small';
-    cancel.textContent = 'Annuler';
-    cancel.onclick = UI.pendingNewTarget ? cancelPendingNewTarget : cancelPendingCard;
-    bar.appendChild(cancel);
+    if(!(UI.pendingNewTarget && UI.pendingNewTarget.kind==='deferred')){
+      const cancel = document.createElement('button');
+      cancel.className = 'phase-btn secondary small';
+      cancel.textContent = 'Annuler';
+      cancel.onclick = UI.pendingNewTarget ? cancelPendingNewTarget : cancelPendingCard;
+      bar.appendChild(cancel);
+    }
     clearPhaseReminder();
     return;
   }
