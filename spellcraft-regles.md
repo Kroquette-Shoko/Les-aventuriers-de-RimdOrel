@@ -199,16 +199,18 @@ Le client traduit les refus du serveur : `no-valid-target` (aucune cible valide)
 
 1. **Début de tour** (dans cet ordre)
    - Application de la règle de mana de la Région : si ses conditions sont remplies (tour personnel atteint, puis chance), ses effets remplacent le gain normal, sinon vous gagnez le mana normal (voir 3.4) ; puis déclenchement des capacités "Quand vous gagnez un point de mana".
-   - Déclenchement des capacités "Au début de votre tour" (chaque capacité d'artefact qui se résout lui retire 1 charge, voir la section 8).
-   - Les cooldowns des capacités activées diminuent de 1.
    - Pioche d'une carte.
-   - Le mal d'invocation de vos créatures prend fin ; les statuts « a déjà attaqué » et « a déjà bloqué » sont réinitialisés. (Gel et Étourdissement ne se terminent pas ici : voir la section 6.)
+   - **Réveil** : le mal d'invocation de vos créatures prend fin (la protection de **Parade** aussi) ; les statuts « a déjà attaqué » et « a déjà bloqué » sont réinitialisés ; les cooldowns des capacités activées diminuent de 1 (créatures, artefacts, Région, pouvoir du héros) ; vos pièges qui n'ont pas été déclenchés sont désarmés (ils restent dans votre main et seront réarmés ensuite). (Gel et Étourdissement ne se terminent pas ici : voir la section 6.)
+   - Déclenchement des capacités "Au début de votre tour" (chaque capacité d'artefact qui se résout lui retire 1 charge, voir la section 8). Elles voient donc vos créatures déjà « réveillées ».
    - *Tout premier tour du premier joueur :* il ne pioche pas, et seul le gain de mana de ce tour a lieu (voir 3.4) : ses capacités « Au début de votre tour » ne se déclenchent pas.
 
 2. **Phase principale**
    - Jouer des cartes (Créatures, Sortilèges, Artefacts, Pièges) en payant leur coût.
    - Activer des capacités activées (mana + coût additionnel éventuel ; pour un artefact : « Utiliser », gratuit, 1 fois par tour, voir la section 8).
-   - Déclenchement des capacités "Quand cette carte entre en jeu" (Arrivée) à la pose.
+   - **Jouer une carte**, dans cet ordre : paiement → déclencheurs « une carte est jouée » → pièges et contres adverses (un contre annule la carte seule) → la carte entre en jeu → déclencheurs « une carte arrive en jeu » → effet de la carte (« Arrivée » d'une créature, effet du sortilège ou de l'artefact). Un sortilège va à la défausse **après** ses effets.
+   - L'**Arrivée** ("Quand cette carte entre en jeu") se déclenche à **toute** entrée en jeu d'une créature : jouée depuis la main, mais aussi conjurée, copiée, récupérée de la défausse, ramenée en jeu ou revenue par **Tenace**. (Une créature volée à l'adversaire ne « arrive » pas.)
+   - Poser un piège n'est **pas** jouer : il n'est joué que lorsqu'il se déclenche.
+   - Nouveau déclencheur « Au début de votre phase principale 1 » (juste après le début de tour).
 
 3. **Phase de combat**
    - Chaque créature non étourdie, non gelée, sans Protecteur et n'ayant pas le mal d'invocation (sauf **Charge**) peut attaquer une fois.
@@ -216,7 +218,8 @@ Le client traduit les refus du serveur : `no-valid-target` (aucune cible valide)
    - Voir Section 6 pour le détail du combat, et la Section 7 pour les règles complètes des créatures.
 
 4. **Fin de tour** (dans cet ordre)
-   - Déclenchement des capacités "À la fin de votre tour" (usure automatique des artefacts concernés, voir la section 8).
+   - Vos pièges préparés sont armés.
+   - Déclenchement des capacités "À la fin de votre tour" (usure automatique des artefacts concernés, voir la section 8), puis les pièges adverses « à la fin du tour de l'adversaire ».
    - Les bonus de Force/Endurance « jusqu'à la fin du tour » arrivent à échéance, et les mots-clés accordés « ce tour-ci » disparaissent (voir 7.7).
    - Gel et Étourdissement qui arrivent à échéance prennent fin (voir la section 6).
    - Les créatures **Fugaces** de votre plateau meurent.
