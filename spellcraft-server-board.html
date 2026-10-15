@@ -4110,6 +4110,8 @@ function newFormatMatchesFilters(tgt, c){
   if(tgt.statFilterEnabled){
     const stat = newFormatStatOf(c, tgt.statFilterStat);
     if(stat==null) return false;
+    // Valeur dynamique : incalculable côté client, le serveur tranche (comme le nombre de cibles).
+    if(tgt.statFilterValueMode==='dynamic') return true;
     if(tgt.statFilterMode==='atLeast' && !(stat>=tgt.statFilterValue)) return false;
     if(tgt.statFilterMode==='atMost' && !(stat<=tgt.statFilterValue)) return false;
     if(tgt.statFilterMode==='exactly' && stat!==tgt.statFilterValue) return false;
@@ -4174,7 +4176,7 @@ function newFormatTargetPrompt(tgt){
   if(tgt.statFilterEnabled){
     const statLabel = ({atk:'Force', hp:'Endurance', cost:'Coût', charges:'Utilisations'})[tgt.statFilterStat] || tgt.statFilterStat;
     const op = ({atLeast:'≥', atMost:'≤', exactly:'='})[tgt.statFilterMode] || '=';
-    extras.push(`(${statLabel} ${op} ${tgt.statFilterValue})`);
+    extras.push(`(${statLabel} ${op} ${tgt.statFilterValueMode==='dynamic' ? 'une valeur variable' : tgt.statFilterValue})`);
   }
   const tail = extras.length ? ' ' + extras.join(' ') : '';
   if(newFormatTargetIsDynamic(tgt)) return `Choisissez des ${pluralNoun}${pluralAdj?' '+pluralAdj:''}${tail}`;

@@ -1145,7 +1145,8 @@ function blankTargetEntry(){
     targetCategory: 'creature', targetOwner: 'enemy', selectionMode: 'chosen',
     subtypeFilter: '',
     costFilterEnabled: false, costFilterMode: 'atLeast', costFilterValue: 1,
-    statFilterEnabled: false, statFilterStat: 'atk', statFilterMode: 'atLeast', statFilterValue: 1
+    statFilterEnabled: false, statFilterStat: 'atk', statFilterMode: 'atLeast', statFilterValue: 1,
+    statFilterValueMode: 'fixed', statFilterDynamic: 'thisAtk'
   };
 }
 function blankEvolution(){
@@ -1929,12 +1930,11 @@ function buildTargetsSectionUI(ab, targetsArray, choiceKey, heading){
       if(tgt.statFilterEnabled){
         trow.appendChild(makeSelectField('Stat', [{key:'atk',label:'Force'},{key:'hp',label:'Endurance'},{key:'cost',label:'Coût'},{key:'charges',label:'Utilisation'}], tgt.statFilterStat, v=>{ tgt.statFilterStat=v; onFormChange(); }));
         trow.appendChild(makeSelectField('Comparaison', [{key:'atLeast',label:'Au moins'},{key:'atMost',label:'Au plus'},{key:'exactly',label:'Exactement'}], tgt.statFilterMode, v=>{ tgt.statFilterMode=v; onFormChange(); }));
-        const vField = document.createElement('div');
-        vField.className='field'; vField.innerHTML=`<label class="mini-field">Valeur</label>`;
-        const vInp = document.createElement('input');
-        vInp.type='number'; vInp.min=0; vInp.max=20; vInp.value=tgt.statFilterValue||1;
-        vInp.oninput=()=>{ tgt.statFilterValue=parseInt(vInp.value)||0; onFormChange(); };
-        vField.appendChild(vInp); trow.appendChild(vField);
+        // Valeur fixe ou dynamique (cartes existantes : sans mode enregistré = fixe)
+        if(!tgt.statFilterValueMode) tgt.statFilterValueMode='fixed';
+        if(!tgt.statFilterDynamic) tgt.statFilterDynamic='thisAtk';
+        if(tgt.statFilterValue===undefined) tgt.statFilterValue=1;
+        trow.appendChild(buildValueField(tgt, 'statFilterValueMode', 'statFilterValue', 'statFilterDynamic', 'Valeur', false, false));
       }
     }
 
