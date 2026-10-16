@@ -151,6 +151,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 .binder-slot .bulk-select-badge{position:absolute;top:4px;left:4px;width:22px;height:22px;border-radius:50%;
   background:var(--gold, #d4af37);color:hsl(calc(var(--th, 252) - 2) calc(var(--ts-n, 1) * 33.3%) 14.1%);font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;z-index:10;}
 .card-add-badge{position:absolute;top:2px;right:2px;background:var(--green);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 5px;z-index:5;box-shadow:0 2px 4px rgba(0,0,0,.5);}
+.card-new-badge{position:absolute;top:4px;left:-2px;z-index:6;background:#ffd23f;color:#3a2a00;font:800 10px/1 'Inter',sans-serif;letter-spacing:.04em;text-transform:uppercase;padding:3px 7px;border-radius:4px;box-shadow:0 0 0 1px rgba(0,0,0,.5),0 0 10px rgba(255,210,63,.75);pointer-events:none;transform:rotate(-6deg);}
 .card-owned-badge{position:absolute;bottom:2px;left:2px;background:hsl(calc(var(--th, 252) + 10.5) calc(var(--ts-n, 1) * 25%) 6.3% / .75);border:1px solid var(--gold, #d4af37);color:var(--gold, #d4af37);font-size:8.5px;font-weight:700;border-radius:8px;padding:1px 5px;z-index:5;}
 
 .nav-arrow{background:var(--bg-panel-2);border:1.5px solid var(--gold, #d4af37);color:var(--gold, #d4af37);width:34px;height:34px;border-radius:50%;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
@@ -794,11 +795,49 @@ sb.auth.onAuthStateChange(async (event)=>{
   }
 });
 
+// ---------- Mention « Nouveau » ----------
+// On garde, sur CET appareil, la liste des cartes possédées à la dernière ouverture
+// de la collection. Les cartes possédées aujourd'hui et absentes de cette liste sont
+// « nouvelles » : elles gardent la mention jusqu'à ce que le joueur les survole.
+// Première ouverture sur un appareil : rien n'est marqué (sinon toute la collection le serait).
+let newCardIds = new Set();
+let newCardsKey = null;
+async function updateNewCards(){
+  try{
+    const { data:{ user } } = await sb.auth.getUser();
+    if(!user) return;
+    const kSeen = 'sc-coll-owned:' + user.id;
+    newCardsKey = 'sc-coll-unseen:' + user.id;
+    const ownedNow = Object.keys(ownedCollection).filter(id => (ownedCollection[id]||0) > 0);
+    let before = null, unseen = [];
+    try{ before = JSON.parse(localStorage.getItem(kSeen) || 'null'); }catch(e){}
+    try{ unseen = JSON.parse(localStorage.getItem(newCardsKey) || '[]'); }catch(e){}
+    const set = new Set(Array.isArray(unseen) ? unseen : []);
+    if(Array.isArray(before)){
+      const old = new Set(before);
+      ownedNow.forEach(id => { if(!old.has(id)) set.add(id); });
+    }
+    const ownedSet = new Set(ownedNow);
+    newCardIds = new Set([...set].filter(id => ownedSet.has(id)));
+    try{
+      localStorage.setItem(kSeen, JSON.stringify(ownedNow));
+      localStorage.setItem(newCardsKey, JSON.stringify([...newCardIds]));
+    }catch(e){}
+  }catch(e){}
+}
+function markCardSeen(id, badge){
+  if(!newCardIds.has(id)) return;
+  newCardIds.delete(id);
+  try{ if(newCardsKey) localStorage.setItem(newCardsKey, JSON.stringify([...newCardIds])); }catch(e){}
+  if(badge) badge.remove();
+}
+
 async function refreshCollection(silent){
   const allCards = await loadAllCardsAcrossSets();
   ownedCollection = await loadUserCollection();
   allCardsCache = allCards;
   collection = allCards.filter(c => (ownedCollection[c.id]||0) > 0);
+  await updateNewCards();
   // Sets « masqués par défaut » (nouveaux sets) : leurs cartes non possédées n'apparaissent
   // pas tant que le joueur n'a pas choisi ce set dans le filtre.
   try{
@@ -1871,6 +1910,15 @@ function renderBinder(animate){
         if(!isOwned && card.type!=='Héros' && card.type!=='Région'){
           el.style.filter = 'grayscale(85%) brightness(.6)';
           el.title = currentDeck ? 'Tu ne la possèdes pas : clique pour la fabriquer' : 'Tu ne possèdes pas encore cette carte';
+        }
+        if(isOwned && newCardIds.has(card.id)){
+          const nb = document.createElement('div');
+          nb.className = 'card-new-badge';
+          nb.textContent = 'Nouveau';
+          slot.appendChild(nb);
+          const seen = ()=>markCardSeen(card.id, nb);
+          slot.addEventListener('mouseenter', seen, { once:true });
+          slot.addEventListener('touchstart', seen, { once:true, passive:true });
         }
         if(owned!==undefined && card.type!=='Héros' && card.type!=='Région'){
           const ownedBadge = document.createElement('div');
