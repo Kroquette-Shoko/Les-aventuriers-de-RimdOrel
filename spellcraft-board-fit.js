@@ -27,7 +27,7 @@
       + '<div class="bd-rot-title">Tourne ton téléphone</div>'
       + '<div class="bd-rot-text">La partie se joue en <strong>mode paysage</strong>. Passe ton téléphone à l\'horizontale (et désactive le verrouillage de rotation si besoin).</div></div>';
     var st = document.createElement('style');
-    st.textContent = '#bd-rotate-overlay{display:none;position:fixed;inset:0;z-index:2147483000;background:#0b0a12;color:#efe6c8;align-items:center;justify-content:center;text-align:center;padding:24px;font-family:Inter,sans-serif;}'
+    st.textContent = '#bd-rotate-overlay{display:none;position:fixed;inset:0;z-index:2147483000;background:hsl(calc(var(--th, 252) - 4.5) calc(var(--ts-n, 1) * 28.6%) 5.5%);color:#efe6c8;align-items:center;justify-content:center;text-align:center;padding:24px;font-family:Inter,sans-serif;}'
       + 'html.bd-need-landscape #bd-rotate-overlay{display:flex;}'
       + '.bd-rot-box{max-width:320px;}.bd-rot-icon{font-size:64px;color:#d4af37;line-height:1;margin-bottom:12px;animation:bd-rot 2.4s ease-in-out infinite;}'
       + '@keyframes bd-rot{0%,20%{transform:rotate(0)}60%,100%{transform:rotate(-90deg)}}'

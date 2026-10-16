@@ -8,12 +8,12 @@
     { key:'heros',    label:'🖼️ Écrans d\'annonce', href:'spellcraft-atelier-annonce.html' },
     { key:'succes',   label:'🏅 Succès',        href:'spellcraft-achievements-editor.html' }
   ];
-  var CSS = '#atelier-nav{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 16px;background:#110e1c;border-bottom:1px solid #3a3260;font-family:Inter,sans-serif;}'
+  var CSS = '#atelier-nav{position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 16px;background:hsl(calc(var(--th, 252) + 0.9) calc(var(--ts-n, 1) * 33.3%) 8.2%);border-bottom:1px solid hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%);font-family:Inter,sans-serif;}'
     + '#atelier-nav .an-home{color:#d9cfae;text-decoration:none;font-size:12.5px;padding:7px 10px;border-radius:8px;}'
     + '#atelier-nav .an-title{font-family:Cinzel,serif;font-weight:700;color:#d4af37;margin:0 10px 0 4px;font-size:14px;}'
-    + '#atelier-nav a.an-tab{color:#efe6c8;text-decoration:none;font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:999px;border:1px solid #3a3260;background:#1f1a30;}'
+    + '#atelier-nav a.an-tab{color:#efe6c8;text-decoration:none;font-size:12.5px;font-weight:600;padding:7px 13px;border-radius:999px;border:1px solid hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%);background:hsl(calc(var(--th, 252) + 1.6) calc(var(--ts-n, 1) * 29.7%) 14.5%);}'
     + '#atelier-nav a.an-tab:hover{border-color:#d4af37;}'
-    + '#atelier-nav a.an-tab.active{background:#d4af37;color:#1c1830;border-color:#d4af37;}';
+    + '#atelier-nav a.an-tab.active{background:#d4af37;color:hsl(calc(var(--th, 252) - 2) calc(var(--ts-n, 1) * 33.3%) 14.1%);border-color:#d4af37;}';
   window.atelierNav = function(active){
     if(document.getElementById('atelier-nav')) return;
     if(new URLSearchParams(location.search).get('embed') === '1') return; // intégré dans un onglet : pas de barre

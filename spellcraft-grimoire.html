@@ -17,7 +17,7 @@
 <style>
 /* Les jetons de couleur (--bg-void, --gold, --arcane, etc.) viennent de
    spellcraft-ui-kit.css et suivent le thème actif choisi dans les options. */
-:root{ --border:var(--line, #3a3260); }
+:root{ --border:var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%)); }
 html{scroll-behavior:smooth;}
 a{color:var(--frost);}
 
@@ -48,8 +48,8 @@ section ol.steps > li{margin-bottom:6px;}
 
 table.kw{width:100%;border-collapse:collapse;font-size:13.5px;margin-top:8px;}
 table.kw th{text-align:left;font-family:'Cinzel',serif;color:var(--gold);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;padding:6px 10px;border-bottom:2px solid var(--border);}
-table.kw td{padding:9px 10px;border-bottom:1px solid rgba(58,50,96,.5);vertical-align:top;}
-table.kw tr:hover td{background:rgba(124,92,255,.06);}
+table.kw td{padding:9px 10px;border-bottom:1px solid hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6% / .5);vertical-align:top;}
+table.kw tr:hover td{background:hsl(calc(var(--th, 252) - 0.2) calc(var(--ts-a, 1) * 100%) calc(68% + var(--tl-a, 0%)) / .06);}
 table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
 
 .cardtype-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-top:10px;}
@@ -63,7 +63,7 @@ table.kw td.kwname{font-weight:700;color:var(--gold);white-space:nowrap;}
 .trigger-cat li{margin-bottom:4px;}
 .trigger-cat code{background:var(--bg-panel-2);border:1px solid var(--border);border-radius:5px;padding:1px 6px;color:var(--parchment);font-style:normal;font-size:12.5px;}
 
-.callout{background:rgba(124,92,255,.1);border:1px solid rgba(124,92,255,.4);border-radius:10px;padding:12px 15px;font-size:13px;color:var(--parchment-dim);margin-top:12px;}
+.callout{background:hsl(calc(var(--th, 252) - 0.2) calc(var(--ts-a, 1) * 100%) calc(68% + var(--tl-a, 0%)) / .1);border:1px solid hsl(calc(var(--th, 252) - 0.2) calc(var(--ts-a, 1) * 100%) calc(68% + var(--tl-a, 0%)) / .4);border-radius:10px;padding:12px 15px;font-size:13px;color:var(--parchment-dim);margin-top:12px;}
 .callout.warn{background:rgba(194,59,59,.1);border-color:rgba(194,59,59,.4);}
 .callout strong{color:var(--parchment);}
 
