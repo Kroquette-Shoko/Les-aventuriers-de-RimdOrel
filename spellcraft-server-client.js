@@ -25,9 +25,14 @@ let GS_DISCONNECT_TIMER = null;
 // Appel générique à la fonction serveur "game-action"
 // ------------------------------------------------------------
 async function gsCallAction(action, params = {}) {
+  // Chrono de mesure (spellcraft-chrono.js) : inactif sauf ?chrono=1
+  const __chrono = (typeof window !== 'undefined' && window.GS_CHRONO && window.GS_CHRONO.enabled) ? window.GS_CHRONO : null;
+  const __t0 = __chrono ? __chrono.now() : 0;
+  if (__chrono) __chrono.onOwnActionSent(action, __t0);
   const { data, error } = await sb.functions.invoke('game-action', {
     body: { action, sessionId: GS_SESSION_ID, ...params }
   });
+  if (__chrono) __chrono.onCall(action, __t0, data || error);
   if (error) {
     // Le message par défaut de la bibliothèque ("Edge Function returned a
     // non-2xx status code") ne dit rien d'utile — le vrai message qu'on
@@ -217,9 +222,13 @@ function gsConnect(onStateUpdate, onChatMessage, onGameChat) {
   // propre état — déjà expurgé de la main adverse côté serveur — via
   // gsFetchState(), qui passe par l'action "getState" authentifiée.
   GS_CHANNEL.on('broadcast', { event: 'stateChanged' }, async () => {
+    const __chrono = (typeof window !== 'undefined' && window.GS_CHRONO && window.GS_CHRONO.enabled) ? window.GS_CHRONO : null;
+    const __tb = __chrono ? __chrono.onBroadcastReceived() : 0;
     const data = await gsFetchState();
     if (!data || data.error) { console.error('gsFetchState a échoué après stateChanged :', data && data.error); return; }
+    const __tr = __chrono ? __chrono.now() : 0;
     if (GS_ON_STATE_UPDATE) GS_ON_STATE_UPDATE(data.state);
+    if (__chrono) __chrono.onStateDisplayed(__tb, __chrono.now() - __tr);
   });
   // Émotes — diffusées sur ce même canal (déjà confirmé fiable pour l'état
   // de partie), plutôt que via une écoute des insertions en base qui ne
