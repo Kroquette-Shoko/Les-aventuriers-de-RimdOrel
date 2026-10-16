@@ -7,18 +7,18 @@
 <title>Atelier — Écrans d'annonce</title>
 <link rel="stylesheet" href="spellcraft-ui-kit.css">
 <style>
-body{margin:0;background:var(--bg-void,#0b0a12);color:var(--parchment,#efe6c8);font-family:'Inter',sans-serif;}
+body{margin:0;background:var(--bg-void,hsl(calc(var(--th, 252) - 4.5) calc(var(--ts-n, 1) * 28.6%) 5.5%));color:var(--parchment,#efe6c8);font-family:'Inter',sans-serif;}
 .wrap{max-width:1100px;margin:0 auto;padding:18px 16px 60px;}
 h1{font-family:'Cinzel',serif;font-size:22px;margin:0 0 4px;color:#d4af37;}
 .sub{font-size:13px;color:#a89f86;margin:0 0 16px;line-height:1.5;}
 .bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:16px;}
-.bar select{background:#0f0c1a;color:#efe6c8;border:1px solid #3a3260;border-radius:6px;padding:8px 10px;font-size:14px;}
+.bar select{background:hsl(calc(var(--th, 252) + 0.9) calc(var(--ts-n, 1) * 36.8%) 7.5%);color:#efe6c8;border:1px solid hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%);border-radius:6px;padding:8px 10px;font-size:14px;}
 #saved{font-size:12px;color:#7ad08a;opacity:0;transition:opacity .3s;}
 #saved.on{opacity:1;}
-.hero{background:#171325;border:1px solid #2b2440;border-radius:12px;padding:16px 18px;margin-bottom:18px;display:flex;flex-direction:column;gap:14px;}
+.hero{background:hsl(calc(var(--th, 252) + 1.3) calc(var(--ts-n, 1) * 32.1%) 11%);border:1px solid hsl(calc(var(--th, 252) + 3) calc(var(--ts-n, 1) * 28%) 19.6%);border-radius:12px;padding:16px 18px;margin-bottom:18px;display:flex;flex-direction:column;gap:14px;}
 .hero h2{font-family:'Cinzel',serif;font-size:16px;color:#d4af37;margin:0;}
 .hint{font-size:12px;color:#a89f86;line-height:1.45;}
-.pv{width:480px;max-width:100%;aspect-ratio:16/9;position:relative;overflow:hidden;border-radius:8px;border:2px solid #3a3260;background:#0b0905;margin:0 auto;cursor:grab;touch-action:none;}
+.pv{width:480px;max-width:100%;aspect-ratio:16/9;position:relative;overflow:hidden;border-radius:8px;border:2px solid hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%);background:#0b0905;margin:0 auto;cursor:grab;touch-action:none;}
 .pv .half{position:absolute;inset:0;}
 .pv .bg{position:absolute;inset:0;background-repeat:no-repeat;}
 .pv svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
@@ -27,8 +27,8 @@ h1{font-family:'Cinzel',serif;font-size:22px;margin:0 0 4px;color:#d4af37;}
 .side .t{font-size:11px;font-weight:600;color:#a89f86;text-transform:uppercase;letter-spacing:.5px;}
 .row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
 .lab{width:84px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:#a89f86;flex:none;}
-.row input[type=number]{width:88px;text-align:center;background:#0f0c1a;color:#efe6c8;border:1px solid #3a3260;border-radius:6px;padding:6px 8px;font-size:13px;}
-.n,.btn{padding:5px 9px;border-radius:6px;border:1px solid #3a3260;background:rgba(255,255,255,.05);color:#efe6c8;cursor:pointer;font:inherit;font-size:12px;}
+.row input[type=number]{width:88px;text-align:center;background:hsl(calc(var(--th, 252) + 0.9) calc(var(--ts-n, 1) * 36.8%) 7.5%);color:#efe6c8;border:1px solid hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%);border-radius:6px;padding:6px 8px;font-size:13px;}
+.n,.btn{padding:5px 9px;border-radius:6px;border:1px solid hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%);background:rgba(255,255,255,.05);color:#efe6c8;cursor:pointer;font:inherit;font-size:12px;}
 .n:hover,.btn:hover{border-color:#d4af37;}
 .empty{padding:30px;text-align:center;color:#a89f86;}
 </style>

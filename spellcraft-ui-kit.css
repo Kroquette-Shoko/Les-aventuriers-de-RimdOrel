@@ -16,119 +16,105 @@
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;900&family=Inter:wght@400;500;600;700;800&display=swap');
 
 /* ============================================================
-   Thèmes — 5 variantes de couleur, choisies dans le menu Options.
-   Un seul jeu de composants (plus haut... enfin plus bas dans ce
-   fichier) ; seuls ces jetons changent d'un thème à l'autre.
-   Le thème actif est posé sur <html data-theme="...">. "actuel"
-   (le violet/or d'origine) est la valeur par défaut, sans attribut.
+   Thèmes — 5 palettes, choisies dans le menu Options.
+   Un seul jeu de composants ; seuls ces jetons changent d'un thème
+   à l'autre. Le thème actif est posé sur <html data-theme="...">.
+   "actuel" (violet/or d'origine) est la valeur par défaut.
+
+   PRINCIPE (refonte) : chaque thème est défini par QUATRE réglages,
+   et TOUT ce qui était violet dans le jeu (fonds, bordures, lueurs,
+   boutons, dégradés) en dérive — plus aucun violet ne reste figé :
+     --th    teinte du thème, en degrés (252 = violet d'origine)
+     --ts-n  saturation des tons sombres neutres (fonds, bordures)
+     --ts-a  saturation de l'accent (boutons, lueurs, liens)
+     --tl-a  décalage de clarté de l'accent (ex. -16% = plus sombre)
+   Les couleurs « qui ont un sens » ne suivent PAS le thème : couleur
+   de la classe Crépuscule, gemmes, reflets holographiques, rareté.
    ============================================================ */
-:root, [data-theme="actuel"]{
-  --bg-void:#0b0a12;
-  --bg-panel:#171325;
-  --bg-panel-2:#1f1a30;
-  --bg-panel-3:#241f38;
-  --bg-glow:radial-gradient(ellipse 90% 60% at 50% -10%, #201a38 0%, transparent 60%);
+:root{ --th:252; --ts-n:1; --ts-a:1; --tl-a:0%; }
+
+[data-theme="emeraude"]{ --th:152; --ts-n:.78; --ts-a:.52; --tl-a:-16%; }
+[data-theme="sangor"]{   --th:350; --ts-n:.92; --ts-a:.72; --tl-a:-14%; }
+[data-theme="givre"]{    --th:205; --ts-n:.95; --ts-a:.78; --tl-a:-4%;  }
+[data-theme="aube"]{     --th:345; --ts-n:.38; --ts-a:.58; --tl-a:-20%; }
+
+/* Jetons dérivés de la teinte (identiques en forme pour tous les thèmes) */
+:root{
+  --bg-void:hsl(var(--th) calc(var(--ts-n) * 29%) 5%);
+  --bg-panel:hsl(var(--th) calc(var(--ts-n) * 32%) 11%);
+  --bg-panel-2:hsl(var(--th) calc(var(--ts-n) * 30%) 15%);
+  --bg-panel-3:hsl(var(--th) calc(var(--ts-n) * 29%) 17.5%);
+  --bg-glow:radial-gradient(ellipse 90% 60% at 50% -10%, hsl(var(--th) calc(var(--ts-n) * 37%) 16%) 0%, transparent 60%);
+
+  --arcane:hsl(var(--th) calc(var(--ts-a) * 100%) calc(68% + var(--tl-a)));
+  --arcane-dim:hsl(var(--th) calc(var(--ts-a) * 53%) calc(51% + var(--tl-a)));
+
+  --line:hsl(var(--th) calc(var(--ts-n) * 33%) 25%);
+  --line-soft:hsl(var(--th) calc(var(--ts-n) * 29%) 17.5%);
 
   --parchment:#efe6c8;
   --parchment-dim:#b9ae8e;
   --ink:#1c1830;
 
-  --arcane:#7c5cff;
-  --arcane-dim:#5a41c4;
   --gold:#d4af37;
   --gold-bright:#f2cf5a;
   --blood:#c23b3b;
   --frost:#4fb3d9;
   --green:#4a9d6b;
 
-  --line:#332a54;
-  --line-soft:#241f38;
-
   --shadow-panel:0 14px 32px rgba(0,0,0,.45);
   --shadow-lift:0 18px 40px rgba(0,0,0,.55), 0 0 0 1px rgba(212,175,55,.18);
 }
 
-[data-theme="emeraude"]{
-  --bg-void:#0a1210;
-  --bg-panel:#121f1a;
-  --bg-panel-2:#182a23;
-  --bg-panel-3:#1e352c;
-  --bg-glow:radial-gradient(ellipse 90% 60% at 50% -10%, #1c3327 0%, transparent 60%);
+/* Violet / or d'origine : valeurs exactes conservées (aucun changement visible) */
+[data-theme="actuel"], :root:not([data-theme]){
+  --bg-void:#0b0a12;
+  --bg-panel:#171325;
+  --bg-panel-2:#1f1a30;
+  --bg-panel-3:#241f38;
+  --bg-glow:radial-gradient(ellipse 90% 60% at 50% -10%, #201a38 0%, transparent 60%);
+  --arcane:#7c5cff;
+  --arcane-dim:#5a41c4;
+  --line:#332a54;
+  --line-soft:#241f38;
+}
 
+/* Émeraude — forêt profonde, accent vert, or cuivré */
+[data-theme="emeraude"]{
   --parchment:#e9e6d4;
   --parchment-dim:#a9b39f;
   --ink:#0f1a15;
-
-  --arcane:#3f9d6b;
-  --arcane-dim:#2c7650;
   --gold:#c98a3e;
   --gold-bright:#e3ab5f;
-  --blood:#c23b3b;
-  --frost:#4fb3d9;
   --green:#5cb37f;
-
-  --line:#2c4a3d;
-  --line-soft:#1e352c;
-
-  --shadow-panel:0 14px 32px rgba(0,0,0,.45);
   --shadow-lift:0 18px 40px rgba(0,0,0,.55), 0 0 0 1px rgba(201,138,62,.2);
 }
 
+/* Sangor — pourpre et braise, accent cramoisi, or chaud */
 [data-theme="sangor"]{
-  --bg-void:#120a0a;
-  --bg-panel:#1f1315;
-  --bg-panel-2:#2a181b;
-  --bg-panel-3:#331d21;
-  --bg-glow:radial-gradient(ellipse 90% 60% at 50% -10%, #35171a 0%, transparent 60%);
-
   --parchment:#f0e4d8;
   --parchment-dim:#bfa89c;
   --ink:#1e1112;
-
-  --arcane:#a4293f;
-  --arcane-dim:#7a1d2e;
   --gold:#d9a63c;
   --gold-bright:#f0c15a;
   --blood:#e04b4b;
-  --frost:#4fb3d9;
-  --green:#4a9d6b;
-
-  --line:#4a2530;
-  --line-soft:#331d21;
-
   --shadow-panel:0 14px 32px rgba(0,0,0,.5);
   --shadow-lift:0 18px 40px rgba(0,0,0,.6), 0 0 0 1px rgba(217,166,60,.2);
 }
 
+/* Givre — nuit glaciale, accent bleu glace, argent */
 [data-theme="givre"]{
-  --bg-void:#090c12;
-  --bg-panel:#131b28;
-  --bg-panel-2:#182535;
-  --bg-panel-3:#1e2f42;
-  --bg-glow:radial-gradient(ellipse 90% 60% at 50% -10%, #1a2c40 0%, transparent 60%);
-
   --parchment:#e6eef5;
   --parchment-dim:#9db0c2;
   --ink:#0e1620;
-
-  --arcane:#4fb3d9;
-  --arcane-dim:#3488a8;
   --gold:#9fb8c9;
   --gold-bright:#c3d7e3;
-  --blood:#c23b3b;
   --frost:#6fd0f0;
-  --green:#4a9d6b;
-
-  --line:#2e4058;
-  --line-soft:#1e2f42;
-
-  --shadow-panel:0 14px 32px rgba(0,0,0,.45);
   --shadow-lift:0 18px 40px rgba(0,0,0,.55), 0 0 0 1px rgba(159,184,201,.25);
 }
 
-/* L'Aube — seul thème clair : lumière chaude du levant sur fond
-   parchemin, plutôt que les 4 autres, tous sombres. Les mêmes jetons,
-   juste inversés (texte sombre sur fond clair) pour rester lisible. */
+/* L'Aube — seul thème clair : lumière chaude du levant sur parchemin,
+   accent rose du matin, or ambré. Mêmes jetons, texte sombre sur fond clair. */
 [data-theme="aube"]{
   --bg-void:#f6ecd9;
   --bg-panel:#fbf5e7;
@@ -140,8 +126,6 @@
   --parchment-dim:#7d6c4c;
   --ink:#fffaf0;
 
-  --arcane:#8a4fd6;
-  --arcane-dim:#6a3bb0;
   --gold:#b8790f;
   --gold-bright:#d99a2b;
   --blood:#b23b3b;
@@ -250,8 +234,8 @@ html,body{
 .sc-btn:active{transform:translateY(0);}
 .sc-btn:disabled, .sc-btn.disabled{opacity:.45;cursor:default;pointer-events:none;}
 
-.sc-btn-primary{--btn-bg:linear-gradient(180deg, #8f6bff 0%, var(--arcane) 100%);--btn-border:#9a7dff;--btn-fg:#fff;background:var(--btn-bg);box-shadow:0 8px 20px rgba(124,92,255,.35);}
-.sc-btn-primary:hover{box-shadow:0 10px 26px rgba(124,92,255,.5);}
+.sc-btn-primary{--btn-bg:linear-gradient(180deg, hsl(calc(var(--th, 252) + 2.6) calc(var(--ts-a, 1) * 100%) calc(71% + var(--tl-a, 0%))) 0%, var(--arcane) 100%);--btn-border:hsl(calc(var(--th, 252) + 1.4) calc(var(--ts-a, 1) * 100%) calc(74.5% + var(--tl-a, 0%)));--btn-fg:#fff;background:var(--btn-bg);box-shadow:0 8px 20px hsl(calc(var(--th, 252) - 0.2) calc(var(--ts-a, 1) * 100%) calc(68% + var(--tl-a, 0%)) / .35);}
+.sc-btn-primary:hover{box-shadow:0 10px 26px hsl(calc(var(--th, 252) - 0.2) calc(var(--ts-a, 1) * 100%) calc(68% + var(--tl-a, 0%)) / .5);}
 
 .sc-btn-gold{--btn-bg:linear-gradient(180deg, var(--gold-bright) 0%, var(--gold) 100%);--btn-border:var(--gold-bright);--btn-fg:#241d0e;font-weight:700;}
 .sc-btn-gold:hover{box-shadow:0 10px 24px rgba(212,175,55,.35);}
@@ -323,7 +307,7 @@ html,body{
   flex-direction:row;align-items:center;gap:20px;
   padding:24px 28px;
   background:
-    radial-gradient(320px 160px at 88% 0%, rgba(124,92,255,.25), transparent 70%),
+    radial-gradient(320px 160px at 88% 0%, hsl(calc(var(--th, 252) - 0.2) calc(var(--ts-a, 1) * 100%) calc(68% + var(--tl-a, 0%)) / .25), transparent 70%),
     linear-gradient(165deg, var(--bg-panel-2) 0%, var(--bg-panel) 70%);
 }
 .sc-tile-feature .sc-tile-icon{width:56px;height:56px;flex:none;}
