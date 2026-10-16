@@ -375,7 +375,7 @@ async function gsActivatePermanent(permanentType, permanentInstId, targetInfo, c
   if (sacrificeInstId) body.sacrificeInstId = sacrificeInstId;
   return gsCallAction('activatePermanent', body);
 }
-async function gsPlayCardSimple(handIndex, targetInfo, chosenTargets, choiceKey, sacrificeInstId) {
+async function gsPlayCardSimple(handIndex, targetInfo, chosenTargets, choiceKey, sacrificeInstId, placeAfterInstId) {
   const body = { handIndex };
   if (targetInfo) {
     if (targetInfo.isHeroTarget) { body.targetIsHero = true; body.targetPlayerKey = targetInfo.playerKey; }
@@ -384,6 +384,7 @@ async function gsPlayCardSimple(handIndex, targetInfo, chosenTargets, choiceKey,
   if (chosenTargets) body.chosenTargets = chosenTargets;
   if (choiceKey) body.choiceKey = choiceKey;
   if (sacrificeInstId) body.sacrificeInstId = sacrificeInstId;
+  if (placeAfterInstId) body.placeAfterInstId = placeAfterInstId; // créature : « après telle créature » ('start' = tout à gauche)
   return gsCallAction('playCardSimple', body);
 }
 async function gsSetShowHandToSpectators(show) { return gsCallAction('setShowHandToSpectators', { show }); }
