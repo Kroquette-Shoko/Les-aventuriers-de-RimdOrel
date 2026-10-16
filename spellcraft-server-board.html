@@ -254,6 +254,10 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .card.trap-active{outline:3px solid var(--gold);outline-offset:2px;box-shadow:0 0 16px rgba(212,175,55,.6);cursor:default;animation:trap-armed-pulse 1.8s ease-in-out infinite;}
 .trap-wolf-icon{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:34px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.8));z-index:10;pointer-events:none;}
 @keyframes trap-armed-pulse{0%,100%{box-shadow:0 0 12px rgba(212,175,55,.45);}50%{box-shadow:0 0 22px rgba(212,175,55,.85);}}
+/* Placement d'une créature par glisser-déposer : les créatures s'écartent de part et d'autre pour montrer l'emplacement */
+#lane-p1 .card-slot{transition:translate .14s ease-out;}
+#lane-p1 .card-slot.ins-shift-left{translate:-18px 0;}
+#lane-p1 .card-slot.ins-shift-right{translate:18px 0;}
 #lane-p1.drop-hover, #hero-p2.drop-hover{outline:3px dashed var(--gold);outline-offset:4px;border-radius:12px;}
 .card-slot.drop-hover .card{outline:3px dashed var(--gold);}
 .card.frozen{filter:hue-rotate(180deg) saturate(1.4) brightness(.9);}
@@ -4345,6 +4349,7 @@ async function resolvePendingSacrifice(instId){
     targetInfo: pending.targetIsHero ? { isHeroTarget:true, playerKey:pending.targetPlayerKey } : (pending.targetInstId ? { instId:pending.targetInstId } : null),
     chosenTargets: pending.chosenTargets,
     choiceKey: pending.choiceKey,
+    placeAfter: pending.placeAfterInstId,
     permanentType: pending.permanentType,
     permanentInstId: pending.permanentInstId
   };
@@ -4356,7 +4361,7 @@ async function resolvePendingSacrifice(instId){
   } else if(kind==='activatePermanent'){
     res = await runAction('Capacité activée', ()=>gsActivatePermanent(src.permanentType, src.permanentInstId, src.targetInfo, src.chosenTargets, instId));
   } else if(kind==='playCardSimple'){
-    res = await runAction('Jouer la carte', ()=>gsPlayCardSimple(src.handIndex, src.targetInfo, src.chosenTargets, src.choiceKey, instId));
+    res = await runAction('Jouer la carte', ()=>gsPlayCardSimple(src.handIndex, src.targetInfo, src.chosenTargets, src.choiceKey, instId, src.placeAfter));
   } else {
     showActionError("Impossible de terminer le sacrifice : l'action d'origine est inconnue.");
     return;
@@ -5441,6 +5446,37 @@ function isOverDropZone(ev){
   return false;
 }
 
+// ----- Placement d'une créature : où la poser parmi les autres -----
+// Renvoie { slots, index } : index = nombre de créatures situées « avant » le point du curseur
+// (de gauche à droite, rangée par rangée si la voie passe sur plusieurs lignes).
+function computeInsertion(ev){
+  const lane = document.getElementById('lane-p1');
+  const slots = [...lane.querySelectorAll(':scope > .card-slot[data-inst-id]')];
+  let index = 0;
+  slots.forEach(sl=>{
+    const r = sl.getBoundingClientRect();
+    const before = ev.clientY > r.bottom || (ev.clientY >= r.top && ev.clientX > r.left + r.width/2);
+    if(before) index++;
+  });
+  return { slots, index };
+}
+function clearInsertionPreview(){
+  document.querySelectorAll('#lane-p1 .ins-shift-left, #lane-p1 .ins-shift-right').forEach(el=>el.classList.remove('ins-shift-left','ins-shift-right'));
+}
+function showInsertionPreview(ev){
+  clearInsertionPreview();
+  const { slots, index } = computeInsertion(ev);
+  // Tout le groupe de gauche recule, tout le groupe de droite avance : un vrai vide s'ouvre, sans chevauchement.
+  slots.forEach((sl, i)=>sl.classList.add(i<index ? 'ins-shift-left' : 'ins-shift-right'));
+}
+// Mémorise l'emplacement choisi jusqu'à l'envoi de l'action au serveur
+let PENDING_PLACEMENT = null;
+function placementFor(handIndex){
+  const pl = PENDING_PLACEMENT; PENDING_PLACEMENT = null;
+  if(!pl || pl.handIndex!==handIndex || Date.now()-pl.at>120000) return null;
+  return pl.afterInstId;
+}
+
 function onCardDragMove(ev){
   if(!DRAG_STATE) return;
   const { ghost, offsetX, offsetY } = DRAG_STATE;
@@ -5450,6 +5486,9 @@ function onCardDragMove(ev){
   const zone = document.getElementById('lane-p1');
   const over = isOverDropZone(ev);
   zone.classList.toggle('drop-target', over);
+  const dragCard = S && S[MY_KEY] ? S[MY_KEY].hand[DRAG_STATE.handIndex] : null;
+  if(over && dragCard && dragCard.type==='Créature') showInsertionPreview(ev);
+  else clearInsertionPreview();
 }
 
 function onCardDragEnd(ev){
@@ -5457,7 +5496,18 @@ function onCardDragEnd(ev){
   const { handIndex, ghost, sourceEl } = DRAG_STATE;
   const zone = document.getElementById('lane-p1');
   const over = isOverDropZone(ev);
-
+  PENDING_PLACEMENT = null;
+  if(over){
+    const dc = S[MY_KEY].hand[handIndex];
+    if(dc && dc.type==='Créature'){
+      const { slots, index } = computeInsertion(ev);
+      if(slots.length){
+        const left = index>0 ? slots[index-1] : null;
+        PENDING_PLACEMENT = { handIndex, afterInstId: left ? left.dataset.instId : 'start', at: Date.now() };
+      }
+    }
+  }
+  clearInsertionPreview();
   zone.classList.remove('drop-target');
   ghost.remove();
   if(sourceEl) sourceEl.style.opacity = '';
@@ -6104,8 +6154,9 @@ async function uiPlayCard(i, targetInfo, chosenTargets, choiceKey){
     showCardChoiceModal(card, choiceAbility, (pickedKey)=>{ uiPlayCard(i, targetInfo, chosenTargets, pickedKey); });
     return;
   }
-  LAST_SACRIFICEABLE_ACTION = { action:'playCardSimple', handIndex:i, targetInfo, chosenTargets, choiceKey };
-  await runAction('Jouer carte', ()=>gsPlayCardSimple(i, targetInfo, chosenTargets, choiceKey));
+  const placeAfter = placementFor(i);
+  LAST_SACRIFICEABLE_ACTION = { action:'playCardSimple', handIndex:i, targetInfo, chosenTargets, choiceKey, placeAfter };
+  await runAction('Jouer carte', ()=>gsPlayCardSimple(i, targetInfo, chosenTargets, choiceKey, undefined, placeAfter));
 }
 function showCardChoiceModal(card, ability, onPick){
   const overlay = document.createElement('div');
