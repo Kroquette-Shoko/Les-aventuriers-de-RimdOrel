@@ -703,7 +703,7 @@ body.targeting *{cursor:crosshair !important;}
 .ability-reveal-inner{position:relative;width:100%;height:100%;transition:transform .55s cubic-bezier(.3,.1,.2,1);transform-style:preserve-3d;}
 .ability-reveal-inner.flipped{transform:rotateY(180deg);}
 .ability-reveal-face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:12px;overflow:hidden;
-  display:flex;align-items:center;justify-content:center;box-shadow:0 26px 60px rgba(0,0,0,.7), 0 0 70px rgba(124,92,255,.4);}
+  display:flex;align-items:center;justify-content:center;box-shadow:0 26px 60px rgba(0,0,0,.7), 0 0 70px rgba(var(--fx-rgb,61,155,255),.5);}
 .ability-reveal-back{background:linear-gradient(145deg,#241d3d,#100c1e);border:2px solid var(--gold);font-size:64px;}
 .ability-reveal-back .trap-reveal-icon{filter:drop-shadow(0 3px 8px rgba(0,0,0,.8));}
 .ability-reveal-back .trap-reveal-icon-corner{position:absolute;bottom:10px;right:10px;font-size:26px;
@@ -715,17 +715,20 @@ body.targeting *{cursor:crosshair !important;}
 /* ============================================================
    FLÈCHE DE CAPACITÉ — un "projectile" lumineux part de la carte qui
    porte la capacité et fonce vers chaque cible touchée (voir
-   fireAbilityArrow). Distinct des flèches de blocage (rouge) et de la
-   ligne de visée du joueur (déjà en var(--arcane)) : même teinte,
-   usage différent (résultat d'un effet, pas une sélection en cours).
+   fireAbilityArrow). Couleur par CAMP : bleu = effet de votre côté,
+   rouge = effet de l'adversaire (classes .fx-mine / .fx-enemy, qui
+   fixent --fx). Même code couleur pour la carte révélée et l'éclat
+   « sur soi-même » ci-dessous.
    ============================================================ */
+.fx-mine{--fx:#3d9bff;--fx-rgb:61,155,255;}      /* effets de VOTRE camp : lueur bleue */
+.fx-enemy{--fx:#ff4545;--fx-rgb:255,69,69;}      /* effets de l'ADVERSAIRE : lueur rouge */
 .ability-bolt{position:fixed;z-index:9994;width:58px;height:14px;pointer-events:none;
-  background:linear-gradient(90deg, rgba(124,92,255,0) 0%, rgba(124,92,255,.65) 30%, var(--arcane) 100%);
-  border-radius:8px;filter:drop-shadow(0 0 10px var(--arcane)) drop-shadow(0 0 22px var(--arcane));}
+  background:linear-gradient(90deg, rgba(var(--fx-rgb),0) 0%, rgba(var(--fx-rgb),.65) 30%, var(--fx) 100%);
+  border-radius:8px;filter:drop-shadow(0 0 10px var(--fx)) drop-shadow(0 0 22px var(--fx));}
 .ability-bolt::after{content:'';position:absolute;right:-5px;top:50%;width:18px;height:18px;transform:translateY(-50%);
-  background:var(--arcane);border-radius:50%;box-shadow:0 0 22px 8px var(--arcane);}
+  background:var(--fx);border-radius:50%;box-shadow:0 0 22px 8px var(--fx);}
 .ability-impact-ring{position:fixed;z-index:9994;left:0;top:0;width:96px;height:96px;margin:-48px;border-radius:50%;
-  border:5px solid var(--arcane);pointer-events:none;box-shadow:0 0 28px var(--arcane);
+  border:5px solid var(--fx);pointer-events:none;box-shadow:0 0 28px var(--fx);
   animation:ability-impact-pop .55s ease-out forwards;}
 @keyframes ability-impact-pop{
   0%{opacity:.9;transform:scale(.2);}
@@ -733,19 +736,19 @@ body.targeting *{cursor:crosshair !important;}
 }
 .ability-hit-flash{animation:ability-hit-flash-kf .5s ease-out;}
 @keyframes ability-hit-flash-kf{
-  0%{filter:brightness(1) drop-shadow(0 0 0 rgba(124,92,255,0));}
-  35%{filter:brightness(1.5) drop-shadow(0 0 18px var(--arcane));}
-  100%{filter:brightness(1) drop-shadow(0 0 0 rgba(124,92,255,0));}
+  0%{filter:brightness(1) drop-shadow(0 0 0 rgba(var(--fx-rgb),0));}
+  35%{filter:brightness(1.5) drop-shadow(0 0 18px var(--fx));}
+  100%{filter:brightness(1) drop-shadow(0 0 0 rgba(var(--fx-rgb),0));}
 }
 
 /* ============================================================
    DÉCLENCHEMENT SUR SOI-MÊME — quand la cible d'une capacité EST sa
-   propre source, pas de flèche (rien à relier) : un éclat doré qui
-   CONVERGE sur la carte, nettement distinct visuellement de la teinte
-   arcane utilisée pour une flèche vers une autre carte.
+   propre source, pas de flèche (rien à relier) : un éclat qui CONVERGE
+   sur la carte (forme distincte de la flèche). Couleur par camp :
+   bleu = vous, rouge = adversaire (comme les flèches d'effet).
    ============================================================ */
 .ability-self-burst{position:fixed;z-index:9994;left:0;top:0;width:120px;height:120px;margin:-60px;border-radius:50%;
-  pointer-events:none;border:3px solid var(--gold);box-shadow:0 0 20px var(--gold);
+  pointer-events:none;border:3px solid var(--fx);box-shadow:0 0 20px var(--fx);
   animation:ability-self-burst-kf .65s cubic-bezier(.2,.7,.3,1) forwards;}
 @keyframes ability-self-burst-kf{
   0%{opacity:0;transform:scale(2.2);}
@@ -755,7 +758,7 @@ body.targeting *{cursor:crosshair !important;}
 .ability-self-trigger{animation:ability-self-trigger-kf .9s ease-out;}
 @keyframes ability-self-trigger-kf{
   0%,100%{box-shadow:none;}
-  30%{box-shadow:0 0 0 4px var(--gold), 0 0 26px var(--gold);}
+  30%{box-shadow:0 0 0 4px var(--fx), 0 0 26px var(--fx);}
 }
 </style>
 <script src="spellcraft-card-render.js"></script>
@@ -2057,7 +2060,7 @@ function renderGameLog(){
         queueCombatAnim(()=>{
           const fullAtAnimTime = cardId ? JOURNAL_CARD_LOOKUP[cardId] : null;
           if(!fullAtAnimTime) return Promise.resolve(); // carte vraiment introuvable (cas rarissime) : on ne bloque pas la file pour autant
-          return playCardFlipReveal(fullAtAnimTime, {isTrap: entry.kind==='trap', backUrl: ownerBackUrl});
+          return playCardFlipReveal(fullAtAnimTime, {isTrap: entry.kind==='trap', backUrl: ownerBackUrl, fxMine: entry.ownerKey===MY_KEY});
         });
       }
 
@@ -2072,11 +2075,12 @@ function renderGameLog(){
           queueCombatAnim(()=>{
             if(isDeath) return playCardDeathAnim(targetInstId);
             const sourceEl = resolveLogSourceEl(entry);
+            const fxMine = entry.ownerKey ? entry.ownerKey===MY_KEY : true; // bleu = vous, rouge = adversaire
             if(entry.sourceInstId && targetInstId===entry.sourceInstId){
-              return flashSelfTrigger(sourceEl);
+              return flashSelfTrigger(sourceEl, fxMine);
             }
             const targetEl = resolveLogTargetEl(targetInstId);
-            return fireAbilityArrow(sourceEl, targetEl);
+            return fireAbilityArrow(sourceEl, targetEl, fxMine);
           });
         });
       });
@@ -5241,7 +5245,7 @@ function playCardFlipReveal(card, opts={}){
   return new Promise(resolve=>{
     if(!card){ resolve(); return; }
     const overlay = document.createElement('div');
-    overlay.className = 'ability-reveal-overlay';
+    overlay.className = 'ability-reveal-overlay ' + (opts.fxMine===false ? 'fx-enemy' : 'fx-mine'); // lueur : bleue = vous, rouge = adversaire
     const flip = document.createElement('div');
     flip.className = 'ability-reveal-flip';
     const inner = document.createElement('div');
@@ -5326,7 +5330,7 @@ function resolveLogTargetEl(targetInstId){
    flottant indépendant (comme lungeToward) — jamais l'élément réel de
    la carte, pour ne pas interférer avec son propre rendu.
    ============================================================ */
-function fireAbilityArrow(sourceEl, targetEl){
+function fireAbilityArrow(sourceEl, targetEl, fxMine){
   return new Promise(resolve=>{
     if(!sourceEl || !targetEl){ resolve(); return; }
     const a = sourceEl.getBoundingClientRect(), b = targetEl.getBoundingClientRect();
@@ -5337,46 +5341,48 @@ function fireAbilityArrow(sourceEl, targetEl){
     const angle = Math.atan2(dy,dx) * 180/Math.PI;
 
     const bolt = document.createElement('div');
-    bolt.className = 'ability-bolt';
+    bolt.className = 'ability-bolt ' + (fxMine===false ? 'fx-enemy' : 'fx-mine');
     bolt.style.left = x1+'px';
     bolt.style.top = y1+'px';
     document.body.appendChild(bolt);
 
     const boltMs = cms(420);
-    if(!bolt.animate || !boltMs){ bolt.remove(); flashImpact(targetEl); resolve(); return; }
+    if(!bolt.animate || !boltMs){ bolt.remove(); flashImpact(targetEl, fxMine); resolve(); return; }
     const anim = bolt.animate([
       { transform:`translate(0,-50%) rotate(${angle}deg) translateX(0)`, opacity:0 },
       { transform:`translate(0,-50%) rotate(${angle}deg) translateX(0)`, opacity:1, offset:0.08 },
       { transform:`translate(0,-50%) rotate(${angle}deg) translateX(${dist}px)`, opacity:1, offset:0.92 },
       { transform:`translate(0,-50%) rotate(${angle}deg) translateX(${dist}px)`, opacity:0 }
     ], { duration: boltMs, easing:'cubic-bezier(.3,.1,.2,1)' });
-    anim.onfinish = ()=>{ bolt.remove(); flashImpact(targetEl); resolve(); };
+    anim.onfinish = ()=>{ bolt.remove(); flashImpact(targetEl, fxMine); resolve(); };
     anim.oncancel = ()=>{ bolt.remove(); resolve(); };
   });
 }
-function flashImpact(targetEl){
+function flashImpact(targetEl, fxMine){
   if(!targetEl) return;
+  const fxCls = fxMine===false ? 'fx-enemy' : 'fx-mine';
   const r = targetEl.getBoundingClientRect();
   const ring = document.createElement('div');
-  ring.className = 'ability-impact-ring';
+  ring.className = 'ability-impact-ring ' + fxCls;
   ring.style.left = (r.left+r.width/2)+'px';
   ring.style.top = (r.top+r.height/2)+'px';
   document.body.appendChild(ring);
   setTimeout(()=>ring.remove(), 520);
-  targetEl.classList.add('ability-hit-flash');
-  setTimeout(()=>{ if(targetEl && targetEl.classList) targetEl.classList.remove('ability-hit-flash'); }, 520);
+  targetEl.classList.add('ability-hit-flash', fxCls);
+  setTimeout(()=>{ if(targetEl && targetEl.classList) targetEl.classList.remove('ability-hit-flash', 'fx-mine', 'fx-enemy'); }, 520);
 }
 // Effet distinct quand une capacité se cible elle-même : pas de flèche
 // (rien à relier), un éclat doré qui converge sur la carte suffit à bien
 // repérer le déclenchement, sans le confondre avec une flèche classique.
-function flashSelfTrigger(el){
+function flashSelfTrigger(el, fxMine){
   return new Promise(resolve=>{
     if(!el){ resolve(); return; }
-    el.classList.add('ability-self-trigger');
-    setTimeout(()=>{ if(el && el.classList) el.classList.remove('ability-self-trigger'); }, 900);
+    const fxCls = fxMine===false ? 'fx-enemy' : 'fx-mine';
+    el.classList.add('ability-self-trigger', fxCls);
+    setTimeout(()=>{ if(el && el.classList) el.classList.remove('ability-self-trigger', 'fx-mine', 'fx-enemy'); }, 900);
     const r = el.getBoundingClientRect();
     const burst = document.createElement('div');
-    burst.className = 'ability-self-burst';
+    burst.className = 'ability-self-burst ' + fxCls;
     burst.style.left = (r.left+r.width/2)+'px';
     burst.style.top = (r.top+r.height/2)+'px';
     document.body.appendChild(burst);
