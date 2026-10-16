@@ -57,7 +57,7 @@
       <button class="sc-btn sc-btn-gold" id="patchnote-btn" onclick="openPatchNotes()" title="Notes de version & feuille de route" style="position:relative;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M6 3h9l5 5v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M15 3v5h5"/><path d="M8 13h8M8 17h5"/></svg>
         <span id="patchnote-btn-label">Notes de version</span>
-        <span id="patchnote-badge" style="display:none;position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:var(--blood);color:#fff;font-weight:900;font-size:10px;align-items:center;justify-content:center;box-shadow:0 0 8px rgba(194,59,59,.7);"></span>
+        <span id="patchnote-badge" class="sc-notif sc-notif-out" style="display:none;">!</span>
       </button>
       <div id="sc-auth-slot"></div>
       <div id="sc-options-slot"></div>
@@ -219,11 +219,12 @@
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="spellcraft-shared.js"></script>
+<script src="spellcraft-notifs.js"></script>
 <script src="spellcraft-chrono.js"></script>
 <script src="spellcraft-server-client.js"></script>
 <script src="spellcraft-auth.js"></script>
 <script>
-initSpellcraftAuth().then(initPatchNotesBadge).then(checkTutorialAutoLaunch);
+initSpellcraftAuth().then(initPatchNotesBadge).then(()=>{ try{ if(window.scNotif) scNotif.refreshHub(); }catch(e){} }).then(checkTutorialAutoLaunch);
 playMenuMusicRotation(0.35);
 
 let PATCHNOTE_CAN_EDIT = false;

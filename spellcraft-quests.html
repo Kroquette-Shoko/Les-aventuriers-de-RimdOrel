@@ -187,6 +187,7 @@ main{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:22px;}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>window.APP_TOPBAR_DISABLED = true;</script>
 <script src="spellcraft-shared.js"></script>
+<script src="spellcraft-notifs.js"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>
 <script src="spellcraft-economy.js"></script>
@@ -623,6 +624,24 @@ async function loadQuests(){
   progEl.innerHTML = '';
   if(progression.length===0) progEl.innerHTML = '<p class="empty-note">Toutes les quêtes de progression sont terminées pour l\'instant — reviens plus tard !</p>';
   progression.forEach(q=>progEl.appendChild(buildQuestCard(q)));
+
+  // Pastilles « ! » : une quête terminée attend d'être récupérée dans cette section.
+  try{
+    const claimable = (list)=>list.some(q=>q.completed && !q.claimed);
+    [['daily-list',daily],['weekly-list',weekly],['progression-list',progression]].forEach(([id,list])=>{
+      const h2 = document.getElementById(id).closest('.quest-section')?.querySelector('h2');
+      if(h2) scNotif.mark(h2, claimable(list), 'inline');
+    });
+  }catch(e){}
+  refreshCoffresNotif();
+}
+
+// Pastille « ! » sur l'onglet « Les coffres de Velkrin » : une ouverture est possible dans la grille.
+async function refreshCoffresNotif(){
+  try{
+    const tab = document.querySelector('.quest-tab[data-tab="coffres"]');
+    if(tab) scNotif.mark(tab, await scNotif.hasCalendarTicket(), 'out');
+  }catch(e){}
 }
 
 // Onglet « Les coffres de Velkrin » : visible seulement quand l'interrupteur serveur l'ouvre à tous.
@@ -644,6 +663,7 @@ window.addEventListener('message', e => {
   // La grille (iframe) demande à montrer les cartes gagnées dans la page entière, pas dans son petit cadre.
   // Récapitulatif d'une case (or, boosters ajoutés…) venant de la grille intégrée.
   if(e.origin === location.origin && e.data && e.data.type === 'coffres-recap' && typeof e.data.html === 'string'){
+    refreshCoffresNotif();
     document.getElementById('coffres-recap-content').innerHTML = e.data.html;
     document.getElementById('coffres-recap').classList.add('show');
     return;

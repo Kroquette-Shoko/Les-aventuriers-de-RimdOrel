@@ -491,6 +491,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>window.APP_TOPBAR_DISABLED = true;</script>
 <script src="spellcraft-shared.js"></script>
+<script src="spellcraft-notifs.js"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>
 <script src="spellcraft-economy.js"></script>
@@ -1194,6 +1195,7 @@ async function flashBoosterInventoryBadge(){
   const { data } = await sb.rpc('get_user_boosters');
   const total = (data && data.boosters) ? data.boosters.reduce((sum,b)=>sum+b.quantity, 0) : 0;
   badge.textContent = total;
+  try{ scNotif.mark('#my-boosters-btn', total>0, 'out'); }catch(e){} // « ! » : des boosters attendent d'être ouverts
   // Une fois tous les boosters ouverts (stock à 0), le bandeau "3 boosters
   // offerts" n'a plus lieu d'être — on le masque, y compris si la page est
   // rechargée plus tard avec ?fromTutorial=1 encore dans l'URL.
@@ -1620,6 +1622,18 @@ async function maybeGrantTutorialBoosters(){
 // d'enregistrer la réplique vue — voir le commentaire dans renderBrunoLine.
 const __spellcraftAuthReadyForBruno = initSpellcraftAuth();
 initShop();
+// « ! » jaune sur les rayons renouvelés depuis la dernière visite, puis la boutique est notée « vue ».
+(async function initShopNotifs(){
+  try{
+    await __spellcraftAuthReadyForBruno;
+    const n = await scNotif.shopNewness();
+    const head = (id)=>{ const el = document.getElementById(id); const sh = el && el.closest('.shelf'); return sh && sh.querySelector('h2'); };
+    scNotif.mark(head('shelf-singles'), n.dailyNew, 'inline');
+    scNotif.mark(head('shelf-boosters') || head('shelf-booster'), n.boostersNew, 'inline');
+    scNotif.mark(head('shelf-cardbacks') || head('shelf-backs'), n.backsNew, 'inline');
+    await scNotif.markShopSeen();
+  }catch(e){}
+})();
 sb.auth.onAuthStateChange(()=>{ refreshCurrency(); renderMinisetShelf(); renderCardBackShelf(); renderSingleShelf(); renderHeroShelf(); flashBoosterInventoryBadge(); });
 </script>
 

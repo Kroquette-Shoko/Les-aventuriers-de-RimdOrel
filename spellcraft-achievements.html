@@ -122,6 +122,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>window.APP_TOPBAR_DISABLED = true;</script>
 <script src="spellcraft-shared.js"></script>
+<script src="spellcraft-notifs.js"></script>
 <script src="spellcraft-auth.js"></script>
 <script>
 let achievements = [];
@@ -189,7 +190,9 @@ function renderCategoryTabs(){
     const list = achievements.filter(a=>(a.category||'autre')===c);
     const done = list.filter(a=>a.completed).length;
     const label = CATEGORY_LABELS[c] || 'Autre';
-    return `<button class="cat-tab ${c===activeCategory?'active':''}" onclick="switchCategory('${c}')">${label}<span class="cat-count">${done}/${list.length}</span></button>`;
+    // « ! » jaune : une récompense de cette catégorie attend d'être réclamée
+    const claimable = list.some(a=>a.completed && !a.claimed);
+    return `<button class="cat-tab ${c===activeCategory?'active':''}" onclick="switchCategory('${c}')">${label}<span class="cat-count">${done}/${list.length}</span>${claimable?'<span class="sc-notif sc-notif-inline" aria-label="Récompense à réclamer">!</span>':''}</button>`;
   }).join('');
 }
 
