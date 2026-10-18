@@ -2066,8 +2066,7 @@ function renderGameLog(){
           const fullAtAnimTime = cardId ? JOURNAL_CARD_LOOKUP[cardId] : null;
           if(!fullAtAnimTime) return Promise.resolve(); // carte vraiment introuvable (cas rarissime) : on ne bloque pas la file pour autant
           return playCardFlipReveal(fullAtAnimTime, {isTrap: entry.kind==='trap', isSpell: fullAtAnimTime.type==='Sortilège', backUrl: ownerBackUrl, fxMine: entry.ownerKey===MY_KEY}).then(()=>{
-            // créature de 10 de force ou plus : l'écran tremble à son arrivée
-            if(entry.kind==='play' && fullAtAnimTime.type==='Créature' && (fullAtAnimTime.atk||0)>=10 && !combatInstant()) shakeScreen('hitLarge');
+            // (le tremblement des créatures de 10 de force ou plus est joué par BFX à leur arrivée sur le plateau)
           });
         });
       }
@@ -4951,7 +4950,7 @@ function playKeywordBadgeChanges(plan){
         const dur = cms(KW_BADGE_GAIN_MS);
         cur.style.animationDuration = dur+'ms';
         cur.classList.add('kw-badge-gain');
-        if(window.BFX && !trailed.has(ch.instId)){ trailed.add(ch.instId); BFX.keywordTrail(ch.instId); } // lueur qui fait le tour de la carte
+        if(window.BFX && !trailed.has(ch.instId)){ trailed.add(ch.instId); BFX.keywordTrail(ch.instId, cur); } // lueur qui fait le tour de la carte
         setTimeout(()=>{ cur.classList.remove('kw-badge-gain'); cur.style.animationDuration = ''; }, dur+80);
       });
       plan.ghosts.forEach(spawnKeywordGhost);

@@ -69,9 +69,9 @@
 /* 4. Lueur qui fait le tour de la carte (mot-clé gagné) */
 .bfx-trail{position:absolute;inset:-4px;pointer-events:none;z-index:30;overflow:visible;}
 .bfx-trail svg{width:100%;height:100%;overflow:visible;}
-.bfx-trail rect{fill:none;stroke:#ffe9a0;stroke-width:5;stroke-linecap:round;filter:drop-shadow(0 0 6px #ffd23f) drop-shadow(0 0 14px #ffb300);
+.bfx-trail rect{fill:none;stroke:rgb(var(--bfx-c,255,233,160));stroke-width:5;stroke-linecap:round;filter:drop-shadow(0 0 6px rgb(var(--bfx-cg,255,210,63))) drop-shadow(0 0 14px rgb(var(--bfx-cg,255,179,0)));
   stroke-dasharray:22 78;stroke-dashoffset:0;animation:bfx-trail var(--bfx-dur,.9s) linear 2 both;}
-.bfx-trail rect.base{stroke:rgba(255,226,140,.35);stroke-dasharray:none;animation:bfx-trail-base calc(var(--bfx-dur,.9s) * 2) ease-out both;filter:drop-shadow(0 0 8px rgba(255,210,63,.8));}
+.bfx-trail rect.base{stroke:rgba(var(--bfx-c,255,226,140),.35);stroke-dasharray:none;animation:bfx-trail-base calc(var(--bfx-dur,.9s) * 2) ease-out both;filter:drop-shadow(0 0 8px rgba(var(--bfx-cg,255,210,63),.8));}
 @keyframes bfx-trail{to{stroke-dashoffset:-100;}}
 @keyframes bfx-trail-base{0%{opacity:0;}15%{opacity:1;}100%{opacity:0;}}
 
@@ -184,8 +184,10 @@
   }
 
   // ---------- 3. Arrivée d'une créature ----------
-  function bfxCreatureArrive(slotEl, mine) {
+  function bfxCreatureArrive(slotEl, mine, power) {
     if (!slotEl || off()) return;
+    // grosse créature (10 de force ou plus) : l'écran tremble au moment où elle touche le sol
+    if (power >= 10 && typeof window.shakeScreen === 'function') later(() => window.shakeScreen('hitLarge'), ms(260));
     const card = slotEl.firstElementChild || slotEl;
     const dur = ms(620);
     card.style.setProperty('--bfx-dur', dur + 'ms');
@@ -295,7 +297,31 @@
   }
 
   // ---------- 4. Lueur qui fait le tour de la carte (mot-clé gagné) ----------
-  function bfxKeywordTrail(instId) {
+  // Couleur dominante (la plus saturée) de l'icône du mot-clé, lue une seule fois par image.
+  const iconColors = {};
+  function iconColor(img) {
+    try {
+      if (!img || !img.complete || !img.naturalWidth) return null;
+      const key = img.currentSrc || img.src;
+      if (iconColors[key] !== undefined) return iconColors[key];
+      const c = document.createElement('canvas'); c.width = c.height = 24;
+      const x = c.getContext('2d'); x.drawImage(img, 0, 0, 24, 24);
+      const d = x.getImageData(0, 0, 24, 24).data;
+      let r = 0, g = 0, b = 0, w = 0;
+      for (let i = 0; i < d.length; i += 4) {
+        const a = d[i + 3]; if (a < 100) continue;
+        const mx = Math.max(d[i], d[i + 1], d[i + 2]), mn = Math.min(d[i], d[i + 1], d[i + 2]);
+        const sat = mx ? (mx - mn) / mx : 0, wt = (sat * sat + 0.02) * (a / 255);
+        r += d[i] * wt; g += d[i + 1] * wt; b += d[i + 2] * wt; w += wt;
+      }
+      if (!w) return (iconColors[key] = null);
+      r /= w; g /= w; b /= w;
+      const m = Math.max(r, g, b) || 1, k = 255 / m; // on remonte la luminosité pour que ça brille
+      return (iconColors[key] = [r * k, g * k, b * k].map((v) => Math.round(Math.min(255, v))));
+    } catch (e) { return null; } // image bloquée ou introuvable : lueur dorée par défaut
+  }
+
+  function bfxKeywordTrail(instId, iconEl) {
     try {
       if (off() || !instId) return;
       const host = document.querySelector('[data-instid="' + instId + '"]');
@@ -308,6 +334,12 @@
       box.className = 'bfx-trail';
       box.style.setProperty('--bfx-dur', dur + 'ms');
       box.innerHTML = '<svg viewBox="0 0 100 100" preserveAspectRatio="none"><rect class="base" x="1" y="1" width="98" height="98" rx="6" ry="6" pathLength="100" vector-effect="non-scaling-stroke"/><rect x="1" y="1" width="98" height="98" rx="6" ry="6" pathLength="100" vector-effect="non-scaling-stroke"/></svg>';
+      const col = iconColor(iconEl);
+      if (col) {
+        const pale = col.map((v) => Math.round(v + (255 - v) * 0.55)).join(',');
+        box.style.setProperty('--bfx-c', pale);
+        box.style.setProperty('--bfx-cg', col.join(','));
+      }
       card.appendChild(box);
       later(() => box.remove(), dur * 2 + 120);
     } catch (e) { /* ignoré */ }
@@ -434,7 +466,9 @@
         const old = new Set(prevC[k] || []);
         nowC[k].filter((id) => !old.has(id)).slice(0, 4).forEach((id, i) => {
           const el = document.querySelector('.lane .card-slot[data-inst-id="' + id + '"]');
-          if (el) later(() => bfxCreatureArrive(el, mine), i * 120);
+          const cr = (S[k].board || []).find((c) => c && c.instId === id) || {};
+          const power = Number(cr.curAtk != null ? cr.curAtk : cr.atk) || 0;
+          if (el) later(() => bfxCreatureArrive(el, mine, power), i * 120);
         });
         const oldR = new Set(prevR[k] || []);
         nowR[k].filter((id) => !oldR.has(id)).slice(0, 2).forEach((id, i) => {
