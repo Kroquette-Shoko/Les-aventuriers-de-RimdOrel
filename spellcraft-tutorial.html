@@ -885,10 +885,10 @@ body.targeting *{cursor:crosshair !important;}
   .deck-counts{display:flex;flex-direction:column;gap:8px;}
 
   .artifact-stack{position:absolute;display:flex;gap:6px;align-items:center;}
-  /* Zones d'artefact alliées : empilées l'une au-dessus de l'autre (et non plus côte à côte),
-     pour que la main ne cache plus l'une des deux. Hauteur réduite (100px) pour que les deux
-     tiennent dans la rangée du joueur. */
-  .board-row.self .artifact-stack{right:280px;bottom:12px;flex-direction:column;align-items:flex-end;}
+  /* Zones d'artefact alliées : côte à côte (l'une à droite de l'autre), placées entre le bouton
+     « Fin de tour » (en haut) et le deck (en bas), alignées sur le bord droit du deck.
+     bottom = 16px (bas du deck) + 189px (hauteur du deck) + 10px d'écart. */
+  .board-row.self .artifact-stack{right:27px;bottom:215px;flex-direction:row;align-items:flex-end;}
   .board-row.self .artifact-stack .relic-slot{height:100px;}
   .board-row.enemy .artifact-stack{left:265px;top:14px;bottom:auto;flex-direction:row;}
   .artifact-stack .relic-slot{width:148px;height:148px;}
