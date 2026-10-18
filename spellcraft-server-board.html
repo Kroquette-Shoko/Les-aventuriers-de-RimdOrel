@@ -858,9 +858,9 @@ body.targeting *{cursor:crosshair !important;}
      « Fin de tour » (en haut) et le deck (en bas), alignées sur le bord droit du deck.
      bottom = 16px (bas du deck) + 189px (hauteur du deck) + 10px d'écart. */
   .board-row.self .artifact-stack{right:27px;bottom:215px;flex-direction:row;align-items:flex-end;}
-  .board-row.self .artifact-stack .relic-slot{height:100px;}
   .board-row.enemy .artifact-stack{left:265px;top:14px;bottom:auto;flex-direction:row;}
-  .artifact-stack .relic-slot{width:148px;height:148px;}
+  /* Carré 142×142 = taille exacte de la petite carte d'artefact (.ncard.n-small.n-artifact-card) */
+  .artifact-stack .relic-slot{width:142px;height:142px;}
   .relic-slot-empty{border:2px dashed hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 25.8%) 34.9%);border-radius:8px;background:hsl(calc(var(--th, 252) - 4.5) calc(var(--ts-n, 1) * 28.6%) 5.5% / .4);}
   .relic-slot-empty.drop-target{border-color:var(--gold);background:rgba(212,175,55,.12);}
   .artifact-stack .relic-slot .card{transform:scale(.5);transform-origin:top left;}
