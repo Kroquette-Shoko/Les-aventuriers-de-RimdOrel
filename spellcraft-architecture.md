@@ -199,3 +199,5 @@ Ce qui est propre au tutoriel :
   - Non touchés : boosters non ouverts, historique de parties, achats boutique, pseudo, avatar Discord, état du tutoriel.
   - Cadeau : toutes les cartes des sets `is_base` (2 exemplaires, 1 si légendaire — même règle que `grant_full_catalog_to_user`), 3000 or, dos `back_1792339255407` (« Le premier royaume »), titre `title_1792339273271` (« Premier / Première »).
 - **Héros et cartes associées** : une carte est associée à un héros si `data.hero` = nom du héros. Déclencheur `on_user_card_hero_grant` (sur `user_cards`) : toute obtention d'un héros donne ses cartes associées en 2 exemplaires. Déclencheur `on_card_hero_associated` (sur `cards`) : une carte créée ou rattachée à un héros est donnée aux joueurs qui possèdent déjà ce héros (héros « en attente de cartes »). Ces règles ne retirent ni ne diminuent jamais de cartes.
+
+- Blocage : quand un bloqueur est sélectionné (`UI.pendingBlocker`), `syncTargetingArrow()` affiche la flèche de ciblage depuis cette créature, avec la classe `body.block-targeting` : la flèche alterne bleu/rouge (animations `block-target-line` / `block-target-fill`) jusqu'au choix de l'attaquant.

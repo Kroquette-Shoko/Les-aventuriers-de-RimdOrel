@@ -659,6 +659,18 @@ body.targeting *{cursor:crosshair !important;}
 #target-arrow{fill:var(--arcane);filter:drop-shadow(0 0 10px var(--arcane)) drop-shadow(0 0 20px var(--arcane));}
 @keyframes target-dash{to{stroke-dashoffset:-18;}}
 body.targeting *{cursor:crosshair !important;}
+/* Choix de la cible d'un blocage : même flèche que le ciblage, mais elle alterne bleu / rouge */
+@keyframes block-target-line{
+  0%,100%{stroke:#3d9bff;filter:drop-shadow(0 0 12px #3d9bff) drop-shadow(0 0 22px #3d9bff);}
+  50%{stroke:#ff4a40;filter:drop-shadow(0 0 12px #ff4a40) drop-shadow(0 0 22px #ff4a40);}
+}
+@keyframes block-target-fill{
+  0%,100%{fill:#3d9bff;filter:drop-shadow(0 0 10px #3d9bff) drop-shadow(0 0 20px #3d9bff);}
+  50%{fill:#ff4a40;filter:drop-shadow(0 0 10px #ff4a40) drop-shadow(0 0 20px #ff4a40);}
+}
+body.block-targeting #target-line{animation:target-dash .5s linear infinite, block-target-line 1.2s ease-in-out infinite;}
+body.block-targeting #target-origin,
+body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out infinite;}
 #block-arrows-layer{position:fixed;inset:0;pointer-events:none;z-index:9997;width:100%;height:100%;}
 .block-arrow-line{stroke:var(--blood);stroke-width:6;stroke-linecap:round;filter:drop-shadow(0 0 10px var(--blood)) drop-shadow(0 0 20px var(--blood));stroke-dasharray:13 7;animation:target-dash .4s linear infinite;}
 .block-arrow-head{fill:var(--blood);filter:drop-shadow(0 0 10px var(--blood)) drop-shadow(0 0 20px var(--blood));}
@@ -3652,7 +3664,7 @@ function render(){
 // à chaque rendu, une fois le DOM reconstruit (pour pouvoir localiser
 // l'élément source).
 function syncTargetingArrow(){
-  let sourceEl = null;
+  let sourceEl = null, blockMode = false;
   if(UI.pendingNewTarget){
     const extra = UI.pendingNewTarget.extra || {};
     if(UI.pendingNewTarget.kind==='card' && extra.index!==undefined){
@@ -3670,7 +3682,12 @@ function syncTargetingArrow(){
   } else if(UI.pendingCard && UI.pendingCard.index!==undefined){
     const slots = document.querySelectorAll('.hand-card-slot');
     sourceEl = slots[UI.pendingCard.index] || null;
+  } else if(UI.pendingBlocker && S.phase==='declareBlockersMe' && S.active===OPP_KEY){
+    // Bloqueur sélectionné : flèche bleu/rouge jusqu'à l'attaquant à bloquer
+    sourceEl = document.querySelector(`#lane-p1 [data-instid="${UI.pendingBlocker}"]`);
+    blockMode = !!sourceEl;
   }
+  document.body.classList.toggle('block-targeting', blockMode);
   if(sourceEl) beginTargeting(sourceEl);
   else endTargeting();
 }
@@ -4796,6 +4813,7 @@ let DRAG_STATE = null;
    ============================================================ */
 let targetSource = null;
 let targetMouse = null;
+let lastMousePos = null; // dernière position connue de la souris (la flèche ne repart pas de la source à chaque rendu)
 
 function elCenter(el){
   const r = el.getBoundingClientRect();
@@ -4805,13 +4823,14 @@ function beginTargeting(el){
   if(!el) return;
   hidePreview();
   targetSource = elCenter(el);
-  targetMouse = {...targetSource};
+  targetMouse = lastMousePos ? {...lastMousePos} : {...targetSource};
   document.body.classList.add('targeting');
   drawTargetLine();
 }
 function endTargeting(){
   targetSource = null; targetMouse = null;
   document.body.classList.remove('targeting');
+  document.body.classList.remove('block-targeting');
   document.getElementById('target-line').style.display='none';
   document.getElementById('target-origin').style.display='none';
   document.getElementById('target-arrow').style.display='none';
@@ -4837,6 +4856,7 @@ function drawTargetLine(){
   arrow.style.display='block';
 }
 document.addEventListener('mousemove', (e)=>{
+  lastMousePos = {x:e.clientX, y:e.clientY};
   if(!targetSource) return;
   targetMouse = {x:e.clientX, y:e.clientY};
   drawTargetLine();
