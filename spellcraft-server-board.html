@@ -2005,7 +2005,9 @@ function renderGameLog(){
   // Événements de combat structurés (chiffres exacts) : une seule lecture par
   // rendu ; chaque entrée de journal « consomme » son événement (takeCombatEvent).
   const newCombatEvents = getNewCombatEvents();
-  getNewGameLogEntries().forEach(entry=>{
+  const __batchEntries = getNewGameLogEntries();
+  const __batchDeadIds = collectBatchDeadIds(__batchEntries);
+  __batchEntries.forEach(entry=>{
     flushAwaitingStrikes(entry.seq, newCombatEvents);
     if(entry.raw){
       if(entry.raw.includes('attaque avec')){
@@ -2115,10 +2117,13 @@ function renderGameLog(){
       // Créature posée (déjà sur le plateau) : pose animée petite, sans grande carte au milieu
       let landed = false;
       if(entry.kind==='play' && entry.sourceInstId && window.BFX && !combatInstant()
-         && document.querySelector(`.lane .card-slot[data-inst-id="${entry.sourceInstId}"]`)){
+         && (document.querySelector(`.lane .card-slot[data-inst-id="${entry.sourceInstId}"]`) || __boardRenderFrozen)){
         const crOnBoard = findCreatureInState(S, entry.sourceInstId);
         if(crOnBoard){
-          planCreatureLanding(entry, (entry.cardId && JOURNAL_CARD_LOOKUP[entry.cardId]) || crOnBoard);
+          // Plateau gelé (une mort est dans le même lot) : la créature n'est pas encore à l'écran ;
+          // sa pose affichera d'abord le plateau « jusqu'ici » (voir renderStagedBoardView), pour
+          // qu'elle arrive AVANT que ses effets (cible détruite...) ne se voient.
+          planCreatureLanding(entry, (entry.cardId && JOURNAL_CARD_LOOKUP[entry.cardId]) || crOnBoard, { stageDeadIds: __batchDeadIds });
           landed = true;
         }
       }
@@ -2949,6 +2954,51 @@ function scheduleAiTurn(){
 // attaquants : S est remplacé le temps d'un rendu par combatHeldView(S) (cartes
 // jouées visibles, aucun attaquant, phase principale). S reste l'état réel
 // ensuite ; le gel est conservé (la libération de la file rend l'état final).
+// Créatures qui meurent (ou sont détruites / sacrifiées) dans ce lot d'entrées du journal.
+function collectBatchDeadIds(entries){
+  const ids = [];
+  (entries||[]).forEach(e=>{
+    if(!e || e.raw) return;
+    if(e.deadInstId) ids.push(e.deadInstId);
+    (e.effects||[]).forEach(eff=>{
+      if(/meurt au combat|est détruite|^détruit "|^sacrifie "/i.test(eff.text||'')) (eff.targetInstIds||[]).forEach(i=>ids.push(i));
+    });
+  });
+  return ids;
+}
+// Plateau « jusqu'ici » : l'état final, mais avec les créatures qui vont mourir plus loin dans
+// le lot remises à leur place (prises dans l'état précédent). Fonction pure.
+function stagedBoardView(real, prev, deadIds){
+  const view = Object.assign({}, real);
+  ['p1','p2'].forEach(k=>{
+    if(!real[k] || !prev || !prev[k]) return;
+    const board = (real[k].board||[]).slice();
+    const prevBoard = prev[k].board||[];
+    (deadIds||[]).forEach(id=>{
+      const i = prevBoard.findIndex(c=>c && c.instId===id);
+      if(i<0 || board.some(c=>c && c.instId===id)) return;
+      board.splice(Math.min(i, board.length), 0, prevBoard[i]);
+    });
+    view[k] = Object.assign({}, real[k], { board });
+  });
+  return view;
+}
+// Affiche ce plateau intermédiaire le temps d'un rendu ; S reste l'état réel, le gel est conservé.
+function renderStagedBoardView(deadIds){
+  if(!S) return;
+  const real = S, wasFrozen = __boardRenderFrozen;
+  try{
+    S = stagedBoardView(real, PREV_S, deadIds);
+    __boardRenderFrozen = false;
+    render();
+  } catch(e){
+    console.error('Plateau intermédiaire', e);
+  } finally {
+    S = real;
+    __boardRenderFrozen = wasFrozen;
+    __boardRenderDirty = false;
+  }
+}
 function renderHeldCombatView(){
   if(!S) return;
   const real = S, wasFrozen = __boardRenderFrozen;
@@ -5406,7 +5456,7 @@ function releaseCreatureLanding(id){
 }
 // Appelée de façon synchrone à la lecture du journal : réserve la créature
 // (cachée + arrivée BFX retenue), puis met le vol en file.
-function planCreatureLanding(entry, card){
+function planCreatureLanding(entry, card, opts){
   const id = entry.sourceInstId, mine = entry.ownerKey===MY_KEY;
   LAND_HIDE.add(id); syncLandHideStyle();
   if(window.BFX) BFX.claim(id);
@@ -5414,7 +5464,11 @@ function planCreatureLanding(entry, card){
   registerCombatCleanup(()=>{ if(flyer) flyer.remove(); releaseCreatureLanding(id); });
   const ownerP = S[entry.ownerKey];
   queueCombatAnim(async ()=>{
-    const slot = document.querySelector(`.lane .card-slot[data-inst-id="${id}"]`);
+    let slot = document.querySelector(`.lane .card-slot[data-inst-id="${id}"]`);
+    if(!slot && opts && opts.stageDeadIds && __boardRenderFrozen){
+      renderStagedBoardView(opts.stageDeadIds);
+      slot = document.querySelector(`.lane .card-slot[data-inst-id="${id}"]`);
+    }
     if(!slot){ releaseCreatureLanding(id); return; }
     const W = 260, H = 366;
     const sr = slot.getBoundingClientRect();
