@@ -36,6 +36,21 @@
   font-size:clamp(46px,9vw,104px);line-height:1;letter-spacing:2px;
   text-shadow:0 3px 0 rgba(0,0,0,.5),0 0 28px rgba(0,0,0,.85),0 0 46px rgba(242,207,90,.35);
 }
+/* Compte à rebours du lancement de la saison 0 */
+.season-countdown{
+  margin:-6px auto 22px;max-width:620px;text-align:center;padding:12px 18px 14px;
+  border:1px solid color-mix(in srgb,var(--gold) 55%,transparent);border-radius:14px;
+  background:linear-gradient(180deg,rgba(0,0,0,.42),rgba(0,0,0,.28));
+  box-shadow:0 0 24px rgba(242,207,90,.12) inset,0 6px 22px rgba(0,0,0,.35);
+}
+.season-countdown[hidden]{display:none;}
+.season-countdown-label{font-size:12.5px;letter-spacing:2.2px;text-transform:uppercase;color:var(--parchment-dim);}
+.season-countdown-time{display:flex;justify-content:center;gap:clamp(8px,2.4vw,18px);margin-top:8px;}
+.season-countdown-unit{min-width:58px;}
+.season-countdown-num{display:block;font-size:clamp(26px,5.4vw,40px);font-weight:700;line-height:1.1;color:var(--gold-bright);font-variant-numeric:tabular-nums;text-shadow:0 2px 0 rgba(0,0,0,.5),0 0 18px rgba(242,207,90,.35);}
+.season-countdown-name{display:block;font-size:11px;letter-spacing:1.6px;text-transform:uppercase;color:var(--parchment-dim);margin-top:2px;}
+.season-countdown-done{font-size:15px;line-height:1.5;color:var(--parchment);}
+.season-countdown-done strong{color:var(--gold-bright);}
 .hub-footer{margin-top:10px;text-align:center;color:var(--parchment-dim);font-size:11.5px;max-width:600px;line-height:1.6;}
 .hub-footer strong{color:var(--parchment);}
 
@@ -67,6 +82,22 @@
   <div class="sc-container hub-container">
     <div class="hub-title-row">
       <h1 class="sc-h1">Rimd'Orël</h1>
+    </div>
+
+    <div class="season-countdown" id="season-countdown" role="timer" aria-live="off" hidden>
+      <div id="season-countdown-live">
+        <div class="season-countdown-label">Lancement de la saison 0</div>
+        <div class="season-countdown-time">
+          <span class="season-countdown-unit"><span class="season-countdown-num" id="scd-d">0</span><span class="season-countdown-name" id="scn-d">jours</span></span>
+          <span class="season-countdown-unit"><span class="season-countdown-num" id="scd-h">00</span><span class="season-countdown-name" id="scn-h">heures</span></span>
+          <span class="season-countdown-unit"><span class="season-countdown-num" id="scd-m">00</span><span class="season-countdown-name" id="scn-m">minutes</span></span>
+          <span class="season-countdown-unit"><span class="season-countdown-num" id="scd-s">00</span><span class="season-countdown-name" id="scn-s">secondes</span></span>
+        </div>
+      </div>
+      <div class="season-countdown-done" id="season-countdown-done" hidden>
+        <strong>La saison 0 est lancée !</strong><br>
+        Les comptes sont remis à zéro : si ton or ou ta collection n'ont pas encore changé, recharge la page dans quelques minutes.
+      </div>
     </div>
 
     <div class="sc-nav-grid sc-nav-grid-feature">
@@ -331,5 +362,42 @@ async function savePatchNote(){
 }
 </script>
 
+<script>
+/* Compte à rebours : mardi 20 octobre 2026, 00h00 à Paris (heure d'été = UTC+2) = lundi 19 octobre 22h00 UTC.
+   Après le lancement, le message « saison 0 lancée » reste affiché 48 h puis disparaît. */
+(function(){
+  var LAUNCH = Date.UTC(2026, 9, 19, 22, 0, 0);
+  var HIDE_AFTER = LAUNCH + 48 * 3600 * 1000;
+  var box = document.getElementById('season-countdown');
+  if(!box) return;
+  var live = document.getElementById('season-countdown-live');
+  var done = document.getElementById('season-countdown-done');
+  var el = { d: document.getElementById('scd-d'), h: document.getElementById('scd-h'),
+             m: document.getElementById('scd-m'), s: document.getElementById('scd-s') };
+  var names = { d: document.getElementById('scn-d'), h: document.getElementById('scn-h'),
+                m: document.getElementById('scn-m'), s: document.getElementById('scn-s') };
+  function pad(n){ return n < 10 ? '0' + n : String(n); }
+  function tick(){
+    var now = Date.now();
+    if(now >= HIDE_AFTER){ box.hidden = true; return false; }
+    box.hidden = false;
+    if(now >= LAUNCH){ live.hidden = true; done.hidden = false; return false; }
+    live.hidden = false; done.hidden = true;
+    var left = Math.floor((LAUNCH - now) / 1000);
+    el.d.textContent = String(Math.floor(left / 86400));
+    el.h.textContent = pad(Math.floor(left % 86400 / 3600));
+    el.m.textContent = pad(Math.floor(left % 3600 / 60));
+    el.s.textContent = pad(left % 60);
+    var v = { d: Math.floor(left / 86400), h: Math.floor(left % 86400 / 3600), m: Math.floor(left % 3600 / 60), s: left % 60 };
+    names.d.textContent = v.d > 1 ? 'jours' : 'jour';
+    names.h.textContent = v.h > 1 ? 'heures' : 'heure';
+    names.m.textContent = v.m > 1 ? 'minutes' : 'minute';
+    names.s.textContent = v.s > 1 ? 'secondes' : 'seconde';
+    return true;
+  }
+  if(!tick()) return;
+  var timer = setInterval(function(){ if(!tick()) clearInterval(timer); }, 1000);
+})();
+</script>
 </body>
 </html>
