@@ -1,0 +1,28 @@
+<div id="tut-topbar">
+  <div class="tut-step-badge" id="tut-step-badge">Partie 1/10</div>
+  <div class="tut-body">
+    <div class="tut-title" id="tut-title">Bienvenue</div>
+    <div class="tut-text" id="tut-text"></div>
+    <div class="tut-hint" id="tut-hint" style="display:none;"></div>
+  </div>
+  <button id="tut-continue-btn" onclick="tutOnContinueClick()" style="display:none;">Continuer</button>
+  <button id="tut-skip-btn" onclick="tutSkip()">Passer le tutoriel</button>
+</div>
+<div id="tut-flash"></div>
+
+<div id="tut-end-screen">
+  <div id="tut-end-card">
+    <h2>Vous connaissez les bases !</h2>
+    <p>Vous savez maintenant jouer des créatures, attaquer et bloquer, utiliser les principaux mots-clés, activer un artefact, poser un piège, lancer un sortilège et lire le journal.<br><br>
+    Direction la <strong>boutique</strong> : 3 boosters « Booster classique » vous y attendent, offerts. Ouvrez-les, puis rendez-vous dans votre <strong>collection</strong> pour construire votre tout premier deck — un guide rapide vous accompagnera pas à pas.<br><br>
+    Pour le détail complet d'un tour, de chaque mot-clé et du fonctionnement précis des cartes, consultez <strong>le Grimoire</strong> — il reste accessible à tout moment depuis le hub.</p>
+    <div class="tut-end-btns">
+      <button onclick="tutGoToShop()">🎁 Aller à la boutique (3 boosters offerts)</button>
+      <button class="secondary" onclick="tutFinish()">Retourner au hub</button>
+      <button class="secondary" onclick="tutOpenGrimoire()">Ouvrir le Grimoire</button>
+    </div>
+  </div>
+</div>
+
+
+

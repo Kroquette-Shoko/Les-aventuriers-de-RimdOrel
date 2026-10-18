@@ -1,0 +1,40 @@
+#sc-options-gear{top:66px !important;right:14px !important;}
+#sc-options-modal{top:160px !important;}
+#tut-topbar{position:fixed;top:0;left:0;right:0;height:92px;z-index:99999;background:linear-gradient(180deg,hsl(calc(var(--th, 252) + 1.3) calc(var(--ts-n, 1) * 32.1%) 11%),hsl(calc(var(--th, 252) - 2) calc(var(--ts-n, 1) * 27.3%) 8.6%));border-bottom:2px solid var(--gold);display:flex;align-items:center;gap:16px;padding:0 20px;font-family:'Inter',sans-serif;}
+#tut-topbar .tut-step-badge{font-family:'Cinzel',serif;font-weight:700;color:#08202b;background:var(--gold);border-radius:20px;padding:5px 12px;font-size:11.5px;white-space:nowrap;flex-shrink:0;}
+#tut-topbar .tut-body{flex:1;min-width:0;}
+#tut-topbar .tut-title{font-family:'Cinzel',serif;font-weight:700;color:var(--gold);font-size:14px;margin-bottom:2px;}
+#tut-topbar .tut-text{font-size:12.5px;line-height:1.35;color:var(--parchment);max-width:900px;}
+#tut-topbar .tut-hint{font-size:11px;color:var(--frost);font-style:italic;margin-top:2px;}
+#tut-continue-btn{flex-shrink:0;background:var(--gold);color:#221a08;border:none;font-family:'Cinzel',serif;font-weight:700;font-size:12.5px;padding:9px 16px;border-radius:8px;cursor:pointer;}
+#tut-continue-btn:hover{filter:brightness(1.1);}
+#tut-skip-btn{flex-shrink:0;background:transparent;border:1px solid rgba(239,230,200,.35);color:var(--parchment-dim);font-family:'Inter',sans-serif;font-size:11.5px;padding:8px 12px;border-radius:8px;cursor:pointer;}
+#tut-skip-btn:hover{border-color:var(--gold);color:var(--gold);}
+#tut-flash{position:fixed;top:104px;left:50%;transform:translateX(-50%);background:var(--bg-panel-2,hsl(calc(var(--th, 252) + 1.6) calc(var(--ts-n, 1) * 29.7%) 14.5%));border:1px solid var(--gold);color:var(--parchment);font-size:13px;padding:8px 16px;border-radius:8px;z-index:99998;opacity:0;transition:opacity .25s ease;pointer-events:none;}
+#tut-flash.show{opacity:1;}
+.tut-glow{outline:3px solid var(--gold) !important;outline-offset:3px;box-shadow:0 0 18px rgba(212,175,55,.85) !important;animation:tutPulse 1.1s ease-in-out infinite;border-radius:8px;}
+@keyframes tutPulse{0%,100%{outline-color:rgba(212,175,55,.7);}50%{outline-color:rgba(212,175,55,1);}}
+#tut-end-screen{position:fixed;inset:0;background:rgba(4,3,8,.88);z-index:999999;display:none;align-items:center;justify-content:center;}
+#tut-end-screen.show{display:flex;}
+#tut-end-card{background:var(--bg-panel);border:2px solid var(--gold);border-radius:16px;padding:34px 40px;max-width:460px;text-align:center;font-family:'Inter',sans-serif;}
+#tut-end-card h2{font-family:'Cinzel',serif;color:var(--gold);margin:0 0 12px;}
+#tut-end-card p{color:var(--parchment-dim);font-size:14px;line-height:1.6;}
+#tut-end-card .tut-end-btns{display:flex;gap:10px;justify-content:center;margin-top:16px;}
+#tut-end-card button{background:var(--gold);color:#221a08;border:none;font-family:'Cinzel',serif;font-weight:700;font-size:13.5px;padding:11px 20px;border-radius:9px;cursor:pointer;}
+#tut-end-card button.secondary{background:transparent;border:2px solid var(--gold);color:var(--gold);}
+html::-webkit-scrollbar, body::-webkit-scrollbar{width:0;height:0;background:transparent;}
+#emote-toggle-btn, #journal-toggle-btn, #leave-game-btn, #report-bug-btn, #reveal-hand-toggle-btn{width:44px;height:36px;border-radius:10px;background:hsl(calc(var(--th, 252) + 1.3) calc(var(--ts-n, 1) * 32.1%) 11% / .85);border:2px solid rgba(212,175,55,.45);color:#f2ead2;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;}
+#reveal-hand-toggle-btn.active{border-color:var(--gold,#d4af37);background:rgba(212,175,55,.25);}
+/* ---- Spécifique au tutoriel (la bande de narration remplace la barre du haut de la vraie partie) ---- */
+#board-scale-outer{inset:auto;top:92px;left:0;right:0;bottom:0;}
+@media (max-height:600px){
+  #tut-topbar{height:66px;padding:0 12px;gap:10px;}
+  #tut-topbar .tut-title{font-size:12px;margin-bottom:0;}
+  #tut-topbar .tut-text{font-size:10.5px;line-height:1.25;max-width:none;}
+  #tut-topbar .tut-hint{display:none;}
+  #tut-topbar .tut-step-badge{font-size:10px;padding:4px 8px;}
+  #board-scale-outer{top:66px;}
+}
+#app-outer{display:none;height:1024px;} /* hauteur réelle posée par spellcraft-board-fit.js */
+#app-outer.show{display:flex;}
+#reveal-hand-toggle-btn, #leave-game-btn, #report-bug-btn{display:none !important;}
