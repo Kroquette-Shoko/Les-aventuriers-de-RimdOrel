@@ -49,7 +49,7 @@ def defs(u=''):
      '</defs>')
 
 def ids(svg,u):  # préfixe les ids pour qu'ils restent uniques dans une même page
-    for k in ['BB','GG','PP','OO','LL','NN','CP','FXC','FXF','FXG','FXL','FXB','FXM','FXK']:
+    for k in ['BB','GG','PP','OO','LL','NN','CP','CW','FXC','FXF','FXG','FXL','FXB','FXM','FXK']:
         svg=svg.replace(f'id="{k}"',f'id="{u}{k}"').replace(f'url(#{k})',f'url(#{u}{k})')
     return svg
 
@@ -75,8 +75,13 @@ PLATEH="M20,354 L34,338 H266 L280,354 L266,370 H34 Z"
 def big_svg(t,u,fx='etincelles'):
     d=BIG[t]; o,w=d['O'],d['W']
     s=['<svg class="fr" viewBox="0 0 300 423" width="300" height="423" xmlns="http://www.w3.org/2000/svg">',defs()]
+    # Sortilège / Piège : la fenêtre d'illustration déborde du haut de la carte ; le trait du cadre
+    # extérieur ne doit pas la traverser (on le découpe : tout sauf l'intérieur de la fenêtre).
+    cut = t in ('spell','trap')
+    if cut: s.append(f'<clipPath id="CW"><path d="M-300,-300 H700 V800 H-300 Z {w}" clip-rule="evenodd"/></clipPath><g clip-path="url(#CW)">')
     s.append(f'<path d="{o}" fill="none" stroke="url(#GG)" stroke-width="6"/><path d="{o}" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width=".8" transform="translate(150 211.5) scale(.985) translate(-150 -211.5)"/>')
     s.append(f'<path d="{o}" fill="none" stroke="#2a1a08" stroke-opacity=".7" stroke-width="1.5" transform="translate(150 211.5) scale(.955) translate(-150 -211.5)"/>')
+    if cut: s.append('</g>')
     sc='stroke="var(--c3)" stroke-opacity=".5" stroke-width="2" fill="none" stroke-linecap="round"'
     s.append(f'<g {sc}><path d="M60,404 Q150,396 240,404"/></g>')
     s.append(f'<path d="{w}" fill="none" stroke="#2a1a08" stroke-opacity=".6" stroke-width="9"/>')
