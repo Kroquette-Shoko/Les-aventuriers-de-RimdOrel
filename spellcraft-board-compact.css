@@ -24,7 +24,7 @@ html.bd-compact #card-preview{zoom:var(--bd-prev-zoom, .8);}
 /* Écran tactile : pas de survol → la main reste à moitié sortie en permanence
    (les cartes se glissent-déposent au doigt, géré par les événements de pointeur de la page). */
 html.bd-touch .hand-row{transform:translateY(58px);}
-html.bd-touch .hand-card-slot:hover{transform:translateY(var(--fy,0px)) rotate(var(--fr,0deg));}
+html.bd-touch .hand-card-slot:hover .ncard.hand-card{transform:translateY(var(--fy,0px)) translate(88.5px,250px) rotate(var(--fr,0deg)) translate(-88.5px,-250px) scale(0.59);}
 html.bd-touch{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;}
 html.bd-touch body{overscroll-behavior:none;}
 

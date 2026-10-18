@@ -407,10 +407,14 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .hand-row::-webkit-scrollbar{height:0;width:0;background:transparent;}
 /* Main en éventail : applyHandFan() pose --fr (inclinaison) et --fy (descente des cartes de bord) sur chaque carte,
    et un léger chevauchement (marge négative). Au survol, la carte se redresse, monte et passe devant. */
-.hand-card-slot{pointer-events:auto;position:relative;width:177px;height:250px;flex-shrink:0;transform-origin:50% 100%;transform:translateY(var(--fy,0px)) rotate(var(--fr,0deg));transition:transform .15s ease;}
-.hand-card-slot:hover{transform:translateY(-34px) rotate(0deg) scale(1.08);z-index:50;}
+.hand-card-slot{pointer-events:auto;position:relative;width:177px;height:250px;flex-shrink:0;}
+.hand-card-slot:hover{z-index:50;}
 .hand-card-slot.hand-reorder-src{z-index:49;}
-.hand-card-slot .ncard.hand-card{transform:scale(0.59);transform-origin:top left;}
+/* IMPORTANT : l'éventail et l'effet de survol s'appliquent à l'IMAGE de la carte (.ncard), jamais à la case (.hand-card-slot)
+   qui reçoit la souris. Si la case bougeait au survol, la carte se dérobait sous le curseur, perdait le survol, revenait,
+   le retrouvait... et la main « sautillait » sans que la souris bouge. Pivot de l'inclinaison = bas centre de la carte (88,5 × 250). */
+.hand-card-slot .ncard.hand-card{transform-origin:0 0;transform:translateY(var(--fy,0px)) translate(88.5px,250px) rotate(var(--fr,0deg)) translate(-88.5px,-250px) scale(0.59);transition:transform .15s ease;}
+.hand-card-slot:hover .ncard.hand-card{transform:translateY(-34px) translate(88.5px,125px) scale(1.08) translate(-88.5px,-125px) scale(0.59);}
 
 .enemy-hand-row{position:fixed;top:56px;left:0;right:0;z-index:39;display:flex;flex-wrap:nowrap;overflow:visible;gap:0;justify-content:center;padding:6px 14px 30px;pointer-events:none;}
 .enemy-hand-card{width:92px;height:130px;border-radius:8px;background-size:cover;background-position:center;background-color:hsl(calc(var(--th, 252) + 0.9) calc(var(--ts-n, 1) * 28%) 19.6%);border:2px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));box-shadow:0 4px 10px rgba(0,0,0,.5);transform:translateY(var(--ey,0px)) rotate(calc(180deg + var(--er,0deg)));flex-shrink:0;}
@@ -1244,7 +1248,7 @@ const CARD_FRAME_KEYWORD_ICONS = {
   assault: `images/${KEYWORD_ICON_FILES.assault}`,
   final:   `images/${KEYWORD_ICON_FILES.final}`
 };
-const KEYWORDS_DRAWN_BY_CARD_FRAME = Object.keys(CARD_FRAME_KEYWORD_ICONS);
+const KEYWORDS_DRAWN_BY_CARD_FRAME = []; // plus aucun mot-clé dessiné par le cadre : tous passent par la pile de badges
 
 // Mots-clés dont un badge est affiché MAINTENANT dans la pile d'une créature
 // en jeu (sans doublon, ordre de la carte conservé).
@@ -2809,6 +2813,9 @@ function onStateUpdate(state){
     const rev = (state.__rev|0);
     const known = Math.max((S && S.__rev)|0, (__pendingStateWhileAnimating && __pendingStateWhileAnimating.__rev)|0);
     if(rev < known){ return; }
+    // Même numéro de sauvegarde que l'état déjà affiché = état identique (cas de la resynchro silencieuse toutes les 6 s) :
+    // inutile de tout reconstruire (ça faisait « sautiller » la main sous une souris immobile).
+    if(rev > 0 && S && S.p1 && ((S.__rev|0) === rev) && !__pendingStateWhileAnimating){ return; }
   }
   // Une animation de combat est en cours (voir queueCombatAnim) : re-rendre
   // maintenant reconstruirait la carte en plein vol et la ferait
@@ -3237,12 +3244,8 @@ function buildNewCardEl(card, size, effectiveCostOverride, opts={}){
   // sans icône) — uniquement sur le plateau, format small, en rangée
   // au-dessus de la gemme de rareté.
   const kw = card.keywords || [];
-  if(!isHero && size==='small' && kw.includes('assault')){
-    root.appendChild(nImg(CARD_FRAME_KEYWORD_ICONS.assault, 'nkeyword-icon nkeyword-assault'));
-  }
-  if(!isHero && size==='small' && kw.includes('final')){
-    root.appendChild(nImg(CARD_FRAME_KEYWORD_ICONS.final, 'nkeyword-icon nkeyword-final'));
-  }
+  // (Assaut / Final sont maintenant dans la pile de badges en haut à droite, comme tous les autres mots-clés :
+  //  même taille, même niveau — voir activeBadgeKeywords.)
 
   if(window.SCCardRender) SCCardRender.decorate(root, card, size, opts);
   return root;
@@ -4696,8 +4699,8 @@ async function toggleRevealHandToSpectators(){
 }
 
 function renderHand(){
-  const el = document.getElementById('hand-p1');
-  el.innerHTML = '';
+  const live = document.getElementById('hand-p1');
+  let el = live;
   const p = S[MY_KEY];
   const myTurn = S.active===MY_KEY;
   const hand = p.hand||[];
@@ -4709,6 +4712,7 @@ function renderHand(){
   // l'autre main.
   if(GS_ROLE==='spectator' && !p.showHandToSpectators){
     el.innerHTML = '';
+    live.dataset.sig = '';
     const backUrl = p.cardBackUrl;
     hand.forEach(()=>{
       const c = document.createElement('div');
@@ -4730,6 +4734,8 @@ function renderHand(){
   if(!pd) UI.discardSel = [];
   else UI.discardSel = (UI.discardSel||[]).filter(i=>i<Math.min(pd.eligible, hand.length));
   if(pd) revealHand();
+  // Construction hors du DOM : la main n'est remplacée que si son contenu a vraiment changé (voir plus bas).
+  el = document.createElement('div');
   // Ordre d'affichage choisi par le joueur (glisser-déposer). Les index passés aux actions restent les index RÉELS de la main.
   const displayOrder = pd ? hand.map((_,j)=>j) : computeHandDisplayOrder(hand);
   displayOrder.forEach((i)=>{
@@ -4761,6 +4767,7 @@ function renderHand(){
                     && !hasBlockingChoice && !noRoom && !extraCostUnpayable && !drawOnlySpell;
     const el2 = cardEl(card, {});
     el2.classList.add('hand-card');
+    el2.dataset.cp = canPlay ? '1' : '0'; // fait partie de la signature : la main n'est pas reconstruite si rien n'a changé
     const slot = document.createElement('div');
     slot.className = 'hand-card-slot';
     slot.dataset.handIndex = String(i);
@@ -4814,6 +4821,14 @@ function renderHand(){
     }
     el.appendChild(slot);
   });
+  // Rien n'a changé (ex. resynchronisation silencieuse toutes les 6 s) : on garde les cartes en place.
+  // Les reconstruire faisait retomber puis remonter la carte survolée, d'où l'effet « la main sautille ».
+  const sig = el.innerHTML.replace(/\bnd\d+-/g, 'nd#-'); // les identifiants de dégradés SVG changent à chaque rendu : on les ignore
+  if(live.dataset.sig === sig && live.children.length === el.children.length && !DRAG_STATE && !__newDrawn.length){
+    return;
+  }
+  live.replaceChildren(...el.childNodes);
+  live.dataset.sig = sig;
   applyHandFan();
   // la carte piochée voyage du paquet jusqu'à la main
   if(__newDrawn.length && window.BFX){
@@ -5812,10 +5827,10 @@ function startCardDrag(ev, handIndex, sourceEl, reorderOnly){
   // Mesure à plat (sans l'inclinaison de l'éventail ni l'effet de survol) pour que le fantôme ait la bonne taille.
   let rect;
   if(slotEl){
-    const prevT = slotEl.style.transition, prevTf = slotEl.style.transform;
-    slotEl.style.transition = 'none'; slotEl.style.transform = 'none';
+    const prevT = sourceEl.style.transition, prevTf = sourceEl.style.transform;
+    sourceEl.style.transition = 'none'; sourceEl.style.transform = 'scale(0.59)';
     rect = sourceEl.getBoundingClientRect();
-    slotEl.style.transform = prevTf; void slotEl.offsetWidth; slotEl.style.transition = prevT;
+    sourceEl.style.transform = prevTf; void sourceEl.offsetWidth; sourceEl.style.transition = prevT;
   } else rect = sourceEl.getBoundingClientRect();
   const ghost = sourceEl.cloneNode(true);
   ghost.style.position = 'fixed';
@@ -5925,7 +5940,7 @@ function onCardDragEnd(ev){
     const row = slot.parentElement;
     const changed = row && [...row.children].map(x=>x.dataset.handIndex).join(',') !== domOrder0;
     if(changed && !over) commitHandReorderFromDom();
-    else if(changed) setTimeout(()=>renderHand(), 0); // carte jouée / abandonnée : on remet l'ordre mémorisé
+    else if(changed){ row.dataset.sig = ''; setTimeout(()=>renderHand(), 0); } // carte jouée / abandonnée : on remet l'ordre mémorisé
   }
   if(over){
     try{ if(window.BFX) BFX.setDrop(ev.clientX, ev.clientY); }catch(e){}
