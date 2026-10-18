@@ -2916,7 +2916,7 @@ function finishStateUpdateTail(state){
   // toutes les 700ms pendant qu'il essayait lui-même de bloquer, entrant en
   // conflit avec son propre clic ("une action est déjà en cours").
   const activeIsAI = S[S.active] && S[S.active].isAI;
-  if(activeIsAI && !S.gameOver && S.phase==='main' && !ACTION_IN_FLIGHT && !S.pendingTarget){
+  if(activeIsAI && !S.gameOver && S.phase==='main' && !ACTION_IN_FLIGHT && !aiTurnBlockedByChoice()){
     scheduleAiTurn();
   }
 }
@@ -2924,18 +2924,25 @@ function finishStateUpdateTail(state){
 // Instantané), mais jamais tant qu'une animation tourne encore (révélations de
 // MES dernières actions) ni pendant une autre action. Un seul minuteur à la fois.
 let __aiTurnTimer = null;
+const AI_STEP_PAUSE_MS = 1000; // pause avant chaque étape du tour de l'IA
+// Choix en attente côté joueur (défausse, cible, découverte...) : le tour de l'IA attend.
+function aiTurnBlockedByChoice(){
+  return !!(S && (S.pendingTarget || S.pendingDiscard || S.pendingDiscover || S.pendingSacrifice || S.pendingKeywordChoice || (S.targetQueue && S.targetQueue.length)));
+}
 function scheduleAiTurn(){
   if(__aiTurnTimer) return;
   const attempt = ()=>{
     __aiTurnTimer = null;
-    if(!S || S.gameOver || S.pendingTarget || S.phase!=='main' || !(S[S.active] && S[S.active].isAI)) return; // plus d'actualité
+    if(!S || S.gameOver || aiTurnBlockedByChoice() || S.phase!=='main' || !(S[S.active] && S[S.active].isAI)) return; // plus d'actualité (la résolution d'un choix relancera le tour)
     if(__matchAnnounceActive || animationsBusy() || ACTION_IN_FLIGHT){
       __aiTurnTimer = setTimeout(attempt, 150);
       return;
     }
     uiProcessAi();
   };
-  __aiTurnTimer = setTimeout(attempt, cms(700));
+  // Le moteur joue le tour de l'IA pas à pas (une carte, puis les artefacts, puis l'attaque) :
+  // chaque étape est précédée de cette pause, après la fin des animations.
+  __aiTurnTimer = setTimeout(attempt, cms(AI_STEP_PAUSE_MS));
 }
 
 // Vue intermédiaire du plateau pendant la pause avant la désignation des
@@ -6490,7 +6497,11 @@ async function uiFinishBlocking(){
   await runAction('Terminer blocage', ()=>gsFinishBlocking());
   render();
 }
-async function uiProcessAi(){ await runAction('Tour IA', ()=>gsProcessAiTurn()); }
+async function uiProcessAi(){
+  await runAction('Tour IA', ()=>gsProcessAiTurn());
+  // Le moteur ne joue qu'une étape par appel : filet de sécurité si la mise à jour d'état n'a pas relancé le tour.
+  if(S && !S.gameOver && S.phase==='main' && S[S.active] && S[S.active].isAI && !aiTurnBlockedByChoice()) scheduleAiTurn();
+}
 
 
 
