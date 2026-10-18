@@ -353,6 +353,7 @@ async function gsSetTrap(handIndex, sacrificeInstId) {
   return gsCallAction('setTrap', body);
 }
 async function gsResolveDiscoverChoice(chosenIndex) { return gsCallAction('resolveDiscoverChoice', { chosenIndex }); }
+async function gsResolveDiscardChoice(indexes) { return gsCallAction('resolveDiscardChoice', { indexes }); }
 async function gsResolveKeywordChoice(chosenIndex) { return gsCallAction('resolveKeywordChoice', { chosenIndex }); }
 async function gsResolveTarget(chosenTargets) { return gsCallAction('resolveTarget', { chosenTargets }); }
 async function gsUseHeroPower(targetInfo, chosenTargets, sacrificeInstId) {
