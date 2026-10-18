@@ -717,6 +717,10 @@ body.targeting *{cursor:crosshair !important;}
   display:flex;align-items:center;justify-content:center;}
 .ability-reveal-front{transform:rotateY(180deg);}
 .ability-reveal-front .ncard{transform:scale(0.8667);}
+/* Pose d'une créature : petite carte qui vole de la main vers son emplacement (voir playCreatureLanding) */
+.land-fly{position:fixed;left:0;top:0;width:260px;height:366px;perspective:1400px;transform-origin:0 0;z-index:9985;pointer-events:none;will-change:transform,opacity;}
+.land-fly.fx-mine{filter:drop-shadow(0 0 16px rgba(90,170,255,.85));}
+.land-fly.fx-enemy{filter:drop-shadow(0 0 16px rgba(255,90,90,.85));}
 
 /* ============================================================
    FLÈCHE DE CAPACITÉ — un "projectile" lumineux part de la carte qui
@@ -2108,7 +2112,17 @@ function renderGameLog(){
       // carte. On relit JOURNAL_CARD_LOOKUP au moment où l'animation
       // s'exécute réellement (dans la file, donc après un léger délai qui
       // laisse largement le temps au chargement de se terminer).
-      if(entry.kind==='play' || entry.kind==='trap'){
+      // Créature posée (déjà sur le plateau) : pose animée petite, sans grande carte au milieu
+      let landed = false;
+      if(entry.kind==='play' && entry.sourceInstId && window.BFX && !combatInstant()
+         && document.querySelector(`.lane .card-slot[data-inst-id="${entry.sourceInstId}"]`)){
+        const crOnBoard = findCreatureInState(S, entry.sourceInstId);
+        if(crOnBoard){
+          planCreatureLanding(entry, (entry.cardId && JOURNAL_CARD_LOOKUP[entry.cardId]) || crOnBoard);
+          landed = true;
+        }
+      }
+      if(!landed && (entry.kind==='play' || entry.kind==='trap')){
         const ownerP = S[entry.ownerKey];
         const ownerBackUrl = ownerP ? ownerP.cardBackUrl : null;
         const cardId = entry.cardId;
@@ -5254,7 +5268,7 @@ function releaseCombatAnimLock(){
 // Interruption immédiate (bouton « Passer » ou garde-fou) : coupe les sons en
 // cours, retire tout ce qui flotte encore (chiffres, flèches, révélation,
 // clones), puis lève le verrou et rend l'état final.
-const COMBAT_ABORT_PURGE_SELECTOR = '.dmg-popup, .ability-reveal-overlay, .ability-bolt, .ability-impact-ring, .ability-self-burst, .combat-impact-ring, .kw-ghost';
+const COMBAT_ABORT_PURGE_SELECTOR = '.dmg-popup, .ability-reveal-overlay, .land-fly, .ability-bolt, .ability-impact-ring, .ability-self-burst, .combat-impact-ring, .kw-ghost';
 function abortCombatAnimations(){
   try { if(typeof stopAllSfx==='function') stopAllSfx(); } catch(e){}
   document.querySelectorAll(COMBAT_ABORT_PURGE_SELECTOR).forEach(n=>n.remove());
@@ -5368,6 +5382,79 @@ function playCombatStrike(attackerInstId, blockerInstId, outcome, duel){
    plus bas, qui appelle ceci via queueCombatAnim pour chaque nouvelle
    entrée kind==='play' ou kind==='trap').
    ============================================================ */
+// ---- Pose animée d'une créature (les deux camps) ----
+// La carte part de la main (celle de l'adversaire en haut), se retourne en
+// petit, puis rétrécit jusqu'à la taille de son emplacement et s'y pose. Plus
+// de grande carte au milieu de l'écran. L'emplacement réel est caché pendant
+// le vol (règle CSS dynamique) et l'arrivée automatique de BFX est réservée.
+let LAND_HIDE = new Set();
+function syncLandHideStyle(){
+  let st = document.getElementById('land-hide-style');
+  if(!st){ st = document.createElement('style'); st.id = 'land-hide-style'; document.head.appendChild(st); }
+  st.textContent = [...LAND_HIDE].map(id=>`.lane .card-slot[data-inst-id="${String(id).replace(/"/g,'')}"]{visibility:hidden !important;}`).join('\n');
+}
+function releaseCreatureLanding(id){
+  LAND_HIDE.delete(id); syncLandHideStyle();
+  try{ if(window.BFX) BFX.unclaim(id); }catch(e){}
+}
+// Appelée de façon synchrone à la lecture du journal : réserve la créature
+// (cachée + arrivée BFX retenue), puis met le vol en file.
+function planCreatureLanding(entry, card){
+  const id = entry.sourceInstId, mine = entry.ownerKey===MY_KEY;
+  LAND_HIDE.add(id); syncLandHideStyle();
+  if(window.BFX) BFX.claim(id);
+  let flyer = null;
+  registerCombatCleanup(()=>{ if(flyer) flyer.remove(); releaseCreatureLanding(id); });
+  const ownerP = S[entry.ownerKey];
+  queueCombatAnim(async ()=>{
+    const slot = document.querySelector(`.lane .card-slot[data-inst-id="${id}"]`);
+    if(!slot){ releaseCreatureLanding(id); return; }
+    const W = 260, H = 366;
+    const sr = slot.getBoundingClientRect();
+    const cx = sr.left+sr.width/2, cy = sr.top+sr.height/2;
+    let sx, sy;
+    const drop = mine && window.BFX && BFX.getDrop();
+    if(drop){ sx = drop.x; sy = drop.y; }
+    else {
+      const h = document.getElementById(mine ? 'hand-p1' : 'enemy-hand-row');
+      const r = h ? h.getBoundingClientRect() : null;
+      sx = r ? r.left+r.width/2 : window.innerWidth/2;
+      sy = r ? r.top+r.height/2 : (mine ? window.innerHeight : 0);
+    }
+    const mx = (sx+cx)/2, my = (sy+cy)/2;
+    const s0 = 0.3, s1 = 0.55, s2 = Math.max(0.1, sr.width/W);
+    const pos = (x,y,k)=>`translate(${x-W*k/2}px,${y-H*k/2}px) scale(${k})`;
+    flyer = document.createElement('div');
+    flyer.className = 'land-fly ' + (mine ? 'fx-mine' : 'fx-enemy');
+    const inner = document.createElement('div'); inner.className = 'ability-reveal-inner';
+    const back = document.createElement('div'); back.className = 'ability-reveal-face ability-reveal-back';
+    if(ownerP && ownerP.cardBackUrl){
+      back.style.backgroundImage = `url('${String(ownerP.cardBackUrl).replace(/'/g,'')}')`;
+      back.style.backgroundSize = 'cover'; back.style.backgroundPosition = 'center';
+    }
+    const front = document.createElement('div'); front.className = 'ability-reveal-face ability-reveal-front';
+    try { front.appendChild(cardEl(card, {isPreview:true})); } catch(e) { console.error('Erreur pose créature (cardEl)', e); }
+    inner.appendChild(back); inner.appendChild(front); flyer.appendChild(inner);
+    flyer.style.transform = pos(sx,sy,s0); flyer.style.opacity = '0';
+    document.body.appendChild(flyer);
+    const wait = t=>new Promise(r=>combatTimeout(r, t));
+    try {
+      combatTimeout(()=>inner.classList.add('flipped'), cms(170));
+      await flyer.animate([{transform:pos(sx,sy,s0),opacity:0},{transform:pos(mx,my,s1),opacity:1}],
+        {duration:cms(380), easing:'cubic-bezier(.2,.8,.3,1)', fill:'forwards'}).finished;
+      await wait(cms(300));
+      await flyer.animate([{transform:pos(mx,my,s1),opacity:1},{transform:pos(cx,cy,s2),opacity:1}],
+        {duration:cms(420), easing:'cubic-bezier(.5,0,.75,.4)', fill:'forwards'}).finished;
+    } catch(e) { /* animation interrompue (bouton Passer) : le nettoyage s'en charge */ }
+    if(flyer){ flyer.remove(); flyer = null; }
+    releaseCreatureLanding(id);
+    const cr = findCreatureInState(S, id) || {};
+    const power = Number(cr.curAtk != null ? cr.curAtk : cr.atk) || 0;
+    try { if(window.BFX) BFX.creatureArrive(slot, mine, power, true); } catch(e) {}
+    await wait(cms(160));
+  });
+}
+
 function playCardFlipReveal(card, opts={}){
   return new Promise(resolve=>{
     if(!card){ resolve(); return; }
