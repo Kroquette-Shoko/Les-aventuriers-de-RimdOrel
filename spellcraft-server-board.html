@@ -1091,6 +1091,7 @@ body.targeting *{cursor:crosshair !important;}
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>
 <script src="spellcraft-chrono.js"></script>
+<script src="spellcraft-board-fx.js"></script>
 <script src="spellcraft-server-client.js"></script>
 <script>
 
@@ -2064,8 +2065,16 @@ function renderGameLog(){
         queueCombatAnim(()=>{
           const fullAtAnimTime = cardId ? JOURNAL_CARD_LOOKUP[cardId] : null;
           if(!fullAtAnimTime) return Promise.resolve(); // carte vraiment introuvable (cas rarissime) : on ne bloque pas la file pour autant
-          return playCardFlipReveal(fullAtAnimTime, {isTrap: entry.kind==='trap', backUrl: ownerBackUrl, fxMine: entry.ownerKey===MY_KEY});
+          return playCardFlipReveal(fullAtAnimTime, {isTrap: entry.kind==='trap', isSpell: fullAtAnimTime.type==='Sortilège', backUrl: ownerBackUrl, fxMine: entry.ownerKey===MY_KEY}).then(()=>{
+            // créature de 10 de force ou plus : l'écran tremble à son arrivée
+            if(entry.kind==='play' && fullAtAnimTime.type==='Créature' && (fullAtAnimTime.atk||0)>=10 && !combatInstant()) shakeScreen('hitLarge');
+          });
         });
+      }
+
+      // Artefact utilisé : rouage qui s'emballe, éclats et reflet sur l'artefact
+      if(entry.kind==='artifact_activate' && window.BFX){
+        queueCombatAnim(()=>BFX.artifactUse(resolveLogSourceEl(entry), entry.ownerKey===MY_KEY));
       }
 
       // Flèche d'effet vers chaque cible touchée par une capacité — ou
@@ -3474,6 +3483,7 @@ function render(){
   renderLane(OPP_KEY, 'p2');
   renderArtifactStack(MY_KEY, 'p1');
   renderArtifactStack(OPP_KEY, 'p2');
+  if(window.BFX) BFX.syncArrivals(S, MY_KEY, OPP_KEY); // arrivées de créatures / d'artefacts (animations)
   renderHand();
   renderRevealHandToggle();
   renderEnemyHand();
@@ -4425,6 +4435,7 @@ function onBoardCreatureClick(key, c){
 }
 
 let PREV_HAND_LENGTH = null;
+let PREV_ENEMY_HAND = null;
 function renderEnemyHand(){
   const el = document.getElementById('enemy-hand-row');
   if(!el || !S) return;
@@ -4444,11 +4455,18 @@ function renderEnemyHand(){
   }
   const backUrl = opp.cardBackUrl;
   const count = (opp.hand||[]).length;
+  const __grown = (PREV_ENEMY_HAND!==null && count>PREV_ENEMY_HAND) ? count-PREV_ENEMY_HAND : 0;
+  PREV_ENEMY_HAND = count;
+  const __newEnemy = [];
   for(let i=0;i<count;i++){
     const c = document.createElement('div');
     c.className = 'enemy-hand-card';
     if(backUrl) c.style.backgroundImage = `url('${backUrl.replace(/'/g,"")}')`;
     el.appendChild(c);
+    if(__grown>0 && i>=count-__grown) __newEnemy.push({ el: c });
+  }
+  if(__newEnemy.length && window.BFX){
+    BFX.drawFly(document.querySelector('#deck-zone-p2 .deck-back-visual'), __newEnemy, backUrl);
   }
 }
 // Option « Montrer ma main aux spectateurs » — rangée dans le menu des options (engrenage du haut),
@@ -4510,6 +4528,7 @@ function renderHand(){
   const newCount = (PREV_HAND_LENGTH!==null && hand.length>PREV_HAND_LENGTH) ? (hand.length-PREV_HAND_LENGTH) : 0;
   PREV_HAND_LENGTH = hand.length;
   if(newCount>0) playSfx('draw');
+  const __newDrawn = [];
   hand.forEach((card, i)=>{
     // Un Piège se pose gratuitement (le coût n'est payé qu'au déclenchement) :
     // le mana ne conditionne donc pas sa jouabilité.
@@ -4540,7 +4559,7 @@ function renderHand(){
     el2.classList.add('hand-card');
     const slot = document.createElement('div');
     slot.className = 'hand-card-slot';
-    if(newCount>0 && i>=hand.length-newCount) slot.classList.add('card-just-drawn');
+    if(newCount>0 && i>=hand.length-newCount){ slot.classList.add('card-just-drawn'); __newDrawn.push({ el: slot }); }
     slot.appendChild(el2);
     if(!canPlay && !isPendingTrap) el2.style.opacity = '.5';
     if(drawOnlySpell){
@@ -4576,6 +4595,11 @@ function renderHand(){
     }
     el.appendChild(slot);
   });
+  // la carte piochée voyage du paquet jusqu'à la main
+  if(__newDrawn.length && window.BFX){
+    const deckEl = document.querySelector('#deck-zone-p1 .deck-back-visual');
+    BFX.drawFly(deckEl, __newDrawn, p.cardBackUrl);
+  }
 }
 
 // La main entière glisse hors de l'écran, ne laissant dépasser qu'un tiers
@@ -4916,6 +4940,7 @@ function playKeywordBadgeChanges(plan){
     const el = keywordBadgeEl(ch.instId, kw);
     if(el) gainedEls.push({ el, ch, kw });
   }));
+  const trailed = new Set();
   const run = ()=>{
     if(!instant){
       gainedEls.forEach(({ el, ch, kw })=>{
@@ -4926,6 +4951,7 @@ function playKeywordBadgeChanges(plan){
         const dur = cms(KW_BADGE_GAIN_MS);
         cur.style.animationDuration = dur+'ms';
         cur.classList.add('kw-badge-gain');
+        if(window.BFX && !trailed.has(ch.instId)){ trailed.add(ch.instId); BFX.keywordTrail(ch.instId); } // lueur qui fait le tour de la carte
         setTimeout(()=>{ cur.classList.remove('kw-badge-gain'); cur.style.animationDuration = ''; }, dur+80);
       });
       plan.ghosts.forEach(spawnKeywordGhost);
@@ -5282,11 +5308,16 @@ function playCardFlipReveal(card, opts={}){
     document.body.appendChild(overlay);
 
     let done = false;
-    const finish = ()=>{
-      if(done) return; done = true;
+    const close = ()=>{
       overlay.classList.remove('show');
       overlay.classList.add('closing');
       setTimeout(()=>{ overlay.remove(); resolve(); }, 300);
+    };
+    const finish = ()=>{
+      if(done) return; done = true;
+      // un sort ne disparaît pas en fondu : la carte se consume
+      if(opts.isSpell && window.BFX) BFX.burnReveal(flip).then(close);
+      else close();
     };
     // Un clic sur l'overlay permet d'écourter — utile pour un joueur qui
     // enchaîne vite et ne veut pas attendre la fin de chaque révélation.
@@ -5295,8 +5326,10 @@ function playCardFlipReveal(card, opts={}){
     requestAnimationFrame(()=>{
       overlay.classList.add('show');
       setTimeout(()=>{ inner.classList.add('flipped'); }, 220);
+      if(window.BFX && opts.isSpell) setTimeout(()=>BFX.spellFlash(flip), 220+260);   // éclair lumineux à l'apparition d'un sort
+      if(window.BFX && opts.isTrap) setTimeout(()=>BFX.trapSnap(flip), 220+300);       // piège : le déclenchement claque
     });
-    const holdMs = opts.isTrap ? 1500 : 1150;
+    const holdMs = opts.isTrap ? 1500 : (opts.isSpell ? 850 : 1150);
     setTimeout(finish, 220 + 550 + holdMs);
   });
 }
@@ -5498,6 +5531,7 @@ function onCardDragEnd(ev){
   const over = isOverDropZone(ev);
   PENDING_PLACEMENT = null;
   if(over){
+    try{ if(window.BFX) BFX.setDrop(ev.clientX, ev.clientY); }catch(e){}
     const dc = S[MY_KEY].hand[handIndex];
     if(dc && dc.type==='Créature'){
       const { slots, index } = computeInsertion(ev);
@@ -6078,6 +6112,7 @@ async function runAction(label, fn, opts){
   if(ACTION_IN_FLIGHT){ debugLog(`${label} → une action est déjà en cours, patiente un instant.`, 'log-error'); return; }
   ACTION_IN_FLIGHT = true;
   document.body.classList.add('action-busy');
+  try{ if(window.BFX) BFX.actionStart(label); }catch(e){}
   try{
     const res = await fn();
     if(res && res.error){
@@ -6103,6 +6138,7 @@ async function runAction(label, fn, opts){
   } finally {
     ACTION_IN_FLIGHT = false;
     document.body.classList.remove('action-busy');
+    try{ if(window.BFX) BFX.actionEnd(); }catch(e){}
   }
 }
 
