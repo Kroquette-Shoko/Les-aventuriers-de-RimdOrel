@@ -214,16 +214,25 @@ body.bfx-hero-dead-p1 #hero-frame-p1, body.bfx-hero-dead-p2 #hero-frame-p2{visib
   }
 
   // ---------- 3. Arrivée d'une créature ----------
-  function bfxCreatureArrive(slotEl, mine, power) {
+  // Créatures dont l'arrivée est jouée par la pose animée de la carte (voir le
+  // plateau, playCreatureLanding) : syncArrivals ne les anime pas lui-même.
+  const claimed = new Set();
+  function bfxClaim(id) { if (id) claimed.add(id); }
+  function bfxUnclaim(id) { claimed.delete(id); }
+  function bfxGetDrop() { return pending.drop && Date.now() - pending.drop.at < 8000 ? { x: pending.drop.x, y: pending.drop.y } : null; }
+  // soft = la carte vient d'atterrir en vol : pas de chute, seulement onde de choc, poussière, tremblement
+  function bfxCreatureArrive(slotEl, mine, power, soft) {
     if (!slotEl || off()) return;
     // grosse créature (10 de force ou plus) : l'écran tremble au moment où elle touche le sol
     if (power >= 10 && typeof window.shakeScreen === 'function') later(() => window.shakeScreen('hitLarge'), ms(260));
     const card = slotEl.firstElementChild || slotEl;
     const dur = ms(620);
-    card.style.setProperty('--bfx-dur', dur + 'ms');
-    card.classList.add('bfx-arrive');
-    hold(ms(800));
-    later(() => { card.classList.remove('bfx-arrive'); card.style.removeProperty('--bfx-dur'); }, dur + 60);
+    if (!soft) {
+      card.style.setProperty('--bfx-dur', dur + 'ms');
+      card.classList.add('bfx-arrive');
+      later(() => { card.classList.remove('bfx-arrive'); card.style.removeProperty('--bfx-dur'); }, dur + 60);
+    }
+    hold(ms(soft ? 600 : 800));
     const r = slotEl.getBoundingClientRect();
     const rgb = rgbOf(mine);
     const w = Math.max(60, r.width), baseY = r.bottom - 6;
@@ -503,7 +512,7 @@ body.bfx-hero-dead-p1 #hero-frame-p1, body.bfx-hero-dead-p2 #hero-frame-p2{visib
           const el = document.querySelector('.lane .card-slot[data-inst-id="' + id + '"]');
           const cr = (S[k].board || []).find((c) => c && c.instId === id) || {};
           const power = Number(cr.curAtk != null ? cr.curAtk : cr.atk) || 0;
-          if (el) later(() => bfxCreatureArrive(el, mine, power), i * 120);
+          if (el) later(() => { if (!claimed.has(id)) bfxCreatureArrive(el, mine, power); }, i * 120);
         });
         const oldR = new Set(prevR[k] || []);
         nowR[k].filter((id) => !oldR.has(id)).slice(0, 2).forEach((id, i) => {
@@ -643,7 +652,7 @@ body.bfx-hero-dead-p1 #hero-frame-p1, body.bfx-hero-dead-p2 #hero-frame-p2{visib
 
   window.BFX = {
     setDrop: bfxSetDrop, actionStart: bfxActionStart, actionEnd: bfxActionEnd,
-    syncArrivals: bfxSyncArrivals, creatureArrive: bfxCreatureArrive, artifactArrive: bfxArtifactArrive,
+    syncArrivals: bfxSyncArrivals, creatureArrive: bfxCreatureArrive, claim: bfxClaim, unclaim: bfxUnclaim, getDrop: bfxGetDrop, artifactArrive: bfxArtifactArrive,
     artifactUse: bfxArtifactUse, keywordTrail: bfxKeywordTrail, drawFly: bfxDrawFly,
     burnReveal: bfxBurnReveal, spellFlash: bfxSpellFlash, trapSnap: bfxTrapSnap,
     heroDeath: bfxHeroDeath, resetHeroDeath: bfxResetHeroDeath, clearDeathLayers: bfxClearDeathLayers,
