@@ -49,8 +49,6 @@
 .season-countdown-unit{min-width:58px;}
 .season-countdown-num{display:block;font-size:clamp(26px,5.4vw,40px);font-weight:700;line-height:1.1;color:var(--gold-bright);font-variant-numeric:tabular-nums;text-shadow:0 2px 0 rgba(0,0,0,.5),0 0 18px rgba(242,207,90,.35);}
 .season-countdown-name{display:block;font-size:11px;letter-spacing:1.6px;text-transform:uppercase;color:var(--parchment-dim);margin-top:2px;}
-.season-countdown-done{font-size:15px;line-height:1.5;color:var(--parchment);}
-.season-countdown-done strong{color:var(--gold-bright);}
 .hub-footer{margin-top:10px;text-align:center;color:var(--parchment-dim);font-size:11.5px;max-width:600px;line-height:1.6;}
 .hub-footer strong{color:var(--parchment);}
 
@@ -93,10 +91,6 @@
           <span class="season-countdown-unit"><span class="season-countdown-num" id="scd-m">00</span><span class="season-countdown-name" id="scn-m">minutes</span></span>
           <span class="season-countdown-unit"><span class="season-countdown-num" id="scd-s">00</span><span class="season-countdown-name" id="scn-s">secondes</span></span>
         </div>
-      </div>
-      <div class="season-countdown-done" id="season-countdown-done" hidden>
-        <strong>La saison 0 est lancée !</strong><br>
-        Les comptes sont remis à zéro : si ton or ou ta collection n'ont pas encore changé, recharge la page dans quelques minutes.
       </div>
     </div>
 
@@ -364,14 +358,12 @@ async function savePatchNote(){
 
 <script>
 /* Compte à rebours : mardi 20 octobre 2026, 00h00 à Paris (heure d'été = UTC+2) = lundi 19 octobre 22h00 UTC.
-   Après le lancement, le message « saison 0 lancée » reste affiché 48 h puis disparaît. */
+   À la fin du compte à rebours, la boîte disparaît (aussi pour toute visite ultérieure). */
 (function(){
   var LAUNCH = Date.UTC(2026, 9, 19, 22, 0, 0);
-  var HIDE_AFTER = LAUNCH + 48 * 3600 * 1000;
   var box = document.getElementById('season-countdown');
   if(!box) return;
   var live = document.getElementById('season-countdown-live');
-  var done = document.getElementById('season-countdown-done');
   var el = { d: document.getElementById('scd-d'), h: document.getElementById('scd-h'),
              m: document.getElementById('scd-m'), s: document.getElementById('scd-s') };
   var names = { d: document.getElementById('scn-d'), h: document.getElementById('scn-h'),
@@ -379,10 +371,8 @@ async function savePatchNote(){
   function pad(n){ return n < 10 ? '0' + n : String(n); }
   function tick(){
     var now = Date.now();
-    if(now >= HIDE_AFTER){ box.hidden = true; return false; }
+    if(now >= LAUNCH){ box.hidden = true; return false; }
     box.hidden = false;
-    if(now >= LAUNCH){ live.hidden = true; done.hidden = false; return false; }
-    live.hidden = false; done.hidden = true;
     var left = Math.floor((LAUNCH - now) / 1000);
     el.d.textContent = String(Math.floor(left / 86400));
     el.h.textContent = pad(Math.floor(left % 86400 / 3600));
