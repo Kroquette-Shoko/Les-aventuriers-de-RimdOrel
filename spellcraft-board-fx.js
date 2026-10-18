@@ -18,6 +18,11 @@
 //  7. bfxBurnReveal : un sort se joue en éclair lumineux, puis la carte se consume.
 //  8. bfxSyncArrivals : arrivée d'un artefact (rouages qui tournent autour de la carte).
 //  9. bfxTrapSnap : un piège se déclenche (éclat en étoile, claquement).
+// 10. bfxHeroDeath : le cadre du héros vaincu explose en morceaux (résumé + musique juste après).
+//
+// Verrou : chaque animation « déclare » combien de temps elle occupe l'écran (hold) ;
+// BFX.busy() dit si l'une d'elles tourne encore. Le plateau s'en sert pour empêcher
+// toute nouvelle action (joueur comme bot) tant que ça joue.
 // ============================================================
 (function () {
   'use strict';
@@ -34,6 +39,21 @@
     try { return typeof cms === 'function' ? cms(v) : v; } catch (e) { return v; }
   }
   function later(fn, t) { return setTimeout(fn, t); }
+  // ---------- Verrou : « une animation tourne encore » ----------
+  let busyUntil = 0;
+  const HOLD_CAP = 4000; // garde-fou : jamais plus de 4 s d'un coup
+  function hold(t) {
+    if (off()) return;
+    busyUntil = Math.max(busyUntil, Date.now() + Math.min(HOLD_CAP, Math.max(0, t)));
+    try { document.body.classList.add('bfx-busy'); } catch (e) { /* ignoré */ }
+    clearTimeout(hold.t);
+    hold.t = setTimeout(syncBusyClass, Math.max(0, busyUntil - Date.now()) + 30);
+  }
+  function busy() { return Date.now() < busyUntil; }
+  function syncBusyClass() {
+    if (busy()) { clearTimeout(hold.t); hold.t = setTimeout(syncBusyClass, busyUntil - Date.now() + 30); return; }
+    try { document.body.classList.remove('bfx-busy'); } catch (e) { /* ignoré */ }
+  }
   function rgbOf(mine) { return mine === false ? '255,69,69' : '61,155,255'; } // rouge = adversaire, bleu = vous
 
   // ---------- Style ----------
@@ -124,6 +144,16 @@
 @keyframes bfx-starburst{0%{opacity:0;transform:scale(.3) rotate(0deg);}20%{opacity:1;}100%{opacity:0;transform:scale(1.25) rotate(22deg);}}
 .bfx-redflash{position:fixed;inset:0;z-index:9993;pointer-events:none;background:radial-gradient(circle at 50% 50%, rgba(255,60,40,.0) 30%, rgba(255,40,20,.35) 100%);opacity:0;animation:bfx-redflash .5s ease-out forwards;}
 @keyframes bfx-redflash{0%{opacity:0;}20%{opacity:1;}100%{opacity:0;}}
+/* 10. Mort d'un héros : le cadre éclate en morceaux */
+body.bfx-hero-dead-p1 #hero-frame-p1, body.bfx-hero-dead-p2 #hero-frame-p2{visibility:hidden !important;}
+.bfx-death-layer{position:fixed;pointer-events:none;}
+.bfx-shard{position:fixed;pointer-events:none;z-index:9990;margin:0 !important;transform-origin:50% 50%;will-change:transform,opacity;}
+.bfx-death-glow{z-index:9991;border-radius:14px;mix-blend-mode:screen;opacity:0;}
+.bfx-death-flash{position:fixed;inset:0;z-index:9994;pointer-events:none;background:radial-gradient(circle at var(--bfx-cx,50%) var(--bfx-cy,50%), rgba(255,255,255,.95) 0%, rgba(var(--bfx-rgb,255,69,69),.55) 28%, rgba(0,0,0,0) 62%);opacity:0;animation:bfx-death-flash .7s ease-out forwards;}
+@keyframes bfx-death-flash{0%{opacity:0;}12%{opacity:1;}100%{opacity:0;}}
+.bfx-death-ring{z-index:9992;border-radius:50%;border:5px solid rgba(var(--bfx-rgb),.95);box-shadow:0 0 28px rgba(var(--bfx-rgb),.9), inset 0 0 22px rgba(var(--bfx-rgb),.7);transform:scale(.1);opacity:1;animation:bfx-death-ring 1s cubic-bezier(.15,.7,.3,1) forwards;}
+@keyframes bfx-death-ring{to{transform:scale(1);opacity:0;}}
+.bfx-death-spark{z-index:9992;width:7px;height:7px;border-radius:50%;background:#fff;box-shadow:0 0 10px 3px rgba(var(--bfx-rgb),.95);}
 `;
   const st = document.createElement('style');
   st.setAttribute('data-bfx', '1');
@@ -192,6 +222,7 @@
     const dur = ms(620);
     card.style.setProperty('--bfx-dur', dur + 'ms');
     card.classList.add('bfx-arrive');
+    hold(ms(800));
     later(() => { card.classList.remove('bfx-arrive'); card.style.removeProperty('--bfx-dur'); }, dur + 60);
     const r = slotEl.getBoundingClientRect();
     const rgb = rgbOf(mine);
@@ -227,6 +258,7 @@
   // ---------- 8. Arrivée d'un artefact : rouages ----------
   function bfxArtifactArrive(relicEl, mine) {
     if (!relicEl || off()) return;
+    hold(ms(1000));
     const { o, r } = overlayAt(relicEl, 0);
     o.style.setProperty('--bfx-rgb', rgbOf(mine));
     const size = Math.min(r.width, r.height);
@@ -264,6 +296,7 @@
   // ---------- 5. Activation d'un artefact ----------
   function bfxArtifactUse(el, mine) {
     if (!el || off()) return Promise.resolve();
+    hold(ms(1000));
     return new Promise((resolve) => {
       const { o, r } = overlayAt(el, 0);
       o.style.setProperty('--bfx-rgb', rgbOf(mine));
@@ -330,6 +363,7 @@
       const cs = getComputedStyle(card);
       if (cs.position === 'static') card.style.position = 'relative';
       const dur = ms(900);
+      hold(dur * 1.2);
       const box = document.createElement('div');
       box.className = 'bfx-trail';
       box.style.setProperty('--bfx-dur', dur + 'ms');
@@ -352,6 +386,7 @@
       if (off() || !fromEl || !targets || !targets.length) return;
       const a = fromEl.getBoundingClientRect();
       if (!a.width) return;
+      hold(ms(620 + targets.length * 160));
       targets.forEach((t, idx) => {
         const target = t.el;
         const b = target.getBoundingClientRect();
@@ -480,10 +515,138 @@
     } catch (e) { /* ne casse jamais le rendu */ }
   }
 
+
+  // ---------- 10. Mort d'un héros : le cadre éclate en morceaux ----------
+  // frameEl : le cadre du héros (#hero-frame-p1 / p2). Il est copié en ~40 éclats
+  // découpés (clip-path), l'original est masqué (classe sur <body>, retirée par
+  // BFX.resetHeroDeath() quand une nouvelle partie commence). Renvoie une promesse
+  // résolue quand tout est retombé ; les éléments flottants sont retirés ensuite.
+  function bfxHeroDeath(frameEl, mine) {
+    return new Promise((resolve) => {
+      if (!frameEl || off()) { resolve(); return; }
+      const r = frameEl.getBoundingClientRect();
+      if (!r.width || !r.height) { resolve(); return; }
+      const rgb = rgbOf(mine);
+      const slot = (frameEl.id || '').replace('hero-frame-', '');
+      const layers = [];
+      const add = (el) => { layers.push(el); document.body.appendChild(el); return el; };
+      const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+
+      // 1) le cadre se fissure : copies superposées, léger tremblement + lueur
+      const COLS = 4, ROWS = 5;
+      const pts = [];
+      for (let j = 0; j <= ROWS; j++) {
+        pts[j] = [];
+        for (let i = 0; i <= COLS; i++) {
+          const edge = i === 0 || j === 0 || i === COLS || j === ROWS;
+          const jx = edge ? 0 : (Math.random() - 0.5) * (r.width / COLS) * 0.7;
+          const jy = edge ? 0 : (Math.random() - 0.5) * (r.height / ROWS) * 0.7;
+          pts[j][i] = [(i / COLS) * r.width + jx, (j / ROWS) * r.height + jy];
+        }
+      }
+      const shards = [];
+      for (let j = 0; j < ROWS; j++) for (let i = 0; i < COLS; i++) {
+        const a = pts[j][i], b = pts[j][i + 1], c = pts[j + 1][i + 1], d = pts[j + 1][i];
+        const flip = (i + j) % 2 === 0;
+        const tris = flip ? [[a, b, c], [a, c, d]] : [[a, b, d], [b, c, d]];
+        tris.forEach((t) => shards.push(t));
+      }
+      const glow = document.createElement('div');
+      glow.className = 'bfx-death-layer bfx-death-glow';
+      glow.style.cssText = 'left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px;box-shadow:0 0 40px 12px rgba(' + rgb + ',.9), inset 0 0 40px rgba(' + rgb + ',.8);';
+      add(glow);
+
+      const els = shards.map((tri) => {
+        const el = frameEl.cloneNode(true);
+        el.removeAttribute('id');
+        el.querySelectorAll('[id]').forEach((n) => n.removeAttribute('id'));
+        el.classList.add('bfx-shard', 'bfx-death-layer');
+        el.style.cssText += ';left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px;' +
+          'clip-path:polygon(' + tri.map((p) => p[0].toFixed(1) + 'px ' + p[1].toFixed(1) + 'px').join(',') + ');';
+        add(el);
+        el._c = [(tri[0][0] + tri[1][0] + tri[2][0]) / 3 - r.width / 2, (tri[0][1] + tri[1][1] + tri[2][1]) / 3 - r.height / 2];
+        return el;
+      });
+      document.body.classList.add('bfx-hero-dead-' + slot);
+
+      const T_CRACK = ms(650), T_FLY = ms(1250);
+      const shakeAnims = els.map((el) => el.animate([
+        { transform: 'translate(0,0)' },
+        { transform: 'translate(' + (Math.random() * 6 - 3) + 'px,' + (Math.random() * 6 - 3) + 'px)' },
+        { transform: 'translate(' + (Math.random() * 6 - 3) + 'px,' + (Math.random() * 6 - 3) + 'px)' },
+        { transform: 'translate(0,0)' }
+      ], { duration: Math.max(60, T_CRACK / 6), iterations: 6 }));
+      glow.animate([{ opacity: 0 }, { opacity: 1 }, { opacity: 0.55 }, { opacity: 1 }], { duration: T_CRACK, fill: 'forwards' });
+      try { if (typeof playSfx === 'function') playSfx('hitLarge', 0.7); } catch (e) { /* ignoré */ }
+
+      // 2) explosion : éclair, onde, étincelles, éclats projetés avec gravité
+      later(() => {
+        shakeAnims.forEach((a) => { try { a.cancel(); } catch (e) { /* ignoré */ } });
+        glow.remove();
+        try { if (typeof shakeScreen === 'function') shakeScreen('hitLarge'); } catch (e) { /* ignoré */ }
+        try { if (typeof playSfx === 'function') { playSfx('hitLarge', 0.8); playSfx('card-death', 0.7); } } catch (e) { /* ignoré */ }
+        const fl = document.createElement('div');
+        fl.className = 'bfx-death-flash';
+        fl.style.setProperty('--bfx-rgb', rgb);
+        fl.style.setProperty('--bfx-cx', cx + 'px'); fl.style.setProperty('--bfx-cy', cy + 'px');
+        add(fl);
+        const sz = Math.max(r.width, r.height) * 2.6;
+        const ring = document.createElement('div');
+        ring.className = 'bfx-death-layer bfx-death-ring';
+        ring.style.cssText = 'left:' + (cx - sz / 2) + 'px;top:' + (cy - sz / 2) + 'px;width:' + sz + 'px;height:' + sz + 'px;';
+        ring.style.setProperty('--bfx-rgb', rgb);
+        add(ring);
+        for (let i = 0; i < 26; i++) {
+          const sp = document.createElement('div');
+          sp.className = 'bfx-death-layer bfx-death-spark';
+          sp.style.setProperty('--bfx-rgb', rgb);
+          sp.style.left = cx + 'px'; sp.style.top = cy + 'px';
+          add(sp);
+          const ang = Math.random() * Math.PI * 2, dist = 90 + Math.random() * 260;
+          sp.animate([
+            { transform: 'translate(0,0) scale(1)', opacity: 1 },
+            { transform: 'translate(' + Math.cos(ang) * dist + 'px,' + (Math.sin(ang) * dist - 30) + 'px) scale(.2)', opacity: 0 }
+          ], { duration: T_FLY * (0.5 + Math.random() * 0.4), easing: 'cubic-bezier(.1,.7,.3,1)', fill: 'forwards' });
+        }
+        els.forEach((el) => {
+          const dx0 = el._c[0], dy0 = el._c[1];
+          const len = Math.hypot(dx0, dy0) || 1;
+          const power = 120 + Math.random() * 280;
+          const vx = (dx0 / len) * power + (Math.random() - 0.5) * 90;
+          const vy = (dy0 / len) * power - 60 - Math.random() * 120;
+          const rot = (Math.random() - 0.5) * 540;
+          const g = 520 + Math.random() * 260; // gravité : les éclats retombent
+          const dur = T_FLY * (0.85 + Math.random() * 0.3);
+          const frames = [];
+          for (let k = 0; k <= 8; k++) {
+            const t = k / 8, sec = (dur / 1000) * t;
+            frames.push({
+              offset: t,
+              transform: 'translate(' + (vx * sec).toFixed(1) + 'px,' + (vy * sec + 0.5 * g * sec * sec).toFixed(1) + 'px) rotate(' + (rot * t).toFixed(1) + 'deg) scale(' + (1 - 0.25 * t).toFixed(3) + ')',
+              opacity: t < 0.55 ? 1 : 1 - (t - 0.55) / 0.45
+            });
+          }
+          el.animate(frames, { duration: dur, easing: 'ease-out', fill: 'forwards' });
+        });
+      }, T_CRACK);
+
+      // 3) tout est retombé : on nettoie et on rend la main (résumé + musique)
+      later(() => { layers.forEach((n) => n.remove()); resolve(); }, T_CRACK + T_FLY + ms(350));
+    });
+  }
+  function bfxResetHeroDeath() {
+    try { document.body.classList.remove('bfx-hero-dead-p1', 'bfx-hero-dead-p2'); } catch (e) { /* ignoré */ }
+  }
+  function bfxClearDeathLayers() {
+    try { document.querySelectorAll('.bfx-death-layer').forEach((n) => n.remove()); } catch (e) { /* ignoré */ }
+  }
+
   window.BFX = {
     setDrop: bfxSetDrop, actionStart: bfxActionStart, actionEnd: bfxActionEnd,
     syncArrivals: bfxSyncArrivals, creatureArrive: bfxCreatureArrive, artifactArrive: bfxArtifactArrive,
     artifactUse: bfxArtifactUse, keywordTrail: bfxKeywordTrail, drawFly: bfxDrawFly,
-    burnReveal: bfxBurnReveal, spellFlash: bfxSpellFlash, trapSnap: bfxTrapSnap
+    burnReveal: bfxBurnReveal, spellFlash: bfxSpellFlash, trapSnap: bfxTrapSnap,
+    heroDeath: bfxHeroDeath, resetHeroDeath: bfxResetHeroDeath, clearDeathLayers: bfxClearDeathLayers,
+    busy: busy, hold: hold
   };
 })();

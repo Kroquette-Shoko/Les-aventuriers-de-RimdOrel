@@ -929,7 +929,9 @@ body.targeting *{cursor:crosshair !important;}
      évite qu'un clic pendant l'animation ne parte sur un plateau qui va
      encore changer sous nos yeux. */
   body.combat-anim-lock #board,
-  body.combat-anim-lock #hand-p1{
+  body.combat-anim-lock #hand-p1,
+  body.bfx-busy #board,
+  body.bfx-busy #hand-p1{
     pointer-events:none;
   }
   /* Bouton « Passer » : option de la modale d'options (classe combat-skip-enabled
@@ -2774,6 +2776,31 @@ function onStateUpdate(state){
   finishStateUpdateTail(state);
 }
 
+// Héros vaincu à jouer pour CET état : { loserKey, slot } ou null. Une seule fois par
+// partie, seulement si l'écran de fin n'était pas déjà affiché (rechargement de page
+// sur une partie finie = pas d'animation) et si les PV du perdant sont bien à 0.
+let __heroDeathPlayed = false;
+function heroDeathToPlay(state){
+  try{
+    if(__heroDeathPlayed || combatInstant() || !window.BFX) return null;
+    if(!state || !state.gameOver || !PREV_S || PREV_S.gameOver || !state.winnerKey) return null;
+    const loserKey = state.winnerKey==='p1' ? 'p2' : 'p1';
+    if(!state[loserKey] || (state[loserKey].hp||0) > 0) return null;
+    return { loserKey, slot: loserKey===MY_KEY ? 'p1' : 'p2' };
+  } catch(e){ return null; }
+}
+function queueHeroDeathAnim(d){
+  __heroDeathPlayed = true;
+  queueCombatAnim(()=>{
+    const frame = document.getElementById(`hero-frame-${d.slot}`);
+    // le cadre encore affiché est celui d'avant les derniers dégâts : on le remet
+    // à jour (PV à 0) juste avant qu'il n'explose
+    try{ renderHeroFrame(d.loserKey, d.slot); }catch(e){}
+    registerCombatCleanup(()=>{ try{ BFX.clearDeathLayers(); }catch(e){} });
+    return BFX.heroDeath(frame, d.loserKey===MY_KEY);
+  });
+}
+
 function finishStateUpdateTail(state){
   // Si ce lot contient une animation de combat, on garde l'ancien plateau à
   // l'écran jusqu'à la fin de la file (voir "Gel du rendu"). L'aperçu
@@ -2784,6 +2811,11 @@ function finishStateUpdateTail(state){
   // révélations) ; une étape de fin de file affiche ensuite les cartes jouées,
   // marque une courte pause, puis la libération montre les attaquants.
   const newEntries = getNewGameLogEntries(false);
+  // Mort d'un héros : la partie vient de se terminer parce que ses PV sont tombés à 0.
+  // On gèle le plateau (le résumé et la musique attendent la fin de la file) et on
+  // joue l'explosion du cadre en dernier, après les coups et les chiffres de dégâts.
+  const heroDeath = heroDeathToPlay(state);
+  if(heroDeath && !__boardRenderFrozen) freezeBoardRender();
   const holdAttackers = !combatInstant() &&
     shouldHoldCombatReveal(state, MY_KEY, OPP_KEY, newEntries.some(entryQueuesCardAnimation));
   if(!__boardRenderFrozen && (newEntries.some(entryAnimatesBoardCombat) || holdAttackers)){
@@ -2791,6 +2823,7 @@ function finishStateUpdateTail(state){
   }
   render(); // sans effet si le plateau est gelé (voir render)
   renderGameLog();
+  if(heroDeath) queueHeroDeathAnim(heroDeath);
   if(holdAttackers && __boardRenderFrozen && (__combatAnimPlaying || __combatAnimQueue.length)){
     queueCombatAnim(()=>{
       renderHeldCombatView();
@@ -2833,7 +2866,7 @@ function scheduleAiTurn(){
   const attempt = ()=>{
     __aiTurnTimer = null;
     if(!S || S.gameOver || S.pendingTarget || S.phase!=='main' || !(S[S.active] && S[S.active].isAI)) return; // plus d'actualité
-    if(__matchAnnounceActive || __combatAnimPlaying || __combatAnimQueue.length || ACTION_IN_FLIGHT){
+    if(__matchAnnounceActive || animationsBusy() || ACTION_IN_FLIGHT){
       __aiTurnTimer = setTimeout(attempt, 150);
       return;
     }
@@ -3605,7 +3638,7 @@ function renderDiscoverChoiceModal(){
 let __gameOverSfxPlayed = false; // évite de relancer le jingle à chaque re-rendu tant que l'écran de fin reste affiché
 function renderGameOverOverlay(){
   const overlay = document.getElementById('overlay');
-  if(!S.gameOver){ overlay.classList.remove('show'); return; }
+  if(!S.gameOver){ overlay.classList.remove('show'); __heroDeathPlayed = false; try{ if(window.BFX) BFX.resetHeroDeath(); }catch(e){} return; }
   document.getElementById('overlay-text').textContent = S.winnerKey===MY_KEY ? 'Victoire !' : 'Défaite...';
   // Musique de fin de partie (victoire/défaite) — jouée une seule fois, coupe
   // la musique de combat en cours. Comme c'est un simple objet Audio() non
@@ -6107,12 +6140,27 @@ function showActionError(msg){
   if(__actionErrorTimer) clearTimeout(__actionErrorTimer);
   __actionErrorTimer = setTimeout(()=>{ box.style.display = 'none'; }, 5000);
 }
+// Vrai tant qu'une animation (file de combat ou effet visuel du plateau) joue encore.
+function animationsBusy(){
+  return !!(__combatAnimPlaying || __combatAnimQueue.length || (window.BFX && BFX.busy()));
+}
+// Attend la fin des animations (jamais plus de 8 s : un blocage visuel ne doit pas figer la partie).
+async function waitForAnimationsIdle(){
+  const t0 = Date.now();
+  while(animationsBusy() && Date.now()-t0 < 8000){
+    await new Promise(r=>setTimeout(r, 60));
+  }
+}
 async function runAction(label, fn, opts){
   if(ACTION_IN_FLIGHT){ debugLog(`${label} → une action est déjà en cours, patiente un instant.`, 'log-error'); return; }
   ACTION_IN_FLIGHT = true;
   document.body.classList.add('action-busy');
   try{ if(window.BFX) BFX.actionStart(label); }catch(e){}
   try{
+    // Aucune nouvelle action tant qu'une animation tourne encore (clics bloqués
+    // par la feuille de style ; ici on couvre aussi les actions automatiques :
+    // elles attendent leur tour au lieu d'être perdues).
+    await waitForAnimationsIdle();
     const res = await fn();
     if(res && res.error){
       debugLog(`${label} → ${res.error}`, 'log-error');
