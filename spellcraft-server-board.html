@@ -929,7 +929,9 @@ body.targeting *{cursor:crosshair !important;}
      évite qu'un clic pendant l'animation ne parte sur un plateau qui va
      encore changer sous nos yeux. */
   body.combat-anim-lock #board,
-  body.combat-anim-lock #hand-p1{
+  body.combat-anim-lock #hand-p1,
+  body.bfx-busy #board,
+  body.bfx-busy #hand-p1{
     pointer-events:none;
   }
   /* Bouton « Passer » : option de la modale d'options (classe combat-skip-enabled
@@ -1091,6 +1093,7 @@ body.targeting *{cursor:crosshair !important;}
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>
 <script src="spellcraft-chrono.js"></script>
+<script src="spellcraft-board-fx.js"></script>
 <script src="spellcraft-server-client.js"></script>
 <script>
 
@@ -2064,8 +2067,15 @@ function renderGameLog(){
         queueCombatAnim(()=>{
           const fullAtAnimTime = cardId ? JOURNAL_CARD_LOOKUP[cardId] : null;
           if(!fullAtAnimTime) return Promise.resolve(); // carte vraiment introuvable (cas rarissime) : on ne bloque pas la file pour autant
-          return playCardFlipReveal(fullAtAnimTime, {isTrap: entry.kind==='trap', backUrl: ownerBackUrl, fxMine: entry.ownerKey===MY_KEY});
+          return playCardFlipReveal(fullAtAnimTime, {isTrap: entry.kind==='trap', isSpell: fullAtAnimTime.type==='Sortilège', backUrl: ownerBackUrl, fxMine: entry.ownerKey===MY_KEY}).then(()=>{
+            // (le tremblement des créatures de 10 de force ou plus est joué par BFX à leur arrivée sur le plateau)
+          });
         });
+      }
+
+      // Artefact utilisé : rouage qui s'emballe, éclats et reflet sur l'artefact
+      if(entry.kind==='artifact_activate' && window.BFX){
+        queueCombatAnim(()=>BFX.artifactUse(resolveLogSourceEl(entry), entry.ownerKey===MY_KEY));
       }
 
       // Flèche d'effet vers chaque cible touchée par une capacité — ou
@@ -2766,6 +2776,31 @@ function onStateUpdate(state){
   finishStateUpdateTail(state);
 }
 
+// Héros vaincu à jouer pour CET état : { loserKey, slot } ou null. Une seule fois par
+// partie, seulement si l'écran de fin n'était pas déjà affiché (rechargement de page
+// sur une partie finie = pas d'animation) et si les PV du perdant sont bien à 0.
+let __heroDeathPlayed = false;
+function heroDeathToPlay(state){
+  try{
+    if(__heroDeathPlayed || combatInstant() || !window.BFX) return null;
+    if(!state || !state.gameOver || !PREV_S || PREV_S.gameOver || !state.winnerKey) return null;
+    const loserKey = state.winnerKey==='p1' ? 'p2' : 'p1';
+    if(!state[loserKey] || (state[loserKey].hp||0) > 0) return null;
+    return { loserKey, slot: loserKey===MY_KEY ? 'p1' : 'p2' };
+  } catch(e){ return null; }
+}
+function queueHeroDeathAnim(d){
+  __heroDeathPlayed = true;
+  queueCombatAnim(()=>{
+    const frame = document.getElementById(`hero-frame-${d.slot}`);
+    // le cadre encore affiché est celui d'avant les derniers dégâts : on le remet
+    // à jour (PV à 0) juste avant qu'il n'explose
+    try{ renderHeroFrame(d.loserKey, d.slot); }catch(e){}
+    registerCombatCleanup(()=>{ try{ BFX.clearDeathLayers(); }catch(e){} });
+    return BFX.heroDeath(frame, d.loserKey===MY_KEY);
+  });
+}
+
 function finishStateUpdateTail(state){
   // Si ce lot contient une animation de combat, on garde l'ancien plateau à
   // l'écran jusqu'à la fin de la file (voir "Gel du rendu"). L'aperçu
@@ -2776,6 +2811,11 @@ function finishStateUpdateTail(state){
   // révélations) ; une étape de fin de file affiche ensuite les cartes jouées,
   // marque une courte pause, puis la libération montre les attaquants.
   const newEntries = getNewGameLogEntries(false);
+  // Mort d'un héros : la partie vient de se terminer parce que ses PV sont tombés à 0.
+  // On gèle le plateau (le résumé et la musique attendent la fin de la file) et on
+  // joue l'explosion du cadre en dernier, après les coups et les chiffres de dégâts.
+  const heroDeath = heroDeathToPlay(state);
+  if(heroDeath && !__boardRenderFrozen) freezeBoardRender();
   const holdAttackers = !combatInstant() &&
     shouldHoldCombatReveal(state, MY_KEY, OPP_KEY, newEntries.some(entryQueuesCardAnimation));
   if(!__boardRenderFrozen && (newEntries.some(entryAnimatesBoardCombat) || holdAttackers)){
@@ -2783,6 +2823,7 @@ function finishStateUpdateTail(state){
   }
   render(); // sans effet si le plateau est gelé (voir render)
   renderGameLog();
+  if(heroDeath) queueHeroDeathAnim(heroDeath);
   if(holdAttackers && __boardRenderFrozen && (__combatAnimPlaying || __combatAnimQueue.length)){
     queueCombatAnim(()=>{
       renderHeldCombatView();
@@ -2825,7 +2866,7 @@ function scheduleAiTurn(){
   const attempt = ()=>{
     __aiTurnTimer = null;
     if(!S || S.gameOver || S.pendingTarget || S.phase!=='main' || !(S[S.active] && S[S.active].isAI)) return; // plus d'actualité
-    if(__matchAnnounceActive || __combatAnimPlaying || __combatAnimQueue.length || ACTION_IN_FLIGHT){
+    if(__matchAnnounceActive || animationsBusy() || ACTION_IN_FLIGHT){
       __aiTurnTimer = setTimeout(attempt, 150);
       return;
     }
@@ -3474,6 +3515,7 @@ function render(){
   renderLane(OPP_KEY, 'p2');
   renderArtifactStack(MY_KEY, 'p1');
   renderArtifactStack(OPP_KEY, 'p2');
+  if(window.BFX) BFX.syncArrivals(S, MY_KEY, OPP_KEY); // arrivées de créatures / d'artefacts (animations)
   renderHand();
   renderRevealHandToggle();
   renderEnemyHand();
@@ -3596,7 +3638,7 @@ function renderDiscoverChoiceModal(){
 let __gameOverSfxPlayed = false; // évite de relancer le jingle à chaque re-rendu tant que l'écran de fin reste affiché
 function renderGameOverOverlay(){
   const overlay = document.getElementById('overlay');
-  if(!S.gameOver){ overlay.classList.remove('show'); return; }
+  if(!S.gameOver){ overlay.classList.remove('show'); __heroDeathPlayed = false; try{ if(window.BFX) BFX.resetHeroDeath(); }catch(e){} return; }
   document.getElementById('overlay-text').textContent = S.winnerKey===MY_KEY ? 'Victoire !' : 'Défaite...';
   // Musique de fin de partie (victoire/défaite) — jouée une seule fois, coupe
   // la musique de combat en cours. Comme c'est un simple objet Audio() non
@@ -4425,6 +4467,7 @@ function onBoardCreatureClick(key, c){
 }
 
 let PREV_HAND_LENGTH = null;
+let PREV_ENEMY_HAND = null;
 function renderEnemyHand(){
   const el = document.getElementById('enemy-hand-row');
   if(!el || !S) return;
@@ -4444,11 +4487,18 @@ function renderEnemyHand(){
   }
   const backUrl = opp.cardBackUrl;
   const count = (opp.hand||[]).length;
+  const __grown = (PREV_ENEMY_HAND!==null && count>PREV_ENEMY_HAND) ? count-PREV_ENEMY_HAND : 0;
+  PREV_ENEMY_HAND = count;
+  const __newEnemy = [];
   for(let i=0;i<count;i++){
     const c = document.createElement('div');
     c.className = 'enemy-hand-card';
     if(backUrl) c.style.backgroundImage = `url('${backUrl.replace(/'/g,"")}')`;
     el.appendChild(c);
+    if(__grown>0 && i>=count-__grown) __newEnemy.push({ el: c });
+  }
+  if(__newEnemy.length && window.BFX){
+    BFX.drawFly(document.querySelector('#deck-zone-p2 .deck-back-visual'), __newEnemy, backUrl);
   }
 }
 // Option « Montrer ma main aux spectateurs » — rangée dans le menu des options (engrenage du haut),
@@ -4510,6 +4560,7 @@ function renderHand(){
   const newCount = (PREV_HAND_LENGTH!==null && hand.length>PREV_HAND_LENGTH) ? (hand.length-PREV_HAND_LENGTH) : 0;
   PREV_HAND_LENGTH = hand.length;
   if(newCount>0) playSfx('draw');
+  const __newDrawn = [];
   hand.forEach((card, i)=>{
     // Un Piège se pose gratuitement (le coût n'est payé qu'au déclenchement) :
     // le mana ne conditionne donc pas sa jouabilité.
@@ -4540,7 +4591,7 @@ function renderHand(){
     el2.classList.add('hand-card');
     const slot = document.createElement('div');
     slot.className = 'hand-card-slot';
-    if(newCount>0 && i>=hand.length-newCount) slot.classList.add('card-just-drawn');
+    if(newCount>0 && i>=hand.length-newCount){ slot.classList.add('card-just-drawn'); __newDrawn.push({ el: slot }); }
     slot.appendChild(el2);
     if(!canPlay && !isPendingTrap) el2.style.opacity = '.5';
     if(drawOnlySpell){
@@ -4576,6 +4627,11 @@ function renderHand(){
     }
     el.appendChild(slot);
   });
+  // la carte piochée voyage du paquet jusqu'à la main
+  if(__newDrawn.length && window.BFX){
+    const deckEl = document.querySelector('#deck-zone-p1 .deck-back-visual');
+    BFX.drawFly(deckEl, __newDrawn, p.cardBackUrl);
+  }
 }
 
 // La main entière glisse hors de l'écran, ne laissant dépasser qu'un tiers
@@ -4916,6 +4972,7 @@ function playKeywordBadgeChanges(plan){
     const el = keywordBadgeEl(ch.instId, kw);
     if(el) gainedEls.push({ el, ch, kw });
   }));
+  const trailed = new Set();
   const run = ()=>{
     if(!instant){
       gainedEls.forEach(({ el, ch, kw })=>{
@@ -4926,6 +4983,7 @@ function playKeywordBadgeChanges(plan){
         const dur = cms(KW_BADGE_GAIN_MS);
         cur.style.animationDuration = dur+'ms';
         cur.classList.add('kw-badge-gain');
+        if(window.BFX && !trailed.has(ch.instId)){ trailed.add(ch.instId); BFX.keywordTrail(ch.instId, cur); } // lueur qui fait le tour de la carte
         setTimeout(()=>{ cur.classList.remove('kw-badge-gain'); cur.style.animationDuration = ''; }, dur+80);
       });
       plan.ghosts.forEach(spawnKeywordGhost);
@@ -5282,11 +5340,16 @@ function playCardFlipReveal(card, opts={}){
     document.body.appendChild(overlay);
 
     let done = false;
-    const finish = ()=>{
-      if(done) return; done = true;
+    const close = ()=>{
       overlay.classList.remove('show');
       overlay.classList.add('closing');
       setTimeout(()=>{ overlay.remove(); resolve(); }, 300);
+    };
+    const finish = ()=>{
+      if(done) return; done = true;
+      // un sort ne disparaît pas en fondu : la carte se consume
+      if(opts.isSpell && window.BFX) BFX.burnReveal(flip).then(close);
+      else close();
     };
     // Un clic sur l'overlay permet d'écourter — utile pour un joueur qui
     // enchaîne vite et ne veut pas attendre la fin de chaque révélation.
@@ -5295,8 +5358,10 @@ function playCardFlipReveal(card, opts={}){
     requestAnimationFrame(()=>{
       overlay.classList.add('show');
       setTimeout(()=>{ inner.classList.add('flipped'); }, 220);
+      if(window.BFX && opts.isSpell) setTimeout(()=>BFX.spellFlash(flip), 220+260);   // éclair lumineux à l'apparition d'un sort
+      if(window.BFX && opts.isTrap) setTimeout(()=>BFX.trapSnap(flip), 220+300);       // piège : le déclenchement claque
     });
-    const holdMs = opts.isTrap ? 1500 : 1150;
+    const holdMs = opts.isTrap ? 1500 : (opts.isSpell ? 850 : 1150);
     setTimeout(finish, 220 + 550 + holdMs);
   });
 }
@@ -5498,6 +5563,7 @@ function onCardDragEnd(ev){
   const over = isOverDropZone(ev);
   PENDING_PLACEMENT = null;
   if(over){
+    try{ if(window.BFX) BFX.setDrop(ev.clientX, ev.clientY); }catch(e){}
     const dc = S[MY_KEY].hand[handIndex];
     if(dc && dc.type==='Créature'){
       const { slots, index } = computeInsertion(ev);
@@ -6074,11 +6140,27 @@ function showActionError(msg){
   if(__actionErrorTimer) clearTimeout(__actionErrorTimer);
   __actionErrorTimer = setTimeout(()=>{ box.style.display = 'none'; }, 5000);
 }
+// Vrai tant qu'une animation (file de combat ou effet visuel du plateau) joue encore.
+function animationsBusy(){
+  return !!(__combatAnimPlaying || __combatAnimQueue.length || (window.BFX && BFX.busy()));
+}
+// Attend la fin des animations (jamais plus de 8 s : un blocage visuel ne doit pas figer la partie).
+async function waitForAnimationsIdle(){
+  const t0 = Date.now();
+  while(animationsBusy() && Date.now()-t0 < 8000){
+    await new Promise(r=>setTimeout(r, 60));
+  }
+}
 async function runAction(label, fn, opts){
   if(ACTION_IN_FLIGHT){ debugLog(`${label} → une action est déjà en cours, patiente un instant.`, 'log-error'); return; }
   ACTION_IN_FLIGHT = true;
   document.body.classList.add('action-busy');
+  try{ if(window.BFX) BFX.actionStart(label); }catch(e){}
   try{
+    // Aucune nouvelle action tant qu'une animation tourne encore (clics bloqués
+    // par la feuille de style ; ici on couvre aussi les actions automatiques :
+    // elles attendent leur tour au lieu d'être perdues).
+    await waitForAnimationsIdle();
     const res = await fn();
     if(res && res.error){
       debugLog(`${label} → ${res.error}`, 'log-error');
@@ -6103,6 +6185,7 @@ async function runAction(label, fn, opts){
   } finally {
     ACTION_IN_FLIGHT = false;
     document.body.classList.remove('action-busy');
+    try{ if(window.BFX) BFX.actionEnd(); }catch(e){}
   }
 }
 
