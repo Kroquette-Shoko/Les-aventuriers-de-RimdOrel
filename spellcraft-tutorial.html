@@ -400,15 +400,18 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .card-rarity-gem.rarity-Mythique{background:var(--gold);color:var(--gold);}
 .charges{color:var(--frost);font-size:11px;font-weight:700;position:absolute;bottom:5px;right:6px;z-index:2;}
 
-.hand-row{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;gap:9px;justify-content:center;padding:55px 14px 6px;pointer-events:none;scrollbar-width:none;background:transparent !important;box-shadow:none;border:none;transform:translateY(136px);transition:transform .22s ease;}
+.hand-row{position:fixed;left:0;right:0;bottom:0;z-index:40;display:flex;flex-wrap:nowrap;overflow:visible;gap:0;justify-content:center;padding:55px 14px 6px;pointer-events:none;scrollbar-width:none;background:transparent !important;box-shadow:none;border:none;transform:translateY(136px);transition:transform .22s ease;}
 .hand-row .card{pointer-events:auto;}
 .hand-row::-webkit-scrollbar{height:0;width:0;background:transparent;}
-.hand-card-slot{pointer-events:auto;width:177px;height:250px;flex-shrink:0;transform-origin:bottom center;transition:transform .15s ease;}
-.hand-card-slot:hover{transform:translateY(-8px) scale(1.05);z-index:5;position:relative;}
+/* Main en éventail : applyHandFan() pose --fr (inclinaison) et --fy (descente des cartes de bord) sur chaque carte,
+   et un léger chevauchement (marge négative). Au survol, la carte se redresse, monte et passe devant. */
+.hand-card-slot{pointer-events:auto;position:relative;width:177px;height:250px;flex-shrink:0;transform-origin:50% 100%;transform:translateY(var(--fy,0px)) rotate(var(--fr,0deg));transition:transform .15s ease;}
+.hand-card-slot:hover{transform:translateY(-34px) rotate(0deg) scale(1.08);z-index:50;}
+.hand-card-slot.hand-reorder-src{z-index:49;}
 .hand-card-slot .ncard.hand-card{transform:scale(0.59);transform-origin:top left;}
 
-.enemy-hand-row{position:fixed;top:56px;left:0;right:0;z-index:39;display:flex;flex-wrap:nowrap;overflow:visible;gap:6px;justify-content:center;padding:6px 14px 30px;pointer-events:none;}
-.enemy-hand-card{width:92px;height:130px;border-radius:8px;background-size:cover;background-position:center;background-color:hsl(calc(var(--th, 252) + 0.9) calc(var(--ts-n, 1) * 28%) 19.6%);border:2px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));box-shadow:0 4px 10px rgba(0,0,0,.5);transform:rotate(180deg);flex-shrink:0;}
+.enemy-hand-row{position:fixed;top:56px;left:0;right:0;z-index:39;display:flex;flex-wrap:nowrap;overflow:visible;gap:0;justify-content:center;padding:6px 14px 30px;pointer-events:none;}
+.enemy-hand-card{width:92px;height:130px;border-radius:8px;background-size:cover;background-position:center;background-color:hsl(calc(var(--th, 252) + 0.9) calc(var(--ts-n, 1) * 28%) 19.6%);border:2px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));box-shadow:0 4px 10px rgba(0,0,0,.5);transform:translateY(var(--ey,0px)) rotate(calc(180deg + var(--er,0deg)));flex-shrink:0;}
 .enemy-hand-card-revealed{flex-shrink:0;transform:scale(.72);transform-origin:top center;margin:0 -18px;}
 
 .side-zone{position:absolute;display:flex;flex-direction:column;gap:8px;z-index:6;}
@@ -3585,6 +3588,7 @@ function attachBaseViewToggle(box, parts, baseCard, startOnBase){
 }
 
 function showCardPreviewHover(card, ev, inPlay){
+  if(DRAG_STATE) return; // pas d'aperçu pendant qu'on glisse une carte
   const box = document.getElementById('card-preview');
   const myToken = ++__previewHoverToken;
   __lastPreviewEvent = ev;
@@ -3739,8 +3743,7 @@ function syncTargetingArrow(){
   if(UI.pendingNewTarget){
     const extra = UI.pendingNewTarget.extra || {};
     if(UI.pendingNewTarget.kind==='card' && extra.index!==undefined){
-      const slots = document.querySelectorAll('.hand-card-slot');
-      sourceEl = slots[extra.index] || null;
+      sourceEl = document.querySelector(`.hand-card-slot[data-hand-index="${extra.index}"]`);
     } else if(UI.pendingNewTarget.kind==='hero'){
       sourceEl = document.getElementById('hero-frame-p1');
     } else if(UI.pendingNewTarget.kind==='permanent' && extra.permanentInstId){
@@ -3751,8 +3754,7 @@ function syncTargetingArrow(){
       else if(ref.kind==='hero') sourceEl = document.getElementById('hero-frame-p1');
     }
   } else if(UI.pendingCard && UI.pendingCard.index!==undefined){
-    const slots = document.querySelectorAll('.hand-card-slot');
-    sourceEl = slots[UI.pendingCard.index] || null;
+    sourceEl = document.querySelector(`.hand-card-slot[data-hand-index="${UI.pendingCard.index}"]`);
   } else if(UI.pendingBlocker && S.phase==='declareBlockersMe' && S.active===OPP_KEY){
     // Bloqueur sélectionné : flèche bleu/rouge jusqu'à l'attaquant à bloquer
     sourceEl = document.querySelector(`#lane-p1 [data-instid="${UI.pendingBlocker}"]`);
@@ -4705,9 +4707,31 @@ function renderEnemyHand(){
     el.appendChild(c);
     if(__grown>0 && i>=count-__grown) __newEnemy.push({ el: c });
   }
+  applyEnemyHandFan();
   if(__newEnemy.length && window.BFX){
     BFX.drawFly(document.querySelector('#deck-zone-p2 .deck-back-visual'), __newEnemy, backUrl);
   }
+}
+// Main adverse (dos de cartes) : même éventail que la nôtre, vu à l'envers (symétrie par rapport au centre du plateau).
+function applyEnemyHandFan(){
+  const row = document.getElementById('enemy-hand-row');
+  if(!row) return;
+  const cards = [...row.querySelectorAll(':scope > .enemy-hand-card')];
+  const n = cards.length;
+  if(!n) return;
+  const w = cards[0].offsetWidth || 92;
+  const avail = Math.max(200, row.clientWidth - 28);
+  let step = w - Math.round(w*0.3);                    // chevauchement d'environ 30 %
+  if(n>1 && step*(n-1)+w > avail) step = (avail - w)/(n-1);
+  const half = (n-1)/2;
+  const ang = n>1 ? Math.min(4.5, 28/(n-1)) : 0;
+  const k = half>0 ? Math.min(2.2, 12/(half*half)) : 0;  // descente max ≈ 12 px (la barre du haut est juste au-dessus)
+  cards.forEach((c,i)=>{
+    const t = i-half;
+    c.style.marginLeft = i===0 ? '0px' : (step-w)+'px';
+    c.style.setProperty('--er', (-t*ang).toFixed(2)+'deg');
+    c.style.setProperty('--ey', (-k*t*t).toFixed(2)+'px');
+  });
 }
 // Option « Montrer ma main aux spectateurs » — rangée dans le menu des options (engrenage du haut),
 // réservée aux deux joueurs (un spectateur n'a pas de main à révéler). Reflète l'état réel à chaque rendu.
@@ -4774,7 +4798,10 @@ function renderHand(){
   if(!pd) UI.discardSel = [];
   else UI.discardSel = (UI.discardSel||[]).filter(i=>i<Math.min(pd.eligible, hand.length));
   if(pd) revealHand();
-  hand.forEach((card, i)=>{
+  // Ordre d'affichage choisi par le joueur (glisser-déposer). Les index passés aux actions restent les index RÉELS de la main.
+  const displayOrder = pd ? hand.map((_,j)=>j) : computeHandDisplayOrder(hand);
+  displayOrder.forEach((i)=>{
+    const card = hand[i];
     // Un Piège se pose gratuitement (le coût n'est payé qu'au déclenchement) :
     // le mana ne conditionne donc pas sa jouabilité.
     const isTrapCard = card.type==='Piège';
@@ -4804,6 +4831,7 @@ function renderHand(){
     el2.classList.add('hand-card');
     const slot = document.createElement('div');
     slot.className = 'hand-card-slot';
+    slot.dataset.handIndex = String(i);
     if(newCount>0 && i>=hand.length-newCount){ slot.classList.add('card-just-drawn'); __newDrawn.push({ el: slot }); }
     slot.appendChild(el2);
     if(!canPlay && !isPendingTrap) el2.style.opacity = '.5';
@@ -4834,13 +4862,18 @@ function renderHand(){
         el2.addEventListener('click', ()=>toggleDiscardChoice(i));
       }
     }
-    el2.addEventListener('mouseenter', (ev)=>{ revealHand(); showHeroPreview(card, ev); });
-    el2.addEventListener('mousemove', moveHeroPreview);
+    el2.addEventListener('mouseenter', (ev)=>{ if(DRAG_STATE) return; revealHand(); showHeroPreview(card, ev); });
+    el2.addEventListener('mousemove', (ev)=>{ if(!DRAG_STATE) moveHeroPreview(ev); });
     el2.addEventListener('mouseleave', ()=>{ scheduleHideHand(); hidePreview(); });
     if(canPlay && !pd){
       el2.style.cursor = 'grab';
       el2.style.touchAction = 'none';
       el2.addEventListener('pointerdown', (ev)=>startCardDrag(ev, i, el2));
+    } else if(!pd && !isPendingTrap){
+      // Carte non jouable pour l'instant : on peut quand même la glisser pour réorganiser sa main.
+      el2.style.cursor = 'grab';
+      el2.style.touchAction = 'none';
+      el2.addEventListener('pointerdown', (ev)=>startCardDrag(ev, i, el2, true));
     } else if(isPendingTrap && myTurn && S.phase==='main' && !UI.selectingAttackers){
       // Toujours interactif — un simple clic annule le piège, pas besoin de
       // glisser-déposer puisqu'il ne s'agit pas de le jouer une seconde fois.
@@ -4849,11 +4882,87 @@ function renderHand(){
     }
     el.appendChild(slot);
   });
+  applyHandFan();
   // la carte piochée voyage du paquet jusqu'à la main
   if(__newDrawn.length && window.BFX){
     const deckEl = document.querySelector('#deck-zone-p1 .deck-back-visual');
     BFX.drawFly(deckEl, __newDrawn, p.cardBackUrl);
   }
+}
+
+// ---------------- Main en éventail + réorganisation ----------------
+// Ordre d'affichage voulu par le joueur : liste de {k, id} (k = JSON de la carte, id = id/nom de repli).
+// Les cartes de la main n'ont pas d'identifiant unique côté serveur : on les retrouve par leur contenu
+// (deux cartes identiques sont interchangeables). L'ordre ne vit que dans ce navigateur.
+let HAND_ORDER = [];
+function handCardKey(card){
+  try{ const c = {...card}; delete c._drawnOnTurn; return JSON.stringify(c); }catch(e){ return String(card && (card.id||card.name)); }
+}
+function handCardId(card){ return String(card && (card.id!==undefined ? card.id : card.name)); }
+// Renvoie les index réels de la main, dans l'ordre d'affichage ; met HAND_ORDER à jour (cartes jouées retirées, piochées ajoutées à la fin).
+function computeHandDisplayOrder(hand){
+  const keys = hand.map(handCardKey), ids = hand.map(handCardId);
+  const used = new Array(hand.length).fill(false);
+  const slots = HAND_ORDER.map(()=>-1);
+  HAND_ORDER.forEach((e,pos)=>{                       // 1) même carte, même contenu
+    const j = keys.findIndex((kk,idx)=>!used[idx] && kk===e.k);
+    if(j>=0){ used[j]=true; slots[pos]=j; }
+  });
+  HAND_ORDER.forEach((e,pos)=>{                       // 2) carte modifiée entre-temps : même id
+    if(slots[pos]>=0) return;
+    const j = ids.findIndex((ii,idx)=>!used[idx] && ii===e.id);
+    if(j>=0){ used[j]=true; slots[pos]=j; }
+  });
+  const order = slots.filter(j=>j>=0);
+  hand.forEach((_,j)=>{ if(!used[j]) order.push(j); }); // nouvelles cartes : à la fin
+  HAND_ORDER = order.map(j=>({k:keys[j], id:ids[j]}));
+  return order;
+}
+// Éventail : inclinaison + léger arc + chevauchement, recalculés à chaque rendu / réorganisation.
+function applyHandFan(){
+  const row = document.getElementById('hand-p1');
+  if(!row) return;
+  const slots = [...row.querySelectorAll(':scope > .hand-card-slot')];
+  const n = slots.length;
+  if(!n) return;
+  const z = parseFloat(getComputedStyle(slots[0]).zoom) || 1; // écran compact : les cartes sont réduites (zoom)
+  const W = 177 * z;
+  const avail = Math.max(300, row.clientWidth - 28);
+  let step = W - 30;                                   // chevauchement mini de 30 px
+  if(n>1 && step*(n-1)+W > avail) step = (avail - W)/(n-1);
+  const half = (n-1)/2;
+  const ang = n>1 ? Math.min(4.5, 28/(n-1)) : 0;
+  const k = half>0 ? Math.min(3.2, 26/(half*half)) : 0; // descente max ≈ 26 px pour les cartes de bord
+  slots.forEach((sl,i)=>{
+    const t = i-half;
+    sl.style.marginLeft = i===0 ? '0px' : ((step-W)/z)+'px';
+    sl.style.setProperty('--fr', (t*ang).toFixed(2)+'deg');
+    sl.style.setProperty('--fy', (k*t*t).toFixed(2)+'px');
+  });
+}
+// Pendant un glisser : la carte tenue prend la place visée parmi les autres (aperçu en direct).
+function previewHandReorder(ev){
+  const st = DRAG_STATE;
+  if(!st || !st.slot) return false;
+  const row = document.getElementById('hand-p1');
+  const rowTop = row.getBoundingClientRect().top;
+  if(ev.clientY < rowTop + 30) return false;           // pas dans la zone de la main
+  const others = [...row.querySelectorAll(':scope > .hand-card-slot')].filter(x=>x!==st.slot);
+  let target = 0;
+  others.forEach(o=>{ const r = o.getBoundingClientRect(); if(ev.clientX > r.left + r.width/2) target++; });
+  const cur = [...row.children].indexOf(st.slot);
+  if(cur !== target){
+    row.insertBefore(st.slot, others[target] || null);
+    applyHandFan();
+  }
+  return true;
+}
+function commitHandReorderFromDom(){
+  const row = document.getElementById('hand-p1');
+  const hand = (S && S[MY_KEY] && S[MY_KEY].hand) || [];
+  const order = [...row.querySelectorAll(':scope > .hand-card-slot')].map(sl=>parseInt(sl.dataset.handIndex,10)).filter(j=>j>=0 && j<hand.length);
+  if(order.length!==hand.length) return;
+  HAND_ORDER = order.map(j=>({k:handCardKey(hand[j]), id:handCardId(hand[j])}));
 }
 
 // La main entière glisse hors de l'écran, ne laissant dépasser qu'un tiers
@@ -5765,9 +5874,17 @@ function flashSelfTrigger(el, fxMine){
 
 let JOURNAL_CARD_LOOKUP = {}; // id -> carte complète, pour les aperçus au survol dans le journal
 
-function startCardDrag(ev, handIndex, sourceEl){
+function startCardDrag(ev, handIndex, sourceEl, reorderOnly){
   ev.preventDefault();
-  const rect = sourceEl.getBoundingClientRect();
+  const slotEl = sourceEl.parentElement && sourceEl.parentElement.classList.contains('hand-card-slot') ? sourceEl.parentElement : null;
+  // Mesure à plat (sans l'inclinaison de l'éventail ni l'effet de survol) pour que le fantôme ait la bonne taille.
+  let rect;
+  if(slotEl){
+    const prevT = slotEl.style.transition, prevTf = slotEl.style.transform;
+    slotEl.style.transition = 'none'; slotEl.style.transform = 'none';
+    rect = sourceEl.getBoundingClientRect();
+    slotEl.style.transform = prevTf; void slotEl.offsetWidth; slotEl.style.transition = prevT;
+  } else rect = sourceEl.getBoundingClientRect();
   const ghost = sourceEl.cloneNode(true);
   ghost.style.position = 'fixed';
   ghost.style.left = rect.left + 'px';
@@ -5784,8 +5901,11 @@ function startCardDrag(ev, handIndex, sourceEl){
 
   sourceEl.style.opacity = '.3';
 
+  hidePreview();
+  if(slotEl) slotEl.classList.add('hand-reorder-src');
   DRAG_STATE = {
-    handIndex, ghost,
+    handIndex, ghost, slot: slotEl, reorderOnly: !!reorderOnly,
+    domOrder0: slotEl ? [...slotEl.parentElement.children].map(x=>x.dataset.handIndex).join(',') : '',
     offsetX: ev.clientX - rect.left,
     offsetY: ev.clientY - rect.top,
     sourceEl
@@ -5852,8 +5972,9 @@ function onCardDragMove(ev){
   ghost.style.top = (ev.clientY - offsetY) + 'px';
 
   const zone = document.getElementById('lane-p1');
-  const over = isOverDropZone(ev);
+  const over = !DRAG_STATE.reorderOnly && isOverDropZone(ev);
   zone.classList.toggle('drop-target', over);
+  if(!over) previewHandReorder(ev);
   const dragCard = S && S[MY_KEY] ? S[MY_KEY].hand[DRAG_STATE.handIndex] : null;
   if(over && dragCard && dragCard.type==='Créature') showInsertionPreview(ev);
   else clearInsertionPreview();
@@ -5861,10 +5982,18 @@ function onCardDragMove(ev){
 
 function onCardDragEnd(ev){
   if(!DRAG_STATE) return;
-  const { handIndex, ghost, sourceEl } = DRAG_STATE;
+  const { handIndex, ghost, sourceEl, slot, reorderOnly, domOrder0 } = DRAG_STATE;
   const zone = document.getElementById('lane-p1');
-  const over = isOverDropZone(ev);
+  const over = !reorderOnly && isOverDropZone(ev);
   PENDING_PLACEMENT = null;
+  // Réorganisation de la main : la nouvelle disposition est gardée si on a lâché la carte dans la main.
+  if(slot){
+    slot.classList.remove('hand-reorder-src');
+    const row = slot.parentElement;
+    const changed = row && [...row.children].map(x=>x.dataset.handIndex).join(',') !== domOrder0;
+    if(changed && !over) commitHandReorderFromDom();
+    else if(changed) setTimeout(()=>renderHand(), 0); // carte jouée / abandonnée : on remet l'ordre mémorisé
+  }
   if(over){
     try{ if(window.BFX) BFX.setDrop(ev.clientX, ev.clientY); }catch(e){}
     const dc = S[MY_KEY].hand[handIndex];
@@ -6232,6 +6361,7 @@ function renderPhaseBar(){
 
 function showHeroPreview(hero, ev){ showCardPreviewHover(hero, ev); }
 function moveHeroPreview(ev){
+  if(DRAG_STATE) return;
   __lastPreviewEvent = ev;
   const box = document.getElementById('card-preview');
   // Décalage large et volontaire — sur le plateau, les cartes (surtout les
