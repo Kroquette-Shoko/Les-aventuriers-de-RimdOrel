@@ -165,3 +165,18 @@ Depuis cette passe de nettoyage, `LOADED_COLLECTION.forEach(migrateCard)` est ap
 - Si le projet passe à une vraie stack (comptes utilisateurs, backend, base de données — voir la suite du projet), c'est le bon moment pour réévaluer : garder trois pages HTML autonomes, ou migrer vers une SPA avec un bundler (Vite/React ou équivalent) qui rendrait le partage de code (y compris le rendu de carte) natif plutôt que manuel comme avec `spellcraft-shared.js`.
 
 Ce fichier (`spellcraft-shared.js`) et ce document sont un premier pas : ils éliminent la classe de bug la plus fréquente rencontrée jusqu'ici (données dupliquées qui divergent), sans tout réécrire. La suite (unification du rendu, tests, éventuelle vraie stack) est un choix à faire consciemment, pas à improviser au fil des demandes.
+
+## Tutoriel (page générée)
+
+`spellcraft-tutorial.html` n'est **plus édité à la main** : il est généré à partir du plateau réel
+(`spellcraft-server-board.html`) par `python3 tools/build_tutorial.py`. Il reprend donc automatiquement
+toutes les animations et fonctionnalités du plateau ; il suffit de relancer le script après chaque
+modification du plateau (le script s'arrête avec un message clair si le plateau a changé d'une façon
+qu'il ne sait plus adapter).
+
+Ce qui est propre au tutoriel :
+- `spellcraft-tutorial-engine.js` : le scénario scripté (étapes, cartes, tours de l'adversaire). Il parle
+  au plateau comme le serveur : entrées de journal numérotées (`tutLog`), événements de combat
+  (`tutCombatEvent`, `tutHeroHit`), états envoyés en copie (`tutSnapshot` / `tutPush`).
+- `tools/tutorial/tutorial.css` (bande de narration, surbrillance, écran de fin) et
+  `tools/tutorial/topbar.html` (leur structure HTML).
