@@ -214,7 +214,10 @@ async function gsCheckMatchmaking(since) {
 function gsConnect(onStateUpdate, onChatMessage, onGameChat) {
   GS_ON_STATE_UPDATE = onStateUpdate;
 
-  GS_CHANNEL = sb.channel(`session-${GS_SESSION_ID}`, { config: { broadcast: { self: true } } });
+  // Canal PRIVÉ : seuls les deux joueurs et les spectateurs inscrits peuvent s'y brancher
+  // (règle côté base, voir securite_canaux_20261018.sql). Un navigateur ne peut rien y
+  // diffuser : émotes et chat passent par le serveur (actions sendEmote / sendChat).
+  GS_CHANNEL = sb.channel(`session-${GS_SESSION_ID}`, { config: { private: true } });
   // Le serveur ne diffuse plus l'état complet sur ce canal (il n'est pas
   // authentifié : n'importe qui connaissant l'id de session pouvait s'y
   // abonner et lire la main + le deck des deux joueurs). Il envoie juste
@@ -240,7 +243,11 @@ function gsConnect(onStateUpdate, onChatMessage, onGameChat) {
   if (onGameChat) {
     GS_CHANNEL.on('broadcast', { event: 'chat' }, ({ payload }) => onGameChat(payload));
   }
-  GS_CHANNEL.subscribe();
+  GS_CHANNEL.subscribe((status, err) => {
+    if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+      console.error('Canal de partie indisponible (' + status + ')', err || '');
+    }
+  });
 
   gsSetupPresence();
 }
@@ -255,7 +262,7 @@ function gsSetupPresence() {
   if (GS_VS_AI) return; // l'IA n'envoie jamais de présence — pas de déconnexion à surveiller contre elle
 
   GS_PRESENCE_CHANNEL = sb.channel(`presence-${GS_SESSION_ID}`, {
-    config: { presence: { key: GS_ROLE } }
+    config: { private: true, presence: { key: GS_ROLE } }
   });
 
   GS_PRESENCE_CHANNEL.on('presence', { event: 'sync' }, () => {
@@ -315,27 +322,22 @@ function gsDisconnect() {
 // ------------------------------------------------------------
 // Chat
 // ------------------------------------------------------------
-async function gsSendEmote(image, label) {
+// Émote : on n'envoie que le NUMÉRO de l'émote dans la liste du héros. Le serveur vérifie que
+// l'on est bien joueur de la partie, retrouve l'image lui-même et diffuse avec le bon camp.
+async function gsSendEmote(emoteIndex) {
   const user = await scGetCurrentUser();
   if (!user) return { error: 'not-logged-in' };
   if (GS_ROLE !== 'p1' && GS_ROLE !== 'p2') return { error: 'spectators-cannot-emote' };
-  if (!GS_CHANNEL) { console.error('Envoi émote impossible : GS_CHANNEL non initialisé'); return { error: 'not-connected' }; }
-  console.log('Diffusion émote — rôle:', GS_ROLE, 'canal:', `session-${GS_SESSION_ID}`);
-  const result = await GS_CHANNEL.send({ type: 'broadcast', event: 'emote', payload: { senderKey: GS_ROLE, image, label } });
-  console.log('Résultat diffusion émote :', result);
-  return { ok: true };
+  if (!Number.isInteger(emoteIndex)) return { error: 'invalid-emote' };
+  return gsCallAction('sendEmote', { emoteIndex });
 }
 
-// Message du chat de la partie. Ouvert aux deux joueurs et aux spectateurs (GS_ROLE =
-// 'p1' | 'p2' | 'spectator'). Diffusé sur le canal de la session, sans passer par la base.
+// Message du chat de la partie. Ouvert aux deux joueurs et aux spectateurs. Le serveur impose
+// le pseudo et le rôle (joueur 1 / joueur 2 / spectateur), nettoie le texte et limite la fréquence.
 async function gsSendChat(name, text) {
-  if (!GS_CHANNEL) return { error: 'not-connected' };
   const clean = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 200);
   if (!clean) return { error: 'empty' };
-  await GS_CHANNEL.send({ type: 'broadcast', event: 'chat', payload: {
-    role: GS_ROLE === 'p1' || GS_ROLE === 'p2' ? GS_ROLE : 'spectator',
-    name: String(name || 'Joueur').slice(0, 24), text: clean, ts: Date.now() } });
-  return { ok: true };
+  return gsCallAction('sendChat', { text: clean });
 }
 
 // ------------------------------------------------------------

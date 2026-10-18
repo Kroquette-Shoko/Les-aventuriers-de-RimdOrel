@@ -180,3 +180,14 @@ Ce qui est propre au tutoriel :
   (`tutCombatEvent`, `tutHeroHit`), états envoyés en copie (`tutSnapshot` / `tutPush`).
 - `tools/tutorial/tutorial.css` (bande de narration, surbrillance, écran de fin) et
   `tools/tutorial/topbar.html` (leur structure HTML).
+
+## Sécurité du temps réel (canaux, émotes, chat)
+
+- **Canal de partie privé** : `session-<id>` (et `presence-<id>`) sont créés avec `private: true`. La lecture est réservée aux deux joueurs et aux spectateurs inscrits (`game_spectators`) par une règle sur `realtime.messages` qui appelle `public.rt_is_session_member(realtime.topic())`. Aucune règle d'écriture pour `session-…` : un navigateur ne peut **rien diffuser** sur ce canal.
+- **Seul le serveur diffuse** (fonction `__rtBroadcast` de `game-action`, appel REST `/realtime/v1/api/broadcast` avec la clé de service). Il n'envoie plus jamais l'état de partie, seulement le signal `stateChanged` (chaque client va chercher son état expurgé via `getState`).
+- **Émotes** : le client envoie le *numéro* de l'émote (`sendEmote`). Le serveur vérifie que l'appelant est joueur de la partie, lit l'image dans `state[p].hero.emotes`, fixe lui-même `senderKey`, limite à 1 émote / 0,6 s. Le plateau n'affiche une émote reçue que si l'image fait partie des émotes du héros de l'émetteur.
+- **Chat** : `sendChat` (joueurs et spectateurs). Le serveur impose le rôle et le pseudo (table `profiles`), nettoie le texte (200 caractères), limite à 1 message / 1,2 s.
+- **Transition** : le serveur envoie aussi `stateChanged` sur l'ancien canal public tant que le réglage Realtime « Allow public access » est actif. Une fois le site publié avec ce code, désactiver ce réglage (Supabase → Realtime → Settings) pour fermer définitivement les canaux publics.
+- **Progression** : `progress_achievement`, `progress_achievement_peak`, `progress_collection_achievements` et `progress_quest` ignorent `p_user_id` quand l'appel vient d'un navigateur connecté (compte forcé = soi). Le serveur (clé de service) peut encore cibler un joueur.
+- **Tables `_backup_*`** : RLS activée (le générateur `mk.py` l'active désormais à la création).
+- **Limite connue** : les compteurs de succès/quêtes envoyés par le navigateur (ex. `emotes_single_match_max`) restent déclarés par le client ; seul un déplacement de leur calcul côté serveur les rendrait infalsifiables.
