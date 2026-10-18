@@ -1955,6 +1955,42 @@ function journalEffectSentence(eff, actorKey){
   return `L'adversaire ${first}${rest}.`;
 }
 
+// Chocs de blocage en attente (voir renderGameLog) : le serveur indique, par
+// `clashAfterSeq` sur l'événement blockResolved, le numéro du journal juste
+// AVANT le choc. Tout ce qui est écrit avant (pièges de combat, capacités
+// « quand bloquée / quand bloque ») s'anime d'abord ; le choc se joue dès la
+// première entrée suivante (mort au combat...) ou à la fin du lot. Un choc
+// `pending` attend que le serveur ait réellement résolu le combat (capacité à
+// cible choisie en pause avant le combat : S.pendingCombat) ; son événement
+// arrive alors dans un lot ultérieur.
+let AWAITING_STRIKES = [];
+function flushAwaitingStrikes(curSeq, newCombatEvents){
+  if(!AWAITING_STRIKES.length) return;
+  const keep = [];
+  AWAITING_STRIKES.forEach(job=>{
+    if(job.pending){
+      const ev = takeCombatEvent(newCombatEvents, 'blockResolved',
+        e=>e.attackerInstId===job.attackerInstId && e.blockerInstId===job.blockerInstId);
+      if(ev){
+        job.ev = ev; job.pending = false;
+        job.afterSeq = isCombatNumber(ev.clashAfterSeq) ? ev.clashAfterSeq : -1;
+        job.duel = newCombatEvents.filter(e=>e && e.combatEvent==='blockResolved' &&
+          (e.attackerInstId===job.attackerInstId || e.blockerInstId===job.blockerInstId)).length === 0;
+      } else if(S && S.pendingCombat && S.pendingCombat.attackerId===job.attackerInstId && S.pendingCombat.blockerId===job.blockerInstId){
+        keep.push(job); return; // le combat n'a pas encore eu lieu côté serveur
+      } else {
+        job.pending = false; job.afterSeq = -1; // plus de pause et pas d'événement : repli sur l'estimation
+      }
+    }
+    if(job.ev && job.ev.combatCancelled) return; // combat annulé : rien à animer
+    const ready = !isCombatNumber(curSeq) || curSeq===Infinity || job.afterSeq < curSeq;
+    if(!ready){ keep.push(job); return; }
+    playCombatStrike(job.attackerInstId, job.blockerInstId,
+      resolveBlockOutcome(job.ev, PREV_S, S, job.attackerInstId, job.blockerInstId), job.duel);
+  });
+  AWAITING_STRIKES = keep;
+}
+
 function renderGameLog(){
   const el = document.getElementById('log');
   if(!el || !S) return;
@@ -1966,6 +2002,7 @@ function renderGameLog(){
   // rendu ; chaque entrée de journal « consomme » son événement (takeCombatEvent).
   const newCombatEvents = getNewCombatEvents();
   getNewGameLogEntries().forEach(entry=>{
+    flushAwaitingStrikes(entry.seq, newCombatEvents);
     if(entry.raw){
       if(entry.raw.includes('attaque avec')){
         playSfx('attack');
@@ -1984,7 +2021,16 @@ function renderGameLog(){
           // Duel strict : cet attaquant n'a qu'UN bloqueur et ce bloqueur ne bloque que lui.
           const duel = newCombatEvents.filter(e=>e && e.combatEvent==='blockResolved' &&
             (e.attackerInstId===attackerInstId || e.blockerInstId===blockerInstId)).length === 0;
-          playCombatStrike(attackerInstId, blockerInstId, resolveBlockOutcome(blockEv, PREV_S, S, attackerInstId, blockerInstId), duel);
+          // Le choc n'est PAS joué tout de suite : le journal écrit « X bloque Y »
+          // avant les effets qui se déclenchent avant le combat (pièges comme
+          // « Force de géant », capacités « quand cette créature est bloquée »...).
+          // On le garde en attente jusqu'à la première entrée écrite APRÈS le
+          // moment du choc (voir flushAwaitingStrikes), pour que ces effets
+          // s'animent d'abord.
+          const waiting = !blockEv && S && S.pendingCombat &&
+            S.pendingCombat.attackerId===attackerInstId && S.pendingCombat.blockerId===blockerInstId;
+          AWAITING_STRIKES.push({ attackerInstId, blockerInstId, ev:blockEv||null, duel, pending:!!waiting,
+            afterSeq: (blockEv && isCombatNumber(blockEv.clashAfterSeq)) ? blockEv.clashAfterSeq : -1 });
         }
       } else if(entry.raw.includes('perdu') && entry.raw.includes('point')){
         // dégâts non bloqués au héros : popup + son selon l'ampleur, et
@@ -2102,6 +2148,7 @@ function renderGameLog(){
       });
     }
   });
+  flushAwaitingStrikes(Infinity, newCombatEvents);
 
   journalRenderList(el, S.__gameLog||[]);
 }
