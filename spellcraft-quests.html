@@ -418,12 +418,12 @@ function hideRewardCardPreview(){
 async function getEquippedCardBackUrl(){
   try{
     const user = await scGetCurrentUser();
-    if(!user) return null;
+    if(!user) return 'images/card/back/dos-de-carte-base.png';
     const { data: prof } = await sb.from('profiles').select('equipped_card_back_id').eq('id', user.id).maybeSingle();
-    if(!prof || !prof.equipped_card_back_id) return null;
+    if(!prof || !prof.equipped_card_back_id) return 'images/card/back/dos-de-carte-base.png';
     const { data } = await sb.from('card_backs').select('image_url').eq('id', prof.equipped_card_back_id).maybeSingle();
-    return data ? data.image_url : null;
-  }catch(e){ return null; }
+    return data ? data.image_url : 'images/card/back/dos-de-carte-base.png';
+  }catch(e){ return 'images/card/back/dos-de-carte-base.png'; }
 }
 
 // Montre UNE carte gagnée : dos, puis elle se retourne ; reste à l'écran jusqu'à un clic n'importe où.

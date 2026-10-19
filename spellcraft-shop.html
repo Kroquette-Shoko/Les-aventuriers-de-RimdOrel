@@ -914,9 +914,10 @@ async function renderCardBackShelf(){
   // grant_card_back) pour un événement ou une condition spéciale — jamais
   // proposés à l'achat, mais toujours affichés ici (avec un badge) une fois
   // possédés, sinon le joueur qui en reçoit un ne pourrait jamais l'équiper.
-  const data = allBacks.filter(cb => cb.shop_visible !== false || owned.has(cb.id));
+  // Un dos déjà acheté disparaît de la liste (comme les héros) ; il s'équipe depuis le deckbuilder.
+  const data = allBacks.filter(cb => cb.shop_visible !== false && !owned.has(cb.id));
   if(data.length===0){
-    el.innerHTML = `<div class="empty-shelf">Aucun dos de carte disponible pour l'instant — reviens plus tard !</div>`;
+    el.innerHTML = `<div class="empty-shelf">${owned.size>1?'Tu possèdes tous les dos de carte disponibles !':'Aucun dos de carte disponible pour l\'instant — reviens plus tard !'}</div>`;
     return;
   }
   el.innerHTML = data.map(cb=>{
@@ -1553,9 +1554,9 @@ async function openBoosterFromInventory(boosterId, boosterImageUrl){
 
 async function getEquippedCardBackUrl(){
   const profile = await loadUserProfile();
-  if(!profile || !profile.equipped_card_back_id) return null;
+  if(!profile || !profile.equipped_card_back_id) return 'images/card/back/dos-de-carte-base.png';   // aucun dos équipé : dos de base
   const { data } = await sb.from('card_backs').select('image_url').eq('id', profile.equipped_card_back_id).single();
-  return data ? data.image_url : null;
+  return data ? data.image_url : 'images/card/back/dos-de-carte-base.png';
 }
 
 let lastBoosterResult = null;

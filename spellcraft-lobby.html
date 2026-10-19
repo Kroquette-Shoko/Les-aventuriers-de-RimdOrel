@@ -243,6 +243,7 @@
 let LOADED_COLLECTION = [];
 let LOADED_DECKS = [];
 let CARD_BACKS_BY_ID = {};
+let EQUIPPED_BACK_ID = 'base';
 let CHOSEN_DECK_ID = null;
 let DECK_PAGE = 0;
 const DECKS_PER_PAGE = 6; // grille 3 colonnes x 2 lignes
@@ -270,6 +271,7 @@ async function initLobby(){
     const { data: backs } = await sb.from('card_backs').select('id, image_url');
     (backs||[]).forEach(b=>{ CARD_BACKS_BY_ID[b.id] = b.image_url; });
   }catch(e){}
+  try{ const pf = await loadUserProfile(); EQUIPPED_BACK_ID = (pf && pf.equipped_card_back_id) || 'base'; }catch(e){}
 
   renderDeckGrid();
   wireActionButtons();
@@ -316,7 +318,8 @@ function renderDeckGrid(){
     const sum = deckSummaryLobby(d, LOADED_COLLECTION);
     const wrap = document.createElement('div');
     wrap.className = 'deck-tile-wrap' + (d.id===CHOSEN_DECK_ID ? ' selected' : '');
-    const backUrl = d.cardBackId ? CARD_BACKS_BY_ID[d.cardBackId] : null;
+    // sans dos choisi pour le deck : dos équipé, à défaut dos de base
+    const backUrl = CARD_BACKS_BY_ID[d.cardBackId] || CARD_BACKS_BY_ID[EQUIPPED_BACK_ID] || CARD_BACKS_BY_ID['base'] || 'images/card/back/dos-de-carte-base.png';
     const heroImg = sum.hero && sum.hero.image;
 
     wrap.innerHTML = `

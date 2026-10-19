@@ -3055,7 +3055,7 @@ async function loadOwnedCardBacks(){
     ownedCardBacksCache = backs || [];
   }
   const profile = await loadUserProfile();
-  equippedCardBackId = profile ? profile.equipped_card_back_id : null;
+  equippedCardBackId = (profile && profile.equipped_card_back_id) || 'base';
 }
 
 function populateDeckCardBackSelect(){
