@@ -533,6 +533,50 @@ const GEM_ICON_FILES = {Volonté:'gem-vol.png', Aube:'gem-aub.png', 'Crépuscule
 // brunoSay(html, durée_ms) affiche n'importe quel texte ; les répliques par événement
 // de la boutique sont regroupées dans BRUNO_EVENT_LINES (clé = nom de l'événement).
 let brunoThanksTimeout = null, brunoHideTimeout = null;
+
+// ---------- Images de Bruno (4 poses) ----------
+//  base  : position de base.
+//  buy   : en même temps que la réplique d'achat, puis retour à la base.
+//  wait  : dès la réplique d'inactivité ; reste jusqu'à un achat (ou jusqu'à ce qu'on quitte la boutique).
+//  sleep : de 22h30 à 7h00 (heure de l'appareil) ; ne change plus du tout (ni inactivité, ni achat).
+// Si un fichier image est introuvable, on garde l'image de base (puis l'ancienne vendor-bruno.png).
+const BRUNO_POSES = { base:'images/bruno_base.png', buy:'images/bruno_buy.png', wait:'images/bruno_wait.png', sleep:'images/bruno_sleep.png' };
+const BRUNO_POSE_FALLBACK = 'images/vendor-bruno.png';
+const __brunoPoseOk = {};
+let brunoPose = 'base', brunoBuyPoseTimeout = null;
+function brunoIsNight(d){
+  d = d || new Date();
+  const m = d.getHours()*60 + d.getMinutes();
+  return m >= 22*60+30 || m < 7*60;
+}
+function brunoApplyPose(){
+  const el = document.getElementById('vendor-portrait');
+  if(!el) return;
+  let url = BRUNO_POSES[brunoPose];
+  if(__brunoPoseOk[brunoPose] === false) url = (__brunoPoseOk.base === false ? BRUNO_POSE_FALLBACK : BRUNO_POSES.base);
+  el.style.backgroundImage = `url('${url}')`;
+}
+// Précharge chaque pose et mémorise celles qui n'existent pas (pour revenir à l'image de base).
+Object.keys(BRUNO_POSES).forEach(k=>{
+  const im = new Image();
+  im.onload = ()=>{ __brunoPoseOk[k] = true; if(k===brunoPose) brunoApplyPose(); };
+  im.onerror = ()=>{ __brunoPoseOk[k] = false; if(k===brunoPose || k==='base') brunoApplyPose(); };
+  im.src = BRUNO_POSES[k];
+});
+// Change de pose. La nuit, Bruno dort : rien ne le réveille.
+function brunoSetPose(name, backToBaseMs){
+  if(brunoBuyPoseTimeout){ clearTimeout(brunoBuyPoseTimeout); brunoBuyPoseTimeout = null; }
+  if(brunoIsNight()){ brunoPose = 'sleep'; brunoApplyPose(); return; }
+  brunoPose = name;
+  brunoApplyPose();
+  if(backToBaseMs) brunoBuyPoseTimeout = setTimeout(()=>{ brunoBuyPoseTimeout = null; brunoSetPose('base'); }, backToBaseMs);
+}
+// Vérifie l'heure chaque minute : endort Bruno à 22h30, le réveille à 7h00.
+setInterval(()=>{
+  if(brunoIsNight()){ if(brunoPose!=='sleep') brunoSetPose('sleep'); }
+  else if(brunoPose==='sleep') brunoSetPose('base');
+}, 60000);
+brunoSetPose('base');
 function brunoSay(html, ms){
   const bubble = document.getElementById('bruno-bubble');
   if(!bubble) return;
@@ -626,6 +670,7 @@ function brunoSayHero(cardId){
   if(i<0){ brunoSayEvent('single', { rarity:'', legendary:false }); return; }
   brunoSay(BRUNO_HERO_LINES[i].t, 8000);
   brunoMarkSeen(BRUNO_HERO_OFFSET + i);
+  brunoSetPose('buy', 8000);
 }
 const __brunoLast = {};
 // Renvoie { t, idx } (texte + numéro fixe) ou null.
@@ -648,7 +693,7 @@ function brunoPickLine(key, ctx){
 }
 function brunoSayEvent(eventKey, ctx, ms){
   const r = brunoPickLine(eventKey, ctx);
-  if(r){ brunoSay(r.t, ms || 7000); brunoMarkSeen(r.idx); }
+  if(r){ brunoSay(r.t, ms || 7000); brunoMarkSeen(r.idx); brunoSetPose('buy', ms || 7000); }
 }
 
 // Inactivité : 2 minutes sans clic, touche, défilement ni toucher → une remarque, puis on recommence à compter.
@@ -657,7 +702,7 @@ function brunoArmIdle(){
   if(brunoIdleTimer) clearTimeout(brunoIdleTimer);
   brunoIdleTimer = setTimeout(()=>{
     const busy = document.querySelector('.modal-overlay.show, #booster-open-overlay.show');
-    if(!busy && !document.hidden){ const r = brunoPickLine('idle'); if(r){ brunoSay(r.t, 9000); brunoMarkSeen(r.idx); } }
+    if(!busy && !document.hidden){ const r = brunoPickLine('idle'); if(r){ brunoSay(r.t, 9000); brunoMarkSeen(r.idx); brunoSetPose('wait'); } }
     brunoArmIdle();
   }, BRUNO_IDLE_MS);
 }
