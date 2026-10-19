@@ -53,7 +53,7 @@
   filter:drop-shadow(0 12px 20px rgba(0,0,0,.55));
 }
 #bruno-bubble{
-  position:absolute;right:46px;bottom:calc(100% - 28px);width:max-content;max-width:min(380px, calc(100vw - 40px));
+  position:absolute;z-index:2;right:46px;bottom:calc(100% + 6px);width:max-content;max-width:min(380px, calc(100vw - 40px));
   font-family:'Cinzel',serif;font-size:13.5px;line-height:1.5;color:var(--parchment);
   background:var(--bg-panel-3);border:1px solid var(--gold,#d4af37);border-radius:14px;padding:12px 16px;
   box-shadow:0 10px 28px rgba(0,0,0,.55);
@@ -544,16 +544,6 @@ const BRUNO_LINES = [
   `Un petit conseil de Bruno, gratuit celui-là (pour une fois) : n'ouvre jamais un booster sans y croire de tout ton être. La chance sent la sincérité ✨🃏`
 ];
 
-// Messages affichés temporairement dans la bulle de Bruno juste après un achat.
-const BRUNO_THANKS_LINES = [
-  `Ohhhh, quelle <em>générosité</em> ! Bruno en a presque une larme à l'œil — de joie, évidemment, purement de joie 🥲✨`,
-  `Un plaisir de faire affaire avec toi, mon trésor ! Reviens vite, Bruno gardera toujours un petit quelque chose de côté pour toi 💛`,
-  `Ahhh, voilà qui fait chanter la caisse de Bruno ! Prends-en bien soin, cette pièce-là a beaucoup voyagé pour arriver jusqu'à moi 🃏`,
-  `Marché conclu ! Bruno salue bien bas un client d'un tel <em>goût</em> — rare, très rare par les temps qui courent 🙇`,
-  `Que la chance te sourie autant que ta bourse vient de sourire à Bruno ! Merci, merci mille fois ✨`,
-  `Encore une belle affaire scellée dans les règles de l'art ! Reviens quand tu veux, l'échoppe ne ferme jamais vraiment pour toi 🎴`
-];
-
 // Bulle de Bruno : s'affiche au-dessus de lui puis disparaît toute seule.
 // brunoSay(html, durée_ms) affiche n'importe quel texte ; les répliques par événement
 // de la boutique sont regroupées dans BRUNO_EVENT_LINES (clé = nom de l'événement).
@@ -566,15 +556,96 @@ function brunoSay(html, ms){
   if(brunoHideTimeout) clearTimeout(brunoHideTimeout);
   brunoHideTimeout = setTimeout(()=>{ bubble.classList.remove('show'); brunoHideTimeout = null; }, ms || 9000);
 }
+// ---------- Répliques de Bruno ----------
+// Chaque réplique est un texte simple, ou { t, when, force } :
+//   when(ctx)  → n'est proposée que si la condition est vraie ;
+//   force:true → si sa condition est vraie, c'est elle qui est dite (cas particuliers).
+const BRUNO_WELCOME_LINES = [
+  `Bonjour et bienvenue dans la merveilleuse boutique de Bruno !`,
+  `Bienvenue ! Nous avons un nouvel arrivage de ce matin, prenez le temps de faire un tour.`,
+  `Ah, vous êtes de retour !`,
+  `Bonjour, comment allez-vous aujourd'hui ?`,
+  `Intéressé par quelque chose de précis ?`
+];
+// Au bout de 2 minutes sans rien faire dans la boutique.
+const BRUNO_IDLE_MS = 120000;
+const BRUNO_IDLE_LINES = [
+  `Vous comptiez acheter quelque chose, hein ?`,
+  `Vous êtes encore là ?`,
+  `J'espère que vous n'êtes pas un fantôme, comme le gars de l'autre fois...`,
+  `Vous êtes là pour faire fuir les clients ?`,
+  `Vous n'arrivez pas à vous décider ?`
+];
 const BRUNO_EVENT_LINES = {
-  purchase: BRUNO_THANKS_LINES   // après un achat (d'autres événements viendront : ouverture de booster, craft…)
+  // achat d'une carte à l'unité (ctx : { rarity, legendary })
+  single: [
+    `Je pense qu'elle vous ira à merveille.`,
+    { t:`J'aurais pris la plus chère, à votre place.`, when:c=>c.rarity==='Commune' },
+    { t:`Elle était légendaire, celle-là ?`, when:c=>!!c.legendary, force:true },
+    `C'est une bonne affaire, je vous l'assure.`,
+    `Ce n'est pas chez Miranda que vous l'auriez eue, celle-là !`
+  ],
+  // achat d'un dos de cartes (ctx : { flower, place })
+  cardback: [
+    `Ça ira parfaitement à votre deck.`,
+    `Vous n'auriez pas préféré le bleu ?`,
+    `Vous allez envoyer un message fort à vos adversaires avec ça.`,
+    { t:`Vous, je vous aime beaucoup.`, when:c=>!!c.flower, force:true },
+    { t:`C'est décidé ! Je pars en vacances !`, when:c=>!!c.place, force:true },
+    `Vous êtes une personne de goût.`
+  ],
+  // achat de boosters (ctx : { qty })
+  booster: [
+    `On a toujours besoin de nouvelles trouvailles.`,
+    { t:`Un second pour la route ?`, when:c=>c.qty===1 },
+    `Une bonne affaire, comme toujours.`,
+    `Ce n'est pas chez Miranda que vous l'auriez eu, celui-là !`,
+    { t:`Mais faites-vous plaisir, vous avez raison !`, when:c=>c.qty>=10, force:true },
+    `La boutique vous remercie !`
+  ]
 };
-function brunoSayEvent(eventKey, ms){
-  const lines = BRUNO_EVENT_LINES[eventKey];
-  if(!lines || !lines.length) return;
-  brunoSay(lines[Math.floor(Math.random()*lines.length)], ms);
+const __brunoLast = {};
+function brunoPickLine(key, ctx){
+  const lines = key==='idle' ? BRUNO_IDLE_LINES : (BRUNO_EVENT_LINES[key] || []);
+  const ok = lines.filter(l=> typeof l==='string' || !l.when || l.when(ctx||{}));
+  const forced = ok.filter(l=> typeof l!=='string' && l.force);
+  let texts = (forced.length ? forced : ok).map(l=> typeof l==='string' ? l : l.t);
+  // évite de répéter deux fois de suite la même phrase
+  if(texts.length>1 && __brunoLast[key]){
+    const rest = texts.filter(t=>t!==__brunoLast[key]);
+    if(rest.length) texts = rest;
+  }
+  if(!texts.length) return null;
+  const t = texts[Math.floor(Math.random()*texts.length)];
+  __brunoLast[key] = t;
+  return t;
 }
+function brunoSayEvent(eventKey, ctx, ms){
+  const t = brunoPickLine(eventKey, ctx);
+  if(t) brunoSay(t, ms || 7000);
+}
+
+// Inactivité : 2 minutes sans clic, touche, défilement ni toucher → une remarque, puis on recommence à compter.
+let brunoIdleTimer = null;
+function brunoArmIdle(){
+  if(brunoIdleTimer) clearTimeout(brunoIdleTimer);
+  brunoIdleTimer = setTimeout(()=>{
+    const busy = document.querySelector('.modal-overlay.show, #booster-open-overlay.show');
+    if(!busy && !document.hidden){ const t = brunoPickLine('idle'); if(t) brunoSay(t, 9000); }
+    brunoArmIdle();
+  }, BRUNO_IDLE_MS);
+}
+['pointerdown','keydown','wheel','touchstart'].forEach(ev=>document.addEventListener(ev, brunoArmIdle, { passive:true }));
+brunoArmIdle();
+
+// Les anciennes phrases d'accueil (BRUNO_LINES) restent, plus rares, car le succès secret
+// « Habitué de la boutique » compte combien de ces phrases le joueur a vues.
+const BRUNO_OLD_LINE_CHANCE = 0.25;
 function renderBrunoLine(){
+  if(Math.random() >= BRUNO_OLD_LINE_CHANCE){
+    brunoSay(BRUNO_WELCOME_LINES[Math.floor(Math.random()*BRUNO_WELCOME_LINES.length)], 9000);
+    return;
+  }
   const idx = Math.floor(Math.random()*BRUNO_LINES.length);
   brunoSay(BRUNO_LINES[idx], 11000);
   // Succès secret "Habitué de la boutique" — mémorise côté serveur quelles
@@ -591,10 +662,6 @@ function renderBrunoLine(){
     (async()=>{ try{ await sb.rpc('mark_bruno_line_seen', { p_line_index: idx }); }catch(e){ /* jamais bloquant */ } })();
   });
 }
-function showBrunoThanks(){
-  brunoSayEvent('purchase', 7000);
-}
-
 async function refreshCurrency(){
   const profile = await loadUserProfile();
   if(!profile){
@@ -694,7 +761,7 @@ async function buyMiniset(boosterId){
   if(error){ alert('Erreur : ' + error.message); return; }
   if(data.error){ alert(shopErrorMessage(data.error)); return; }
   playSfx('coin');
-  showBrunoThanks();
+  brunoSayEvent('booster', { qty: 2 });
   refreshCurrency();
   renderMinisetShelf();
   showRevealModal(`Mini-set obtenu : ${data.set_name || ''} (${data.cards_added} cartes)`, data.cards || []);
@@ -877,7 +944,7 @@ async function buyHeroCard(cardId){
   const { data, error } = await sb.rpc('buy_hero_card', { p_card_id: cardId });
   if(error || data.error){ alert(shopErrorMessage(data ? data.error : error.message)); return; }
   playSfx('coin');
-  showBrunoThanks();
+  brunoSayEvent('single', { rarity:'', legendary:false });
   refreshCurrency();
   renderHeroShelf();
 }
@@ -1218,7 +1285,7 @@ async function buyBooster(boosterId){
   if(error){ alert('Erreur : ' + error.message); return; }
   if(data.error){ alert(shopErrorMessage(data.error)); return; }
   playSfx('coin');
-  showBrunoThanks();
+  brunoSayEvent('booster', { qty: quantity });
   refreshCurrency();
   if(qtyEl) qtyEl.textContent = '1';
   flashBoosterInventoryBadge();
@@ -1659,7 +1726,10 @@ async function confirmSingleChoice(cardId){
   if(error){ alert('Erreur : ' + error.message); return; }
   if(data.error){ alert(shopErrorMessage(data.error)); return; }
   playSfx('coin');
-  showBrunoThanks();
+  try{
+    const f = (await fetchFullCards([data.card_id || cardId]))[data.card_id || cardId] || {};
+    brunoSayEvent('single', { rarity: f.rarity || '', legendary: !!f.isLegendary });
+  }catch(e){ brunoSayEvent('single', { rarity:'', legendary:false }); }
   showRevealModal('Carte obtenue !', [{ name: data.name, foil: data.foil, rarity: '', card_id: data.card_id }]);
   refreshCurrency();
   renderSingleShelf();
@@ -1674,7 +1744,9 @@ async function buyCardBack(id){
   if(error){ alert('Erreur : ' + error.message); return; }
   if(data.error){ alert(shopErrorMessage(data.error)); return; }
   playSfx('coin');
-  showBrunoThanks();
+  let __bk = '';
+  try{ const r = await sb.from('card_backs').select('name').eq('id', id).single(); __bk = ((r.data && r.data.name) || '').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase(); }catch(e){}
+  brunoSayEvent('cardback', { flower: /fierte\s*flor/.test(__bk), place: /veritable place/.test(__bk) });
   refreshCurrency();
   renderCardBackShelf();
 }
