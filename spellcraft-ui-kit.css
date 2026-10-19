@@ -36,7 +36,6 @@
 [data-theme="emeraude"]{ --th:152; --ts-n:.78; --ts-a:.52; --tl-a:-16%; }
 [data-theme="sangor"]{   --th:350; --ts-n:.92; --ts-a:.72; --tl-a:-14%; }
 [data-theme="givre"]{    --th:205; --ts-n:.95; --ts-a:.78; --tl-a:-4%;  }
-[data-theme="aube"]{     --th:345; --ts-n:.38; --ts-a:.58; --tl-a:-20%; }
 
 /* Jetons dérivés de la teinte (identiques en forme pour tous les thèmes) */
 :root{
@@ -111,32 +110,6 @@
   --gold-bright:#c3d7e3;
   --frost:#6fd0f0;
   --shadow-lift:0 18px 40px rgba(0,0,0,.55), 0 0 0 1px rgba(159,184,201,.25);
-}
-
-/* L'Aube — seul thème clair : lumière chaude du levant sur parchemin,
-   accent rose du matin, or ambré. Mêmes jetons, texte sombre sur fond clair. */
-[data-theme="aube"]{
-  --bg-void:#f6ecd9;
-  --bg-panel:#fbf5e7;
-  --bg-panel-2:#f3e6c9;
-  --bg-panel-3:#ecd9ac;
-  --bg-glow:radial-gradient(ellipse 90% 60% at 50% -10%, #ffd9a0 0%, transparent 65%);
-
-  --parchment:#3c2f1c;
-  --parchment-dim:#7d6c4c;
-  --ink:#fffaf0;
-
-  --gold:#b8790f;
-  --gold-bright:#d99a2b;
-  --blood:#b23b3b;
-  --frost:#2f8fae;
-  --green:#3d8a5c;
-
-  --line:#dcc696;
-  --line-soft:#ecdcb2;
-
-  --shadow-panel:0 14px 32px rgba(120,88,30,.18);
-  --shadow-lift:0 18px 40px rgba(120,88,30,.25), 0 0 0 1px rgba(184,121,15,.3);
 }
 
 /* Rayons communs (identiques quel que soit le thème) */

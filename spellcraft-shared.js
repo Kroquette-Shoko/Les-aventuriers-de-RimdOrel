@@ -582,7 +582,6 @@ const SC_THEMES = [
   { id:'emeraude', label:'Émeraude & bronze', swatch:['#0a100d','#c98a3e','#45c489'] },
   { id:'sangor',   label:'Sang & or',         swatch:['#10090a','#d9a63c','#de3551'] },
   { id:'givre',    label:'Givre & argent',    swatch:['#090d10','#9fb8c9','#5cafeb'] },
-  { id:'aube',     label:"L'Aube",            swatch:['#f6ecd9','#b8790f','#c13357'] },
 ];
 function scGetTheme(){
   try{ return localStorage.getItem('sc-theme') || 'actuel'; }catch(e){ return 'actuel'; }
