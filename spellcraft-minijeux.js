@@ -1,7 +1,8 @@
 /* Mini-jeux pour patienter pendant la recherche d'un adversaire.
  *   SCMini.start(conteneur)  → affiche les mini-jeux dans le conteneur
  *   SCMini.stop()            → arrête tout (minuteurs, clavier) et vide le conteneur
- * Jeux : « Serpent des sources » (flèches / ZQSD / balayage) et « Mémoire des sources » (clic).
+ * Jeux : « Serpent des sources » (flèches / ZQSD / balayage), « Mémoire des sources » (clic)
+ * et « Fusion » (façon Suika, avec les icônes de mots-clés).
  * Les gemmes sont les fragments des six sources (images/gem-*.png, teintées comme dans la boutique). */
 (function(){
   'use strict';
@@ -240,8 +241,200 @@
     return { onKey:function(e){ if(finished && e.key === 'Enter'){ reset(); } }, destroy:function(){ clearInterval(tickTimer); } };
   }
 
+  // ====================== FUSION (façon Suika) ======================
+  // 11 mots-clés, du plus petit au plus gros : deux icônes identiques qui se touchent fusionnent en la suivante.
+  var KW_CHAIN = ['fugace','peureux','discret','charge','portee','vol','initiative','toxique','brutalite','armure','tenace'];
+  var KW_LABEL = ['Fugace','Peureux','Discret','Charge','Portée','Vol','Initiative','Toxique','Brutalité','Armure','Tenace'];
+  var KW_IMG = {}, kwReady = false, kwLoading = false, kwWaiters = [];
+  function loadKw(cb){
+    if(kwReady) return cb();
+    kwWaiters.push(cb);
+    if(kwLoading) return;
+    kwLoading = true;
+    var left = KW_CHAIN.length;
+    KW_CHAIN.forEach(function(k){
+      var im = new Image();
+      var fin = function(){ KW_IMG[k] = im; if(--left === 0){ kwReady = true; var w = kwWaiters; kwWaiters = []; w.forEach(function(f){ f(); }); } };
+      im.onload = fin; im.onerror = function(){ im = null; KW_IMG[k] = null; if(--left === 0){ kwReady = true; var w = kwWaiters; kwWaiters = []; w.forEach(function(f){ f(); }); } };
+      im.src = 'images/kw-' + k + '.png';
+    });
+  }
+  var KW_COLORS = ['#5aa2e0','#c9955a','#3a4a73','#d8661e','#4aa63a','#e7dcc0','#8a3aa8','#8cc22a','#b52a2a','#4f7fa8','#b58090'];
+
+  function FusionGame(host){
+    var W = 300, H = 400, LINE = 64, G = 1100;
+    var RAD = [13,18,23,29,36,43,51,60,70,80,92];
+    var wpx = Math.max(220, Math.min(300, (window.innerWidth || 360) - 48)), k = wpx / W, hpx = Math.round(H * k);
+    var cv = document.createElement('canvas'); cv.width = wpx; cv.height = hpx;
+    cv.style.cssText = 'display:block;margin:0 auto;border:1.5px solid var(--line,#444);border-radius:10px;background:#0d0b14;max-width:100%;touch-action:none;cursor:crosshair;';
+    host.appendChild(cv);
+    var chain = document.createElement('div');
+    chain.style.cssText = 'display:flex;justify-content:center;align-items:center;gap:2px;margin-top:8px;flex-wrap:wrap;';
+    KW_CHAIN.forEach(function(kw, i){
+      var im = document.createElement('img'); im.src = 'images/kw-' + kw + '.png'; im.title = KW_LABEL[i]; im.alt = KW_LABEL[i];
+      im.style.cssText = 'width:' + (14 + i*1.6) + 'px;height:' + (14 + i*1.6) + 'px;';
+      chain.appendChild(im);
+      if(i < KW_CHAIN.length - 1){ var ar = document.createElement('span'); ar.textContent = '›'; ar.style.cssText = 'color:var(--parchment-dim,#aaa);font-size:11px;'; chain.appendChild(ar); }
+    });
+    host.appendChild(chain);
+    var ctx = cv.getContext('2d');
+    var balls, effects, aimX, cur, next, cool, score, over, danger, raf, last, nid;
+
+    function rndLevel(){ return (Math.random() * 5) | 0; }
+    function best(){ return store('sc_mini_fusion_best'); }
+    function setScore(){ if(scoreEl) scoreEl.textContent = 'Score : ' + score; if(bestEl) bestEl.textContent = 'Meilleur : ' + best(); }
+    function hint(t){ if(hintEl) hintEl.textContent = t; }
+    function reset(){
+      balls = []; effects = []; aimX = W/2; cur = rndLevel(); next = rndLevel(); cool = 0; score = 0; over = false; danger = 0; nid = 1; last = 0;
+      setScore(); hint('Souris, ← → ou doigt pour viser · clic, Espace ou ↓ pour lâcher');
+    }
+    function clampAim(){ var r = RAD[cur]; aimX = Math.max(r, Math.min(W - r, aimX)); }
+    function drop(){
+      if(over || cool > 0) return;
+      clampAim();
+      balls.push({ id:nid++, x:aimX, y:RAD[cur] + 6, vx:0, vy:0, l:cur, age:0 });
+      cur = next; next = rndLevel(); cool = 0.55;
+    }
+    function merge(a, b){
+      var l = a.l;
+      effects.push({ x:(a.x + b.x)/2, y:(a.y + b.y)/2, r:RAD[l], t:0, c:KW_COLORS[l] });
+      balls.splice(balls.indexOf(a), 1); balls.splice(balls.indexOf(b), 1);
+      if(l === RAD.length - 1){ score += 200; }
+      else {
+        balls.push({ id:nid++, x:(a.x + b.x)/2, y:(a.y + b.y)/2, vx:(a.vx + b.vx)/2, vy:(a.vy + b.vy)/2, l:l + 1, age:0.5 });
+        score += (l + 1) * (l + 2) / 2 * 2;
+      }
+      if(score > best()) store('sc_mini_fusion_best', score);
+      setScore();
+    }
+    function physics(dt){
+      var i, j, a, b;
+      for(i = 0; i < balls.length; i++){ a = balls[i]; a.vy += G * dt; a.x += a.vx * dt; a.y += a.vy * dt; a.age += dt; }
+      for(var it = 0; it < 5; it++){
+        for(i = 0; i < balls.length; i++){
+          a = balls[i]; var r = RAD[a.l];
+          if(a.x < r){ a.x = r; if(a.vx < 0) a.vx *= -0.1; }
+          if(a.x > W - r){ a.x = W - r; if(a.vx > 0) a.vx *= -0.1; }
+          if(a.y > H - r){ a.y = H - r; if(a.vy > 0) a.vy *= -0.1; a.vx *= 0.985; }
+        }
+        for(i = 0; i < balls.length; i++){
+          for(j = i + 1; j < balls.length; j++){
+            a = balls[i]; b = balls[j];
+            var dx = b.x - a.x, dy = b.y - a.y, min = RAD[a.l] + RAD[b.l];
+            if(Math.abs(dx) > min || Math.abs(dy) > min) continue;
+            var d2 = dx*dx + dy*dy;
+            if(d2 >= min*min) continue;
+            var d = Math.sqrt(d2) || 0.0001, nx = dx / d, ny = dy / d, ov = min - d;
+            var ma = RAD[a.l] * RAD[a.l], mb = RAD[b.l] * RAD[b.l], tm = ma + mb;
+            a.x -= nx * ov * mb / tm; a.y -= ny * ov * mb / tm;
+            b.x += nx * ov * ma / tm; b.y += ny * ov * ma / tm;
+            if(it === 0){
+              var vn = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+              if(vn < 0){
+                var jn = -(1.05) * vn / (1/ma + 1/mb);
+                a.vx -= jn * nx / ma; a.vy -= jn * ny / ma; b.vx += jn * nx / mb; b.vy += jn * ny / mb;
+              }
+              a.vx *= 0.995; a.vy *= 0.995; b.vx *= 0.995; b.vy *= 0.995; // frottement de contact
+            }
+          }
+        }
+      }
+      // fusions
+      var done = true, guard = 0;
+      while(done && guard++ < 20){
+        done = false;
+        for(i = 0; i < balls.length && !done; i++){
+          for(j = i + 1; j < balls.length; j++){
+            a = balls[i]; b = balls[j];
+            if(a.l !== b.l) continue;
+            var ddx = b.x - a.x, ddy = b.y - a.y, mm = RAD[a.l] + RAD[b.l] + 1.5;
+            if(ddx*ddx + ddy*ddy <= mm*mm){ merge(a, b); done = true; break; }
+          }
+        }
+      }
+    }
+    function checkOver(dt){
+      var risk = false;
+      balls.forEach(function(b){
+        if(b.age > 1.2 && b.y - RAD[b.l] < LINE && Math.abs(b.vy) < 60) risk = true;
+      });
+      danger = risk ? danger + dt : Math.max(0, danger - dt * 2);
+      if(danger > 2.2){ over = true; hint('Perdu ! Entrée ou clic pour rejouer'); }
+    }
+    function drawBall(x, y, l, alpha){
+      var r = RAD[l], im = KW_IMG[KW_CHAIN[l]];
+      ctx.globalAlpha = alpha == null ? 1 : alpha;
+      if(im){ var sz = r * 2.5; ctx.drawImage(im, x - sz/2, y - sz/2, sz, sz); }
+      else { ctx.fillStyle = KW_COLORS[l]; ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill(); }
+      ctx.globalAlpha = 1;
+    }
+    function draw(){
+      ctx.setTransform(k, 0, 0, k, 0, 0);
+      ctx.clearRect(0, 0, W, H);
+      ctx.fillStyle = '#0d0b14'; ctx.fillRect(0, 0, W, H);
+      // ligne de danger
+      ctx.strokeStyle = danger > 0 ? 'rgba(224,88,79,' + (0.4 + Math.min(.5, danger/3)) + ')' : 'rgba(212,175,55,.35)';
+      ctx.setLineDash([6, 6]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(0, LINE); ctx.lineTo(W, LINE); ctx.stroke(); ctx.setLineDash([]);
+      balls.forEach(function(b){ drawBall(b.x, b.y, b.l); });
+      effects.forEach(function(e){
+        var p = e.t / 0.35; ctx.strokeStyle = e.c; ctx.globalAlpha = Math.max(0, 1 - p); ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(e.x, e.y, e.r * (1 + p * 0.5), 0, 7); ctx.stroke(); ctx.globalAlpha = 1;
+      });
+      if(!over){
+        clampAim();
+        ctx.strokeStyle = 'rgba(255,255,255,.12)'; ctx.setLineDash([3, 5]); ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(aimX, RAD[cur] + 6); ctx.lineTo(aimX, H); ctx.stroke(); ctx.setLineDash([]);
+        drawBall(aimX, RAD[cur] + 6, cur, cool > 0 ? 0.35 : 1);
+      }
+      // prochaine pièce
+      ctx.fillStyle = 'rgba(232,224,208,.6)'; ctx.font = '10px Inter, sans-serif'; ctx.textAlign = 'right';
+      ctx.fillText('Suivante', W - 8, 14);
+      drawBall(W - 22, 38, next, 1);
+      if(over){
+        ctx.fillStyle = 'rgba(8,6,14,.75)'; ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = '#d4af37'; ctx.textAlign = 'center'; ctx.font = '700 28px Cinzel, serif';
+        ctx.fillText('Perdu !', W/2, H/2 - 6);
+        ctx.fillStyle = '#e8e0d0'; ctx.font = '13px Inter, sans-serif';
+        ctx.fillText('Score ' + score + ' — Entrée ou clic pour rejouer', W/2, H/2 + 20);
+      }
+    }
+    function frame(ts){
+      if(!active) return;
+      raf = requestAnimationFrame(frame);
+      var dt = last ? Math.min(0.05, (ts - last) / 1000) : 0; last = ts;
+      if(!over){
+        if(cool > 0) cool = Math.max(0, cool - dt);
+        var n = Math.max(1, Math.ceil(dt / (1/120))), h = dt / n;
+        for(var i = 0; i < n; i++) physics(h);
+        effects.forEach(function(e){ e.t += dt; });
+        effects = effects.filter(function(e){ return e.t < 0.35; });
+        checkOver(dt);
+      }
+      draw();
+    }
+    function aimFrom(clientX){
+      var rc = cv.getBoundingClientRect();
+      aimX = (clientX - rc.left) / rc.width * W;
+    }
+    cv.addEventListener('mousemove', function(e){ aimFrom(e.clientX); });
+    cv.addEventListener('click', function(e){ if(over){ reset(); return; } aimFrom(e.clientX); drop(); });
+    cv.addEventListener('touchstart', function(e){ if(over){ reset(); return; } aimFrom(e.touches[0].clientX); }, { passive:true });
+    cv.addEventListener('touchmove', function(e){ aimFrom(e.touches[0].clientX); }, { passive:true });
+    cv.addEventListener('touchend', function(e){ if(!over) drop(); e.preventDefault(); });
+    function onKey(e){
+      if(e.key === 'ArrowLeft' || e.key === 'q' || e.key === 'a'){ e.preventDefault(); aimX -= 14; }
+      else if(e.key === 'ArrowRight' || e.key === 'd'){ e.preventDefault(); aimX += 14; }
+      else if(e.key === ' ' || e.key === 'ArrowDown' || e.key === 'Enter'){ e.preventDefault(); if(over) reset(); else drop(); }
+      else if(e.key === 'ArrowUp'){ e.preventDefault(); }
+    }
+    reset();
+    loadKw(function(){ if(active) raf = requestAnimationFrame(frame); });
+    return { onKey:onKey, destroy:function(){ cancelAnimationFrame(raf); over = true; },
+             _debug:function(){ return { balls:balls, drop:drop, setAim:function(x){ aimX = x; }, state:function(){ return { over:over, score:score }; }, force:function(l){ cur = l; } }; } };
+  }
+
   // ====================== PANNEAU ======================
-  var GAMES = { snake:{ label:'🐍 Serpent', make:SnakeGame }, memory:{ label:'🃏 Mémoire', make:MemoryGame } };
+  var GAMES = { snake:{ label:'🐍 Serpent', make:SnakeGame }, memory:{ label:'🃏 Mémoire', make:MemoryGame }, fusion:{ label:'🔶 Fusion', make:FusionGame } };
 
   function select(name){
     if(current && current.destroy) current.destroy();
@@ -298,5 +491,5 @@
     tabBtns = {}; bodyEl = scoreEl = bestEl = hintEl = null;
   }
 
-  window.SCMini = { start:start, stop:stop };
+  window.SCMini = { start:start, stop:stop, _cur:function(){ return current; } };
 })();
