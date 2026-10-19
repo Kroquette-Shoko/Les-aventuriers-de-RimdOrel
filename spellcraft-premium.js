@@ -63,6 +63,28 @@
     art.appendChild(inner);
   }
 
+  // Le foil prend la forme exacte du cadre dessiné (le même contour que le fond de la carte),
+  // pour ne rien laisser dépasser dans les coins ni sur les bords courbes.
+  function shapeMask(root, f){
+    try{
+      var bg = root.querySelector('svg.nd-bg');
+      var path = bg && bg.querySelector('clipPath[id$="CPB"] path');
+      if(!path) return;
+      var vb = (bg.getAttribute('viewBox') || '0 0 300 423').split(/[ ,]+/).map(Number);
+      var PAD = 30; // l'illustration d'un sortilège / piège dépasse au-dessus du fond
+      var hole = '';
+      var cpw = bg.querySelector('clipPath[id$="CPW"] path');
+      if(cpw){ var parts = (cpw.getAttribute('d') || '').split(/[Zz]/); if(parts.length > 2) hole = "<path d='" + parts[1].trim() + " Z' stroke='black' stroke-width='9'/>"; }
+      var svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='" + vb[0] + ' ' + (vb[1] - PAD) + ' ' + vb[2] + ' ' + (vb[3] + PAD) + "' preserveAspectRatio='none'><path d='" + path.getAttribute('d') + "'/>" + hole + "</svg>";
+      var url = 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")';
+      f.style.webkitMaskImage = url; f.style.maskImage = url;
+      f.style.webkitMaskSize = '100% 100%'; f.style.maskSize = '100% 100%';
+      f.style.webkitMaskRepeat = 'no-repeat'; f.style.maskRepeat = 'no-repeat';
+      f.style.clipPath = 'none';
+      f.style.top = (-PAD / vb[3] * 100).toFixed(3) + '%'; f.style.height = ((vb[3] + PAD) / vb[3] * 100).toFixed(3) + '%';
+    }catch(e){}
+  }
+
   function track(root){
     var raf = 0, nx = 0, ny = 0;
     function flush(){ raf = 0; root.style.setProperty('--px', nx.toFixed(3)); root.style.setProperty('--py', ny.toFixed(3)); }
@@ -98,6 +120,7 @@
     if(card.foil){
       root.classList.add('n-foil');
       var f = document.createElement('div'); f.className = 'nfoil'; fin.appendChild(f);
+      shapeMask(root, f);
       if(!card.premium) track(root);
     }
     return root;
