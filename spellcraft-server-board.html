@@ -6824,6 +6824,71 @@ async function initFromUrl(){
   afterConnected(null);
 }
 initSpellcraftAuth().then(initFromUrl);
+
+// ---------------- Fenêtres déplaçables (journal et chat) ----------------
+// On les saisit par leur titre ; double-clic sur le titre = position d'origine.
+// La position est retenue dans ce navigateur (et ignorée si elle sort de l'écran).
+function makeDraggablePanel(panelId){
+  const panel = document.getElementById(panelId);
+  if(!panel) return;
+  const handle = panel.querySelector('h3');
+  if(!handle) return;
+  const KEY = 'sc_panel_pos_' + panelId;
+  handle.style.cursor = 'move';
+  handle.style.userSelect = 'none';
+  handle.style.touchAction = 'none';
+  handle.title = 'Glisser pour déplacer · double-clic pour remettre en place';
+
+  function scaleOf(){ const r = panel.getBoundingClientRect(); return panel.offsetWidth ? r.width / panel.offsetWidth : 1; }
+  function apply(left, top){
+    panel.style.left = left + 'px'; panel.style.top = top + 'px';
+    panel.style.right = 'auto'; panel.style.bottom = 'auto';
+  }
+  function offscreen(){
+    const r = panel.getBoundingClientRect();
+    return r.right < 60 || r.left > window.innerWidth - 60 || r.top < 0 || r.top > window.innerHeight - 40;
+  }
+  function reset(){
+    panel.style.left = panel.style.top = panel.style.right = panel.style.bottom = '';
+    try{ localStorage.removeItem(KEY); }catch(e){}
+  }
+  try{
+    const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if(saved && isFinite(saved.left) && isFinite(saved.top)){ apply(saved.left, saved.top); }
+  }catch(e){}
+  // La fenêtre est masquée au départ : on ne peut la mesurer qu'une fois ouverte.
+  new MutationObserver(()=>{
+    if(panel.classList.contains('show') && panel.style.left && offscreen()) reset();
+  }).observe(panel, { attributes:true, attributeFilter:['class'] });
+
+  let drag = null;
+  handle.addEventListener('pointerdown', (e)=>{
+    if(e.target.closest('.close-journal-btn') || (e.pointerType === 'mouse' && e.button !== 0)) return;
+    const r = panel.getBoundingClientRect(), cs = getComputedStyle(panel);
+    drag = { x:e.clientX, y:e.clientY, rl:r.left, rt:r.top, cl:parseFloat(cs.left) || 0, ct:parseFloat(cs.top) || 0, k:scaleOf() };
+    try{ handle.setPointerCapture(e.pointerId); }catch(_){}
+    panel.style.zIndex = '99998';
+    const other = document.getElementById(panelId === 'chat-panel' ? 'journal-panel' : 'chat-panel');
+    if(other) other.style.zIndex = '99997';
+    e.preventDefault();
+  });
+  handle.addEventListener('pointermove', (e)=>{
+    if(!drag) return;
+    const nl = Math.max(0, Math.min(window.innerWidth - 80, drag.rl + (e.clientX - drag.x)));
+    const nt = Math.max(0, Math.min(window.innerHeight - 40, drag.rt + (e.clientY - drag.y)));
+    apply(drag.cl + (nl - drag.rl) / drag.k, drag.ct + (nt - drag.rt) / drag.k);
+  });
+  const end = ()=>{
+    if(!drag) return;
+    drag = null;
+    try{ localStorage.setItem(KEY, JSON.stringify({ left:parseFloat(panel.style.left), top:parseFloat(panel.style.top) })); }catch(e){}
+  };
+  handle.addEventListener('pointerup', end);
+  handle.addEventListener('pointercancel', end);
+  handle.addEventListener('dblclick', (e)=>{ if(!e.target.closest('.close-journal-btn')) reset(); });
+}
+makeDraggablePanel('journal-panel');
+makeDraggablePanel('chat-panel');
 </script>
 </body>
 </html>
