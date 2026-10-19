@@ -383,6 +383,22 @@
 .reveal-card .rcard-name{font-family:'Cinzel',serif;font-weight:700;font-size:10.5px;margin-top:4px;}
 .reveal-card .rcard-rarity{font-size:9px;opacity:.7;}
 .reveal-card .rcard-badge{position:absolute;top:4px;right:4px;font-size:14px;}
+.auto-box{max-width:1080px;}
+.auto-sample-title{font-family:'Cinzel',serif;color:var(--gold);font-size:14px;margin:4px 0 10px;text-align:center;}
+.auto-sample{display:flex;flex-wrap:wrap;gap:14px;justify-content:center;margin-bottom:20px;}
+.auto-sample-item{display:flex;flex-direction:column;align-items:center;gap:5px;}
+.auto-sample-card{position:relative;width:150px;height:212px;overflow:visible;margin:16px 0 0 12px;}
+.auto-sample-card .ncard{transform:scale(.5);transform-origin:top left;}
+.auto-sample-item .asi-tag{font-size:11px;font-weight:700;color:var(--gold);}
+.auto-sample-item .asi-new{font-size:10px;font-weight:700;color:#2a1f05;background:linear-gradient(90deg,#f6e08a,#d4af37);border-radius:10px;padding:1px 8px;}
+.auto-totals{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:0 0 14px;}
+.auto-chip{background:var(--bg-panel-2);border:1px solid var(--line, #3a3358);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--parchment);}
+.auto-chip b{color:var(--gold);}
+.auto-list{list-style:none;margin:0;padding:0;columns:2 280px;column-gap:24px;font-size:12.5px;color:var(--parchment);}
+.auto-list li{break-inside:avoid;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.06);display:flex;gap:6px;align-items:baseline;}
+.auto-list .al-qty{color:var(--gold);font-weight:700;min-width:26px;}
+.auto-list .al-new{font-size:9.5px;font-weight:700;color:#2a1f05;background:linear-gradient(90deg,#f6e08a,#d4af37);border-radius:8px;padding:0 6px;}
+.auto-list .al-meta{opacity:.65;font-size:11px;margin-left:auto;white-space:nowrap;}
 .modal-actions{display:flex;justify-content:center;gap:10px;margin-top:10px;}
 .modal-actions button{background:var(--bg-panel-2);border:1px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));color:var(--parchment);border-radius:8px;padding:9px 18px;font-family:'Inter';font-weight:600;cursor:pointer;}
 .modal-actions button:hover{border-color:var(--gold);}
@@ -468,6 +484,16 @@
     <div class="reveal-grid" id="reveal-grid"></div>
     <div class="modal-actions">
       <button id="reveal-close-btn" onclick="closeModal('reveal-modal')">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="auto-summary-modal">
+  <div class="modal-box auto-box">
+    <h2 id="auto-summary-title">Résumé de l'ouverture</h2>
+    <div id="auto-summary-body"></div>
+    <div class="modal-actions">
+      <button onclick="closeAutoSummary()">Fermer</button>
     </div>
   </div>
 </div>
@@ -1237,6 +1263,7 @@ async function showMyBoostersModal(){
           <button class="qty-btn" onclick="adjustBulkQty('${b.booster_id}', 1, ${b.quantity})">+</button>
         </div>
         <button class="buy-btn" onclick="openBoostersBulk('${b.booster_id}', ${b.image_url?`'${b.image_url}'`:'null'})">Ouvrir en groupe</button>
+        <button class="buy-btn" title="Ouvre tout d'un coup et affiche un résumé" onclick="openBoostersAuto('${b.booster_id}')">⚡ Ouverture automatique</button>
       ` : ''}
     `;
     list.appendChild(row);
@@ -1259,6 +1286,138 @@ async function openBoostersBulk(boosterId, boosterImageUrl){
   closeModal('my-boosters-modal');
   await openBoosterAnimation(boosterImageUrl, data.cards);
   flashBoosterInventoryBadge();
+}
+
+// ---------------- Ouverture automatique : tout d'un coup + résumé ----------------
+// Ordre de priorité (du moins bon au meilleur) pour choisir les 6 cartes montrées.
+// Les légendaires ne comptent pas ici : seule la rareté de base et la finition comptent.
+const AUTO_RANK = {
+  'Commune':  { normal:1,  foil:2,  premium:5,  premium_foil:8  },
+  'Rare':     { normal:3,  foil:4,  premium:9,  premium_foil:10 },
+  'Épique':   { normal:6,  foil:7,  premium:11, premium_foil:12 },
+  'Mythique': { normal:13, foil:14, premium:15, premium_foil:16 }
+};
+function autoFinish(foil, premium){ return premium && foil ? 'premium_foil' : premium ? 'premium' : foil ? 'foil' : 'normal'; }
+function autoRank(rarity, finish){ const r = AUTO_RANK[rarity]; return r ? r[finish] : 0; }
+const AUTO_FINISH_LABEL = { normal:'', foil:'✨ Foil', premium:'💠 Premium', premium_foil:'💠✨ Premium Foil' };
+
+// Choisit jusqu'à 6 cartes : d'abord les NOUVELLES (meilleures en premier), puis on complète
+// avec les meilleures restantes. Une même carte dans une même finition n'apparaît qu'une fois.
+function pickAutoSample(entries, max){
+  const sorted = (arr)=>arr.slice().sort((a,b)=> b.rank-a.rank || a.name.localeCompare(b.name,'fr'));
+  const news = sorted(entries.filter(e=>e.isNew));
+  const others = sorted(entries.filter(e=>!e.isNew));
+  return news.concat(others).slice(0, max);
+}
+
+async function openBoostersAuto(boosterId){
+  const qtyEl = document.getElementById('bulkqty-'+boosterId);
+  const quantity = qtyEl ? (parseInt(qtyEl.textContent)||2) : 2;
+  const { data, error } = await sb.rpc('open_boosters_bulk', { p_booster_id: boosterId, p_quantity: quantity });
+  if(error){ alert('Erreur : ' + error.message); return; }
+  if(data.error){ alert(shopErrorMessage(data.error)); return; }
+  if(typeof progressQuest==='function'){
+    for(let i=0;i<quantity;i++){ progressQuest('open_boosters'); progressQuest('open_boosters_total'); }
+  }
+  closeModal('my-boosters-modal');
+  await showAutoSummary(data.cards || [], quantity);
+  flashBoosterInventoryBadge();
+}
+
+async function showAutoSummary(cards, quantity){
+  const body = document.getElementById('auto-summary-body');
+  document.getElementById('auto-summary-title').textContent = `Résumé de l'ouverture — ${quantity} boosters`;
+  body.innerHTML = `<div class="empty-shelf">Chargement...</div>`;
+  openModal('auto-summary-modal');
+
+  const fullCards = await fetchFullCards([...new Set(cards.filter(c=>c.result==='card').map(c=>c.card_id).filter(Boolean))]);
+
+  // Regroupement par carte + finition
+  const groups = new Map();
+  const fragTotals = {};
+  let nbCards = 0, nbNew = 0;
+  const byRarity = {}, byFinish = { foil:0, premium:0, premium_foil:0 };
+  cards.forEach(res=>{
+    if(res.result==='fragments'){
+      (res.fragment_classes||[]).forEach(cls=>{ fragTotals[cls] = (fragTotals[cls]||0) + (res.fragment_amount || 1); });
+      return;
+    }
+    if(res.result!=='card') return;
+    const base = fullCards[res.card_id] || { id: res.card_id, name: res.name, rarity: res.rarity };
+    const finish = autoFinish(!!res.foil, !!res.premium);
+    const key = res.card_id + '|' + finish;
+    let g = groups.get(key);
+    if(!g){
+      g = { key, full: Object.assign({}, base, { foil: finish==='foil'||finish==='premium_foil', premium: finish==='premium'||finish==='premium_foil' }),
+            name: base.name || res.name || '?', rarity: base.rarity || res.rarity || '', finish, qty:0, isNew:false };
+      g.rank = autoRank(g.rarity, finish);
+      groups.set(key, g);
+    }
+    g.qty++;
+    if(res.is_new===true) g.isNew = true;
+    nbCards++;
+    if(res.is_new===true) nbNew++;
+    byRarity[g.rarity] = (byRarity[g.rarity]||0) + 1;
+    if(finish!=='normal') byFinish[finish]++;
+  });
+  const entries = [...groups.values()];
+
+  // Succès liés aux fragments (même effet que l'ouverture classique)
+  Object.keys(fragTotals).forEach(cls=>{
+    sb.rpc('progress_achievement', { p_condition_type: `fragment_earned_${cls}`, p_amount: fragTotals[cls] }).catch(()=>{});
+  });
+  sb.rpc('progress_collection_achievements').catch(()=>{});
+
+  const chips = [];
+  chips.push(`<span class="auto-chip"><b>${nbCards}</b> cartes</span>`);
+  chips.push(`<span class="auto-chip"><b>${nbNew}</b> nouvelle${nbNew>1?'s':''}</span>`);
+  ['Mythique','Épique','Rare','Commune'].forEach(r=>{ if(byRarity[r]) chips.push(`<span class="auto-chip"><b>${byRarity[r]}</b> ${r}${byRarity[r]>1&&r!=='Commune'?'s':byRarity[r]>1?'s':''}</span>`); });
+  if(byFinish.foil) chips.push(`<span class="auto-chip">✨ <b>${byFinish.foil}</b> foil</span>`);
+  if(byFinish.premium) chips.push(`<span class="auto-chip">💠 <b>${byFinish.premium}</b> premium</span>`);
+  if(byFinish.premium_foil) chips.push(`<span class="auto-chip">💠✨ <b>${byFinish.premium_foil}</b> premium foil</span>`);
+  Object.keys(fragTotals).forEach(cls=>{
+    const icon = GEM_ICON_FILES[cls] ? `<img src="images/${GEM_ICON_FILES[cls]}" class="frag-toast-icon">` : '';
+    chips.push(`<span class="auto-chip">${icon}+<b>${fragTotals[cls]}</b> ${GEM_NAMES[cls]||cls} (doublons)</span>`);
+  });
+
+  body.innerHTML = '';
+  const totals = document.createElement('div'); totals.className = 'auto-totals'; totals.innerHTML = chips.join('');
+  body.appendChild(totals);
+
+  const sample = pickAutoSample(entries, 6);
+  if(sample.length){
+    const t = document.createElement('div'); t.className = 'auto-sample-title';
+    t.textContent = entries.some(e=>e.isNew) ? 'Nouvelles cartes et meilleures cartes' : 'Meilleures cartes';
+    body.appendChild(t);
+    const row = document.createElement('div'); row.className = 'auto-sample';
+    sample.forEach(e=>{
+      const item = document.createElement('div'); item.className = 'auto-sample-item';
+      const holder = document.createElement('div'); holder.className = 'auto-sample-card';
+      const el = buildBoosterCardEl(e.full);
+      attachShopHoverPreview(el, e.full);
+      holder.appendChild(el);
+      item.appendChild(holder);
+      if(AUTO_FINISH_LABEL[e.finish]){ const tg = document.createElement('div'); tg.className='asi-tag'; tg.textContent = AUTO_FINISH_LABEL[e.finish]; item.appendChild(tg); }
+      if(e.isNew){ const nw = document.createElement('div'); nw.className='asi-new'; nw.textContent='NOUVEAU'; item.appendChild(nw); }
+      row.appendChild(item);
+    });
+    body.appendChild(row);
+  }
+
+  const lt = document.createElement('div'); lt.className = 'auto-sample-title'; lt.textContent = 'Toutes les cartes obtenues';
+  body.appendChild(lt);
+  const ul = document.createElement('ul'); ul.className = 'auto-list';
+  entries.slice().sort((a,b)=> b.rank-a.rank || a.name.localeCompare(b.name,'fr')).forEach(e=>{
+    const li = document.createElement('li');
+    li.innerHTML = `<span class="al-qty">×${e.qty}</span><span>${escapeHtmlShop(e.name)}</span>${e.isNew?'<span class="al-new">NOUVEAU</span>':''}<span class="al-meta">${escapeHtmlShop(e.rarity)}${AUTO_FINISH_LABEL[e.finish]?' · '+AUTO_FINISH_LABEL[e.finish]:''}</span>`;
+    ul.appendChild(li);
+  });
+  if(!entries.length){ ul.innerHTML = '<li>Aucune nouvelle carte : tout a été converti en fragments.</li>'; }
+  body.appendChild(ul);
+}
+function closeAutoSummary(){
+  closeModal('auto-summary-modal');
+  showMyBoostersModal();
 }
 
 async function openBoosterFromInventory(boosterId, boosterImageUrl){
