@@ -467,7 +467,7 @@ La séquence générale (déclaration, blocage, résolution) est décrite en sec
 
 **Dégâts amplifiés.** Certains effets augmentent les dégâts de combat entre créatures (« Augmente les dégâts de votre camp ») : ce bonus s'applique aux coups entre créatures, pas aux dégâts infligés au héros.
 
-**Combat forcé (effet).** Les deux créatures s'infligent mutuellement leur Force actuelle, en même temps. Seule l'**Armure** compte : ni Initiative, ni Toxique, ni Vol de vie, ni Brutalité, ni Pièges de combat, ni « subit des dégâts ». « Élimine une créature » se déclenche chez la créature qui a tué l'autre en survivant.
+**Combat forcé (effet).** Les deux créatures s'infligent mutuellement leur Force actuelle. **L'Initiative et l'Armure comptent** : si une seule des deux a Initiative (non épuisée), elle frappe d'abord, et si ce coup tue sa cible, celle-ci ne riposte pas (comme dans un combat classique) ; sinon les coups sont simultanés. Ni Toxique, ni Vol de vie, ni Brutalité, ni Pièges de combat, ni « subit des dégâts ». « Élimine une créature » se déclenche chez la créature qui a tué l'autre en survivant.
 
 **Dégâts d'un sort ou d'un effet.** Ils passent par l'Armure ; « Quand cette carte subit des dégâts » se déclenche même si le coup est fatal (contrairement au combat, où il ne se déclenche que si la créature survit) ; « élimine une créature » ne se déclenche pas.
 
