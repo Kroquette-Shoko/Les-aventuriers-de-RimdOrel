@@ -765,6 +765,12 @@ function bestFinish(cardId){
   const l = ownedFinishes(cardId);
   return l.reduce((best, f) => FINISH_ORDER.indexOf(f) > FINISH_ORDER.indexOf(best) ? f : best, l[0]);
 }
+/* Une illustration alternative débloquée passe avant n'importe quelle finition :
+   par défaut on montre / joue la dernière variante possédée (avec la plus haute finition). */
+function bestVariant(cardId){
+  const l = ownedVariantsFor(cardId);
+  return l.length ? l[l.length - 1] : null;
+}
 function entryFinish(entry){
   if(!entry || !entry.finish) return 'normal';
   return ownedFinishes(entry.cardId).includes(entry.finish) ? entry.finish : 'normal';
@@ -785,7 +791,7 @@ function entryCardView(entry, card){ return cardWithFinish(card, entryFinish(ent
 function binderCardView(card){
   const entry = currentDeck ? currentDeck.cards.find(c => c.cardId === card.id) : null;
   if(entry) return entryCardView(entry, card);
-  return cardWithFinish(card, bestFinish(card.id), null);
+  return cardWithFinish(card, bestFinish(card.id), bestVariant(card.id));
 }
 
 function openVariantModal(cardId){
@@ -2799,6 +2805,8 @@ function addCardToDeck(card){
     const best = bestFinish(card.id);
     const ne = {cardId:card.id, count:1};
     if(best !== 'normal') ne.finish = best;      // par défaut, on joue la plus haute finition possédée
+    const bv = bestVariant(card.id);
+    if(bv) ne.variantId = bv.id;                 // et l'illustration alternative la plus récente, qui passe avant toute finition
     currentDeck.cards.push(ne);
   }
 }
