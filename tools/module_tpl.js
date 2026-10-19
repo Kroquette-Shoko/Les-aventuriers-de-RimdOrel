@@ -63,6 +63,26 @@
     return s + '</g></g></svg>';
   }
 
+  /* Variante « plein cadre » : l'illustration occupe toute la carte, pas de cadre ;
+     les zones de nom et de règles sont en verre, au cadre teinté par la classe.
+     Réglages par variante : card.faGlass (0-85, % d'opacité) et card.faBlur (px). */
+  function fullArt(root, card, size, type, src){
+    var c = PAL[src];
+    root.classList.add('n-drawn', 'n-fullart', 'nd-' + type);
+    root.style.setProperty('--c1', c[0]); root.style.setProperty('--c2', c[1]);
+    root.style.setProperty('--c3', c[2]); root.style.setProperty('--gem', c[3]);
+    var g = (typeof card.faGlass === 'number') ? card.faGlass : 42, b = (typeof card.faBlur === 'number') ? card.faBlur : 3;
+    root.style.setProperty('--fa-glass', (Math.max(0, Math.min(85, g)) / 100).toFixed(2));
+    root.style.setProperty('--fa-blur', Math.max(0, Math.min(12, b)) + 'px');
+    var old = root.querySelectorAll('img.nframe-layer, img.nframe-half-layer, .nname-wrap > img');
+    for(var i = 0; i < old.length; i++) old[i].parentNode.removeChild(old[i]);
+    var art = root.querySelector('.nart-layer');
+    var sh = document.createElement('div'); sh.className = 'nf-shade';
+    var rim = document.createElement('div'); rim.className = 'nf-rim';
+    if(art && art.nextSibling) root.insertBefore(sh, art.nextSibling); else root.appendChild(sh);
+    root.appendChild(rim);
+  }
+
   /* Remplace, sur une carte déjà construite par buildNewCardEl, les cadres PNG
      par le rendu dessiné. Ne fait rien (carte laissée telle quelle) si le style
      "png" est choisi ou si ce type/format n'a pas de version dessinée. */
@@ -76,6 +96,7 @@
       if(size !== 'big' && size !== 'small') return root;
       install();
       var src = PAL[card.class] ? card.class : 'Neutre';
+      if(card.fullArt && type !== 'hero' && type !== 'region'){ fullArt(root, card, size, type, src); return root; }
       var src2 = (card.classSecondary && PAL[card.classSecondary] && card.classSecondary !== src) ? card.classSecondary : null;
       var c = PAL[src], u = 'nd' + (++counter) + '-';
       root.classList.add('n-drawn', 'nd-' + type);

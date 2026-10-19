@@ -576,6 +576,18 @@ header .spacer{flex:1;}
 <div id="variant-banner" style="display:none;background:hsl(calc(var(--th, 252) + 2.6) calc(var(--ts-n, 1) * 35.9%) 20.2%);border:2px solid var(--gold);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
           <div style="font-family:'Cinzel',serif;color:var(--gold);font-size:13px;margin-bottom:8px;">🎨 Mode variante d'illustration</div>
           <div style="font-size:11.5px;color:var(--parchment-dim);margin-bottom:8px;">Tu modifies <b>uniquement l'illustration et son cadrage</b> (champ Image et curseurs ci-dessous). La carte elle-même n'est pas modifiée, et le bouton « Enregistrer » de la carte est désactivé tant que tu es dans ce mode.</div>
+          <div style="border:1px solid hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%);border-radius:8px;padding:10px 12px;margin-bottom:10px;display:flex;flex-direction:column;gap:8px;">
+            <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer;">
+              <input type="checkbox" id="variant-fullart" onchange="variantFaChanged()"> <b>Plein cadre</b> <span style="color:var(--parchment-dim);">— l'illustration occupe toute la carte, sans cadre ; nom et règles sur verre teinté par la classe</span>
+            </label>
+            <div id="variant-fa-opts" style="display:none;gap:16px;flex-wrap:wrap;">
+              <label style="font-size:12px;flex:1;min-width:180px;display:flex;flex-direction:column;gap:3px;">Opacité du verre : <span id="variant-glass-val">42 %</span>
+                <input type="range" id="variant-glass" min="0" max="85" value="42" oninput="variantFaChanged()"></label>
+              <label style="font-size:12px;flex:1;min-width:180px;display:flex;flex-direction:column;gap:3px;">Flou derrière : <span id="variant-blur-val">3 px</span>
+                <input type="range" id="variant-blur" min="0" max="12" value="3" oninput="variantFaChanged()"></label>
+            </div>
+            <div id="variant-fa-note" style="font-size:11px;color:var(--parchment-dim);display:none;">Pas de version plein cadre pour les Héros et les Régions : la variante garde le cadre normal. Les sortilèges et pièges n'ont pas de miniature (plateau).</div>
+          </div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
             <input type="text" id="variant-name" placeholder="Nom de la variante (ex : Version hivernale)" style="flex:1;min-width:200px;">
             <button type="button" class="btn primary small" onclick="saveVariant()">💾 Enregistrer la variante</button>
@@ -4582,6 +4594,7 @@ function readForm(){
     imagePosYHeroCard: parseInt(document.getElementById('f-image-y-herocard').value) || 50,
     imageZoomHeroCard: parseInt(document.getElementById('f-image-zoom-herocard').value) || 100,
     ...artFields(),
+    ...variantFaFields(),
     ...(currentSetRarityDir() ? { rarityIconDir: currentSetRarityDir() } : {}),
     heroNameCurveTop: parseInt(document.getElementById('f-herocard-curve-top').value) ?? 4,
     heroNameCurveStrength: parseInt(document.getElementById('f-herocard-curve-strength').value) ?? 34,
@@ -5705,7 +5718,7 @@ function readImageFields(){
     const v = document.getElementById(VARIANT_INPUTS[k]).value;
     o[k] = k==='image' ? v.trim() : (parseInt(v) || VARIANT_DEFAULTS[k]);
   });
-  return Object.assign(o, artFields());
+  return Object.assign(o, artFields(), variantFaFields());
 }
 function writeImageFields(o){
   Object.keys(VARIANT_INPUTS).forEach(k=>{
@@ -5713,8 +5726,32 @@ function writeImageFields(o){
     document.getElementById(VARIANT_INPUTS[k]).value = v;
   });
   artLoad(o || {});
+  variantFaLoad(o || {});
   onFormChange();
 }
+/* Plein cadre : réglages propres à une variante, stockés dans card_variants.frame
+   (fullArt, faGlass, faBlur) ; lus par SCCardRender.decorate. */
+function variantFaFields(){
+  const cb = document.getElementById('variant-fullart');
+  if(!variantMode || !cb) return {};
+  if(!cb.checked) return { fullArt:false };
+  return { fullArt:true, faGlass: parseInt(document.getElementById('variant-glass').value) || 0, faBlur: parseInt(document.getElementById('variant-blur').value) || 0 };
+}
+function variantFaLoad(o){
+  const cb = document.getElementById('variant-fullart'); if(!cb) return;
+  cb.checked = !!o.fullArt;
+  document.getElementById('variant-glass').value = (typeof o.faGlass==='number') ? o.faGlass : 42;
+  document.getElementById('variant-blur').value = (typeof o.faBlur==='number') ? o.faBlur : 3;
+  variantFaSync();
+}
+function variantFaSync(){
+  const on = document.getElementById('variant-fullart').checked;
+  document.getElementById('variant-fa-opts').style.display = on ? 'flex' : 'none';
+  document.getElementById('variant-fa-note').style.display = on ? 'block' : 'none';
+  document.getElementById('variant-glass-val').textContent = document.getElementById('variant-glass').value + ' %';
+  document.getElementById('variant-blur-val').textContent = document.getElementById('variant-blur').value + ' px';
+}
+function variantFaChanged(){ variantFaSync(); onFormChange(); }
 function hideVariantBanner(){
   const b = document.getElementById('variant-banner'); if(b) b.style.display = 'none';
 }
@@ -5745,7 +5782,7 @@ async function refreshVariantsPanel(){
   list.innerHTML = variantsCache.map(v=>`
     <div style="display:flex;align-items:center;gap:10px;background:var(--bg-panel-2);border-radius:8px;padding:8px 10px;font-size:12px;">
       <img src="${escapeHtml(v.image)}" alt="" style="width:34px;height:46px;object-fit:cover;border-radius:5px;border:1px solid hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%);">
-      <span style="flex:1;">${escapeHtml(v.name)}</span>
+      <span style="flex:1;">${escapeHtml(v.name)}${v.frame && v.frame.fullArt ? ' <span style="color:var(--gold);font-size:10.5px;">· plein cadre</span>' : ''}</span>
       <button class="mini-btn" onclick="enterVariantMode('${escapeHtml(v.id)}')" title="Modifier">✎</button>
       <button class="mini-btn" onclick="deleteVariant('${escapeHtml(v.id)}')" title="Supprimer">🗑</button>
     </div>`).join('');
@@ -5757,6 +5794,7 @@ function enterVariantMode(variantId){
   if(variantId && !v) return;
   if(!variantMode) variantMode = { id: null, snapshot: readImageFields() };   // on mémorise l'image d'origine de la carte
   variantMode.id = v ? v.id : null;
+  if(!v) variantFaLoad({});
   if(v) writeImageFields(Object.assign({ image: v.image }, v.frame || {}));
   document.getElementById('variant-name').value = v ? v.name : '';
   variantStatus('');

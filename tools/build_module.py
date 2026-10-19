@@ -70,6 +70,34 @@ css+= [
  '.nd-mist1{animation:nd-mist1 7s ease-in-out infinite alternate}.nd-mist2{animation:nd-mist2 9s ease-in-out infinite alternate}.nd-mist3{animation:nd-mist3 5s ease-in-out infinite alternate}',
  '@keyframes nd-mist1{0%{transform:translate(-45px,6px)}100%{transform:translate(45px,-8px)}}@keyframes nd-mist2{0%{transform:translate(50px,-6px)}100%{transform:translate(-50px,10px)}}@keyframes nd-mist3{0%{transform:translate(-30px,0);opacity:.5}100%{transform:translate(30px,-12px);opacity:1}}',
 ]
+
+# ---- mode « plein cadre » (variante d'illustration) : pas de cadre, verre teinté par la classe ----
+FA_CSS=[
+ '.ncard.n-fullart{border-radius:13px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,236,190,.16);--fa-glass:.42;--fa-blur:3px;}',
+ '.ncard.n-fullart .nart-layer{left:0!important;top:0!important;width:100%!important;height:100%!important;clip-path:none!important;z-index:0;}',
+ '.ncard.n-fullart .nf-shade{position:absolute;inset:0;z-index:3;pointer-events:none;background:linear-gradient(to top,rgba(6,5,12,.62) 0%,rgba(6,5,12,0) 46%),linear-gradient(to bottom,rgba(6,5,12,.42) 0%,rgba(6,5,12,0) 20%);}',
+ '.ncard.n-fullart.n-small .nf-shade{background:linear-gradient(to top,rgba(6,5,12,.7) 0%,rgba(6,5,12,0) 40%),linear-gradient(to bottom,rgba(6,5,12,.4) 0%,rgba(6,5,12,0) 24%);}',
+ '.ncard.n-fullart .nf-rim{position:absolute;inset:0;z-index:9;pointer-events:none;border-radius:inherit;box-shadow:inset 0 0 18px rgba(0,0,0,.35);}',
+ '.ncard.n-fullart .nname-wrap,.ncard.n-fullart .ncard-text{border:1.5px solid color-mix(in srgb,var(--gem) 82%,transparent);border-radius:7px;'
+ 'background:linear-gradient(180deg,color-mix(in srgb,var(--c2) calc(var(--fa-glass)*34%),rgba(18,14,28,var(--fa-glass))),rgba(10,8,18,calc(var(--fa-glass) + .08)));'
+ '-webkit-backdrop-filter:blur(var(--fa-blur));backdrop-filter:blur(var(--fa-blur));'
+ 'box-shadow:0 0 8px color-mix(in srgb,var(--gem) 38%,transparent),inset 0 0 0 .6px rgba(0,0,0,.4),0 3px 9px rgba(0,0,0,.35);}',
+ '.ncard.n-fullart.n-big .nname-wrap{left:11%!important;top:auto!important;bottom:138px;width:78%!important;height:43.5px!important;aspect-ratio:auto!important;transform:none!important;padding-bottom:11px;box-sizing:border-box;z-index:7;}',
+ '.ncard.n-fullart .nname-wrap .nname-text{color:#f6ecd4!important;text-shadow:0 1px 3px rgba(0,0,0,.85)!important;transform:none!important;width:94%!important;max-width:94%!important;}',
+ '.ncard.n-fullart.n-big .ncard-text{left:17%!important;top:auto!important;bottom:21px;width:66%!important;height:103.5px!important;padding:9px 12px!important;box-sizing:border-box;display:flex!important;align-items:center;justify-content:center;color:#f6ecd4!important;text-shadow:0 1px 2px rgba(0,0,0,.85);}',
+ '.ncard.n-fullart.n-big .ntypeline{top:auto!important;bottom:141px!important;left:50%;transform:translateX(-50%);width:70%!important;color:#e9d9a8;text-shadow:0 1px 2px rgba(0,0,0,.85);z-index:10;}',
+ '.ncard.n-fullart.n-small .ntypeline{display:none;}',
+ '.ncard.n-fullart.n-small .nname-wrap{left:25%!important;top:auto!important;bottom:8px;width:50%!important;height:30px!important;aspect-ratio:auto!important;transform:none!important;z-index:7;}',
+ '.ncard.n-fullart.n-small .nname-wrap .nname-text{font-size:12px!important;}',
+ '.ncard.n-fullart .nstat-wrap.n-mana{left:5px!important;top:5px!important;width:22%!important;z-index:10;}',
+ '.ncard.n-fullart.n-big .nstat-wrap.n-atk{left:5px!important;bottom:5px!important;width:21%!important;z-index:10;}',
+ '.ncard.n-fullart.n-big .nstat-wrap.n-end,.ncard.n-fullart.n-big .nstat-wrap.n-art{right:5px!important;left:auto!important;bottom:5px!important;width:21%!important;z-index:10;}',
+ '.ncard.n-fullart.n-small .nstat-wrap.n-atk{left:7px!important;bottom:7px!important;width:23%!important;z-index:10;}',
+ '.ncard.n-fullart.n-small .nstat-wrap.n-end,.ncard.n-fullart.n-small .nstat-wrap.n-art{right:7px!important;left:auto!important;bottom:7px!important;width:23%!important;z-index:10;}',
+ '.ncard.n-fullart .nrarity-gem{top:auto!important;bottom:5px!important;left:50%!important;transform:translateX(-50%);width:9.5%!important;z-index:10;}',
+ '.ncard.n-fullart.n-small .nrarity-gem{display:none;}',
+]
+css+=FA_CSS
 tpl=open(sys.argv[0] if False else 'tools/module_tpl.js').read()
 js=(tpl.replace('/*@PAL*/',json.dumps(PAL,ensure_ascii=False))
  .replace('/*@FR*/',json.dumps(FR,ensure_ascii=False)).replace('/*@FX*/',json.dumps(FX,ensure_ascii=False))
