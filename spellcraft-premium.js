@@ -50,7 +50,7 @@
   + '.ncard.n-prem.n-live .nart-in{transition:transform .06s linear;}'
   + '.ncard .nfoil{clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 12px,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0 calc(100% - 12px),0 12px);}'
   + MASKS
-  + '.ncard .nfoil{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:31;mix-blend-mode:hard-light;opacity:.5;'
+  + '.ncard .nfoil{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:31;mix-blend-mode:hard-light;opacity:.28;'
   +   'background:linear-gradient(115deg,transparent 5%,rgba(255,90,90,.75) 22%,rgba(255,210,80,.75) 34%,rgba(120,255,150,.75) 46%,rgba(80,190,255,.75) 58%,rgba(190,110,255,.75) 70%,rgba(255,120,200,.75) 82%,transparent 95%);'
   +   'background-size:260% 100%;background-position:calc(50% + var(--px,0)*50%) 0;}'
   + '.ncard:not(.n-live) .nfoil{animation:nfoil-idle 6s ease-in-out infinite alternate;}'
