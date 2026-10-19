@@ -24,6 +24,12 @@
   + '.ncard .nfin{position:absolute;left:0;top:0;width:100%;height:100%;transform-style:preserve-3d;}'
   + '.ncard.n-prem .nfin{transform:rotateX(calc(var(--py,0)*-11deg)) rotateY(calc(var(--px,0)*14deg));transition:transform .22s ease-out;will-change:transform;}'
   + '.ncard.n-prem.n-live .nfin{transition:transform .06s linear;}'
+  // Au repos, une carte premium se balance doucement toute seule (variables animées sur .nfin,
+  // les enfants héritent de --px / --py). Dès que le pointeur est dessus, le pointeur reprend la main.
+  + '@property --px{syntax:"<number>";inherits:true;initial-value:0}'
+  + '@property --py{syntax:"<number>";inherits:true;initial-value:0}'
+  + '.ncard.n-prem:not(.n-live) .nfin{animation:nprem-sway 7s ease-in-out infinite;}'
+  + '@keyframes nprem-sway{0%{--px:-.7;--py:-.3}25%{--px:0;--py:.4}50%{--px:.7;--py:-.3}75%{--px:0;--py:.4}100%{--px:-.7;--py:-.3}}'
   + '.ncard .nart-in{position:absolute;left:0;top:0;width:100%;height:100%;background-repeat:no-repeat;}'
   + '.ncard.n-prem .nart-in{transform:translate(calc(var(--px,0)*-5%),calc(var(--py,0)*-4%)) scale(1.12);transition:transform .22s ease-out;}'
   + '.ncard.n-prem.n-live .nart-in{transition:transform .06s linear;}'
@@ -33,12 +39,12 @@
   + '.ncard .nglare.b{mix-blend-mode:overlay;background:radial-gradient(circle at calc(50% + var(--px,0)*45%) calc(32% + var(--py,0)*40%),rgba(255,255,255,.38),rgba(255,255,255,0) 30%);}'
   + '.ncard:not(.n-live) .nglare{animation:nglare-idle 7s ease-in-out infinite;}'
   + '@keyframes nglare-idle{0%,100%{opacity:.45}50%{opacity:1}}'
-  + '.ncard .nfoil{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:31;mix-blend-mode:hard-light;opacity:.42;'
+  + '.ncard .nfoil{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:31;mix-blend-mode:hard-light;opacity:.5;'
   +   'background:linear-gradient(115deg,transparent 5%,rgba(255,90,90,.75) 22%,rgba(255,210,80,.75) 34%,rgba(120,255,150,.75) 46%,rgba(80,190,255,.75) 58%,rgba(190,110,255,.75) 70%,rgba(255,120,200,.75) 82%,transparent 95%);'
   +   'background-size:260% 100%;background-position:calc(50% + var(--px,0)*50%) 0;}'
   + '.ncard:not(.n-live) .nfoil{animation:nfoil-idle 6s ease-in-out infinite alternate;}'
   + '@keyframes nfoil-idle{0%{background-position:0% 0}100%{background-position:100% 0}}'
-  + '@media (prefers-reduced-motion:reduce){.ncard .nglare,.ncard .nfoil{animation:none!important}.ncard.n-prem .nfin,.ncard.n-prem .nart-in{transition:none}}';
+  + '@media (prefers-reduced-motion:reduce){.ncard .nglare,.ncard .nfoil{animation:none!important}.ncard.n-prem .nfin,.ncard.n-prem .nart-in{transition:none}.ncard.n-prem .nfin{animation:none!important}}';
   var installed = false;
   function install(){
     if(installed) return; installed = true;
@@ -90,6 +96,7 @@
     root.appendChild(fin);
     if(card.premium){
       root.classList.add('n-prem');
+      fin.style.animationDelay = '-' + (Math.random()*7).toFixed(2) + 's';
       var g1 = document.createElement('div'); g1.className = 'nglare';
       var g2 = document.createElement('div'); g2.className = 'nglare b';
       fin.appendChild(g1); fin.appendChild(g2);
