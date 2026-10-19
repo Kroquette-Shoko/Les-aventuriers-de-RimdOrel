@@ -271,8 +271,9 @@ async function toggleLeaderboardView(){
 const CLASS_SLUG_NOACCENT = {'Aube':'aube', 'Crépuscule':'crepuscule', 'Volonté':'volonte', 'Prima':'prima', 'Arcane':'arcane', 'Neutre':'neutre'};
 
 // Classement par saison (mensuelle) : points type Elo, ligues, récompenses de fin de saison.
-const LEAGUE_ICONS = { 'Bronze':'🥉', 'Argent':'🥈', 'Or':'🥇', 'Platine':'💠', 'Diamant':'💎', 'Maître':'👑' };
-const LEAGUE_FLOORS = { 'Bronze':0, 'Argent':1100, 'Or':1300, 'Platine':1500, 'Diamant':1700, 'Maître':1900 };
+const LEAGUE_ICONS = { 'Non classé':'⚪', 'Bronze':'🥉', 'Argent':'🥈', 'Or':'🥇', 'Platine':'💠', 'Diamant':'💎', 'Maître':'👑' };
+const LEAGUE_FLOORS = { 'Non classé':0, 'Bronze':50, 'Argent':150, 'Or':300, 'Platine':500, 'Diamant':800, 'Maître':1000 };
+function rewardText(gold, boosters){ const b = boosters>0 ? ` et ${boosters} booster${boosters>1?'s':''}` : ''; return `${gold} or${b}`; }
 function seasonLabel(key){
   const m = /^(\d{4})-(\d{2})$/.exec(key||'');
   if(!m) return key||'';
@@ -282,7 +283,7 @@ function seasonLabel(key){
 async function claimSeasonRewardsUi(){
   const { data, error } = await sb.rpc('claim_season_rewards');
   if(error || !data || data.error){ showToast('Impossible de réclamer les récompenses.'); return; }
-  showToast(data.gold>0 ? `Récompenses de saison : +${data.gold} pièces d'or` : 'Aucune récompense à réclamer.');
+  showToast((data.gold>0 || data.boosters>0) ? `Récompenses de saison : +${data.gold} pièces d'or${data.boosters>0?` et ${data.boosters} booster${data.boosters>1?'s':''}`:''}` : 'Aucune récompense à réclamer.');
   await loadLeaderboard();
 }
 async function loadLeaderboard(){
@@ -299,9 +300,9 @@ async function loadLeaderboard(){
   let html = `<div id="lb-season-head">Saison de ${escapeHtml(seasonLabel(lb.season))}</div>`;
   if(me && me.ok){
     if(me.pendingRewards && me.pendingRewards.length){
-      const total = me.pendingRewards.reduce((s,r)=>s+r.gold,0);
+      const total = me.pendingRewards.reduce((s,r)=>s+r.gold,0), totalB = me.pendingRewards.reduce((s,r)=>s+(r.boosters||0),0);
       const detail = me.pendingRewards.map(r=>`${escapeHtml(seasonLabel(r.season))} : ${LEAGUE_ICONS[r.league]||''} ${escapeHtml(r.league)}`).join(' · ');
-      html += `<div id="lb-reward"><div><strong>Récompenses de saison à réclamer : +${total} or</strong><div class="lb-sub" style="font-size:11.5px;color:var(--parchment-dim);">${detail}</div></div>
+      html += `<div id="lb-reward"><div><strong>Récompenses de saison à réclamer : +${rewardText(total, totalB)}</strong><div class="lb-sub" style="font-size:11.5px;color:var(--parchment-dim);">${detail}</div></div>
         <button class="claim-btn" style="margin-top:0;" onclick="claimSeasonRewardsUi()">Réclamer</button></div>`;
     }
     const floor = LEAGUE_FLOORS[me.league] || 0;
@@ -328,7 +329,7 @@ async function loadLeaderboard(){
       <div class="lb-rating">${p.rating}</div>
     </div>`).join('');
   }
-  html += `<div id="lb-rules"><strong>Comment ça marche.</strong> Seules les parties contre un autre joueur comptent (pas l'IA). Chaque partie gagnée ou perdue fait gagner ou perdre des points selon le niveau de l'adversaire. Ligues : Bronze, Argent (1100), Or (1300), Platine (1500), Diamant (1700), Maître (1900). La saison dure un mois ; à la suivante, vos points reviennent à mi-chemin de 1000. Récompense d'or selon votre ligue en fin de saison, à partir de 5 parties classées. Au-delà de 3 parties contre le même adversaire en 24 h, les suivantes ne rapportent rien.</div>`;
+  html += `<div id="lb-rules"><strong>Comment ça marche.</strong> Seules les parties contre un autre joueur comptent (pas l'IA). On commence à 0 point à chaque saison. Une victoire rapporte 20 points. Une défaite ne fait rien avant l'Argent, retire 10 points de l'Argent à l'Or, et 20 points à partir du Platine. Rangs : Non classé (0), Bronze (50), Argent (150), Or (300), Platine (500), Diamant (800), Maître (1000). Récompense de fin de saison, à partir de 5 parties classées : Bronze 200 or + 1 booster · Argent 400 or + 1 booster · Or 600 or + 2 boosters · Platine 1000 or + 2 boosters · Diamant 2000 or + 3 boosters · Maître 3000 or + 5 boosters. Au-delà de 3 parties contre le même adversaire en 24 h, les suivantes ne rapportent rien.</div>`;
   wrap.innerHTML = html;
 }
 
