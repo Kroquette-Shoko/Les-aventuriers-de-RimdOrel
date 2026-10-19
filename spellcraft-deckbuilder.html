@@ -84,11 +84,6 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 .dropdown-panel label{display:flex;align-items:center;gap:6px;font-size:12px;padding:4px 2px;cursor:pointer;}
 .results-count{font-size:11px;color:var(--parchment-dim);white-space:nowrap;}
 
-#bulk-disenchant-bar{display:flex;flex-direction:column;align-items:stretch;gap:8px;background:var(--bg-panel-2);border:1.5px solid #6b3030;
-  border-radius:10px;padding:10px 14px;width:100%;}
-#bulk-disenchant-bar #bulk-disenchant-summary{font-family:'Cinzel',serif;font-weight:700;font-size:13px;text-align:center;}
-#bulk-disenchant-bar .btn{width:100%;}
-#bulk-disenchant-toggle.active{border-color:#e88;color:#e88;}
 #craftable-toggle.active{border-color:var(--gold, #d4af37);color:var(--gold, #d4af37);}
 .currency-chip{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:4px 8px;border-radius:14px;background:var(--bg-panel-3,hsl(calc(var(--th, 252) + 0) calc(var(--ts-n, 1) * 28.7%) 17.1%));color:var(--parchment,#efe6c8);}
 .currency-chip .gem-icon{width:16px;height:16px;flex-shrink:0;background-size:contain;background-repeat:no-repeat;background-position:center;}
@@ -146,10 +141,6 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
   transform:scale(0.66667);transition:transform .12s;
 }
 .binder-slot .ncard:hover{transform:scale(0.68667);}
-.binder-slot.bulk-selected{outline:3px solid var(--gold, #d4af37);outline-offset:-3px;border-radius:8px;}
-.binder-slot.bulk-selectable{cursor:pointer;}
-.binder-slot .bulk-select-badge{position:absolute;top:4px;left:4px;width:22px;height:22px;border-radius:50%;
-  background:var(--gold, #d4af37);color:hsl(calc(var(--th, 252) - 2) calc(var(--ts-n, 1) * 33.3%) 14.1%);font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;z-index:10;}
 .card-add-badge{position:absolute;top:2px;right:2px;background:var(--green);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 5px;z-index:5;box-shadow:0 2px 4px rgba(0,0,0,.5);}
 .card-new-badge{position:absolute;top:4px;left:-2px;z-index:6;background:#ffd23f;color:#3a2a00;font:800 10px/1 'Inter',sans-serif;letter-spacing:.04em;text-transform:uppercase;padding:3px 7px;border-radius:4px;box-shadow:0 0 0 1px rgba(0,0,0,.5),0 0 10px rgba(255,210,63,.75);pointer-events:none;transform:rotate(-6deg);}
 .card-owned-badge{position:absolute;bottom:2px;left:2px;background:hsl(calc(var(--th, 252) + 10.5) calc(var(--ts-n, 1) * 25%) 6.3% / .75);border:1px solid var(--gold, #d4af37);color:var(--gold, #d4af37);font-size:8.5px;font-weight:700;border-radius:8px;padding:1px 5px;z-index:5;}
@@ -336,37 +327,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 
 #card-preview{position:fixed;z-index:200;pointer-events:none;display:none;opacity:0;transition:opacity .15s ease;}
 
-/* ===== ATELIER DE FRAGMENTS ===== */
-#atelier-overlay{position:fixed;inset:0;background:rgba(5,4,10,.88);z-index:160;display:none;align-items:center;justify-content:center;padding:16px;}
-#atelier-overlay.show{display:flex;}
-#atelier-box{background:var(--bg-panel,hsl(calc(var(--th, 252) + 1.3) calc(var(--ts-n, 1) * 32.1%) 11%));border:1.5px solid var(--gold,#d4af37);border-radius:14px;width:min(980px,100%);height:min(780px,94vh);display:flex;flex-direction:column;overflow:hidden;position:relative;}
-#atelier-head{display:flex;align-items:center;gap:10px;padding:14px 18px 10px;flex-wrap:wrap;}
-#atelier-head h2{font-family:'Cinzel',serif;font-size:16px;margin:0;color:var(--gold,#d4af37);margin-right:auto;}
-.at-tab{background:var(--bg-panel-3,hsl(calc(var(--th, 252) + 0) calc(var(--ts-n, 1) * 28.7%) 17.1%));border:1.5px solid var(--line,hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));color:var(--parchment,#efe6c8);border-radius:8px;padding:7px 14px;font-weight:700;font-size:12.5px;cursor:pointer;}
-.at-tab.active{border-color:var(--gold,#d4af37);color:var(--gold,#d4af37);}
-#atelier-close{background:none;border:none;color:var(--parchment,#efe6c8);font-size:20px;cursor:pointer;}
-#at-bal{display:flex;gap:6px;flex-wrap:wrap;padding:0 18px 8px;font-size:11.5px;}
-#at-filters,#at-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:6px 18px;}
-#at-filters input,#at-filters select,#at-tools select,#at-tools input[type=number]{background:var(--bg-panel-2,hsl(calc(var(--th, 252) + 1.6) calc(var(--ts-n, 1) * 29.7%) 14.5%));border:1px solid var(--line,hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));color:var(--parchment,#efe6c8);border-radius:6px;padding:6px 8px;font-size:12px;}
-#at-tools{border-top:1px solid var(--line,hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));}
-#at-tools .at-hint{font-size:11.5px;color:var(--parchment-dim,#d9cfae);flex-basis:100%;}
-#at-list{flex:1;overflow-y:auto;padding:6px 18px;border-top:1px solid var(--line,hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));}
-.at-row{display:flex;align-items:center;gap:10px;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.06);font-size:12.5px;}
-.at-row.sel{background:rgba(212,175,55,.10);}
-.at-row.warn .at-warn{display:inline;}
-.at-warn{display:none;color:#e88;font-size:11px;}
-.at-name{flex:1;min-width:120px;font-weight:700;cursor:pointer;}
-.at-tag{font-size:10.5px;opacity:.85;width:70px;flex:none;}
-.at-meta{font-size:11.5px;color:var(--parchment-dim,#d9cfae);width:112px;flex:none;}
-.at-step{display:flex;align-items:center;gap:4px;}
-.at-step button{width:26px;height:26px;border-radius:6px;border:1px solid var(--line,hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));background:var(--bg-panel-3,hsl(calc(var(--th, 252) + 0) calc(var(--ts-n, 1) * 28.7%) 17.1%));color:var(--parchment,#efe6c8);cursor:pointer;font-weight:700;}
-.at-step input{width:42px;text-align:center;background:var(--bg-panel-2,hsl(calc(var(--th, 252) + 1.6) calc(var(--ts-n, 1) * 29.7%) 14.5%));border:1px solid var(--line,hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));color:var(--parchment,#efe6c8);border-radius:6px;padding:4px 2px;}
-.at-star{background:none;border:none;font-size:17px;cursor:pointer;color:var(--gold,#d4af37);}
-#at-foot{padding:10px 18px 14px;border-top:1px solid var(--line,hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
-#at-sum{flex:1;min-width:220px;font-size:12.5px;line-height:1.45;}
-#at-sum .bad{color:#e88;}
-#at-sum .good{color:var(--green,#7de08f);}
-@media(max-width:640px){.at-meta{display:none;}.save-indicator{display:none;}}
+@media(max-width:640px){.save-indicator{display:none;}}
 #craft-modal-overlay{position:fixed;inset:0;background:rgba(5,4,10,.88);z-index:170;display:none;align-items:center;justify-content:center;padding:24px;}
 #craft-modal-overlay.show{display:flex;}
 #craft-modal-box{background:var(--bg-panel,hsl(calc(var(--th, 252) + 1.3) calc(var(--ts-n, 1) * 32.1%) 11%));border:1.5px solid var(--gold,#d4af37);border-radius:16px;padding:26px;
@@ -463,6 +424,58 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
   .binder-slot .ncard{transform:scale(0.5);}
   .binder-slot .ncard:hover{transform:scale(0.5);}
 }
+/* ===== DÉSASSEMBLER EN MASSE ===== */
+#md-overlay{position:fixed;inset:0;background:rgba(5,4,10,.88);z-index:160;display:none;align-items:center;justify-content:center;padding:16px;}
+#md-overlay.show{display:flex;}
+#md-box{background:var(--bg-panel,hsl(calc(var(--th, 252) + 1.3) calc(var(--ts-n, 1) * 32.1%) 11%));border:1.5px solid var(--gold,#d4af37);border-radius:14px;width:min(760px,100%);height:min(760px,94vh);display:flex;flex-direction:column;overflow:hidden;position:relative;transition:opacity .4s ease;}
+#md-box.md-playing{opacity:.04;pointer-events:none;}
+#md-head{display:flex;align-items:center;gap:10px;padding:14px 18px 6px;}
+#md-head h2{font-family:'Cinzel',serif;font-size:16px;margin:0;color:var(--gold,#d4af37);margin-right:auto;}
+#md-close{background:none;border:none;color:var(--parchment,#efe6c8);font-size:20px;cursor:pointer;}
+#md-top{display:flex;align-items:center;gap:14px;padding:8px 18px 10px;flex-wrap:wrap;border-bottom:1px solid var(--line,hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));}
+#md-sum{flex:1;min-width:220px;font-size:12.5px;line-height:1.5;display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+#md-sum .md-sum-main{width:100%;}
+#md-go{font-family:'Cinzel',serif;font-weight:700;font-size:13.5px;padding:10px 18px;}
+#md-legend{display:flex;flex-wrap:wrap;gap:6px 12px;padding:6px 18px;font-size:10.5px;color:var(--parchment-dim,#d9cfae);align-items:center;}
+#md-legend .md-src{padding:1px 8px;font-size:10px;}
+#md-list{flex:1;overflow-y:auto;padding:4px 18px 14px;}
+.md-row{display:flex;align-items:center;gap:10px;padding:5px 4px;border-bottom:1px solid rgba(255,255,255,.06);transition:opacity .15s;}
+.md-row.md-off{opacity:.38;}
+.md-rar{display:flex;align-items:center;gap:3px;width:40px;flex:none;}
+.md-diamond{width:13px;height:13px;transform:rotate(45deg) scale(.82);border-radius:2px;flex:none;box-shadow:0 0 0 1px rgba(0,0,0,.55),0 0 6px currentColor;background:currentColor;}
+.md-diamond.r-Commune{color:#c7c2b3;}
+.md-diamond.r-Rare{color:var(--frost,#4aa3ff);}
+.md-diamond.r-Épique{color:var(--arcane,#a05cf0);}
+.md-diamond.r-Mythique{color:var(--gold,#d4af37);}
+.md-star{color:var(--gold,#ffd23f);font-size:13px;line-height:1;text-shadow:0 0 5px rgba(255,210,63,.8);}
+.md-src{flex:1;min-width:0;padding:4px 12px;border-radius:5px;font-weight:700;font-size:12.5px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);}
+.md-src.s-Aube{background:linear-gradient(90deg,#b8922a,#d9b84f);color:#2a1f05;text-shadow:none;}
+.md-src.s-Crépuscule{background:linear-gradient(90deg,#6a40c8,#8a5cf0);}
+.md-src.s-Volonté{background:linear-gradient(90deg,#9c2a2a,#c23b3b);}
+.md-src.s-Prima{background:linear-gradient(90deg,#2c8a47,#3fae5c);}
+.md-src.s-Arcane{background:linear-gradient(90deg,#3f78b0,#5b9bd5);}
+.md-src.s-Opale{background:linear-gradient(90deg,#d4af37,#c23b3b,#8a5cf0,#5b9bd5,#3fae5c);}
+.md-src.s-Neutre{background:linear-gradient(90deg,#5d5a66,#7a7784);}
+.md-gain{width:96px;flex:none;font-size:11.5px;}
+.md-gain .currency-chip{display:inline-flex;}
+.md-ctl{display:flex;align-items:center;gap:4px;flex:none;}
+.md-ctl button{width:26px;height:26px;border-radius:6px;border:1px solid var(--line,hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));background:var(--bg-panel-3,hsl(calc(var(--th, 252) + 0) calc(var(--ts-n, 1) * 28.7%) 17.1%));color:var(--parchment,#efe6c8);font-size:15px;line-height:1;cursor:pointer;}
+.md-ctl button:hover:not(:disabled){border-color:var(--gold,#d4af37);}
+.md-ctl button:disabled{opacity:.3;cursor:default;}
+.md-qty{min-width:38px;text-align:center;font-weight:700;font-size:12.5px;}
+.md-qty small{font-weight:400;opacity:.65;font-size:10.5px;}
+.md-empty{padding:30px 10px;text-align:center;color:var(--parchment-dim,#d9cfae);font-size:13px;font-style:italic;}
+/* animation : paquet de cartes -> blanc -> explosion de fragments */
+#md-fx{position:fixed;inset:0;z-index:175;pointer-events:none;display:none;overflow:hidden;}
+#md-fx.on{display:block;pointer-events:auto;}
+.md-fx-card{position:absolute;width:200px;height:282px;margin:-141px 0 0 -100px;will-change:transform,opacity;}
+.md-fx-card .ncard{position:absolute;top:0;left:0;transform-origin:top left;transform:scale(.66667);width:300px !important;height:423.2px !important;}
+.md-fx-card .md-white{position:absolute;inset:0;border-radius:10px;background:#fff;opacity:0;}
+.md-fx-glow{position:absolute;left:50%;top:50%;width:260px;height:260px;margin:-130px 0 0 -130px;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.95),rgba(255,255,255,0) 70%);opacity:0;}
+.md-fx-flash{position:absolute;inset:0;background:#fff;opacity:0;}
+.md-part{position:absolute;left:0;top:0;will-change:transform,opacity;}
+.md-gem{width:100%;height:100%;background-size:contain;background-repeat:no-repeat;background-position:center;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;}
+.md-fx-skip{position:absolute;right:18px;bottom:16px;font-size:11px;color:#fff;opacity:.55;font-family:'Inter',sans-serif;}
 </style>
 <script src="spellcraft-card-render.js"></script>
 </head>
@@ -507,15 +520,9 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
           <span class="results-count" id="results-count"></span>
           <div id="fragments-bar"></div>
           <button class="btn small" id="craftable-toggle" onclick="toggleCraftableOnly()">🔨 Fabriquer des cartes</button>
-          <button class="btn small" id="atelier-open" onclick="openAtelier()" title="Désassembler ou fabriquer plusieurs cartes d'un coup">🧰 Atelier de fragments</button>
-          <button class="btn small" id="bulk-disenchant-toggle" onclick="toggleBulkDisenchantMode()">♻️ Désassembler en masse</button>
+          <button class="btn small" id="bulk-disenchant-toggle" onclick="openMassDisenchant()">♻️ Désassembler en masse</button>
         </div>
 
-        <div id="bulk-disenchant-bar" style="display:none;">
-          <span id="bulk-disenchant-summary">0 carte sélectionnée</span>
-          <button class="btn small" onclick="toggleBulkDisenchantMode()">Annuler</button>
-          <button class="btn small primary" id="bulk-disenchant-confirm" onclick="confirmBulkDisenchant()" disabled>Désassembler la sélection</button>
-        </div>
       </div>
 
       <div class="db-collection-col">
@@ -567,26 +574,21 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 </div>
 <div id="card-preview"></div>
 
-<div id="atelier-overlay" onclick="if(event.target===this) closeAtelier()">
-  <div id="atelier-box">
-    <div id="atelier-head">
-      <h2>🧰 Atelier de fragments</h2>
-      <button class="at-tab" id="at-tab-dis" onclick="atTab('dis')">♻️ Désassembler</button>
-      <button class="at-tab" id="at-tab-cr" onclick="atTab('cr')">🔨 Fabriquer</button>
-      <button id="atelier-close" onclick="closeAtelier()">✕</button>
+<div id="md-overlay" onclick="if(event.target===this) closeMassDisenchant()">
+  <div id="md-box">
+    <div id="md-head">
+      <h2>♻️ Désassembler en masse</h2>
+      <button id="md-close" onclick="closeMassDisenchant()">✕</button>
     </div>
-    <div id="at-bal"></div>
-    <div id="at-filters">
-      <input type="search" id="at-q" placeholder="Rechercher une carte…" oninput="atRenderList()">
-      <select id="at-rarity" onchange="atRenderList()"><option value="">Toutes raretés</option><option>Commune</option><option>Rare</option><option>Épique</option><option>Mythique</option></select>
-      <select id="at-src" onchange="atRenderList()"><option value="">Toutes sources</option><option>Aube</option><option>Crépuscule</option><option>Volonté</option><option>Prima</option><option>Arcane</option><option>Neutre</option></select>
-      <select id="at-set" onchange="atRenderList()"><option value="">Tous les sets</option></select>
+    <div id="md-top">
+      <div id="md-sum"></div>
+      <button class="btn primary" id="md-go" onclick="confirmMassDisenchant()" disabled>Tout désassembler</button>
     </div>
-    <div id="at-tools"></div>
-    <div id="at-list"></div>
-    <div id="at-foot"><div id="at-sum"></div><button class="btn" id="at-clear" onclick="atClear()">Tout décocher</button><button class="btn primary" id="at-go" onclick="atGo()" disabled>Valider</button></div>
+    <div id="md-legend"></div>
+    <div id="md-list"></div>
   </div>
 </div>
+<div id="md-fx" onclick="skipMassFx()"></div>
 
 <div id="craft-modal-overlay" onclick="if(event.target===this) closeCraftModal()">
   <div id="craft-modal-box">
@@ -684,8 +686,6 @@ const DECK_MIN = 30;   // un deck contient entre 30 et 45 cartes (hors Héros et
 const DECK_MAX = 45;
 const MAX_COPIES = 2;
 let ownedCollection = {}; // { cardId: quantité possédée }
-let bulkDisenchantMode = false;
-let bulkDisenchantSelection = new Set();
 let isLoggedInCache = false;
 
 /* ============================================================
@@ -1796,6 +1796,24 @@ function renderHeroSelectionGrid(animate){
   }, 200);
 }
 
+/* Garde la colonne deck à droite du classeur : si l'écran est trop étroit,
+   on réduit le classeur (zoom) au lieu de faire passer le deck dessous. */
+function fitBinderToWidth(){
+  const frame = document.getElementById('binder-frame');
+  const main = document.querySelector('.db-main');
+  if(!frame || !main) return;
+  frame.style.zoom = '';
+  if(window.innerWidth <= 900) return;
+  const tb = main.querySelector('.db-toolbar-col'), dk = main.querySelector('.db-deck-col');
+  const used = (tb?tb.offsetWidth:0) + (dk && getComputedStyle(dk).display!=='none' ? dk.offsetWidth : 0) + 36;
+  const avail = main.clientWidth - used - 8; // marge anti-arrondi
+  const natural = frame.offsetWidth;
+  if(natural > avail && avail > 0){
+    frame.style.zoom = Math.max(.45, Math.min(1, avail/natural)).toFixed(3);
+  }
+}
+window.addEventListener('resize', fitBinderToWidth);
+
 function renderBinder(animate){
   if(browsingCardBacksStandalone){ renderCardBackGrid(animate); return; }
   if((currentDeck && deckBuildStep==='hero') || browsingHeroesStandalone){ renderHeroSelectionGrid(animate); return; }
@@ -1880,22 +1898,6 @@ function renderBinder(animate){
         const el = buildCardEl(card);
         el.onclick = ()=>onCardClick(card);
         slot.appendChild(el);
-        if(bulkDisenchantMode){
-          const canSelect = card.rarity!=='Basique' && (ownedCollection[card.id]||0)>0;
-          if(canSelect){
-            slot.classList.add('bulk-selectable');
-            if(bulkDisenchantSelection.has(card.id)){
-              slot.classList.add('bulk-selected');
-              const badge = document.createElement('div');
-              badge.className = 'bulk-select-badge';
-              badge.textContent = '✓';
-              slot.appendChild(badge);
-            }
-          } else {
-            el.style.opacity = '0.4';
-            el.style.pointerEvents = 'none';
-          }
-        }
         const count = deckCountFor(card.id);
         const isChosenHero = currentDeck && currentDeck.heroId===card.id;
         const isChosenRegion = currentDeck && currentDeck.regionId===card.id;
@@ -2118,7 +2120,6 @@ function classRefusalMessage(card, hero){
 }
 
 function onCardClick(card){
-  if(bulkDisenchantMode){ toggleBulkDisenchantSelection(card); return; }
   if(!currentDeck){
     if(card.type!=='Héros' && card.type!=='Région'){ showCraftModal(card); return; }
     flashError('Crée ou charge un deck avant d\'ajouter des cartes.');
@@ -2337,15 +2338,6 @@ function renderCraftAction(card){
     box.appendChild(note);
   }
 
-  if(owned<max && cost && card.type!=='Héros' && card.type!=='Région'){
-    const wbtn = document.createElement('button');
-    wbtn.className = 'craft-btn craft-disenchant';
-    wbtn.style.borderColor = 'var(--line,hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%))'; wbtn.style.color = 'var(--gold,#d4af37)';
-    const wished = !!AT.wish[card.id];
-    wbtn.textContent = wished ? '★ Dans ma liste de souhaits (retirer)' : '☆ Ajouter à ma liste de souhaits';
-    wbtn.onclick = ()=>{ if(AT.wish[card.id]) delete AT.wish[card.id]; else AT.wish[card.id] = Math.max(1, max-owned); atWishSave(); renderCraftAction(card); };
-    box.appendChild(wbtn);
-  }
   if(owned>=1 && card.rarity!=='Basique' && cost){
     const dbtn = document.createElement('button');
     dbtn.className = 'craft-btn craft-disenchant';
@@ -2391,345 +2383,209 @@ async function doDisenchant(cardId, btn){
 }
 
 /* ============================================================
-   ATELIER DE FRAGMENTS — désassembler / fabriquer plusieurs cartes d'un coup
+   DÉSASSEMBLER EN MASSE
    ============================================================ */
-const AT_CLASSES = ['Aube','Crépuscule','Volonté','Prima','Arcane'];
-const AT_FRAG_KEY = {Aube:'fragments_aube','Crépuscule':'fragments_crepuscule','Volonté':'fragments_volonte',Prima:'fragments_prima',Arcane:'fragments_arcane',Opale:'fragments_opale'};
-const AT = { tab:'dis', owned:{}, profile:null, dis:{}, cr:{}, wish:{}, wishOnly:false, deckPick:'' };
-function atWishLoad(){ try{ return JSON.parse(localStorage.getItem('sc-wishlist')||'{}') || {}; }catch(e){ return {}; } }
-function atWishSave(){ try{ localStorage.setItem('sc-wishlist', JSON.stringify(AT.wish)); }catch(e){} }
-AT.wish = atWishLoad();
-function atCard(id){ return allCardsCache.find(c=>c.id===id); }
-function atCap(card){ return card.isLegendary ? 1 : MAX_COPIES; }
-function atTotal(id){ const o = AT.owned[id]; return o ? (o.quantity||0) + (o.foil||0) : 0; }
-function atFragClass(card){ if(card.classSecondary) return 'Opale'; if(card.class && card.class!=='Neutre') return card.class; return null; }
-function atEligible(card){
-  if(card.type==='Héros' || card.type==='Région') return false;
-  if((card.subtypes||[]).some(s=>String(s).trim().toLowerCase()==='conjuration')) return false;
-  return !!CRAFT_COST_BY_RARITY[card.rarity];
-}
-function atDeckNeed(id){
-  let m = 0;
-  (savedDecks||[]).forEach(d=>{ const e = (d.cards||[]).find(c=>c.cardId===id); if(e) m = Math.max(m, e.count); });
-  return m;
-}
-function atMatchFilters(card){
-  const q = (document.getElementById('at-q').value||'').trim().toLowerCase();
-  const r = document.getElementById('at-rarity').value;
-  const s = document.getElementById('at-src').value;
-  const st = document.getElementById('at-set').value;
-  if(q && !(card.name||'').toLowerCase().includes(q) && !(card.text||'').toLowerCase().includes(q)) return false;
-  if(r && card.rarity!==r) return false;
-  if(s && card.class!==s && card.classSecondary!==s) return false;
-  if(st && card.set!==st) return false;
-  return true;
-}
-const AT_RARITY_ORDER = {Mythique:0,'Épique':1,Rare:2,Commune:3};
-function atSortCards(a,b){ return (AT_RARITY_ORDER[a.rarity]??9)-(AT_RARITY_ORDER[b.rarity]??9) || (a.name||'').localeCompare(b.name||'','fr'); }
+const MD_RAR_ORDER = {Mythique:0,'Épique':1,Rare:2,Commune:3};
+const MD_CLASS_ORDER = {Aube:0,'Crépuscule':1,Volonté:2,Prima:3,Arcane:4,Neutre:5};
+let MD = { rows:[], busy:false, fxTimers:[], fxDone:null };
 
-async function openAtelier(tab){
-  if(!isLoggedInCache){ flashError('Connecte-toi pour utiliser l\'atelier.'); return; }
-  AT.owned = await loadUserCollectionWithFoil();
-  AT.profile = await loadUserProfile();
-  AT.dis = {}; AT.cr = {};
-  // nettoie la liste de souhaits : une carte déjà au maximum n'a plus à y être
-  allCardsCache.forEach(c=>{ if(AT.wish[c.id] && atTotal(c.id) >= atCap(c)) delete AT.wish[c.id]; });
-  atWishSave();
-  const setSel = document.getElementById('at-set');
-  const sets = [...new Set(allCardsCache.map(c=>c.set).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fr'));
-  setSel.innerHTML = '<option value="">Tous les sets</option>' + sets.map(s=>`<option>${escapeHtml(s)}</option>`).join('');
-  document.getElementById('atelier-overlay').classList.add('show');
-  atTab(tab || AT.tab);
-}
-function closeAtelier(){ document.getElementById('atelier-overlay').classList.remove('show'); }
-function atTab(t){
-  AT.tab = t;
-  document.getElementById('at-tab-dis').classList.toggle('active', t==='dis');
-  document.getElementById('at-tab-cr').classList.toggle('active', t==='cr');
-  document.getElementById('at-go').textContent = t==='dis' ? 'Désassembler' : 'Fabriquer';
-  atRenderBal();
-  atRenderTools();
-  atRenderList();
-}
-function atRenderBal(){
-  const p = AT.profile || {};
-  document.getElementById('at-bal').innerHTML = 'Tes fragments : ' + FRAGMENT_COLUMNS.map(f=>`<span class="currency-chip ${f.chipClass}" title="${f.label}"><span class="gem-icon"></span> ${p[f.key]||0}</span>`).join(' ');
-}
-function atRenderTools(){
-  const el = document.getElementById('at-tools');
-  if(AT.tab==='dis'){
-    el.innerHTML = `
-      <span style="font-weight:700;">Remplir automatiquement (cartes affichées) :</span>
-      <button class="btn small" onclick="atPreset('keep',1)" title="Garde 1 exemplaire de chaque carte, sélectionne tout le reste">Doublons (garder 1)</button>
-      <button class="btn small" onclick="atPreset('cap')" title="Garde 2 exemplaires (1 pour les légendaires) — le maximum jouable en deck">Surplus (au-delà du max en deck)</button>
-      <button class="btn small" onclick="atPreset('decks')" title="Garde seulement ce dont tes decks sauvegardés ont besoin">Hors de mes decks</button>
-      <span>Garder <input type="number" id="at-keep" min="0" max="9" value="1" style="width:56px;"> exemplaire(s) de chaque</span>
-      <button class="btn small" onclick="atPreset('keep',parseInt(document.getElementById('at-keep').value)||0)">Appliquer</button>
-      <div class="at-hint">Ensuite tu peux ajuster chaque carte avec − / + ou en tapant un nombre. Les decks pris en compte sont tes decks <b>sauvegardés</b>. ⚠ s'affiche si tu retires des exemplaires utilisés par un de tes decks.</div>`;
-  } else {
-    const decks = (savedDecks||[]).map(d=>`<option value="${escapeHtml(d.id)}" ${AT.deckPick===d.id?'selected':''}>${escapeHtml(d.name||'Deck')}</option>`).join('');
-    const nW = Object.keys(AT.wish).length;
-    el.innerHTML = `
-      <span style="font-weight:700;">Compléter un deck :</span>
-      <select id="at-deck" onchange="AT.deckPick=this.value"><option value="">— choisir un deck sauvegardé —</option>${decks}</select>
-      <button class="btn small" onclick="atCompleteDeck()">Ajouter les cartes manquantes</button>
-      <span style="margin-left:10px;font-weight:700;">☆ Liste de souhaits (${nW}) :</span>
-      <button class="btn small" onclick="atAddWish()">Ajouter à la sélection</button>
-      <label style="font-size:12px;"><input type="checkbox" id="at-wishonly" ${AT.wishOnly?'checked':''} onchange="AT.wishOnly=this.checked;atRenderList()"> la voir seule</label>
-      <div class="at-hint">Clique sur ☆ pour mettre une carte dans ta liste de souhaits (elle reste sur cet appareil). Le total en fragments est calculé en bas ; la fabrication est « tout ou rien ».</div>`;
-  }
-}
-function atClamp(kind, id, v){
-  const card = atCard(id);
-  if(!card) return 0;
-  const t = atTotal(id);
-  const max = kind==='dis' ? t : Math.max(0, atCap(card) - t);
-  return Math.max(0, Math.min(max, Math.floor(Number(v)||0)));
-}
-function atSet(kind, id, v){
-  const map = kind==='dis' ? AT.dis : AT.cr;
-  const n = atClamp(kind, id, v);
-  if(n>0) map[id] = n; else delete map[id];
-  atRenderList(true);
-}
-function atClear(){ AT.dis = {}; AT.cr = {}; atRenderList(true); }
-function atPreset(kind, n){
-  const cards = allCardsCache.filter(c=>atEligible(c) && atTotal(c.id)>0 && atMatchFilters(c));
-  cards.forEach(c=>{
-    const t = atTotal(c.id);
-    let keep = 0;
-    if(kind==='keep') keep = n;
-    else if(kind==='cap') keep = atCap(c);
-    else if(kind==='decks') keep = atDeckNeed(c.id);
-    const give = Math.max(0, t - keep);
-    if(give>0) AT.dis[c.id] = give; else delete AT.dis[c.id];
-  });
-  atRenderList(true);
-}
-function atCompleteDeck(){
-  const d = (savedDecks||[]).find(x=>x.id===AT.deckPick);
-  if(!d){ flashError('Choisis d\'abord un deck.'); return; }
-  let added = 0, copies = 0, notCraftable = [];
-  (d.cards||[]).forEach(e=>{
-    const card = allCardsCache.find(c=>c.id===e.cardId);
-    if(!card) return;
-    const missing = e.count - atTotal(card.id);
-    if(missing<=0) return;
-    if(!atEligible(card)){ notCraftable.push(card.name); return; }
-    const n = atClamp('cr', card.id, Math.max(AT.cr[card.id]||0, missing));
-    if(n>0){ if(!AT.cr[card.id]) added++; copies += (n-(AT.cr[card.id]||0)); AT.cr[card.id] = n; }
-  });
-  document.getElementById('at-q').value = ''; document.getElementById('at-rarity').value=''; document.getElementById('at-src').value=''; document.getElementById('at-set').value='';
-  atRenderList(true);
-  flashSaved(added||copies ? `✓ ${copies} exemplaire(s) ajouté(s) à la sélection` : 'Ce deck est déjà complet.');
-  if(notCraftable.length) flashError('Non fabricables (rareté Basique…) : ' + notCraftable.join(', '));
-}
-function atAddWish(){
-  let n = 0;
-  Object.keys(AT.wish).forEach(id=>{
-    const card = allCardsCache.find(c=>c.id===id); if(!card) return;
-    const want = atClamp('cr', id, AT.wish[id]);
-    if(want>0){ AT.cr[id] = Math.max(AT.cr[id]||0, want); n++; }
-  });
-  atRenderList(true);
-  flashSaved(n ? `✓ ${n} carte(s) de ta liste ajoutée(s) à la sélection` : 'Ta liste de souhaits est vide.');
-}
-function atToggleWish(id){
-  const card = allCardsCache.find(c=>c.id===id); if(!card) return;
-  if(AT.wish[id]) delete AT.wish[id]; else AT.wish[id] = Math.max(1, atCap(card) - atTotal(id));
-  atWishSave(); atRenderTools(); atRenderList(true);
-}
+function mdSource(card){ return card.classSecondary ? 'Opale' : (card.class||'Neutre'); }
+function mdRefund(card){ return Math.floor((CRAFT_COST_BY_RARITY[card.rarity]||0)/4); }
 
-function atRowHtml(card){
-  const id = card.id, t = atTotal(id), cost = CRAFT_COST_BY_RARITY[card.rarity];
-  const fc = atFragClass(card);
-  const gem = fc ? (GEM_NAMES[fc]||fc) : 'au hasard';
-  const eid = escapeHtml(id).replace(/'/g,'&#39;');
-  if(AT.tab==='dis'){
-    const q = AT.dis[id]||0, need = atDeckNeed(id);
-    const warn = q>0 && (t-q) < need;
-    return `<div class="at-row ${q>0?'sel':''} ${warn?'warn':''}" data-id="${eid}">
-      <span class="at-name" onclick="showCraftModal(atCard('${eid}'))">${escapeHtml(card.name)}</span>
-      <span class="at-tag">${escapeHtml(card.rarity)}</span><span class="at-tag">${escapeHtml(card.class||'')}${card.classSecondary?'/'+escapeHtml(card.classSecondary):''}</span>
-      <span class="at-meta">possédé ×${t}${need?` · decks ×${need}`:''}</span>
-      <span class="at-meta">+${Math.floor(cost/4)} ${escapeHtml(gem)}</span>
-      <span class="at-warn">⚠ utilisée dans un deck</span>
-      <span class="at-step"><button onclick="atSet('dis','${eid}',${q-1})">−</button><input type="number" min="0" max="${t}" value="${q}" onchange="atSet('dis','${eid}',this.value)"><button onclick="atSet('dis','${eid}',${q+1})">+</button></span>
-    </div>`;
-  }
-  const q = AT.cr[id]||0, room = Math.max(0, atCap(card)-t), wished = !!AT.wish[id];
-  return `<div class="at-row ${q>0?'sel':''}" data-id="${eid}">
-    <button class="at-star" title="Liste de souhaits" onclick="atToggleWish('${eid}')">${wished?'★':'☆'}</button>
-    <span class="at-name" onclick="showCraftModal(atCard('${eid}'))">${escapeHtml(card.name)}</span>
-    <span class="at-tag">${escapeHtml(card.rarity)}</span><span class="at-tag">${escapeHtml(card.class||'')}${card.classSecondary?'/'+escapeHtml(card.classSecondary):''}</span>
-    <span class="at-meta">possédé ×${t} / ${atCap(card)}</span>
-    <span class="at-meta">${cost} ${escapeHtml(gem)}</span>
-    <span class="at-step"><button onclick="atSet('cr','${eid}',${q-1})">−</button><input type="number" min="0" max="${room}" value="${q}" onchange="atSet('cr','${eid}',this.value)"><button onclick="atSet('cr','${eid}',${q+1})">+</button></span>
-  </div>`;
+async function openMassDisenchant(){
+  if(!isLoggedInCache){ flashError('Connecte-toi pour désassembler des cartes.'); return; }
+  const owned = await loadUserCollectionWithFoil();
+  MD.rows = [];
+  allCardsCache.forEach(card=>{
+    const o = owned[card.id]; if(!o) return;
+    if(card.type==='Héros' || card.type==='Région') return;
+    if(!CRAFT_COST_BY_RARITY[card.rarity]) return;
+    const total = (o.quantity||0) + (o.foil||0);
+    if(total<=0) return;
+    const cap = card.isLegendary ? 1 : MAX_COPIES;
+    MD.rows.push({ card, total, sel: Math.max(0, total-cap), src: mdSource(card) });
+  });
+  MD.rows.sort((a,b)=>
+    (MD_RAR_ORDER[a.card.rarity]??9)-(MD_RAR_ORDER[b.card.rarity]??9) ||
+    (MD_CLASS_ORDER[a.src]??9)-(MD_CLASS_ORDER[b.src]??9) ||
+    a.card.name.localeCompare(b.card.name,'fr'));
+  document.getElementById('md-legend').innerHTML =
+    ['Aube','Crépuscule','Volonté','Prima','Arcane','Opale','Neutre'].map(s=>`<span class="md-src s-${s}" style="flex:none;cursor:default">${s==='Neutre'?'Neutre (gemme au hasard)':s==='Opale'?'Opale (2 classes)':s}</span>`).join('')
+    + `<span style="display:inline-flex;align-items:center;gap:10px;margin-left:8px">`
+    + ['Commune','Rare','Épique','Mythique'].map(r=>`<span style="display:inline-flex;align-items:center;gap:5px"><span class="md-diamond r-${r}"></span>${r}</span>`).join('')
+    + `<span style="display:inline-flex;align-items:center;gap:4px"><span class="md-star">★</span>Légendaire</span></span>`;
+  document.getElementById('md-box').classList.remove('md-playing');
+  document.getElementById('md-overlay').classList.add('show');
+  renderMassList();
 }
-function atRenderList(keepScroll){
-  const list = document.getElementById('at-list');
-  const top = keepScroll ? list.scrollTop : 0;
-  let cards;
-  if(AT.tab==='dis'){
-    cards = allCardsCache.filter(c=>atEligible(c) && atTotal(c.id)>0 && atMatchFilters(c));
-  } else {
-    cards = allCardsCache.filter(c=>{
-      if(!atEligible(c) || atTotal(c.id) >= atCap(c) || !atMatchFilters(c)) return false;
-      if(hiddenSetNames.has(c.set) && atTotal(c.id)===0 && !AT.cr[c.id]) return false; // set pas encore ouvert à la collection
-      if(AT.wishOnly && !AT.wish[c.id]) return false;
-      return true;
+function closeMassDisenchant(){
+  if(MD.busy) return;
+  document.getElementById('md-overlay').classList.remove('show');
+}
+function mdSelCount(){ return MD.rows.reduce((n,r)=>n+r.sel,0); }
+function renderMassList(){
+  const list = document.getElementById('md-list');
+  if(!MD.rows.length){ list.innerHTML = '<div class="md-empty">Aucune carte désassemblable dans ta collection.</div>'; }
+  else {
+    list.innerHTML = '';
+    MD.rows.forEach((r,i)=>{
+      const c = r.card;
+      const row = document.createElement('div');
+      row.className = 'md-row' + (r.sel===0 ? ' md-off' : '');
+      row.dataset.i = i;
+      const gain = mdRefund(c) * r.sel;
+      const gainHtml = r.src==='Neutre'
+        ? `<span class="currency-chip" title="Gemme tirée au hasard">+${gain} 🎲</span>`
+        : `<span class="currency-chip ${(FRAGMENT_COLUMNS.find(f=>f.label===GEM_NAMES[r.src])||{}).chipClass||''}" title="${GEM_NAMES[r.src]}"><span class="gem-icon"></span> +${gain}</span>`;
+      row.innerHTML =
+        `<div class="md-rar" title="${c.rarity}${c.isLegendary?' · Légendaire':''}"><span class="md-diamond r-${c.rarity}"></span>${c.isLegendary?'<span class="md-star">★</span>':''}</div>`
+        + `<div class="md-src s-${r.src}" title="${escapeHtml(c.name)}">${escapeHtml(c.name)}</div>`
+        + `<div class="md-ctl"><button data-act="minus" title="En garder une de plus">−</button><span class="md-qty">${r.sel}<small>/${r.total}</small></span><button data-act="plus" title="En désassembler une de plus">+</button></div>`
+        + `<div class="md-gain">${r.sel>0?gainHtml:''}</div>`;
+      row.querySelector('[data-act=minus]').disabled = r.sel<=0;
+      row.querySelector('[data-act=plus]').disabled = r.sel>=r.total;
+      row.querySelector('[data-act=minus]').onclick = ()=>{ if(r.sel>0){ r.sel--; renderMassList(); } };
+      row.querySelector('[data-act=plus]').onclick = ()=>{ if(r.sel<r.total){ r.sel++; renderMassList(); } };
+      row.querySelector('.md-src').onclick = ()=>{ r.sel = r.sel>0 ? 0 : Math.max(0, r.total-(c.isLegendary?1:MAX_COPIES)) || r.total; renderMassList(); };
+      list.appendChild(row);
     });
   }
-  cards.sort(atSortCards);
-  const MAXROWS = 400;
-  list.innerHTML = cards.length
-    ? cards.slice(0,MAXROWS).map(atRowHtml).join('') + (cards.length>MAXROWS ? `<div class="at-row">… ${cards.length-MAXROWS} autres cartes : affine les filtres pour les voir.</div>` : '')
-    : `<div class="at-row">${AT.tab==='dis' ? 'Aucune carte à désassembler avec ces filtres.' : 'Aucune carte à fabriquer avec ces filtres.'}</div>`;
-  list.scrollTop = top;
-  atRenderSummary();
+  // récapitulatif
+  const n = mdSelCount();
+  const per = {}; let neutral = 0, total = 0;
+  MD.rows.forEach(r=>{
+    const g = mdRefund(r.card)*r.sel; if(!g) return; total += g;
+    if(r.src==='Neutre') neutral += g; else per[r.src] = (per[r.src]||0)+g;
+  });
+  const chips = Object.keys(per).map(s=>{
+    const cc = (FRAGMENT_COLUMNS.find(f=>f.label===GEM_NAMES[s])||{}).chipClass||'';
+    return `<span class="currency-chip ${cc}"><span class="gem-icon"></span> +${per[s]}</span>`;
+  }).join('') + (neutral?`<span class="currency-chip" title="Gemmes tirées au hasard">+${neutral} 🎲</span>`:'');
+  document.getElementById('md-sum').innerHTML =
+    `<div class="md-sum-main"><b>${n}</b> carte${n>1?'s':''} sélectionnée${n>1?'s':''} (exemplaires en trop par défaut)</div>${chips}`;
+  const go = document.getElementById('md-go');
+  go.disabled = n===0 || MD.busy;
+  go.textContent = n>0 ? `Tout désassembler (${n})` : 'Tout désassembler';
 }
 
-// --- Simule la dépense de fragments comme le serveur (cartes d'une source d'abord, puis neutres) ---
-function atCraftPlan(){
+async function confirmMassDisenchant(){
+  if(MD.busy) return;
   const ids = [];
-  const entries = Object.entries(AT.cr).map(([id,q])=>({card:allCardsCache.find(c=>c.id===id), q})).filter(e=>e.card && e.q>0);
-  const spec = entries.filter(e=>atFragClass(e.card)), neutral = entries.filter(e=>!atFragClass(e.card));
-  const rem = {}; Object.keys(AT_FRAG_KEY).forEach(k=>rem[k] = (AT.profile && AT.profile[AT_FRAG_KEY[k]]) || 0);
-  const spent = {}; const problems = [];
-  const pay = (card, cls)=>{ const cost = CRAFT_COST_BY_RARITY[card.rarity]; rem[cls]-=cost; spent[cls]=(spent[cls]||0)+cost; };
-  spec.forEach(e=>{ for(let i=0;i<e.q;i++){ ids.push(e.card.id); const cls = atFragClass(e.card); pay(e.card, cls); } });
-  Object.keys(rem).forEach(k=>{ if(rem[k]<0) problems.push(`il manque ${-rem[k]} ${GEM_NAMES[k]||k}`); });
-  const rem2 = {...rem}; let neutralFail = 0;
-  neutral.forEach(e=>{ for(let i=0;i<e.q;i++){
-    ids.push(e.card.id);
-    const cost = CRAFT_COST_BY_RARITY[e.card.rarity];
-    const cls = AT_CLASSES.find(c=>rem[c]>=cost);
-    if(cls) pay(e.card, cls); else neutralFail++;
-  }});
-  if(neutralFail) problems.push(`${neutralFail} carte(s) neutre(s) sans assez de fragments dans un seul type`);
-  return { ids, spent, problems, copies: ids.length };
-}
-function atRenderSummary(){
-  const sum = document.getElementById('at-sum'), go = document.getElementById('at-go');
-  if(AT.tab==='dis'){
-    const gains = {}; let copies = 0, random = 0, warn = 0;
-    Object.entries(AT.dis).forEach(([id,q])=>{
-      const card = allCardsCache.find(c=>c.id===id); if(!card) return;
-      copies += q;
-      const refund = Math.floor(CRAFT_COST_BY_RARITY[card.rarity]/4) * q;
-      const fc = atFragClass(card);
-      if(fc) gains[fc] = (gains[fc]||0) + refund; else random += refund;
-      if(atTotal(id)-q < atDeckNeed(id)) warn++;
-    });
-    const parts = Object.keys(gains).map(k=>`+${gains[k]} ${GEM_NAMES[k]||k}`);
-    if(random) parts.push(`+${random} aléatoires (cartes neutres)`);
-    sum.innerHTML = copies ? `<b>${copies}</b> exemplaire(s) sélectionné(s) → ${parts.join(', ')}${warn?`<br><span class="bad">⚠ ${warn} carte(s) seront en dessous de ce que tes decks utilisent.</span>`:''}` : 'Aucune carte sélectionnée.';
-    go.disabled = copies===0;
-  } else {
-    const plan = atCraftPlan();
-    if(!plan.copies){ sum.textContent = 'Aucune carte sélectionnée.'; go.disabled = true; return; }
-    const parts = Object.keys(plan.spent).map(k=>`${plan.spent[k]} ${GEM_NAMES[k]||k}`);
-    sum.innerHTML = `<b>${plan.copies}</b> exemplaire(s) → coût : ${parts.join(', ')||'—'}` + (plan.problems.length ? `<br><span class="bad">Impossible pour l'instant : ${plan.problems.join(' ; ')}.</span>` : `<br><span class="good">✓ Tu as assez de fragments.</span>`);
-    go.disabled = plan.problems.length>0;
-  }
-}
-async function atAfterChange(){
-  ownedCollection = await loadUserCollection();
-  collection = allCardsCache.filter(c=>(ownedCollection[c.id]||0) > 0);
-  AT.owned = await loadUserCollectionWithFoil();
-  AT.profile = await loadUserProfile();
-  AT.dis = {}; AT.cr = {};
-  Object.keys(AT.wish).forEach(id=>{ const c = allCardsCache.find(x=>x.id===id); if(!c || atTotal(id)>=atCap(c)) delete AT.wish[id]; });
-  atWishSave();
-  renderFragmentsBar(); renderBinder();
-  atRenderBal(); atRenderTools(); atRenderList();
-}
-async function atGo(){
-  const go = document.getElementById('at-go');
-  if(AT.tab==='dis'){
-    const ids = []; Object.entries(AT.dis).forEach(([id,q])=>{ for(let i=0;i<q;i++) ids.push(id); });
-    if(!ids.length) return;
-    if(!confirm(`Désassembler ${ids.length} exemplaire(s) ? Cette action est irréversible.`)) return;
-    go.disabled = true;
-    const { data, error } = await sb.rpc('disenchant_cards_bulk', { p_card_ids: ids });
-    if(error || (data && data.error)){ flashError('Désassemblage impossible : ' + (data ? data.error : error.message)); await atAfterChange(); return; }
-    const done = (data.disenchanted||[]).length;
-    await atAfterChange();
-    flashSaved(`✓ ${done} exemplaire(s) désassemblé(s) — ${data.total_refund} fragments récupérés` + (done<ids.length ? ` (${ids.length-done} ignoré(s))` : ''));
-  } else {
-    const plan = atCraftPlan();
-    if(!plan.copies || plan.problems.length) return;
-    if(!confirm(`Fabriquer ${plan.copies} exemplaire(s) pour ${Object.keys(plan.spent).map(k=>plan.spent[k]+' '+(GEM_NAMES[k]||k)).join(', ')} ?`)) return;
-    go.disabled = true;
-    let res = await sb.rpc('craft_cards_bulk', { p_card_ids: plan.ids });
-    let crafted = 0, errMsg = null;
-    const fnMissing = res.error && (res.error.code==='PGRST202' || /craft_cards_bulk/i.test(res.error.message||''));
-    if(fnMissing){
-      // La fonction « en bloc » n'est pas encore installée en base : on fabrique une carte à la fois.
-      for(const id of plan.ids){
-        const r = await sb.rpc('craft_card', { p_card_id: id });
-        if(r.error || (r.data && r.data.error)){ errMsg = r.data ? r.data.error : r.error.message; break; }
-        crafted++;
-      }
-    } else if(res.error || (res.data && res.data.error)){
-      errMsg = res.data ? res.data.error : res.error.message;
-    } else crafted = res.data.crafted;
-    await atAfterChange();
-    if(errMsg) flashError(`Fabrication interrompue (${errMsg==='not-enough-fragments'?'pas assez de fragments':errMsg}) — ${crafted} carte(s) fabriquée(s)` + (fnMissing ? '' : ' (rien n\'a été dépensé)'));
-    else flashSaved(`✓ ${crafted} exemplaire(s) fabriqué(s)`);
-  }
-}
-
-/* ============================================================
-   DÉSASSEMBLAGE EN MASSE — sélection multiple, choix carte par carte
-   ============================================================ */
-function toggleBulkDisenchantMode(){
-  bulkDisenchantMode = !bulkDisenchantMode;
-  if(!bulkDisenchantMode) bulkDisenchantSelection.clear();
-  document.getElementById('bulk-disenchant-toggle').classList.toggle('active', bulkDisenchantMode);
-  document.getElementById('bulk-disenchant-bar').style.display = bulkDisenchantMode ? 'flex' : 'none';
-  updateBulkDisenchantSummary();
-  renderBinder();
-}
-function toggleBulkDisenchantSelection(card){
-  if(card.rarity==='Basique' || !(ownedCollection[card.id]>0)) return;
-  if(bulkDisenchantSelection.has(card.id)) bulkDisenchantSelection.delete(card.id);
-  else bulkDisenchantSelection.add(card.id);
-  updateBulkDisenchantSummary();
-  renderBinder();
-}
-function updateBulkDisenchantSummary(){
-  const n = bulkDisenchantSelection.size;
-  let totalRefund = 0;
-  bulkDisenchantSelection.forEach(id=>{
-    const card = cardById(id);
-    if(card){ const cost = CRAFT_COST_BY_RARITY[card.rarity]; if(cost) totalRefund += Math.floor(cost/4); }
-  });
-  document.getElementById('bulk-disenchant-summary').textContent =
-    n===0 ? '0 carte sélectionnée' : `${n} carte${n>1?'s':''} sélectionnée${n>1?'s':''} — environ ${totalRefund} fragments au total`;
-  document.getElementById('bulk-disenchant-confirm').disabled = n===0;
-}
-async function confirmBulkDisenchant(){
-  const ids = [...bulkDisenchantSelection];
-  if(ids.length===0) return;
-  if(!confirm(`Désassembler ces ${ids.length} carte(s) ? Cette action est irréversible.`)) return;
-  const btn = document.getElementById('bulk-disenchant-confirm');
-  btn.disabled = true;
+  MD.rows.forEach(r=>{ for(let k=0;k<r.sel;k++) ids.push(r.card.id); });
+  if(!ids.length) return;
+  MD.busy = true;
+  document.getElementById('md-go').disabled = true;
+  // cartes de la liste utilisées pour l'animation (avant que la liste soit modifiée)
+  const sample = MD.rows.filter(r=>r.sel>0).slice(0,14).map(r=>r.card);
   const { data, error } = await sb.rpc('disenchant_cards_bulk', { p_card_ids: ids });
-  if(error || (data && data.error)){
-    flashError('Désassemblage impossible : ' + (data ? data.error : error.message));
-    btn.disabled = false;
+  if(error || !data || data.error || !data.disenchanted){
+    MD.busy = false;
+    flashError('Désassemblage impossible : ' + ((data && data.error) || (error && error.message) || 'erreur inconnue'));
+    renderMassList();
     return;
   }
-  flashSaved(`✓ ${data.total_refund} fragments récupérés au total`);
-  ownedCollection = await loadUserCollection();
-  collection = allCardsCache.filter(c=>(ownedCollection[c.id]||0) > 0);
-  renderFragmentsBar();
-  bulkDisenchantSelection.clear();
-  updateBulkDisenchantSummary();
-  renderBinder();
+  const byClass = {};
+  data.disenchanted.forEach(d=>{ byClass[d.refund_class] = (byClass[d.refund_class]||0)+d.refund; });
+  document.getElementById('md-box').classList.add('md-playing');
+  playMassFx(sample, byClass, async ()=>{
+    document.getElementById('md-overlay').classList.remove('show');
+    MD.busy = false;
+    flashSaved(`✓ ${data.disenchanted.length} carte${data.disenchanted.length>1?'s':''} désassemblée${data.disenchanted.length>1?'s':''} · ${data.total_refund} fragments`);
+    ownedCollection = await loadUserCollection();
+    collection = allCardsCache.filter(c=>(ownedCollection[c.id]||0) > 0);
+    renderFragmentsBar();
+    renderBinder();
+  });
 }
+
+const MD_GEM_IMG = { Aube:['gem-aub.png','#d4af37'], 'Crépuscule':['gem-crep.png','#8a5cf0'], Volonté:['gem-vol.png','#c23b3b'], Prima:['gem-prim.png','#3fae5c'], Arcane:['gem-arc.png','#5b9bd5'], Opale:['gem-multi.png','#e8d9ff'] };
+function skipMassFx(){ if(MD.fxDone) MD.fxEnd(); }
+function playMassFx(cards, byClass, onDone){
+  const fx = document.getElementById('md-fx');
+  fx.innerHTML = '<div class="md-fx-skip">cliquer pour passer</div>';
+  fx.classList.add('on');
+  const W = window.innerWidth, H = window.innerHeight, cx = W/2, cy = H/2;
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const timers = []; let ended = false;
+  const T = (fn,ms)=>{ const t=setTimeout(fn,ms); timers.push(t); return t; };
+  const scale = Math.min(1, W/700, H/600);
+  const cardEls = cards.map((card,i)=>{
+    const wrap = document.createElement('div');
+    wrap.className = 'md-fx-card';
+    try{ const el = buildCardEl(card); el.style.pointerEvents='none'; wrap.appendChild(el); }catch(e){}
+    const white = document.createElement('div'); white.className='md-white'; wrap.appendChild(white);
+    // départ : réparties en cercle autour de l'écran
+    const ang = (i/cards.length)*Math.PI*2 + .4, rad = Math.max(W,H)*.55;
+    wrap.style.left = cx+'px'; wrap.style.top = cy+'px';
+    wrap.style.transform = `translate(${Math.cos(ang)*rad}px,${Math.sin(ang)*rad}px) rotate(${(i%2?1:-1)*40}deg) scale(${.55*scale})`;
+    wrap.style.opacity = '0';
+    fx.appendChild(wrap);
+    return {wrap, white, i};
+  });
+  const glow = document.createElement('div'); glow.className='md-fx-glow'; fx.appendChild(glow);
+  const flash = document.createElement('div'); flash.className='md-fx-flash'; fx.appendChild(flash);
+
+  function end(){
+    if(ended) return; ended = true;
+    timers.forEach(clearTimeout);
+    fx.classList.remove('on'); fx.innerHTML='';
+    MD.fxDone = null;
+    onDone();
+  }
+  MD.fxDone = true; MD.fxEnd = end;
+  if(reduce){ T(end,300); return; }
+
+  // 1) rassemblement au centre (≈0,9 s)
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    cardEls.forEach(({wrap,i})=>{
+      const jx = (i%5-2)*5, jy = (i%3-1)*4, rot = ((i*37)%13)-6;
+      wrap.style.transition = `transform .85s cubic-bezier(.2,.8,.25,1) ${i*40}ms, opacity .3s ease ${i*40}ms`;
+      wrap.style.opacity = '1';
+      wrap.style.transform = `translate(${jx}px,${jy}px) rotate(${rot}deg) scale(${.55*scale})`;
+    });
+  }));
+  // 2) le paquet blanchit (≈1,2 s)
+  const t1 = 900 + cards.length*40;
+  T(()=>{
+    glow.style.transition='opacity 1.2s ease'; glow.style.opacity='1';
+    cardEls.forEach(({white,wrap})=>{ white.style.transition='opacity 1.2s ease-in'; white.style.opacity='1'; wrap.style.transition='transform 1.2s ease-in'; wrap.style.transform += ' scale(1.08)'; });
+  }, t1);
+  // 3) flash + explosion de fragments colorés
+  const t2 = t1 + 1250;
+  T(()=>{
+    cardEls.forEach(({wrap})=>{ wrap.style.transition='opacity .15s'; wrap.style.opacity='0'; });
+    glow.style.transition='opacity .6s'; glow.style.opacity='0';
+    flash.style.transition='opacity .12s'; flash.style.opacity='.95';
+    T(()=>{ flash.style.transition='opacity .6s'; flash.style.opacity='0'; }, 120);
+    const classes = Object.keys(byClass);
+    const totalFrag = classes.reduce((n,k)=>n+byClass[k],0)||1;
+    const N = 70;
+    for(let k=0;k<N;k++){
+      // répartition proportionnelle aux fragments obtenus
+      let pick = Math.random()*totalFrag, cls = classes[0];
+      for(const c of classes){ pick -= byClass[c]; if(pick<=0){ cls=c; break; } }
+      const [img,col] = MD_GEM_IMG[cls] || MD_GEM_IMG.Opale;
+      const p = document.createElement('div'); p.className='md-part';
+      const size = 16 + Math.random()*22;
+      p.style.width = p.style.height = size+'px';
+      p.style.left = (cx-size/2)+'px'; p.style.top = (cy-size/2)+'px';
+      p.innerHTML = `<div class="md-gem" style="${cls==='Opale'?`background-image:url(images/${img})`:`background:${col};-webkit-mask-image:url(images/${img});mask-image:url(images/${img})`};filter:drop-shadow(0 0 6px ${col})"></div>`;
+      fx.appendChild(p);
+      const a = Math.random()*Math.PI*2, d = (120 + Math.random()*Math.max(W,H)*.45);
+      const dx = Math.cos(a)*d, dy = Math.sin(a)*d + 60 + Math.random()*120; // légère chute
+      const rot = (Math.random()-.5)*720;
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        const dur = 1.1 + Math.random()*.7;
+        p.style.transition = `transform ${dur}s cubic-bezier(.12,.7,.3,1), opacity ${dur}s ease-in`;
+        p.style.transform = `translate(${dx}px,${dy}px) rotate(${rot}deg) scale(${.6+Math.random()*.6})`;
+        p.style.opacity = '0';
+      }));
+    }
+    T(end, 1900);
+  }, t2);
+}
+
+
 
 // Région facultative : on passe à l'étape suivante sans région ; le serveur
 // (et le lobby) utilisent alors la Côte de Rimd'Orël par défaut.
@@ -3087,6 +2943,7 @@ function renderAll(){
   renderBinder();
   renderDeckPanel();
   renderWizardHint();
+  fitBinderToWidth();
 }
 loadAll();
 initSpellcraftAuth();
