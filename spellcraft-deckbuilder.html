@@ -143,6 +143,9 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 .binder-slot .ncard:hover{transform:scale(0.68667);}
 .card-version-star{position:absolute;top:-4px;right:12px;z-index:6;width:26px;height:34px;padding:0 0 6px;border:none;cursor:pointer;color:#2a1f05;font-size:15px;line-height:34px;
   background:linear-gradient(180deg,#f3dc8a,#c9a12c);clip-path:polygon(0 0,100% 0,100% 100%,50% 82%,0 100%);box-shadow:0 2px 6px rgba(0,0,0,.5);filter:drop-shadow(0 2px 3px rgba(0,0,0,.55));}
+.card-craft-btn{position:absolute;top:2px;left:2px;z-index:6;width:24px;height:24px;border-radius:50%;border:1px solid rgba(0,0,0,.5);background:rgba(20,16,8,.82);cursor:pointer;font-size:12px;line-height:22px;padding:0;opacity:0;transition:opacity .15s;}
+.binder-slot:hover .card-craft-btn,.card-craft-btn:focus{opacity:1;}
+@media (hover:none){.card-craft-btn{opacity:.9;}}
 .card-version-star:hover{filter:brightness(1.12) drop-shadow(0 2px 3px rgba(0,0,0,.55));}
 .card-version-star.set{background:linear-gradient(180deg,#9be7ff,#3a8fd0);color:#06243b;}
 .ver-tile{background:var(--bg-panel-2);border:2px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));border-radius:10px;padding:8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--parchment);font-size:12px;}
@@ -1980,6 +1983,15 @@ function renderBinder(animate){
           star.onclick = (ev)=>{ ev.stopPropagation(); openVariantModal(card.id); };
           slot.appendChild(star);
         }
+        if((ownedCollection[card.id]||0)>0 && card.type!=='Héros' && card.type!=='Région' && CRAFT_COST_BY_RARITY[card.rarity]){
+          const fb = document.createElement('button');
+          fb.type = 'button';
+          fb.className = 'card-craft-btn';
+          fb.title = 'Fabriquer cette carte en foil / premium / premium foil';
+          fb.textContent = '🔨';
+          fb.onclick = (ev)=>{ ev.stopPropagation(); showCraftModal(card); };
+          slot.appendChild(fb);
+        }
         const count = deckCountFor(card.id);
         const isChosenHero = currentDeck && currentDeck.heroId===card.id;
         const isChosenRegion = currentDeck && currentDeck.regionId===card.id;
@@ -2419,20 +2431,22 @@ function renderCraftAction(card){
       btn.textContent = owned===0 ? `🔨 Fabriquer — ${cost} fragments (${fragLabel})` : `🔨 Fabriquer un ${owned+1}e exemplaire — ${cost} fragments (${fragLabel})`;
       btn.onclick = ()=>doCraft(card.id, btn);
       box.appendChild(btn);
-      // Versions alternatives : foil = 2 x, premium = 4 x, premium foil = 8 x le prix de base
-      [['foil',2,'✨ Foil'],['premium',4,'💠 Premium'],['premium_foil',8,'💠✨ Premium Foil']].forEach(([fin, mult, label])=>{
-        const fb = document.createElement('button');
-        fb.className = 'craft-btn craft-make craft-finish ' + fin;
-        fb.textContent = `${label} — ${cost*mult} fragments (${fragLabel})`;
-        fb.onclick = ()=>doCraftFinish(card.id, fin, fb);
-        box.appendChild(fb);
-      });
     }
   } else if(cost){
     const note = document.createElement('div');
     note.className = 'craft-btn-note';
-    note.textContent = `Déjà au plafond d'exemplaires (${max}) — impossible d'en fabriquer davantage.`;
+    note.textContent = `Déjà au plafond d'exemplaires (${max}) : une version foil/premium remplace un de tes exemplaires normaux.`;
     box.appendChild(note);
+  }
+  if(cost && card.rarity!=='Basique'){
+    // Versions alternatives : foil = 2 x, premium = 4 x, premium foil = 8 x le prix de base
+    [['foil',2,'✨ Foil'],['premium',4,'💠 Premium'],['premium_foil',8,'💠✨ Premium Foil']].forEach(([fin, mult, label])=>{
+      const fb = document.createElement('button');
+      fb.className = 'craft-btn craft-make craft-finish ' + fin;
+      fb.textContent = `${label} — ${cost*mult} fragments (${fragLabel})` + (owned>=max ? ' · remplace 1 exemplaire' : '');
+      fb.onclick = ()=>doCraftFinish(card.id, fin, fb);
+      box.appendChild(fb);
+    });
   }
 
   if(owned>=1 && card.rarity!=='Basique' && cost){
