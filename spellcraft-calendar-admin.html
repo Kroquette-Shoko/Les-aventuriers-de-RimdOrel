@@ -39,9 +39,10 @@ button.sm:hover{background:hsl(calc(var(--th, 252) - 0.5) calc(var(--ts-n, 1) * 
 <script>
 (function(){
 const RARITIES = ['Basique','Commune','Rare','Épique','Mythique'];
-const TYPES = {gold:'Or',booster:'Booster',card:'Carte au hasard',card_back:'Dos de carte',card_variant:'Version alternative',title:'Titre de profil'};
+const TYPES = {gold:'Or',booster:'Booster',card:'Carte',card_back:'Dos de carte',card_variant:'Version alternative',title:'Titre de profil'};
 let SEASONS=[], SEASON=null, REW={}, FINAL={free:[],premium:[]};
-let BOOSTERS=[], BACKS=[], VARIANTS=[], CARDNAMES={}, TITLES=[], FLAG=false;
+let BOOSTERS=[], BACKS=[], VARIANTS=[], CARDNAMES={}, CARDLIST=[], TITLES=[], FLAG=false;
+const FINISHES=[{v:'normal',l:'Normale'},{v:'foil',l:'✨ Foil'},{v:'premium',l:'💠 Premium'},{v:'premium_foil',l:'💠✨ Premium foil'}];
 const esc = s => String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 function msg(t, ok){ const m=document.getElementById('msg'); if(!m) return; m.className='show'; m.innerHTML=(ok===false?'<span class="ko">':'<span class="ok">')+esc(t)+'</span>'; window.scrollTo({top:0,behavior:'smooth'}); }
@@ -71,7 +72,10 @@ async function loadAll(){
   ]);
   FLAG = !!(fl.data && fl.data.value);
   SEASONS = se.data||[]; BOOSTERS=(bo.data||[]).filter(b=>b.kind!=='miniset'); BACKS=ba.data||[]; VARIANTS=va.data||[]; TITLES=ti.data||[];
-  CARDNAMES={}; (ca.data||[]).forEach(c=>{CARDNAMES[c.id]=(c.data&&c.data.name)||c.id;});
+  CARDNAMES={}; CARDLIST=[];
+  (ca.data||[]).forEach(c=>{ const d=c.data||{}; CARDNAMES[c.id]=d.name||c.id;
+    if(d.type!=='Héros' && d.type!=='Région') CARDLIST.push({id:c.id,name:d.name||c.id,rarity:d.rarity||'',legendary:!!d.isLegendary}); });
+  CARDLIST.sort((a,b)=>a.name.localeCompare(b.name,'fr'));
 }
 async function loadSeason(id){
   SEASON = SEASONS.find(s=>s.id===id)||null;
@@ -90,7 +94,7 @@ function defaultItem(type){
   switch(type){
     case 'gold': return {type,amount:50};
     case 'booster': return {type,set:'latest',count:1};
-    case 'card': return {type,rarity:'Commune',count:1,foil:false};
+    case 'card': return {type,mode:'random',rarity:'Commune',count:1,finish:'normal'};
     case 'card_back': return {type,id:(BACKS[0]||{}).id||''};
     case 'card_variant': return {type,id:(VARIANTS[0]||{}).id||''};
     case 'title': return {type,id:(TITLES[0]||{}).id||''};
@@ -106,7 +110,21 @@ function itemHtml(it, key, i){
     const cur = it.booster_id ? 'b:'+it.booster_id : (it.set||'latest');
     f=`<label>Lequel<select data-f="boostersel">${opts(choices,cur)}</select></label><label>Quantité<input type="number" min="1" data-f="count" value="${esc(it.count||1)}"></label>`;
   }
-  if(t==='card') f=`<label>Rareté<select data-f="rarity">${opts(RARITIES.map(r=>({v:r,l:r})),it.rarity)}</select></label><label>Quantité<input type="number" min="1" data-f="count" value="${esc(it.count||1)}"></label><label>Foil<select data-f="foil">${opts([{v:'0',l:'Non'},{v:'1',l:'Oui'}],it.foil?'1':'0')}</select></label>`;
+  if(t==='card'){
+    const mode = it.mode || (it.card_id ? 'card' : 'random');
+    const fin = it.finish || (it.foil ? 'foil' : 'normal');
+    f=`<label>Quelle carte<select data-f="mode">${opts([{v:'random',l:'Au hasard (selon la rareté)'},{v:'card',l:'Une carte précise'}],mode)}</select></label>`;
+    if(mode==='card'){
+      const c = CARDLIST.find(x=>x.id===it.card_id);
+      const vs = VARIANTS.filter(v=>v.card_id===it.card_id);
+      f+=`<label>Carte<select data-f="card_id"><option value="">— choisir —</option>${opts(CARDLIST.map(x=>({v:x.id,l:x.name+(x.rarity?' ('+x.rarity+(x.legendary?', légendaire':'')+')':'')})),it.card_id)}</select></label>`;
+      f+=`<label>Illustration<select data-f="variant_id">${opts([{v:'',l:'Illustration de base'}].concat(vs.map(v=>({v:v.id,l:'Version : '+v.name}))),it.variant_id||'')}</select></label>`;
+      if(!c) f+=`<span class="ko">Choisis une carte</span>`;
+    } else {
+      f+=`<label>Rareté<select data-f="rarity">${opts(RARITIES.map(r=>({v:r,l:r})),it.rarity)}</select></label>`;
+    }
+    f+=`<label>Quantité<input type="number" min="1" data-f="count" value="${esc(it.count||1)}"></label><label>Traitement<select data-f="finish">${opts(FINISHES,fin)}</select></label>`;
+  }
   if(t==='card_back') f=`<label>Dos<select data-f="id">${opts(BACKS.map(b=>({v:b.id,l:b.name})),it.id)}</select></label>`+(BACKS.length?'':'<span class="ko">Aucun dos créé (voir « Boutique » dans l\'éditeur de cartes)</span>');
   if(t==='card_variant') f=`<label>Version<select data-f="id">${opts(VARIANTS.map(v=>({v:v.id,l:(CARDNAMES[v.card_id]||v.card_id)+' — '+v.name})),it.id)}</select></label>`+(VARIANTS.length?'':'<span class="ko">Aucune version alternative créée (voir l\'éditeur de cartes)</span>');
   if(t==='title') f=`<label>Titre<select data-f="id">${opts(TITLES.map(x=>({v:x.id,l:(x.title_masculine||x.name)+(x.title_feminine&&x.title_feminine!==x.title_masculine?' / '+x.title_feminine:'')})),it.id)}</select></label><button class="sm" data-act="newtitle">+ Créer un titre</button>`;
@@ -154,7 +172,10 @@ function syncFromDom(){
     el.querySelectorAll('[data-f]').forEach(inp=>{
       const f=inp.dataset.f, v=inp.value;
       if(f==='boostersel'){ delete it.set; delete it.booster_id; if(v.startsWith('b:')) it.booster_id=v.slice(2); else it.set=v; }
-      else if(f==='foil') it.foil = v==='1';
+      else if(f==='finish'){ it.finish=v; delete it.foil; }
+      else if(f==='card_id'){ if(it.card_id!==v) delete it.variant_id; it.card_id=v; }
+      else if(f==='variant_id'){ if(v) it.variant_id=v; else delete it.variant_id; }
+      else if(f==='mode'){ it.mode=v; if(v==='random'){ delete it.card_id; delete it.variant_id; } }
       else if(inp.type==='number') it[f]=Math.max(1,parseInt(v,10)||1);
       else it[f]=v;
     });
@@ -168,8 +189,25 @@ function syncFromDom(){
   }
 }
 
+function normalizeCardItems(){
+  const fix=l=>l.forEach(it=>{
+    if(it.type!=='card') return;
+    if(it.mode==='card'){
+      const c=CARDLIST.find(x=>x.id===it.card_id);
+      if(c) it.rarity=c.rarity||it.rarity;
+    } else { delete it.card_id; delete it.variant_id; }
+    delete it.mode; delete it.foil; if(!it.finish) it.finish='normal';
+  });
+  Object.values(REW).forEach(fix); fix(FINAL.free); fix(FINAL.premium);
+}
+function missingCard(){
+  const chk=l=>l.some(it=>it.type==='card' && it.mode==='card' && !it.card_id);
+  return Object.values(REW).some(chk)||chk(FINAL.free)||chk(FINAL.premium);
+}
 async function save(){
   syncFromDom();
+  if(missingCard()) return msg('Une récompense « Une carte précise » n\'a pas de carte choisie.',false);
+  normalizeCardItems();
   if(new Date(SEASON.ends_at)<=new Date(SEASON.starts_at)) return msg('La date de fin doit être après la date de début.',false);
   const {error:e1}=await sb.from('cal_seasons').update({name:SEASON.name,starts_at:SEASON.starts_at,ends_at:SEASON.ends_at,premium_price:SEASON.premium_price}).eq('id',SEASON.id);
   if(e1) return msg('Erreur saison : '+e1.message,false);
@@ -232,6 +270,8 @@ document.addEventListener('click', async e=>{
 });
 document.addEventListener('change', async e=>{
   if(e.target.id==='season-sel'){ syncFromDom(); await loadSeason(e.target.value); render(); }
+  const f=e.target.dataset&&e.target.dataset.f;
+  if(f==='mode' || f==='card_id'){ syncFromDom(); render(); }
 });
 
 (async function init(){

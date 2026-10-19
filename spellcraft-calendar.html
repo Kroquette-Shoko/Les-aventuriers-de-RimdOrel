@@ -155,11 +155,14 @@ const ERRORS = {
 function errText(e){ return ERRORS[e] || ('Erreur : ' + e); }
 
 /* ---------- Contenu d'une case ouverte ---------- */
+const FIN_TAG = { foil:' ✨', premium:' 💠', premium_foil:' 💠✨' };
+const FIN_TXT = { foil:' ✨ foil', premium:' 💠 premium', premium_foil:' 💠✨ premium foil' };
+const finOf = g => g.finish || (g.foil ? 'foil' : 'normal');
 function shortReward(list){
   return (list || []).map(g => {
     if(g.type === 'gold') return `<span class="rw"><span class="big"><span class="money-icon"></span></span>${esc(g.amount)}</span>`;
     if(g.type === 'booster') return `<span class="rw"><span class="big">📦</span>${g.count > 1 ? esc(g.count) + '× ' : ''}Booster</span>`;
-    if(g.type === 'card') return `<span class="rw"><span class="big">🃏</span>${esc(g.rarity)}${g.foil ? ' ✨' : ''}</span>`;
+    if(g.type === 'card') return `<span class="rw"><span class="big">🃏</span>${esc(g.rarity)}${FIN_TAG[finOf(g)] || ''}</span>`;
     if(g.type === 'card_back') return `<span class="rw"><span class="big">🎴</span>Dos</span>`;
     if(g.type === 'title') return `<span class="rw"><span class="big">🏷️</span>Titre</span>`;
     if(g.type === 'card_variant') return `<span class="rw"><span class="big">🖼️</span>Variante</span>`;
@@ -269,7 +272,8 @@ async function showResult(title, granted){
       boosters += g.count;
       (g.opened || []).forEach(o => (((o.result || {}).cards) || []).forEach(c => { if(c.result === 'fragments') fragments++; else boosterCards++; }));
     }
-    else if(g.type === 'card'){ (g.card_ids || []).forEach(id => cardIds.push({ id, foil: g.foil, rarity: g.rarity })); }
+    else if(g.type === 'card'){ (g.card_ids || []).forEach(id => cardIds.push({ id, foil: g.foil, premium: g.premium, finish: finOf(g), rarity: g.rarity }));
+      if(g.variant_name) lines.push(`Nouvelle illustration : <b>${esc(g.variant_name)}</b> — à choisir dans l'éditeur de deck`); }
     else if(g.type === 'card_back'){ lines.push(g.duplicate ? `Dos « ${esc(g.name)} » déjà possédé : +${esc(g.gold)} or à la place` : `Nouveau dos de carte : <b>${esc(g.name)}</b>`); if(g.duplicate) gold += g.gold; }
     else if(g.type === 'card_variant'){ lines.push(g.duplicate ? `Version « ${esc(g.name)} » (${esc(g.cardName)}) déjà possédée : +${esc(g.gold)} or à la place` : `Nouvelle version alternative : <b>${esc(g.name)}</b> (${esc(g.cardName)}) — à choisir dans l'éditeur de deck`); if(g.duplicate) gold += g.gold; }
     else if(g.type === 'title') lines.push(`Nouveau titre : <b>${esc(g.masculine)}${g.feminine && g.feminine !== g.masculine ? ' / ' + esc(g.feminine) : ''}</b> (à équiper depuis ton profil)`);
@@ -284,11 +288,11 @@ async function showResult(title, granted){
   let revealed = false;
   if(EMBED && cardIds.length){
     try{
-      parent.postMessage({ type:'reveal-cards', cards: cardIds.map(c => ({ id: c.id, foil: !!c.foil })) }, location.origin);
+      parent.postMessage({ type:'reveal-cards', cards: cardIds.map(c => ({ id: c.id, foil: !!c.foil, premium: !!c.premium })) }, location.origin);
       revealed = true;
     }catch(e){}
   }
-  if(!revealed) cardIds.forEach(c => items.push(`🃏 <b>${esc(names[c.id] || c.id)}</b> (${esc(c.rarity)}${c.foil ? ' ✨ foil' : ''})`));
+  if(!revealed) cardIds.forEach(c => items.push(`🃏 <b>${esc(names[c.id] || c.id)}</b> (${esc(c.rarity)}${FIN_TXT[c.finish] || ''})`));
   lines.forEach(l => items.push(l));
   if(revealed && !items.length) return; // seulement des cartes : l'animation suffit, pas de fenêtre en plus
   const recapHtml = `<h3>${esc(title)}</h3><ul>${items.map(i => `<li>${i}</li>`).join('') || '<li>Rien à afficher.</li>'}</ul>`;

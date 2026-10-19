@@ -478,7 +478,7 @@ function revealRewardCards(list){
     const cards = [];
     (list || []).forEach(it=>{
       const base = allCardsCache && allCardsCache.find(c=>c.id===it.id);
-      if(base) cards.push(it.foil ? { ...base, foil: true } : base);
+      if(base) cards.push((it.foil || it.premium) ? { ...base, foil: !!it.foil, premium: !!it.premium } : base);
     });
     if(!cards.length) return;
     const backUrl = await getEquippedCardBackUrl();
@@ -505,14 +505,14 @@ function buildRewardEl(q){
           const mini = document.createElement('div');
           mini.className = 'reward-card-mini';
           mini.appendChild(buildCardEl(cardData));
-          mini.title = `${cardData.name} (${r.rarity}${r.foil?' Foil':''})`;
+          mini.title = `${cardData.name} (${r.rarity}${r.premium&&r.foil?' Premium Foil':r.premium?' Premium':r.foil?' Foil':''})`;
           mini.onmouseenter = (ev)=>showRewardCardPreview(cardData, ev);
           mini.onmousemove = moveRewardCardPreview;
           mini.onmouseleave = hideRewardCardPreview;
           wrap.appendChild(mini);
         } else {
           const el = document.createElement('span');
-          el.textContent = `🃏 ${r.rarity}${r.foil?' ✨':''}`;
+          el.textContent = `🃏 ${r.rarity}${r.premium&&r.foil?' 💠✨':r.premium?' 💠':r.foil?' ✨':''}`;
           wrap.appendChild(el);
         }
       });
@@ -573,7 +573,7 @@ async function claimQuest(instanceId, cardEl){
   // Cartes gagnées : elles se retournent à l'écran, un clic pour continuer.
   const won = [];
   (data.granted || []).forEach(g=>{
-    if(g.type==='card') (g.card_ids || []).forEach(id=>won.push({ id, foil: !!g.foil }));
+    if(g.type==='card') (g.card_ids || []).forEach(id=>won.push({ id, foil: !!g.foil, premium: !!g.premium }));
   });
   if(won.length) revealRewardCards(won);
   // Boosters gagnés : ils sont mis de côté (à ouvrir depuis la boutique), pas ouverts tout de suite.
