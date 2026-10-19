@@ -993,9 +993,12 @@ function applyNCardArtFree(art, card, sfx){
   im.style.cssText = "position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:none;max-height:none;pointer-events:none;user-select:none;width:100%;height:100%;";
   /* taille « cover » = l'image remplit la fenêtre sans déformation ; calculée avec le ratio réel de la fenêtre */
   const fit = function(){
-    const iw = im.naturalWidth, ih = im.naturalHeight, r = art.getBoundingClientRect();
-    if(!iw || !ih || !r.width || !r.height) return;
-    const ia = iw/ih, wa = r.width/r.height;
+    /* Taille de mise en page (offsetWidth/Height) et NON getBoundingClientRect : celui-ci subit les
+       transformations (rotation 3D du tourne-page, zoom au survol…) et donnait un rapport faux, d'où des
+       illustrations étirées « parfois ». */
+    const iw = im.naturalWidth, ih = im.naturalHeight, rw = art.offsetWidth, rh = art.offsetHeight;
+    if(!iw || !ih || !rw || !rh) return;
+    const ia = iw/ih, wa = rw/rh;
     if(ia >= wa){ im.style.height = '100%'; im.style.width = (ia/wa*100) + '%'; }
     else { im.style.width = '100%'; im.style.height = (wa/ia*100) + '%'; }
   };
