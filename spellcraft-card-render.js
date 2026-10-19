@@ -86,7 +86,7 @@
   /* Remplace, sur une carte déjà construite par buildNewCardEl, les cadres PNG
      par le rendu dessiné. Ne fait rien (carte laissée telle quelle) si le style
      "png" est choisi ou si ce type/format n'a pas de version dessinée. */
-  function decorate(root, card, size, opts){
+  function decorateFrame(root, card, size, opts){
     try{
       if(getStyle() === 'png' || !root || !card) return root;
       var type = TYPE[card.type];
@@ -116,6 +116,14 @@
       }
     }catch(e){ if(window.console) console.warn('SCCardRender.decorate', e); }
     return root;
+  }
+
+  /* Cadres dessinés, puis finitions foil / premium (spellcraft-premium.js).
+     Les finitions s'appliquent quel que soit le mode de cadre (plein cadre, PNG, dessiné). */
+  function decorate(root, card, size, opts){
+    var r = decorateFrame(root, card, size, opts);
+    try{ if(window.SCFinish) window.SCFinish.apply(root, card, size); }catch(e){ if(window.console) console.warn('SCFinish', e); }
+    return r;
   }
 
   fromUrl();
