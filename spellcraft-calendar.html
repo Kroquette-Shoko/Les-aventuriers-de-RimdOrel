@@ -73,6 +73,18 @@ main{width:100%;max-width:900px;display:flex;flex-direction:column;gap:18px;}
 .rules{font-size:12px;color:var(--parchment-dim);line-height:1.6;}
 .rules b{color:var(--parchment);}
 
+/* ---------- Velkrin : flottant en bas à droite, bulle de dialogue au-dessus de lui (comme Bruno dans la boutique) ---------- */
+#velkrin-float{position:fixed;right:14px;bottom:0;z-index:350;width:300px;height:312px;pointer-events:none;}
+#velkrin-float #velkrin-portrait{position:absolute;inset:0;background:url('images/velkrin_base.png') bottom center/contain no-repeat;filter:drop-shadow(0 12px 20px rgba(0,0,0,.55));}
+#velkrin-bubble{position:absolute;z-index:2;right:46px;bottom:calc(100% + 6px);width:max-content;max-width:min(380px,calc(100vw - 40px));
+  font-family:'Cinzel',serif;font-size:13.5px;line-height:1.5;color:var(--parchment);background:var(--bg-panel-3);border:1px solid var(--gold,#d4af37);border-radius:14px;padding:12px 16px;
+  box-shadow:0 10px 28px rgba(0,0,0,.55);opacity:0;transform:translateY(10px) scale(.96);transform-origin:bottom right;transition:opacity .25s ease,transform .25s ease;pointer-events:none;}
+#velkrin-bubble.show{opacity:1;transform:translateY(0) scale(1);}
+#velkrin-bubble .bb-name{display:block;font-weight:700;font-size:11.5px;color:var(--gold);letter-spacing:.5px;margin-bottom:3px;}
+#velkrin-bubble::after{content:'';position:absolute;right:38px;bottom:-9px;width:16px;height:16px;background:var(--bg-panel-3);border-right:1px solid var(--gold,#d4af37);border-bottom:1px solid var(--gold,#d4af37);transform:rotate(45deg);border-radius:0 0 4px 0;}
+html.embed #velkrin-float{display:none;}
+@media (max-width:760px){#velkrin-float{width:150px;height:156px;right:6px;}#velkrin-bubble{right:10px;font-size:12px;max-width:calc(100vw - 24px);}#velkrin-bubble::after{right:60px;}}
+@media (prefers-reduced-motion:reduce){#velkrin-bubble{transition:opacity .01s;transform:none;}}
 #res-back{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:300;padding:20px;}
 #res-back.show{display:flex;}
 #res-box{background:var(--bg-panel-2);border:1px solid var(--gold);border-radius:14px;padding:20px 22px;max-width:460px;width:100%;max-height:80vh;overflow:auto;}
@@ -121,6 +133,11 @@ html.embed #app{padding-top:0;min-height:0;}
   </main>
 </div>
 
+<div id="velkrin-float" aria-live="polite">
+  <div id="velkrin-bubble"><span class="bb-name">Velkrin</span><span id="velkrin-speech"></span></div>
+  <div id="velkrin-portrait"></div>
+</div>
+
 <div id="res-back"><div id="res-box"></div></div>
 <div id="toast"></div>
 
@@ -130,6 +147,44 @@ html.embed #app{padding-top:0;min-height:0;}
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-economy.js"></script>
 <script>
+/* ---------- Velkrin : répliques ---------- */
+const VELKRIN_LINES = {
+  welcome: [
+    "Bonjour, bienvenue dans les locaux de la compagnie marchande de Kalval.",
+    "Bienvenue, vous avez des coffres à récupérer ?",
+    "Vous venez récupérer votre matériel ?",
+    "Bonjour à vous."
+  ],
+  premium: ["La compagnie Kalval vous porte en grande estime."],
+  cell: [
+    "Une belle trouvaille.",
+    "J'ai vu mieux sortir de ces boîtes.",
+    "AH ! C'est là qu'il avait fini, celui-là !",
+    "C'est étonnant."
+  ],
+  cell23_26: ["Voilà une belle trouvaille !"],
+  cell28_38: ["C'est donc là que Bruno stocke ses affaires !"],
+  cell44_49: ["Voici une bien belle récompense."],
+  final: ["Vous avez bien mérité votre récompense, savourez votre prix."]
+};
+let velkrinHideTimeout = null, velkrinLast = null;
+function velkrinSay(text, ms){
+  const bubble = document.getElementById('velkrin-bubble');
+  if(!bubble) return;
+  document.getElementById('velkrin-speech').textContent = text;
+  bubble.classList.add('show');
+  if(velkrinHideTimeout) clearTimeout(velkrinHideTimeout);
+  velkrinHideTimeout = setTimeout(()=>{ bubble.classList.remove('show'); velkrinHideTimeout = null; }, ms || 7000);
+}
+function velkrinPick(list){
+  let c = list.filter(l => l !== velkrinLast); if(!c.length) c = list;
+  const l = c[Math.floor(Math.random() * c.length)]; velkrinLast = l; return l;
+}
+function velkrinSayCell(n){
+  const key = (n >= 23 && n <= 26) ? 'cell23_26' : (n >= 28 && n <= 38) ? 'cell28_38' : (n >= 44 && n <= 49) ? 'cell44_49' : 'cell';
+  velkrinSay(velkrinPick(VELKRIN_LINES[key]));
+}
+
 let CAL = null;           // dernier état renvoyé par get_calendar
 let busy = false;
 let lastOpened = null;    // case qui vient d'être ouverte (pour l'animation)
@@ -344,6 +399,7 @@ async function openCell(n){
     lastOpened = n;
     await load();
     showResult(`Case ${n}`, data.granted);
+    velkrinSayCell(n);
     sb.rpc('progress_collection_achievements').catch(()=>{});
   } finally { busy = false; }
 }
@@ -357,6 +413,7 @@ async function claimFinal(){
     try{ playSfx('quest-loot'); }catch(e){}
     await load();
     showResult('Case finale', data.granted);
+    velkrinSay(VELKRIN_LINES.final[0], 9000);
     sb.rpc('progress_collection_achievements').catch(()=>{});
   } finally { busy = false; }
 }
@@ -369,6 +426,7 @@ async function buyPremium(){
     if(error || !data){ toast('Erreur : ' + (error ? error.message : 'réponse vide')); return; }
     if(data.error){ toast(errText(data.error)); await load(); return; }
     toast('Premium débloqué !');
+    velkrinSay(VELKRIN_LINES.premium[0]);
     await load();
   } finally { busy = false; }
 }
@@ -382,6 +440,7 @@ if(EMBED){
 }
 initSpellcraftAuth();
 if(!EMBED){ try{ playMenuMusicRotation(0.35); }catch(e){} }
+if(!EMBED) setTimeout(() => velkrinSay(velkrinPick(VELKRIN_LINES.welcome), 8000), 700);
 load();
 sb.auth.onAuthStateChange(() => { load(); });
 </script>
