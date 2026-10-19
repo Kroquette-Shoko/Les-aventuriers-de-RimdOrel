@@ -589,8 +589,8 @@ const BRUNO_EVENT_LINES = {
     `La boutique vous remercie !`
   ]
 };
-// Numéro fixe de chaque réplique pour le succès secret « Habitué de la boutique » (27 au total) :
-// accueil 0–4, inactivité 5–9, carte à l'unité 10–14, dos 15–20, boosters 21–26.
+// Numéro fixe de chaque réplique pour le succès secret « Habitué de la boutique » (37 au total) :
+// accueil 0–4, inactivité 5–9, carte à l'unité 10–14, dos 15–20, boosters 21–26, héros 27–36.
 // ⚠ Ne pas réordonner ni insérer au milieu : ajouter les nouvelles répliques à la fin de leur liste
 // (et décaler les offsets ci-dessous + l'objectif du succès).
 const BRUNO_LINE_GROUPS = {
@@ -606,6 +606,26 @@ function brunoMarkSeen(idx){
   __spellcraftAuthReadyForBruno.then(()=>{
     (async()=>{ try{ await sb.rpc('mark_bruno_line_seen', { p_line_index: idx }); }catch(e){ /* jamais bloquant */ } })();
   });
+}
+// Achat d'un héros : une réplique propre à chaque héros (numéros 27 à 36, dans cet ordre).
+const BRUNO_HERO_LINES = [
+  { id:'card_1785861156406_576', t:`J'ai cru entendre une histoire sur le fait qu'elle serait un loup-garou... Probablement une rumeur.` }, // Aurore
+  { id:'card_1784896951743_489', t:`Les histoires d'un voyageur venu d'un autre monde, très peu pour moi...` },                          // Akhom
+  { id:'card_1785862001648_733', t:`Vous aussi, vous aimez les gouvernements autoritaires ?` },                                          // Sandroska
+  { id:'card_1785940412197_223', t:`Je crois qu'il avait une histoire de dingue à raconter, mais il a dû l'oublier.` },                  // Kalan
+  { id:'card_1785883720384_209', t:`J'en ai connu des paranos, mais alors lui...` },                                                      // Brick
+  { id:'card_1785509668302_390', t:`Ne lui parlez jamais de la montagne... JAMAIS !` },                                                  // Rascal
+  { id:'card_1785939244174_40',  t:`Madame Frisbi, c'est la plus jolie... 🎶` },                                                          // Nowa
+  { id:'card_1785861498634_612', t:`Je n'aurais jamais dû lui vendre son marteau.` },                                                     // La tortue
+  { id:'card_1785861061225_503', t:`Ne laissez pas traîner vos pots de confiture !` },                                                    // Calypso
+  { id:'card_1785857329751_250', t:`Vous saviez que c'est une déesse ? Les gens ont tendance à l'oublier.` }                              // Nayenn'der
+];
+const BRUNO_HERO_OFFSET = 27;
+function brunoSayHero(cardId){
+  const i = BRUNO_HERO_LINES.findIndex(h=>h.id===cardId);
+  if(i<0){ brunoSayEvent('single', { rarity:'', legendary:false }); return; }
+  brunoSay(BRUNO_HERO_LINES[i].t, 8000);
+  brunoMarkSeen(BRUNO_HERO_OFFSET + i);
 }
 const __brunoLast = {};
 // Renvoie { t, idx } (texte + numéro fixe) ou null.
@@ -931,7 +951,7 @@ async function buyHeroCard(cardId){
   const { data, error } = await sb.rpc('buy_hero_card', { p_card_id: cardId });
   if(error || data.error){ alert(shopErrorMessage(data ? data.error : error.message)); return; }
   playSfx('coin');
-  brunoSayEvent('single', { rarity:'', legendary:false });
+  brunoSayHero(cardId);
   refreshCurrency();
   renderHeroShelf();
 }
