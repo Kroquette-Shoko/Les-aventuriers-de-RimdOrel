@@ -589,25 +589,46 @@ const BRUNO_EVENT_LINES = {
     `La boutique vous remercie !`
   ]
 };
+// Numéro fixe de chaque réplique pour le succès secret « Habitué de la boutique » (27 au total) :
+// accueil 0–4, inactivité 5–9, carte à l'unité 10–14, dos 15–20, boosters 21–26.
+// ⚠ Ne pas réordonner ni insérer au milieu : ajouter les nouvelles répliques à la fin de leur liste
+// (et décaler les offsets ci-dessous + l'objectif du succès).
+const BRUNO_LINE_GROUPS = {
+  welcome: { offset:0,  lines:()=>BRUNO_WELCOME_LINES },
+  idle:    { offset:5,  lines:()=>BRUNO_IDLE_LINES },
+  single:  { offset:10, lines:()=>BRUNO_EVENT_LINES.single },
+  cardback:{ offset:15, lines:()=>BRUNO_EVENT_LINES.cardback },
+  booster: { offset:21, lines:()=>BRUNO_EVENT_LINES.booster }
+};
+function brunoMarkSeen(idx){
+  // Mémorise côté serveur la réplique vue. On attend que la session soit prête, et
+  // « await » est indispensable : un sb.rpc(...) n'est envoyé que s'il est attendu.
+  __spellcraftAuthReadyForBruno.then(()=>{
+    (async()=>{ try{ await sb.rpc('mark_bruno_line_seen', { p_line_index: idx }); }catch(e){ /* jamais bloquant */ } })();
+  });
+}
 const __brunoLast = {};
+// Renvoie { t, idx } (texte + numéro fixe) ou null.
 function brunoPickLine(key, ctx){
-  const lines = key==='idle' ? BRUNO_IDLE_LINES : (BRUNO_EVENT_LINES[key] || []);
-  const ok = lines.filter(l=> typeof l==='string' || !l.when || l.when(ctx||{}));
-  const forced = ok.filter(l=> typeof l!=='string' && l.force);
-  let texts = (forced.length ? forced : ok).map(l=> typeof l==='string' ? l : l.t);
+  const g = BRUNO_LINE_GROUPS[key];
+  const lines = g ? g.lines() : [];
+  let ok = lines.map((l,i)=>({ l, i })).filter(o=> typeof o.l==='string' || !o.l.when || o.l.when(ctx||{}));
+  const forced = ok.filter(o=> typeof o.l!=='string' && o.l.force);
+  if(forced.length) ok = forced;
+  const txt = o=> typeof o.l==='string' ? o.l : o.l.t;
   // évite de répéter deux fois de suite la même phrase
-  if(texts.length>1 && __brunoLast[key]){
-    const rest = texts.filter(t=>t!==__brunoLast[key]);
-    if(rest.length) texts = rest;
+  if(ok.length>1 && __brunoLast[key]){
+    const rest = ok.filter(o=>txt(o)!==__brunoLast[key]);
+    if(rest.length) ok = rest;
   }
-  if(!texts.length) return null;
-  const t = texts[Math.floor(Math.random()*texts.length)];
-  __brunoLast[key] = t;
-  return t;
+  if(!ok.length) return null;
+  const pick = ok[Math.floor(Math.random()*ok.length)];
+  __brunoLast[key] = txt(pick);
+  return { t: txt(pick), idx: g.offset + pick.i };
 }
 function brunoSayEvent(eventKey, ctx, ms){
-  const t = brunoPickLine(eventKey, ctx);
-  if(t) brunoSay(t, ms || 7000);
+  const r = brunoPickLine(eventKey, ctx);
+  if(r){ brunoSay(r.t, ms || 7000); brunoMarkSeen(r.idx); }
 }
 
 // Inactivité : 2 minutes sans clic, touche, défilement ni toucher → une remarque, puis on recommence à compter.
@@ -616,31 +637,17 @@ function brunoArmIdle(){
   if(brunoIdleTimer) clearTimeout(brunoIdleTimer);
   brunoIdleTimer = setTimeout(()=>{
     const busy = document.querySelector('.modal-overlay.show, #booster-open-overlay.show');
-    if(!busy && !document.hidden){ const t = brunoPickLine('idle'); if(t) brunoSay(t, 9000); }
+    if(!busy && !document.hidden){ const r = brunoPickLine('idle'); if(r){ brunoSay(r.t, 9000); brunoMarkSeen(r.idx); } }
     brunoArmIdle();
   }, BRUNO_IDLE_MS);
 }
 ['pointerdown','keydown','wheel','touchstart'].forEach(ev=>document.addEventListener(ev, brunoArmIdle, { passive:true }));
 brunoArmIdle();
 
-// Phrase d'accueil au hasard. Le succès secret « Habitué de la boutique » compte combien
-// de ces phrases le joueur a vues (indice = position dans BRUNO_WELCOME_LINES ; objectif = 5).
+// Phrase d'accueil au hasard (numéros 0 à 4 pour le succès secret « Habitué de la boutique »).
 function renderBrunoLine(){
-  const idx = Math.floor(Math.random()*BRUNO_WELCOME_LINES.length);
-  brunoSay(BRUNO_WELCOME_LINES[idx], 9000);
-  // Succès secret "Habitué de la boutique" — mémorise côté serveur quelles
-  // répliques d'accueil ont déjà été vues (persiste entre les visites).
-  // Important : renderBrunoLine() est appelée dès l'ouverture de la page,
-  // AVANT que la session (initSpellcraftAuth) ne soit confirmée — un appel
-  // immédiat arrivait donc sans utilisateur connecté côté serveur et ne
-  // s'enregistrait jamais. On attend que la session soit prête.
-  __spellcraftAuthReadyForBruno.then(()=>{
-    // « await » indispensable : un appel sb.rpc(...) n'est envoyé au serveur que
-    // lorsqu'on l'attend (ou qu'on lui chaîne .then) ; sans cela la réplique
-    // n'était JAMAIS enregistrée et le succès « Habitué de la boutique »
-    // ne progressait pas.
-    (async()=>{ try{ await sb.rpc('mark_bruno_line_seen', { p_line_index: idx }); }catch(e){ /* jamais bloquant */ } })();
-  });
+  const r = brunoPickLine('welcome');
+  if(r){ brunoSay(r.t, 9000); brunoMarkSeen(r.idx); }
 }
 async function refreshCurrency(){
   const profile = await loadUserProfile();
