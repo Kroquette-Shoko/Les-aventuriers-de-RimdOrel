@@ -624,8 +624,8 @@ function injectOptionsMenu(){
     #sc-options-modal select{width:100%;margin-bottom:12px;padding:5px 6px;font-size:12.5px;color:inherit;background:rgba(0,0,0,.35);border:1px solid rgba(212,175,55,.35);border-radius:6px;}
     #sc-options-modal .sc-opt-hub{display:block;margin-top:10px;padding-top:10px;border-top:1px solid rgba(212,175,55,.2);font-size:12.5px;font-weight:700;color:var(--gold, #d4af37);text-decoration:none;text-align:center;}
     #sc-options-modal .sc-opt-hub:hover{text-decoration:underline;}
-    #sc-options-gear.sc-options-inline{position:static;width:38px;height:38px;box-shadow:none;}
-    #sc-options-gear.sc-options-inline .sc-gear-icon{width:22px;height:22px;}
+    #sc-options-gear.sc-options-inline{position:static;width:var(--gear-size,60px);height:var(--gear-size,60px);margin:calc((38px - var(--gear-size,60px)) / 2) 0;box-shadow:none;flex:none;}
+    #sc-options-gear.sc-options-inline .sc-gear-icon{width:calc(var(--gear-size,60px) * .73);height:calc(var(--gear-size,60px) * .73);}
     #sc-options-modal.sc-options-inline-modal{top:56px;right:16px;}
     #sc-options-modal .sc-opt-theme-row{display:flex;gap:8px;margin-bottom:4px;flex-wrap:wrap;}
     .sc-theme-swatch{width:30px;height:30px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;
@@ -779,8 +779,8 @@ function injectAppTopbar(){
     #app-topbar{display:flex;align-items:center;gap:16px;padding:10px 20px;background:var(--bg-panel, hsl(calc(var(--th, 252) + 10.5) calc(var(--ts-n, 1) * 25%) 6.3% / .92));
       border-bottom:1.5px solid var(--line, rgba(212,175,55,.4));font-family:'Inter',sans-serif;position:relative;z-index:150;
       width:100%;box-sizing:border-box;flex-shrink:0;}
-    #app-topbar-title{font-family:'Cinzel',serif;font-weight:700;color:var(--gold, #d4af37);font-size:16px;letter-spacing:.5px;flex:1;}
-    #app-topbar-right{display:flex;align-items:center;gap:14px;}
+    #app-topbar{--gear-size:54px;}
+    #app-topbar-right{display:flex;align-items:center;gap:14px;margin-left:auto;}
     #app-topbar-menu{font-family:'Cinzel',serif;font-weight:700;font-size:12.5px;color:var(--parchment, #f2ead2);text-decoration:none;
       border:1.5px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));border-radius:8px;padding:7px 14px;white-space:nowrap;}
     #app-topbar-menu:hover{border-color:var(--gold, #d4af37);color:var(--gold, #d4af37);}
@@ -790,11 +790,10 @@ function injectAppTopbar(){
   const bar = document.createElement('div');
   bar.id = 'app-topbar';
   bar.innerHTML = `
-    <span id="app-topbar-title">${window.APP_TOPBAR_TITLE || ''}</span>
+    ${window.APP_TOPBAR_NO_MENU ? '' : '<a id="app-topbar-menu" href="spellcraft-hub.html" title="Retour à l\'accueil">← Menu principal</a>'}
     <div id="app-topbar-right">
       <div id="sc-auth-slot"></div>
       <div id="sc-options-slot"></div>
-      ${window.APP_TOPBAR_NO_MENU ? '' : '<a id="app-topbar-menu" href="spellcraft-hub.html">☰ Menu</a>'}
     </div>
   `;
   document.body.insertBefore(bar, document.body.firstChild);
@@ -818,7 +817,7 @@ function injectMobileBase(){
       .sc-auth-account{padding:5px 6px 5px 10px;gap:6px;}
       .sc-auth-name{display:none;}
       .sc-auth-btn{padding:8px 10px;font-size:12px;}
-      #sc-options-gear.sc-options-inline{width:40px;height:40px;}
+      #sc-options-gear.sc-options-inline{--gear-size:40px;}
       #sc-options-gear:not(.sc-options-inline){width:52px;height:52px;top:6px;right:6px;}
       #sc-options-gear:not(.sc-options-inline) .sc-gear-icon{width:34px;height:34px;}
       #sc-options-modal,#sc-options-modal.sc-options-inline-modal{left:8px !important;right:8px !important;top:58px !important;width:auto;max-height:calc(100vh - 70px);max-height:calc(100dvh - 70px);}

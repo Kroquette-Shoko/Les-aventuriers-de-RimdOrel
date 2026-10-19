@@ -70,8 +70,8 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
    ou par-dessus et recouvrirait la zone adverse (c'est justement pour
    ça qu'elle était désactivée ici via APP_TOPBAR_DISABLED). */
 #board-topbar{width:1920px;height:56px;box-sizing:border-box;flex-shrink:0;display:flex;align-items:center;gap:16px;padding:10px 20px;background:var(--bg-panel, hsl(calc(var(--th, 252) + 10.5) calc(var(--ts-n, 1) * 25%) 6.3% / .92));border-bottom:1.5px solid var(--line, rgba(212,175,55,.4));font-family:'Inter',sans-serif;}
-#board-topbar-title{font-family:'Cinzel',serif;font-weight:700;color:var(--gold, #d4af37);font-size:16px;letter-spacing:.5px;flex:1;}
-#board-topbar-right{display:flex;align-items:center;gap:14px;}
+#board-topbar{--gear-size:54px;}
+#board-topbar-right{display:flex;align-items:center;gap:14px;margin-left:auto;}
 #board-back-btn{font-family:'Cinzel',serif;font-weight:700;font-size:12.5px;color:var(--parchment, #f2ead2);background:none;text-decoration:none;border:1.5px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));border-radius:8px;padding:7px 14px;white-space:nowrap;cursor:pointer;}
 #board-back-btn:hover{border-color:var(--gold, #d4af37);color:var(--gold, #d4af37);}
 /* #sc-options-slot : quand présent, spellcraft-shared.js y ancre
@@ -1010,11 +1010,10 @@ body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out 
 <div id="board-scale-outer">
 <div id="app-outer">
   <div id="board-topbar">
-    <span id="board-topbar-title"></span>
+    <button id="board-back-btn" title="Quitter la partie" onclick="uiLeaveGame()">← Menu principal</button>
     <div id="board-topbar-right">
       <div id="sc-auth-slot"></div>
       <div id="sc-options-slot"></div>
-      <button id="board-back-btn" title="Quitter la partie" onclick="uiLeaveGame()">☰ Menu</button>
     </div>
   </div>
   <div class="enemy-hand-row" id="enemy-hand-row"></div>
