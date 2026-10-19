@@ -222,3 +222,5 @@ La fenêtre de désassemblage liste une ligne par (carte, finition). Par défaut
 Le bouton 🔨 (survol d'une carte possédée de la collection) ouvre la fenêtre de craft ; les boutons foil/premium/premium foil y sont proposés même au plafond d'exemplaires : `craft_card_finish` remplace alors un exemplaire normal sans premium (ou un foil simple pour un premium).
 
 Conjuration : si la carte source d'un effet « conjure » (créature ou sort) est foil ou premium, la carte conjurée reçoit `foil: true` (jamais `premium`). Patch moteur : `conjuration_foil_20261019.sql` (`mapped.srcFoil` dans `applyNewAbilityEffects`, lu dans le `case "conjure"`).
+
+Ciblage multiple : pendant le choix de plusieurs cibles, les flèches vers les cibles déjà choisies (étape en cours et étapes précédentes, `pn.selectedInstIds` + `pn.collected`) restent affichées (`#target-fixed`, classes `.target-fixed-line` / `.target-fixed-head`) ; seule la flèche vers le curseur suit la souris.

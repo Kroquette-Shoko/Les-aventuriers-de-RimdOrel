@@ -668,6 +668,9 @@ body.targeting *{cursor:crosshair !important;}
 #target-origin{fill:var(--arcane);opacity:.95;filter:drop-shadow(0 0 10px var(--arcane));}
 #target-arrow{fill:var(--arcane);filter:drop-shadow(0 0 10px var(--arcane)) drop-shadow(0 0 20px var(--arcane));}
 @keyframes target-dash{to{stroke-dashoffset:-18;}}
+/* Cibles déjà choisies d'un effet à plusieurs cibles : leur flèche reste en place */
+.target-fixed-line{stroke:var(--arcane);stroke-width:6;stroke-linecap:round;filter:drop-shadow(0 0 12px var(--arcane)) drop-shadow(0 0 22px var(--arcane));stroke-dasharray:14 8;animation:target-dash .5s linear infinite;}
+.target-fixed-head{fill:var(--arcane);filter:drop-shadow(0 0 10px var(--arcane)) drop-shadow(0 0 20px var(--arcane));}
 body.targeting *{cursor:crosshair !important;}
 /* Choix de la cible d'un blocage : même flèche que le ciblage, mais elle alterne bleu / rouge */
 @keyframes block-target-line{
@@ -1078,6 +1081,7 @@ body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out 
 <div id="card-preview"></div>
 
 <svg id="targeting-layer">
+  <g id="target-fixed"></g>
   <line id="target-line" x1="0" y1="0" x2="0" y2="0" style="display:none"/>
   <circle id="target-origin" cx="0" cy="0" r="11" style="display:none"/>
   <polygon id="target-arrow" points="0,0 0,0 0,0" style="display:none"/>
@@ -4955,7 +4959,46 @@ function beginTargeting(el){
   document.body.classList.add('targeting');
   drawTargetLine();
 }
+// Flèches fixes vers les cibles déjà choisies (étape en cours + étapes précédentes) :
+// elles restent affichées pendant qu'on choisit les suivantes, pour garder le compte.
+function pickedTargetEl(marker){
+  if(typeof marker==='string' && marker.startsWith('hero:')){
+    const k = marker.slice(5);
+    return document.getElementById(k===MY_KEY ? 'hero-frame-p1' : 'hero-frame-p2');
+  }
+  return document.querySelector(`[data-instid="${marker}"]`);
+}
+function drawFixedTargets(){
+  const g = document.getElementById('target-fixed');
+  if(!g) return;
+  g.innerHTML = '';
+  const pn = UI.pendingNewTarget;
+  if(!pn || !targetSource) return;
+  const markers = [];
+  Object.values(pn.collected || {}).forEach(arr=>(arr||[]).forEach(m=>markers.push(m)));
+  (pn.selectedInstIds || []).forEach(m=>markers.push(m));
+  const NS = 'http://www.w3.org/2000/svg';
+  markers.forEach(m=>{
+    const el = pickedTargetEl(m);
+    if(!el) return;
+    const {x:x2,y:y2} = elCenter(el);
+    const {x:x1,y:y1} = targetSource;
+    const angle = Math.atan2(y2-y1, x2-x1);
+    const ln = document.createElementNS(NS, 'line');
+    ln.setAttribute('class', 'target-fixed-line');
+    ln.setAttribute('x1', x1); ln.setAttribute('y1', y1);
+    ln.setAttribute('x2', x2 - Math.cos(angle)*22); ln.setAttribute('y2', y2 - Math.sin(angle)*22);
+    g.appendChild(ln);
+    const backX = x2 - Math.cos(angle)*26, backY = y2 - Math.sin(angle)*26;
+    const perpX = Math.cos(angle+Math.PI/2)*12, perpY = Math.sin(angle+Math.PI/2)*12;
+    const hd = document.createElementNS(NS, 'polygon');
+    hd.setAttribute('class', 'target-fixed-head');
+    hd.setAttribute('points', `${x2},${y2} ${backX+perpX},${backY+perpY} ${backX-perpX},${backY-perpY}`);
+    g.appendChild(hd);
+  });
+}
 function endTargeting(){
+  const fx = document.getElementById('target-fixed'); if(fx) fx.innerHTML = '';
   targetSource = null; targetMouse = null;
   document.body.classList.remove('targeting');
   document.body.classList.remove('block-targeting');
@@ -4967,6 +5010,7 @@ function drawTargetLine(){
   if(!targetSource || !targetMouse) return;
   const {x:x1,y:y1} = targetSource;
   const {x:x2,y:y2} = targetMouse;
+  drawFixedTargets();
   const line = document.getElementById('target-line');
   const origin = document.getElementById('target-origin');
   const arrow = document.getElementById('target-arrow');
