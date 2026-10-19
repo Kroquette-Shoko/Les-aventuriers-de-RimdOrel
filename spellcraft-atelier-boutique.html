@@ -80,6 +80,8 @@ const $=id=>document.getElementById(id);
 function say(id,t,ok){const e=$(id); if(!e) return; e.textContent=t; e.className=ok===true?'ok':ok===false?'ko':'hint';}
 const imgSrc=u=>u?(/^(https?:|data:|\/)/.test(u)?u:u):'';
 
+let CARDS=[], VARS=[];
+const FINS=[['normal','Normale'],['foil','✨ Foil'],['premium','💠 Premium'],['premium_foil','💠✨ Premium foil']];
 async function loadAll(){
   const [s,b,c,t]=await Promise.all([
     sb.from('card_sets').select('id,name,in_shop').order('name'),
@@ -87,6 +89,9 @@ async function loadAll(){
     sb.from('card_backs').select('*').order('created_at'),
     sb.from('achievement_definitions').select('id,name,description,category,active,title_masculine,title_feminine').eq('grants_title',true).order('created_at')]);
   SETS=s.data||[]; BOOSTERS=b.data||[]; BACKS=c.data||[]; TITLES=t.data||[];
+  const [cd,vr]=await Promise.all([sb.from('cards').select('id,data'),sb.from('card_variants').select('id,card_id,name')]);
+  CARDS=(cd.data||[]).filter(c=>{const d=c.data||{}; return d.type!=='Héros'&&d.type!=='Région';}).map(c=>({id:c.id,name:(c.data||{}).name||c.id,rarity:(c.data||{}).rarity||''})).sort((a,b)=>a.name.localeCompare(b.name,'fr'));
+  VARS=vr.data||[];
 }
 
 /* ---------- Vues ---------- */
@@ -283,6 +288,13 @@ function renderGold(){
     <div class="field"><label>Dos</label><select id="d-back">${BACKS.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}${c.shop_visible===false?' (récompense)':''}</option>`).join('')}</select></div>
     <div class="actions"><button class="btn primary" data-act="grant-back">🎁 Donner</button><span id="d-status" class="hint"></span></div></div></div>
   <div class="split" style="grid-template-columns:1fr 1fr;margin-top:16px;">
+  <div class="panel"><h2>🃏 Donner une carte</h2><p class="hint">Donne une carte précise à un joueur, avec le traitement de ton choix et, si la carte en a, une illustration alternative (qui est alors débloquée pour lui).</p>
+    <div class="field"><label>Pseudo</label><input type="text" id="c-user" placeholder="Ex : Kroquette"></div>
+    <div class="field"><label>Carte</label><select id="c-card"><option value="">— choisir —</option>${CARDS.map(c=>`<option value="${esc(c.id)}">${esc(c.name)}${c.rarity?' ('+esc(c.rarity)+')':''}</option>`).join('')}</select></div>
+    <div class="field" id="c-var-f" style="display:none"><label>Illustration</label><select id="c-var"></select></div>
+    <div class="row2"><div class="field"><label>Traitement</label><select id="c-fin">${FINS.map(f=>`<option value="${f[0]}">${f[1]}</option>`).join('')}</select></div>
+    <div class="field"><label>Quantité</label><input type="number" id="c-n" value="1" min="1" max="100"></div></div>
+    <div class="actions"><button class="btn primary" data-act="give-card">🃏 Donner</button><span id="c-status" class="hint"></span></div></div>
   <div class="panel"><h2>🏷️ Donner un titre</h2><p class="hint">Offre un titre de profil à un joueur (ou à tous). Le joueur l'équipe ensuite depuis son profil. « Retirer » reprend le titre (et le déséquipe s'il le portait).</p>
     <div class="field"><label>Titre</label><select id="t-title">${titleOptions()}</select></div>
     <div class="field"><label>Cible</label><select id="t-mode"><option value="single">Un joueur précis</option><option value="all">Tous les joueurs</option></select></div>
@@ -372,6 +384,25 @@ async function giveGold(){
     return say('g-status',m[code]||('Erreur : '+code),false);}
   say('g-status',all?`✓ ${amount} or donné à ${data.player_count} joueur(s).`:`✓ ${amount} or donné à ${data.username} (solde : ${data.new_balance}).`,true);
 }
+function cardVarOptions(){
+  const id=$('c-card').value, vs=VARS.filter(v=>v.card_id===id), f=$('c-var-f');
+  f.style.display=vs.length?'':'none';
+  $('c-var').innerHTML='<option value="">Illustration d\'origine</option>'+vs.map(v=>`<option value="${esc(v.id)}">${esc(v.name)}</option>`).join('');
+}
+async function giveCard(){
+  const user=$('c-user').value.trim(), card=$('c-card').value, fin=$('c-fin').value, n=parseInt($('c-n').value,10)||1, vid=$('c-var').value||null;
+  if(!user) return say('c-status','Indique le pseudo du joueur.',false);
+  if(!card) return say('c-status','Choisis une carte.',false);
+  say('c-status','Envoi…');
+  const r=await sb.rpc('admin_grant_card',{p_username:user,p_card_id:card,p_finish:fin,p_variant_id:vid,p_count:n});
+  const e=r.error, d=r.data;
+  if(e&&(e.code==='PGRST202'||/could not find the function|schema cache/i.test(e.message||''))) return say('c-status',"Fonction manquante : exécute donner_carte_20261019.sql dans Supabase (SQL Editor).",false);
+  if(e||(d&&d.error)){const code=(d&&d.error)||(e&&e.message)||'erreur';
+    const m={'not-authorized':'Seul le compte Kroquette peut donner des cartes.','player-not-found':`Aucun joueur « ${user} ».`,'unknown-card':"Cette carte n'existe plus.",'unknown-variant':"Cette illustration n'existe plus (rafraîchis la page)."};
+    return say('c-status',m[code]||('Erreur : '+code),false);}
+  const fl=FINS.find(f=>f[0]===d.finish);
+  say('c-status',`✓ ${d.count} × « ${d.card_name} » (${fl?fl[1]:d.finish}${d.variant_name?', illustration « '+d.variant_name+' »':''}) donné à ${d.username}.`,true);
+}
 async function giveBack(){
   const user=$('d-user').value.trim(), id=$('d-back').value;
   if(!user) return say('d-status','Indique le pseudo du joueur.',false);
@@ -408,7 +439,7 @@ document.addEventListener('click',async e=>{
   else if(a==='sel-c'){SEL.backs=t.dataset.id;renderBacks();}
   else if(a==='new-c'){SEL.backs='new';renderBacks();}
   else if(a==='save-c') saveBack(); else if(a==='del-c') delBack();
-  else if(a==='gold') giveGold(); else if(a==='grant-back') giveBack();
+  else if(a==='gold') giveGold(); else if(a==='grant-back') giveBack(); else if(a==='give-card') giveCard();
   else if(a==='title-create') createTitle(); else if(a==='title-del') deleteTitle(t.dataset.id);
   else if(a==='title-give') giveTitle(false); else if(a==='title-revoke') giveTitle(true); else if(a==='title-owners') titleOwners();
   else if(a==='picker-open'){pickTarget=t.dataset.p;try{$('picker-list').value=localStorage.getItem(STORE)||'';}catch(x){}pickerGrid();$('picker').classList.add('show');}
@@ -416,6 +447,7 @@ document.addEventListener('click',async e=>{
   else if(a==='picker-pick'){const inp=$(pickTarget+'-image'); inp.value=FOLDER+t.dataset.f; inp.dispatchEvent(new Event('input')); $('picker').classList.remove('show');}
 });
 document.addEventListener('change',e=>{
+  if(e.target.id==='c-card') cardVarOptions();
   if(e.target.id==='b-kind') onKindChange();
   if(e.target.id==='b-mode') onBoosterModeChange();
   if(e.target.id==='b-custom'){ if(e.target.checked && !SLOTS.length){ seedSlotsFromLegacy(); $('b-slotlist').innerHTML=slotsHtml(); $('b-nslots').value=SLOTS.length; } onBoosterModeChange(); }
