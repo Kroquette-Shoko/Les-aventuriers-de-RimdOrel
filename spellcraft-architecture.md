@@ -220,3 +220,5 @@ Ce qui est propre au tutoriel :
 La fenêtre de désassemblage liste une ligne par (carte, finition). Par défaut seuls les exemplaires normaux en trop sont sélectionnés ; les foils, premiums et premium foils restent de côté jusqu'au clic sur « Ajouter les foils / premiums / premium foils ». Si une finition est sélectionnée, le client appelle `disenchant_cards_bulk_v2(p_items jsonb)` (`[{card_id, finish}]`, script `desenchant_finitions_20261019.sql`), sinon l'ancienne `disenchant_cards_bulk`. Remboursement : ¼ du prix de base, quelle que soit la finition.
 
 Le bouton 🔨 (survol d'une carte possédée de la collection) ouvre la fenêtre de craft ; les boutons foil/premium/premium foil y sont proposés même au plafond d'exemplaires : `craft_card_finish` remplace alors un exemplaire normal sans premium (ou un foil simple pour un premium).
+
+Conjuration : si la carte source d'un effet « conjure » (créature ou sort) est foil ou premium, la carte conjurée reçoit `foil: true` (jamais `premium`). Patch moteur : `conjuration_foil_20261019.sql` (`mapped.srcFoil` dans `applyNewAbilityEffects`, lu dans le `case "conjure"`).
