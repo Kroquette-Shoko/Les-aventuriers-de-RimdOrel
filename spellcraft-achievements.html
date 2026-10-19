@@ -58,7 +58,28 @@
 .claim-btn:hover{filter:brightness(1.1);}
 .claimed-tag{margin-top:6px;font-size:11px;color:var(--green);font-family:'Cinzel',serif;font-weight:700;}
 .empty-state{text-align:center;padding:60px 20px;color:var(--parchment-dim);}
-#leaderboard-wrap{max-width:520px;margin:0 auto;}
+#leaderboard-wrap{max-width:1100px;margin:0 auto;}
+.lb-cols{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:18px;align-items:start;}
+@media(max-width:800px){.lb-cols{grid-template-columns:minmax(0,1fr);}}
+.lb-main,.lb-side{min-width:0;}
+#lb-search{width:100%;box-sizing:border-box;margin-bottom:10px;padding:10px 12px;border-radius:9px;border:1.5px solid var(--line);background:var(--bg-panel);color:inherit;font-size:14px;}
+.lb-who{flex:1;min-width:0;}
+.lb-who .lb-name{display:block;text-decoration:none;color:inherit;}
+.lb-who .lb-name:hover{color:var(--gold);}
+.lb-title{font-family:'Cinzel',serif;font-size:11px;color:var(--gold);}
+.lb-badges{display:flex;gap:4px;margin-top:3px;flex-wrap:wrap;}
+.lb-badge{width:22px;height:22px;border-radius:5px;background-size:cover;background-position:center;border:1px solid var(--line);}
+.lb-pager{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px;}
+.lb-pager .claim-btn{margin-top:0;}
+.lb-pager .claim-btn:disabled{opacity:.4;cursor:default;}
+.lb-grades{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:14px;background:var(--bg-panel);border:1.5px solid var(--line);border-radius:10px;overflow:hidden;}
+.lb-grades th,.lb-grades td{padding:7px 9px;text-align:left;border-bottom:1px solid var(--line);}
+.lb-grades th{font-family:'Cinzel',serif;color:var(--gold);font-size:11px;}
+.lb-grades tr.lb-cur td{background:rgba(212,175,55,.15);font-weight:700;}
+.lb-sub{font-size:11.5px;color:var(--parchment-dim);}
+.lb-rules-mini{line-height:1.5;}
+.lb-row .lb-league{display:none;}
+@media(min-width:520px){.lb-row .lb-league{display:inline-block;}}
 #view-toggle-btn{padding:14px 34px;font-size:17px;border-radius:12px;min-height:52px;border-color:var(--gold);color:var(--gold);}
 .lb-row{display:flex;align-items:center;gap:14px;background:var(--bg-panel);border:1.5px solid var(--line);border-radius:10px;
   padding:10px 16px;margin-bottom:8px;}
@@ -286,51 +307,98 @@ async function claimSeasonRewardsUi(){
   showToast((data.gold>0 || data.boosters>0) ? `Récompenses de saison : +${data.gold} pièces d'or${data.boosters>0?` et ${data.boosters} booster${data.boosters>1?'s':''}`:''}` : 'Aucune récompense à réclamer.');
   await loadLeaderboard();
 }
-async function loadLeaderboard(){
-  const wrap = document.getElementById('leaderboard-wrap');
-  wrap.innerHTML = `<div class="empty-state">Chargement...</div>`;
-  const [lbRes, meRes] = await Promise.all([ sb.rpc('get_ranked_leaderboard', { p_limit: 100 }), sb.rpc('get_ranked_profile') ]);
-  const lb = lbRes.data, me = meRes.data;
-  let myId = null;
-  try{ const { data: au } = await sb.auth.getUser(); myId = au && au.user && au.user.id; }catch(e){}
-  if(lbRes.error || !lb || lb.error){
-    wrap.innerHTML = `<div class="empty-state">Le classement n'est pas disponible pour l'instant.</div>`;
-    return;
-  }
-  let html = `<div id="lb-season-head">Saison de ${escapeHtml(seasonLabel(lb.season))}</div>`;
-  if(me && me.ok){
-    if(me.pendingRewards && me.pendingRewards.length){
-      const total = me.pendingRewards.reduce((s,r)=>s+r.gold,0), totalB = me.pendingRewards.reduce((s,r)=>s+(r.boosters||0),0);
-      const detail = me.pendingRewards.map(r=>`${escapeHtml(seasonLabel(r.season))} : ${LEAGUE_ICONS[r.league]||''} ${escapeHtml(r.league)}`).join(' · ');
-      html += `<div id="lb-reward"><div><strong>Récompenses de saison à réclamer : +${rewardText(total, totalB)}</strong><div class="lb-sub" style="font-size:11.5px;color:var(--parchment-dim);">${detail}</div></div>
-        <button class="claim-btn" style="margin-top:0;" onclick="claimSeasonRewardsUi()">Réclamer</button></div>`;
-    }
-    const floor = LEAGUE_FLOORS[me.league] || 0;
-    const pct = me.nextLeagueAt ? Math.max(0, Math.min(100, Math.round(((me.rating-floor)/(me.nextLeagueAt-floor))*100))) : 100;
-    const chips = (me.recent||[]).map(c=>`<span class="lb-chip ${c.delta>=0?'up':'down'}" title="${c.won?'Victoire':'Défaite'}">${c.delta>=0?'+':''}${c.delta}</span>`).join('');
-    html += `<div id="lb-me-card">
-      <div class="lb-me-top"><span class="lb-me-league">${LEAGUE_ICONS[me.league]||''} ${escapeHtml(me.league)}</span>
-        <span><strong>${me.rating} pts</strong>${me.rank?` · #${me.rank}`:''}</span></div>
-      <div class="lb-bar"><span style="width:${pct}%"></span></div>
-      <div class="lb-sub">${me.nextLeagueAt ? `${me.nextLeagueAt-me.rating} pts avant la ligue suivante` : 'Ligue maximale atteinte'} · ${me.wins}V ${me.losses}D · meilleur : ${me.peak}</div>
-      ${chips?`<div class="lb-recent">${chips}</div>`:''}
-      ${me.games<5?`<div class="lb-sub" style="margin-top:6px;">Encore ${5-me.games} partie${5-me.games>1?'s':''} classée${5-me.games>1?'s':''} pour avoir droit à la récompense de fin de saison.</div>`:''}
-    </div>`;
-  }
-  if(!lb.leaderboard || lb.leaderboard.length===0){
-    html += `<div class="empty-state" style="padding:30px 20px;">Aucune partie classée cette saison pour l'instant.</div>`;
+const LEAGUE_REWARDS = { 'Non classé':[0,0], 'Bronze':[200,1], 'Argent':[400,1], 'Or':[600,2], 'Platine':[1000,2], 'Diamant':[2000,3], 'Maître':[3000,5] };
+const LEAGUE_ORDER = ['Non classé','Bronze','Argent','Or','Platine','Diamant','Maître'];
+const LB_PAGE_SIZE = 10;
+let LB_STATE = { page:0, search:'', myId:null, total:0, timer:null };
+
+function lbBadgesHtml(badges){
+  return (badges||[]).map(b=>`<span class="lb-badge" title="${escapeHtml(b.name||'')}${b.description?' — '+escapeHtml(b.description):''}" style="background-image:url('${escapeHtml(b.imageUrl||'')}')"></span>`).join('');
+}
+async function loadLeaderboardRows(){
+  const body = document.getElementById('lb-players-body');
+  if(!body) return;
+  body.innerHTML = `<div class="empty-state" style="padding:24px;">Chargement...</div>`;
+  const { data, error } = await sb.rpc('get_ranked_board', { p_search: LB_STATE.search || null, p_limit: LB_PAGE_SIZE, p_offset: LB_STATE.page*LB_PAGE_SIZE });
+  if(error || !data || data.error){ body.innerHTML = `<div class="empty-state" style="padding:24px;">Le tableau n'est pas disponible pour l'instant.</div>`; return; }
+  LB_STATE.total = data.total;
+  const pages = Math.max(1, Math.ceil(data.total/LB_PAGE_SIZE));
+  if(!data.players.length){
+    body.innerHTML = `<div class="empty-state" style="padding:24px;">${LB_STATE.search ? 'Aucun joueur ne correspond à cette recherche.' : 'Aucun joueur pour l\'instant.'}</div>`;
   } else {
-    html += lb.leaderboard.map(p=>`
-    <div class="lb-row ${p.rank===1?'lb-top1':''} ${me && me.ok && p.id===myId ? 'lb-me':''}">
+    body.innerHTML = data.players.map(p=>`
+    <div class="lb-row ${p.rank===1?'lb-top1':''} ${p.id===LB_STATE.myId?'lb-me':''}">
       <div class="lb-rank">${p.rank}</div>
-      <a class="lb-name" href="spellcraft-profile.html?uid=${encodeURIComponent(p.id)}" style="text-decoration:none;color:inherit;">${escapeHtml(p.username)}</a>
+      <div class="lb-who">
+        <a class="lb-name" href="spellcraft-profile.html?uid=${encodeURIComponent(p.id)}">${escapeHtml(p.username)}</a>
+        ${p.title?`<div class="lb-title">« ${escapeHtml(p.title)} »</div>`:''}
+        ${(p.badges&&p.badges.length)?`<div class="lb-badges">${lbBadgesHtml(p.badges)}</div>`:''}
+      </div>
       <span class="lb-league">${LEAGUE_ICONS[p.league]||''} ${escapeHtml(p.league)}</span>
       <div class="lb-record">${p.wins}V ${p.losses}D</div>
       <div class="lb-rating">${p.rating}</div>
     </div>`).join('');
   }
-  html += `<div id="lb-rules"><strong>Comment ça marche.</strong> Seules les parties contre un autre joueur comptent (pas l'IA). On commence à 0 point à chaque saison. Une victoire rapporte 20 points. Une défaite ne fait rien avant l'Argent, retire 10 points de l'Argent à l'Or, et 20 points à partir du Platine. Rangs : Non classé (0), Bronze (50), Argent (150), Or (300), Platine (500), Diamant (800), Maître (1000). Récompense de fin de saison, à partir de 5 parties classées : Bronze 200 or + 1 booster · Argent 400 or + 1 booster · Or 600 or + 2 boosters · Platine 1000 or + 2 boosters · Diamant 2000 or + 3 boosters · Maître 3000 or + 5 boosters. Au-delà de 3 parties contre le même adversaire en 24 h, les suivantes ne rapportent rien.</div>`;
-  wrap.innerHTML = html;
+  document.getElementById('lb-page-info').textContent = `Page ${LB_STATE.page+1} / ${pages} · ${data.total} joueur${data.total>1?'s':''}`;
+  document.getElementById('lb-prev').disabled = LB_STATE.page<=0;
+  document.getElementById('lb-next').disabled = LB_STATE.page>=pages-1;
+}
+function lbSearchInput(v){
+  clearTimeout(LB_STATE.timer);
+  LB_STATE.timer = setTimeout(()=>{ LB_STATE.search = v.trim(); LB_STATE.page = 0; loadLeaderboardRows(); }, 300);
+}
+function lbGoPage(d){ LB_STATE.page = Math.max(0, LB_STATE.page + d); loadLeaderboardRows(); }
+
+async function loadLeaderboard(){
+  const wrap = document.getElementById('leaderboard-wrap');
+  wrap.innerHTML = `<div class="empty-state">Chargement...</div>`;
+  const meRes = await sb.rpc('get_ranked_profile');
+  const me = meRes.data;
+  try{ const { data: au } = await sb.auth.getUser(); LB_STATE.myId = au && au.user && au.user.id; }catch(e){}
+  LB_STATE.page = 0; LB_STATE.search = '';
+  const season = (me && me.ok && me.season) ? me.season : null;
+  let top = `<div id="lb-season-head">${season ? 'Saison de '+escapeHtml(seasonLabel(season)) : 'Classement'}</div>`;
+  if(me && me.ok && me.pendingRewards && me.pendingRewards.length){
+    const total = me.pendingRewards.reduce((s,r)=>s+r.gold,0), totalB = me.pendingRewards.reduce((s,r)=>s+(r.boosters||0),0);
+    const detail = me.pendingRewards.map(r=>`${escapeHtml(seasonLabel(r.season))} : ${LEAGUE_ICONS[r.league]||''} ${escapeHtml(r.league)}`).join(' · ');
+    top += `<div id="lb-reward"><div><strong>Récompenses de saison à réclamer : +${rewardText(total, totalB)}</strong><div class="lb-sub" style="font-size:11.5px;color:var(--parchment-dim);">${detail}</div></div>
+      <button class="claim-btn" style="margin-top:0;" onclick="claimSeasonRewardsUi()">Réclamer</button></div>`;
+  }
+  // Colonne droite : grades, progression, récompenses
+  const myLeague = (me && me.ok) ? me.league : null;
+  const rows = LEAGUE_ORDER.map((l,i)=>{
+    const from = LEAGUE_FLOORS[l], next = LEAGUE_ORDER[i+1];
+    const range = next ? `${from} – ${LEAGUE_FLOORS[next]-1}` : `${from} et +`;
+    const r = LEAGUE_REWARDS[l];
+    return `<tr class="${l===myLeague?'lb-cur':''}"><td>${LEAGUE_ICONS[l]} ${l}</td><td>${range}</td><td>${r[0]>0?rewardText(r[0], r[1]):'—'}</td></tr>`;
+  }).join('');
+  let progress = '';
+  if(me && me.ok){
+    const floor = LEAGUE_FLOORS[me.league] || 0;
+    const pct = me.nextLeagueAt ? Math.max(0, Math.min(100, Math.round(((me.rating-floor)/(me.nextLeagueAt-floor))*100))) : 100;
+    const rw = LEAGUE_REWARDS[me.league] || [0,0];
+    const chips = (me.recent||[]).map(c=>`<span class="lb-chip ${c.delta>=0?'up':'down'}" title="${c.won?'Victoire':'Défaite'}">${c.delta>=0?'+':''}${c.delta}</span>`).join('');
+    progress = `<div id="lb-me-card">
+      <div class="lb-me-top"><span class="lb-me-league">${LEAGUE_ICONS[me.league]||''} ${escapeHtml(me.league)}</span>
+        <span><strong>${me.rating} pts</strong>${me.rank?` · #${me.rank}`:''}</span></div>
+      <div class="lb-bar"><span style="width:${pct}%"></span></div>
+      <div class="lb-sub">${me.nextLeagueAt ? `${me.nextLeagueAt-me.rating} pts avant ${escapeHtml(LEAGUE_ORDER[LEAGUE_ORDER.indexOf(me.league)+1]||'')}` : 'Ligue maximale atteinte'} · ${me.wins}V ${me.losses}D · meilleur : ${me.peak}</div>
+      <div class="lb-sub" style="margin-top:8px;"><strong>Récompense de fin de saison avec votre rang actuel :</strong> ${rw[0]>0?rewardText(rw[0], rw[1]):'aucune'}${me.games<5?`<br>Encore ${5-me.games} partie${5-me.games>1?'s':''} classée${5-me.games>1?'s':''} pour y avoir droit.`:''}</div>
+      ${chips?`<div class="lb-recent">${chips}</div>`:''}
+    </div>`;
+  }
+  const right = `<div class="lb-side">
+    <table class="lb-grades"><thead><tr><th>Grade</th><th>Points</th><th>Récompense de fin de saison</th></tr></thead><tbody>${rows}</tbody></table>
+    ${progress}
+    <div class="lb-sub lb-rules-mini">+20 points par victoire contre un joueur. Défaite : rien avant l'Argent, −10 de l'Argent à l'Or, −20 à partir du Platine. Récompenses à partir de 5 parties classées. Au-delà de 3 parties contre le même adversaire en 24 h, les suivantes ne rapportent rien.</div>
+  </div>`;
+  const left = `<div class="lb-main">
+    <input id="lb-search" type="search" placeholder="Rechercher un joueur par nom..." autocomplete="off" oninput="lbSearchInput(this.value)">
+    <div id="lb-players-body"></div>
+    <div class="lb-pager"><button id="lb-prev" class="claim-btn" onclick="lbGoPage(-1)">‹ Précédent</button><span id="lb-page-info" class="lb-sub"></span><button id="lb-next" class="claim-btn" onclick="lbGoPage(1)">Suivant ›</button></div>
+  </div>`;
+  wrap.innerHTML = top + `<div class="lb-cols">${left}${right}</div>`;
+  await loadLeaderboardRows();
 }
 
 const GEM_NAMES = {Volonté:'Rubis', Aube:'Diamant', 'Crépuscule':'Obsidienne', Arcane:'Saphir', Prima:'Émeraude', Opale:'Opale'};
