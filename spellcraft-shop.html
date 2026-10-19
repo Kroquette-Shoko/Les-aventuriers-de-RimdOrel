@@ -1325,6 +1325,13 @@ async function openBoostersAuto(boosterId){
 }
 
 async function showAutoSummary(cards, quantity){
+  try{ await showAutoSummaryInner(cards, quantity); }
+  catch(e){
+    console.error('[résumé auto]', e);
+    document.getElementById('auto-summary-body').innerHTML = `<div class="empty-shelf">Le résumé n'a pas pu s'afficher (${escapeHtmlShop(String(e && e.message || e))}). Tes cartes ont bien été ajoutées à ta collection.</div>`;
+  }
+}
+async function showAutoSummaryInner(cards, quantity){
   const body = document.getElementById('auto-summary-body');
   document.getElementById('auto-summary-title').textContent = `Résumé de l'ouverture — ${quantity} boosters`;
   body.innerHTML = `<div class="empty-shelf">Chargement...</div>`;
@@ -1364,9 +1371,9 @@ async function showAutoSummary(cards, quantity){
 
   // Succès liés aux fragments (même effet que l'ouverture classique)
   Object.keys(fragTotals).forEach(cls=>{
-    sb.rpc('progress_achievement', { p_condition_type: `fragment_earned_${cls}`, p_amount: fragTotals[cls] }).catch(()=>{});
+    Promise.resolve(sb.rpc('progress_achievement', { p_condition_type: `fragment_earned_${cls}`, p_amount: fragTotals[cls] })).catch(()=>{});
   });
-  sb.rpc('progress_collection_achievements').catch(()=>{});
+  Promise.resolve(sb.rpc('progress_collection_achievements')).catch(()=>{});
 
   const chips = [];
   chips.push(`<span class="auto-chip"><b>${nbCards}</b> cartes</span>`);
@@ -1393,9 +1400,11 @@ async function showAutoSummary(cards, quantity){
     sample.forEach(e=>{
       const item = document.createElement('div'); item.className = 'auto-sample-item';
       const holder = document.createElement('div'); holder.className = 'auto-sample-card';
-      const el = buildBoosterCardEl(e.full);
-      attachShopHoverPreview(el, e.full);
-      holder.appendChild(el);
+      try{
+        const el = buildBoosterCardEl(e.full);
+        try{ attachShopHoverPreview(el, e.full); }catch(_){}
+        holder.appendChild(el);
+      }catch(err){ console.error('[résumé auto] carte', e.name, err); holder.textContent = e.name; }
       item.appendChild(holder);
       if(AUTO_FINISH_LABEL[e.finish]){ const tg = document.createElement('div'); tg.className='asi-tag'; tg.textContent = AUTO_FINISH_LABEL[e.finish]; item.appendChild(tg); }
       if(e.isNew){ const nw = document.createElement('div'); nw.className='asi-new'; nw.textContent='NOUVEAU'; item.appendChild(nw); }
@@ -1618,7 +1627,7 @@ function closeBoosterOpening(){
   document.getElementById('booster-open-overlay').classList.remove('show');
   showFragmentSummaryToast(lastBoosterResult);
   lastBoosterResult = null;
-  sb.rpc('progress_collection_achievements').catch(()=>{});
+  Promise.resolve(sb.rpc('progress_collection_achievements')).catch(()=>{});
   showMyBoostersModal();
 }
 
@@ -1636,7 +1645,7 @@ function showFragmentSummaryToast(cardsResult){
   const classes = Object.keys(totals);
   if(classes.length===0) return;
   classes.forEach(cls=>{
-    sb.rpc('progress_achievement', { p_condition_type: `fragment_earned_${cls}`, p_amount: totals[cls] }).catch(()=>{});
+    Promise.resolve(sb.rpc('progress_achievement', { p_condition_type: `fragment_earned_${cls}`, p_amount: totals[cls] })).catch(()=>{});
   });
   const rows = classes.map(cls=>{
     const iconFile = GEM_ICON_FILES[cls];
@@ -1660,8 +1669,8 @@ async function confirmSingleChoice(cardId){
   showRevealModal('Carte obtenue !', [{ name: data.name, foil: data.foil, rarity: '', card_id: data.card_id }]);
   refreshCurrency();
   renderSingleShelf();
-  sb.rpc('progress_achievement', { p_condition_type: 'cards_crafted_total', p_amount: 1 }).catch(()=>{});
-  sb.rpc('progress_collection_achievements').catch(()=>{});
+  Promise.resolve(sb.rpc('progress_achievement', { p_condition_type: 'cards_crafted_total', p_amount: 1 })).catch(()=>{});
+  Promise.resolve(sb.rpc('progress_collection_achievements')).catch(()=>{});
 }
 
 async function buyCardBack(id){
