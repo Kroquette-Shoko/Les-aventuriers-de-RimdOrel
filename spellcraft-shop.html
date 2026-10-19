@@ -389,6 +389,11 @@
 .auto-list .al-qty{color:var(--gold);font-weight:700;min-width:26px;}
 .auto-list .al-new{font-size:9.5px;font-weight:700;color:#2a1f05;background:linear-gradient(90deg,#f6e08a,#d4af37);border-radius:8px;padding:0 6px;}
 .auto-list .al-meta{opacity:.65;font-size:11px;margin-left:auto;white-space:nowrap;}
+.confirm-box{max-width:340px;text-align:center;}
+#confirm-buy-art{width:150px;height:210px;margin:0 auto 12px;border-radius:10px;background-size:cover;background-position:center;border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:40px;}
+#confirm-buy-name{font-family:'Cinzel',serif;color:var(--parchment);font-size:16px;margin-bottom:6px;}
+#confirm-buy-price{color:var(--gold);font-weight:700;margin-bottom:14px;display:flex;align-items:center;justify-content:center;gap:6px;}
+.modal-actions button.confirm-yes{background:var(--gold);color:var(--ink,#000);border-color:var(--gold);font-weight:700;}
 .modal-actions{display:flex;justify-content:center;gap:10px;margin-top:10px;}
 .modal-actions button{background:var(--bg-panel-2);border:1px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));color:var(--parchment);border-radius:8px;padding:9px 18px;font-family:'Inter';font-weight:600;cursor:pointer;}
 .modal-actions button:hover{border-color:var(--gold);}
@@ -473,6 +478,19 @@
     <div class="reveal-grid" id="reveal-grid"></div>
     <div class="modal-actions">
       <button id="reveal-close-btn" onclick="closeModal('reveal-modal')">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="confirm-buy-modal">
+  <div class="modal-box confirm-box">
+    <h2>Confirmer l'achat</h2>
+    <div id="confirm-buy-art"></div>
+    <div id="confirm-buy-name"></div>
+    <div id="confirm-buy-price"></div>
+    <div class="modal-actions">
+      <button id="confirm-buy-no">Annuler</button>
+      <button id="confirm-buy-yes" class="confirm-yes">Acheter</button>
     </div>
   </div>
 </div>
@@ -915,6 +933,7 @@ async function renderCardBackShelf(){
   // proposés à l'achat, mais toujours affichés ici (avec un badge) une fois
   // possédés, sinon le joueur qui en reçoit un ne pourrait jamais l'équiper.
   // Un dos déjà acheté disparaît de la liste (comme les héros) ; il s'équipe depuis le deckbuilder.
+  window.__backsById = {}; allBacks.forEach(cb=>{ window.__backsById[cb.id] = cb; });
   const data = allBacks.filter(cb => cb.shop_visible !== false && !owned.has(cb.id));
   if(data.length===0){
     el.innerHTML = `<div class="empty-shelf">${owned.size>1?'Tu possèdes tous les dos de carte disponibles !':'Aucun dos de carte disponible pour l\'instant — reviens plus tard !'}</div>`;
@@ -985,14 +1004,14 @@ async function renderHeroShelf(){
     const btn = document.createElement('button');
     btn.className = 'buy-btn';
     btn.textContent = 'Acheter';
-    btn.onclick = ()=>buyHeroCard(h.card_id);
+    btn.onclick = ()=>buyHeroCard(h.card_id, full.name, full.image || full.imageUrl);
     wrap.appendChild(btn);
     el.appendChild(wrap);
   });
 }
 
-async function buyHeroCard(cardId){
-  if(!confirm("Acheter ce héros pour 1000 pièces d'or ?")) return;
+async function buyHeroCard(cardId, heroName, heroImage){
+  if(!(await confirmPurchase({ name: heroName || 'Héros', imageUrl: heroImage, price: 1000 }))) return;
   const { data, error } = await sb.rpc('buy_hero_card', { p_card_id: cardId });
   if(error || data.error){ alert(shopErrorMessage(data ? data.error : error.message)); return; }
   playSfx('coin');
@@ -1792,6 +1811,8 @@ async function confirmSingleChoice(cardId){
 async function buyCardBack(id){
   const user = await scGetCurrentUser();
   if(!user){ alert('Connecte-toi pour acheter dans la boutique.'); return; }
+  const __cb = (window.__backsById||{})[id] || {};
+  if(!(await confirmPurchase({ name: __cb.name || 'Dos de carte', imageUrl: __cb.image_url, price: __cb.price }))) return;
   const { data, error } = await sb.rpc('buy_card_back', { p_card_back_id: id });
   if(error){ alert('Erreur : ' + error.message); return; }
   if(data.error){ alert(shopErrorMessage(data.error)); return; }
@@ -1876,6 +1897,20 @@ async function showRevealModal(title, items){
   });
 }
 
+// Fenêtre de confirmation d'achat (évite les achats par accident). Renvoie une promesse true/false.
+function confirmPurchase({ name, imageUrl, price }){
+  return new Promise(resolve=>{
+    const art = document.getElementById('confirm-buy-art');
+    art.style.backgroundImage = imageUrl ? `url('${String(imageUrl).replace(/'/g,"%27")}')` : '';
+    art.textContent = imageUrl ? '' : '🎴';
+    document.getElementById('confirm-buy-name').textContent = name || '';
+    document.getElementById('confirm-buy-price').innerHTML = `<span class="money-icon"></span> ${price} pièces d'or`;
+    const done = v => { closeModal('confirm-buy-modal'); resolve(v); };
+    document.getElementById('confirm-buy-yes').onclick = ()=>done(true);
+    document.getElementById('confirm-buy-no').onclick = ()=>done(false);
+    openModal('confirm-buy-modal');
+  });
+}
 function openModal(id){ document.getElementById(id).classList.add('show'); }
 function closeModal(id){ document.getElementById(id).classList.remove('show'); }
 
