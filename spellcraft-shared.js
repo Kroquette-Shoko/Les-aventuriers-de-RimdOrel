@@ -461,7 +461,8 @@ function playMusic(name, {loop=true, volume=0.4}={}){
 
 // Relais aléatoire entre plusieurs pistes : quand l'une se termine, une autre
 // (différente de la précédente si possible) prend le relais automatiquement.
-const COMBAT_MUSIC_POOL = ['combat-1','combat-2','combat-3','combat-4'];
+// Chaque entrée = nom de fichier complet (les pistes ne sont pas toutes au même format).
+const COMBAT_MUSIC_POOL = ['combat-1.ogg','combat-2.ogg','combat-3.ogg','combat-4.ogg','combat-5.mp3'];
 let lastCombatTrack = null;
 function playCombatMusicRotation(volume=0.35){
   if(sfxMuted) return;
@@ -475,7 +476,7 @@ function playCombatMusicRotation(volume=0.35){
     const track = choices[Math.floor(Math.random()*choices.length)];
     lastCombatTrack = track;
     try{
-      const audio = new Audio(`music/${track}.ogg`);
+      const audio = new Audio(`music/${track}`);
       audio.loop = false;
       audio.volume = volume * musicVolumeLevel;
       audio.addEventListener('ended', playNext);
@@ -493,7 +494,7 @@ function playCombatMusicRotation(volume=0.35){
 // au lieu d'une seule piste 'menu.ogg' en boucle. Utilisée par toutes
 // les pages de menu (hub, lobby, deckbuilder, éditeur de cartes, quêtes,
 // boutique...) — jamais par le plateau de jeu (musique de combat séparée).
-const MENU_MUSIC_POOL = ['menu_1','menu_2'];
+const MENU_MUSIC_POOL = ['menu_1','menu_2','menu_3'];
 let lastMenuTrack = null;
 function playMenuMusicRotation(volume=0.35){
   if(sfxMuted) return;
