@@ -18,6 +18,21 @@
    CSS --px / --py, tout le reste est du CSS.
    ============================================================ */
 (function(){
+  // Sortilèges et pièges : l'illustration (cercle / losange) dépasse au-dessus du cadre.
+  // Le foil est découpé selon la vraie silhouette de la carte : cadre + illustration.
+  // Coordonnées = celles du dessin de la carte (300 x 423), vue étendue de 24 vers le haut.
+  function maskCss(sel, shapes){
+    var svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 -24 300 447' preserveAspectRatio='none'>" + shapes + "</svg>";
+    var u = 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")';
+    return sel + '{top:-5.674%;height:105.674%;clip-path:none;-webkit-mask:' + u + ' 0 0/100% 100% no-repeat;mask:' + u + ' 0 0/100% 100% no-repeat;}';
+  }
+  var K = "fill='black' stroke='black'";
+  var MASKS = maskCss('.ncard.nd-spell .nfoil',
+      "<path d='M22,5 Q150,-3 278,5 Q292,12 292,28 Q283,211 296,396 Q292,412 278,418 Q150,426 22,418 Q8,412 4,396 Q17,211 8,28 Q8,12 22,5 Z' " + K + " stroke-width='7'/>"
+    + "<path d='M25,112 a125,125 0 1,0 250,0 a125,125 0 1,0 -250,0 Z' " + K + " stroke-width='10'/>")
+  + maskCss('.ncard.nd-trap .nfoil',
+      "<path d='M26,4 H274 L296,26 V397 L274,419 H26 L4,397 V26 Z' " + K + " stroke-width='7' stroke-linejoin='round'/>"
+    + "<path d='M150,-14 L282,109 L150,232 L18,109 Z' " + K + " stroke-width='10' stroke-linejoin='round'/>");
   var CSS = ''
   + '.ncard.n-finish{isolation:isolate;}'
   + '.ncard.n-prem{perspective:700px;}'
@@ -34,7 +49,7 @@
   + '.ncard.n-prem .nart-in{transform:translate(calc(var(--px,0)*-5%),calc(var(--py,0)*-4%)) scale(1.12);transition:transform .22s ease-out;}'
   + '.ncard.n-prem.n-live .nart-in{transition:transform .06s linear;}'
   + '.ncard .nfoil{clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 12px,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0 calc(100% - 12px),0 12px);}'
-  + '.ncard.nd-spell .nfoil,.ncard.nd-trap .nfoil{top:-3.4%;height:103.4%;clip-path:polygon(0 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0 calc(100% - 12px));}'
+  + MASKS
   + '.ncard .nfoil{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:31;mix-blend-mode:hard-light;opacity:.5;'
   +   'background:linear-gradient(115deg,transparent 5%,rgba(255,90,90,.75) 22%,rgba(255,210,80,.75) 34%,rgba(120,255,150,.75) 46%,rgba(80,190,255,.75) 58%,rgba(190,110,255,.75) 70%,rgba(255,120,200,.75) 82%,transparent 95%);'
   +   'background-size:260% 100%;background-position:calc(50% + var(--px,0)*50%) 0;}'
