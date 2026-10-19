@@ -59,6 +59,7 @@
 .claimed-tag{margin-top:6px;font-size:11px;color:var(--green);font-family:'Cinzel',serif;font-weight:700;}
 .empty-state{text-align:center;padding:60px 20px;color:var(--parchment-dim);}
 #leaderboard-wrap{max-width:520px;margin:0 auto;}
+#view-toggle-btn{padding:14px 34px;font-size:17px;border-radius:12px;min-height:52px;border-color:var(--gold);color:var(--gold);}
 .lb-row{display:flex;align-items:center;gap:14px;background:var(--bg-panel);border:1.5px solid var(--line);border-radius:10px;
   padding:10px 16px;margin-bottom:8px;}
 .lb-row .lb-rank{font-family:'Cinzel',serif;font-weight:700;color:var(--gold);font-size:15px;width:32px;text-align:center;flex-shrink:0;}
@@ -107,7 +108,7 @@
   <div class="wrap">
     <h1 class="sc-h1" style="text-align:center;margin-bottom:18px;">Hauts faits</h1>
     <div id="view-toggle-row">
-      <button class="sc-btn sc-btn-ghost sc-btn-sm" id="view-toggle-btn" onclick="toggleLeaderboardView()">🏆 Voir le classement</button>
+      <button class="sc-btn sc-btn-ghost" id="view-toggle-btn" onclick="toggleLeaderboardView()">🏆 Voir le classement</button>
     </div>
     <div class="summary" id="summary"></div>
     <div id="category-tabs"></div>
