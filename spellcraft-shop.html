@@ -529,21 +529,6 @@ function singleCardPriceFor(c){
 const GEM_NAMES = {Volonté:'Rubis', Aube:'Diamant', 'Crépuscule':'Obsidienne', Arcane:'Saphir', Prima:'Émeraude', Opale:'Opale'};
 const GEM_ICON_FILES = {Volonté:'gem-vol.png', Aube:'gem-aub.png', 'Crépuscule':'gem-crep.png', Arcane:'gem-arc.png', Prima:'gem-prim.png', Opale:'gem-multi.png'};
 
-// Répliques d'accueil de Bruno — on en ajoutera d'autres plus tard, une est tirée au hasard à chaque visite.
-const BRUNO_LINES = [
-  `Ohhhh, quel plaisir, quelle <em>joie</em>, quel <em>honneur</em> !! Bruno en personne t'accueille dans son humble échoppe — enfin, humble, façon de parler, regarde-moi ces merveilles ! Un petit booster, une carte par-ci par-là, un dos de carte assorti à tes bottes ? Sers-toi, mon trésor, l'or de ta bourse ne demande qu'à briller entre mes mains ✨🃏✨`,
-  `Psss, viens par ici, toi... Bruno a du <em>nouveau</em> sous le comptoir, du <em>frais</em>, du <em>croustillant</em> — enfin, façon de parler, ce sont des cartes, pas des viennoiseries. Quoique, à ce prix-là, ça devrait presque en être ! 🥐🃏`,
-  `Un client ! Un VRAI client, avec de la <em>prestance</em>, avec du <em>goût</em> ! Bruno le sent d'ici, tu es de ceux qui savent reconnaître une bonne affaire quand elle leur saute au visage ✨`,
-  `Ahhh, te revoilà ! Bruno n'a JAMAIS douté que tu reviendrais — entre nous et cette échoppe poussiéreuse, on formait déjà un petit <em>trio</em> du destin, non ? 🃏`,
-  `Dis-moi, mon ami, as-tu déjà tenu une carte Mythique entre tes mains ? Non ? Alors qu'attends-tu, la fortune n'attend pas les indécis ! 💰`,
-  `Bruno a personnellement soufflé sur chaque booster de cette étagère pour en chasser la malchance — c'est un service que peu de marchands offrent, tu sais 😤✨`,
-  `Entre nous, mon trésor... les meilleures affaires ne durent jamais bien longtemps. Bruno ne dit que ça, hein, il ne <em>pousse</em> personne à l'achat, jamais de la vie 😇`,
-  `Ohhh, ce regard ! Ce regard qui dit "je vais craquer" ! Bruno le reconnaît entre mille, il l'a vu sur des centaines de visages avant le tien 🫢`,
-  `Tu sais, dans ma jeunesse, un simple dos de carte pouvait changer le cours d'une bataille... enfin, façon de parler, mais avoue que ça sonnerait bien sur une pancarte 🎴`,
-  `Bienvenue, bienvenue ! Ici, chaque pièce d'or que tu dépenses revient directement... dans ma poche. Mais dans ton cœur aussi, promis, un peu 💛`,
-  `Un petit conseil de Bruno, gratuit celui-là (pour une fois) : n'ouvre jamais un booster sans y croire de tout ton être. La chance sent la sincérité ✨🃏`
-];
-
 // Bulle de Bruno : s'affiche au-dessus de lui puis disparaît toute seule.
 // brunoSay(html, durée_ms) affiche n'importe quel texte ; les répliques par événement
 // de la boutique sont regroupées dans BRUNO_EVENT_LINES (clé = nom de l'événement).
@@ -638,16 +623,11 @@ function brunoArmIdle(){
 ['pointerdown','keydown','wheel','touchstart'].forEach(ev=>document.addEventListener(ev, brunoArmIdle, { passive:true }));
 brunoArmIdle();
 
-// Les anciennes phrases d'accueil (BRUNO_LINES) restent, plus rares, car le succès secret
-// « Habitué de la boutique » compte combien de ces phrases le joueur a vues.
-const BRUNO_OLD_LINE_CHANCE = 0.25;
+// Phrase d'accueil au hasard. Le succès secret « Habitué de la boutique » compte combien
+// de ces phrases le joueur a vues (indice = position dans BRUNO_WELCOME_LINES ; objectif = 5).
 function renderBrunoLine(){
-  if(Math.random() >= BRUNO_OLD_LINE_CHANCE){
-    brunoSay(BRUNO_WELCOME_LINES[Math.floor(Math.random()*BRUNO_WELCOME_LINES.length)], 9000);
-    return;
-  }
-  const idx = Math.floor(Math.random()*BRUNO_LINES.length);
-  brunoSay(BRUNO_LINES[idx], 11000);
+  const idx = Math.floor(Math.random()*BRUNO_WELCOME_LINES.length);
+  brunoSay(BRUNO_WELCOME_LINES[idx], 9000);
   // Succès secret "Habitué de la boutique" — mémorise côté serveur quelles
   // répliques d'accueil ont déjà été vues (persiste entre les visites).
   // Important : renderBrunoLine() est appelée dès l'ouverture de la page,
