@@ -253,6 +253,8 @@
 .card-rarity-gem.rarity-Rare{background:#4fb3d9;color:#4fb3d9;}
 .card-rarity-gem.rarity-Épique{background:hsl(calc(var(--th, 252) - 0.2) calc(var(--ts-a, 1) * 100%) calc(68% + var(--tl-a, 0%)));color:hsl(calc(var(--th, 252) - 0.2) calc(var(--ts-a, 1) * 100%) calc(68% + var(--tl-a, 0%)));}
 .card-rarity-gem.rarity-Mythique{background:var(--gold);color:var(--gold);}
+.flip-card .finish-tag{position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);z-index:5;white-space:nowrap;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;color:#2a1f05;background:linear-gradient(90deg,#f6e08a,#d4af37);box-shadow:0 0 10px rgba(233,200,90,.8);opacity:0;transition:opacity .3s .35s;pointer-events:none;}
+.flip-card.flipped .finish-tag{opacity:1;}
 .card-foil-layer{position:absolute;inset:0;border-radius:inherit;overflow:hidden;pointer-events:none;z-index:9;}
 .card-foil-layer::before{
   content:'';position:absolute;top:-60%;left:-70%;width:70%;height:220%;
@@ -386,6 +388,7 @@
 .modal-actions button:hover{border-color:var(--gold);}
 .shop-msg{text-align:center;font-size:13px;color:var(--parchment-dim);padding:20px;}
 </style>
+<script src="spellcraft-premium.js"></script>
 <script src="spellcraft-card-render.js"></script>
 </head>
 <body>
@@ -1406,7 +1409,8 @@ function dealBoosterCards(cardsStage, cardsResult, fullCards, backUrl, actions){
 
     const front = document.createElement('div');
     front.className = 'flip-face flip-front';
-    const full = fullCards[res.card_id] || { name: res.name, rarity: res.rarity };
+    const full = Object.assign({}, fullCards[res.card_id] || { name: res.name, rarity: res.rarity },
+      res.result==='card' ? { foil: !!res.foil, premium: !!res.premium } : {});
     const tierClass = cardRarityTierClass(full);
     if(tierClass) flip.classList.add(tierClass);
     const frontCardEl = buildBoosterCardEl(full, res.result==='card' && res.is_new===true);
@@ -1427,6 +1431,12 @@ function dealBoosterCards(cardsStage, cardsResult, fullCards, backUrl, actions){
 
     inner.appendChild(back); inner.appendChild(front);
     flip.appendChild(inner);
+    if(res.result==='card' && (res.foil || res.premium)){
+      const tag = document.createElement('div');
+      tag.className = 'finish-tag';
+      tag.textContent = res.premium && res.foil ? '💠✨ Premium Foil' : res.premium ? '💠 Premium' : '✨ Foil';
+      flip.appendChild(tag);
+    }
     cardsStage.appendChild(flip);
 
     setTimeout(()=>{ flip.classList.add('dealt'); }, 80*i);
@@ -1553,8 +1563,7 @@ async function showRevealModal(title, items){
         ${fragDetail ? `<div class="rcard-rarity">${fragDetail}</div>` : ''}
       `;
     } else {
-      const full = fullCards[it.card_id] || { name: it.name, rarity: it.rarity };
-      full.foil = !!it.foil;
+      const full = Object.assign({}, fullCards[it.card_id] || { name: it.name, rarity: it.rarity }, { foil: !!it.foil, premium: !!it.premium });
       slot.className = 'reveal-card';
       slot.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:4px;';
       const revealHolder = document.createElement('div');

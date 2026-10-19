@@ -124,13 +124,36 @@ async function loadCardsLinkedToHero(heroName){
    catalogue (voir spellcraft-supabase-schema-addendum-2.sql).
    Ces fonctions lisent/modifient la table user_cards.
    ============================================================ */
-async function loadUserCollection(){
+/* Détail de la collection du joueur, une entrée par carte :
+     { normal, foil, premiumNormal, premiumFoil }
+   - normal / foil : nombre d'exemplaires normaux / foil (premium compris)
+   - premiumNormal : parmi les normaux, combien sont premium (toujours <= normal)
+   - premiumFoil   : parmi les foil, combien sont premium   (toujours <= foil)
+   Si les colonnes premium n'existent pas encore côté base (script SQL pas encore lancé),
+   on retombe sur la lecture sans premium. */
+async function loadUserCollectionDetailed(){
   const user = await scGetCurrentUser();
   if(!user) return {};
-  const { data, error } = await sb.from('user_cards').select('card_id, quantity').eq('user_id', user.id);
-  if(error){ console.error('Erreur de chargement de la collection', error); return {}; }
+  let res = await sb.from('user_cards').select('card_id, quantity, quantity_foil, premium_normal, premium_foil').eq('user_id', user.id);
+  if(res.error){
+    res = await sb.from('user_cards').select('card_id, quantity, quantity_foil').eq('user_id', user.id);
+  }
+  if(res.error){ console.error('Erreur de chargement de la collection', res.error); return {}; }
   const owned = {};
-  (data||[]).forEach(row => { owned[row.card_id] = row.quantity; });
+  (res.data||[]).forEach(row => {
+    owned[row.card_id] = {
+      normal: row.quantity||0, foil: row.quantity_foil||0,
+      premiumNormal: row.premium_normal||0, premiumFoil: row.premium_foil||0
+    };
+  });
+  return owned;
+}
+/* Nombre total d'exemplaires par carte (normaux + foil, premium compris) :
+   c'est le chiffre qui compte pour les plafonds de copies et la construction de deck. */
+async function loadUserCollection(){
+  const detail = await loadUserCollectionDetailed();
+  const owned = {};
+  Object.keys(detail).forEach(id => { owned[id] = detail[id].normal + detail[id].foil; });
   return owned;
 }
 

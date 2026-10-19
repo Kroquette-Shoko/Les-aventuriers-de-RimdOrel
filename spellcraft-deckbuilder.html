@@ -141,7 +141,15 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
   transform:scale(0.66667);transition:transform .12s;
 }
 .binder-slot .ncard:hover{transform:scale(0.68667);}
-.card-add-badge{position:absolute;top:2px;right:2px;background:var(--green);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 5px;z-index:5;box-shadow:0 2px 4px rgba(0,0,0,.5);}
+.card-version-star{position:absolute;top:-4px;right:12px;z-index:6;width:26px;height:34px;padding:0 0 6px;border:none;cursor:pointer;color:#2a1f05;font-size:15px;line-height:34px;
+  background:linear-gradient(180deg,#f3dc8a,#c9a12c);clip-path:polygon(0 0,100% 0,100% 100%,50% 82%,0 100%);box-shadow:0 2px 6px rgba(0,0,0,.5);filter:drop-shadow(0 2px 3px rgba(0,0,0,.55));}
+.card-version-star:hover{filter:brightness(1.12) drop-shadow(0 2px 3px rgba(0,0,0,.55));}
+.card-version-star.set{background:linear-gradient(180deg,#9be7ff,#3a8fd0);color:#06243b;}
+.ver-tile{background:var(--bg-panel-2);border:2px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));border-radius:10px;padding:8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--parchment);font-size:12px;}
+.ver-tile.sel{border-color:var(--gold);}
+.ver-tile:hover{border-color:var(--gold);}
+.drow-fin{font-size:10px;}
+.card-add-badge{position:absolute;top:34px;right:2px;background:var(--green);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 5px;z-index:5;box-shadow:0 2px 4px rgba(0,0,0,.5);}
 .card-new-badge{position:absolute;top:4px;left:-2px;z-index:6;background:#ffd23f;color:#3a2a00;font:800 10px/1 'Inter',sans-serif;letter-spacing:.04em;text-transform:uppercase;padding:3px 7px;border-radius:4px;box-shadow:0 0 0 1px rgba(0,0,0,.5),0 0 10px rgba(255,210,63,.75);pointer-events:none;transform:rotate(-6deg);}
 .card-owned-badge{position:absolute;bottom:2px;left:2px;background:hsl(calc(var(--th, 252) + 10.5) calc(var(--ts-n, 1) * 25%) 6.3% / .75);border:1px solid var(--gold, #d4af37);color:var(--gold, #d4af37);font-size:8.5px;font-weight:700;border-radius:8px;padding:1px 5px;z-index:5;}
 
@@ -477,6 +485,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 .md-gem{width:100%;height:100%;background-size:contain;background-repeat:no-repeat;background-position:center;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;}
 .md-fx-skip{position:absolute;right:18px;bottom:16px;font-size:11px;color:#fff;opacity:.55;font-family:'Inter',sans-serif;}
 </style>
+<script src="spellcraft-premium.js"></script>
 <script src="spellcraft-card-render.js"></script>
 </head>
 <body>
@@ -628,8 +637,8 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 
 <div class="modal-overlay" id="variant-modal" onclick="if(event.target===this) closeModal('variant-modal')">
   <div class="modal-box" style="max-width:640px;">
-    <h2 id="variant-modal-title">Choisir l'illustration</h2>
-    <p style="font-size:11.5px;color:var(--parchment-dim);margin:0 0 12px;">L'illustration choisie s'applique à tous les exemplaires de cette carte dans ce deck. Pense à sauvegarder le deck ensuite.</p>
+    <h2 id="variant-modal-title">Choisir la version</h2>
+    <p id="variant-modal-note" style="font-size:11.5px;color:var(--parchment-dim);margin:0 0 12px;"></p>
     <div id="variant-modal-content" style="display:flex;flex-wrap:wrap;gap:14px;justify-content:center;"></div>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal('variant-modal')">Fermer</button>
@@ -719,37 +728,92 @@ function entryVariant(entry){
   const v = VARIANTS.find(x => x.id === entry.variantId);
   return (v && MY_VARIANT_IDS.has(v.id)) ? v : null;   // variante supprimée ou non possédée : illustration d'origine
 }
-function entryCardView(entry, card){ return cardWithVariant(card, entryVariant(entry)); }
+/* ---------- Finitions (foil / premium) ----------
+   Une même carte peut exister en plusieurs versions dans la collection :
+     normal · foil · premium · premium+foil   (× illustrations alternatives débloquées)
+   Dans le classeur, la version affichée par défaut est la plus haute possédée ;
+   dans un deck, chaque carte garde la version choisie (entry.finish + entry.variantId). */
+let ownedDetail = {};   // { cardId: {normal, foil, premiumNormal, premiumFoil} }
+async function reloadOwned(){
+  ownedDetail = await loadUserCollectionDetailed();
+  ownedCollection = {};
+  Object.keys(ownedDetail).forEach(id => { ownedCollection[id] = ownedDetail[id].normal + ownedDetail[id].foil; });
+}
+const FINISH_ORDER = ['normal','foil','premium','premium_foil'];      // du plus bas au plus haut
+const FINISH_LABEL = { normal:'Normale', foil:'Foil', premium:'Premium', premium_foil:'Premium + Foil' };
+function finishFlags(f){ return { foil: f==='foil' || f==='premium_foil', premium: f==='premium' || f==='premium_foil' }; }
+function ownedFinishes(cardId){
+  const d = ownedDetail[cardId];
+  if(!d) return ['normal'];
+  const out = [];
+  if(d.normal - d.premiumNormal > 0) out.push('normal');
+  if(d.foil - d.premiumFoil > 0) out.push('foil');
+  if(d.premiumNormal > 0) out.push('premium');
+  if(d.premiumFoil > 0) out.push('premium_foil');
+  return out.length ? out : ['normal'];
+}
+function bestFinish(cardId){
+  const l = ownedFinishes(cardId);
+  return l.reduce((best, f) => FINISH_ORDER.indexOf(f) > FINISH_ORDER.indexOf(best) ? f : best, l[0]);
+}
+function entryFinish(entry){
+  if(!entry || !entry.finish) return 'normal';
+  return ownedFinishes(entry.cardId).includes(entry.finish) ? entry.finish : 'normal';
+}
+function cardWithFinish(card, finish, variant){
+  return Object.assign({}, cardWithVariant(card, variant), finishFlags(finish));
+}
+/* Versions possibles d'une carte = finitions possédées × (illustration d'origine + variantes débloquées) */
+function versionChoices(cardId){
+  const arts = [null].concat(ownedVariantsFor(cardId));
+  const out = [];
+  ownedFinishes(cardId).forEach(f => arts.forEach(v => out.push({ finish:f, variant:v })));
+  return out;
+}
+function entryCardView(entry, card){ return cardWithFinish(card, entryFinish(entry), entryVariant(entry)); }
+/* Ce que le classeur montre pour une carte : la version choisie dans le deck ouvert,
+   sinon la plus haute finition possédée. */
+function binderCardView(card){
+  const entry = currentDeck ? currentDeck.cards.find(c => c.cardId === card.id) : null;
+  if(entry) return entryCardView(entry, card);
+  return cardWithFinish(card, bestFinish(card.id), null);
+}
 
 function openVariantModal(cardId){
-  if(!currentDeck) return;
-  const entry = currentDeck.cards.find(c => c.cardId === cardId);
   const card = cardById(cardId);
-  if(!entry || !card) return;
-  const choices = [{ v:null, label:"Illustration d'origine" }].concat(ownedVariantsFor(cardId).map(v => ({ v, label: v.name })));
-  const current = entryVariant(entry);
+  if(!card) return;
+  const entry = currentDeck ? currentDeck.cards.find(c => c.cardId === cardId) : null;
+  const choices = versionChoices(cardId);
+  const curFinish = entryFinish(entry), curVariant = entryVariant(entry);
   document.getElementById('variant-modal-title').textContent = card.name;
+  const note = document.getElementById('variant-modal-note');
+  note.textContent = !currentDeck ? "Ouvre un deck pour choisir la version à y jouer."
+    : !entry ? "Ajoute d'abord cette carte au deck pour choisir sa version."
+    : "La version choisie s'applique à tous les exemplaires de cette carte dans ce deck. Pense à sauvegarder le deck ensuite.";
   const box = document.getElementById('variant-modal-content');
   box.innerHTML = '';
   choices.forEach(ch => {
-    const selected = (!current && !ch.v) || (current && ch.v && current.id === ch.v.id);
+    const selected = !!entry && ch.finish === curFinish && ((!curVariant && !ch.variant) || (curVariant && ch.variant && curVariant.id === ch.variant.id));
     const tile = document.createElement('button');
     tile.type = 'button';
-    tile.style.cssText = `background:var(--bg-panel-2);border:2px solid ${selected ? 'var(--gold)' : 'var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%))'};border-radius:10px;padding:8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--parchment);font-size:12px;`;
+    tile.className = 'ver-tile' + (selected ? ' sel' : '');
     const slot = document.createElement('div');
     slot.style.cssText = 'width:150px;height:210px;position:relative;overflow:visible;margin:0 8px 8px;';
-    const cardEl = buildCardEl(cardWithVariant(card, ch.v), { isPreview:true });
+    const cardEl = buildCardEl(cardWithFinish(card, ch.finish, ch.variant), { isPreview:true });
     cardEl.style.cssText += ';position:absolute;top:0;left:0;transform:scale(.5);transform-origin:top left;';
     slot.appendChild(cardEl);
     tile.appendChild(slot);
     const lab = document.createElement('div');
-    lab.textContent = (selected ? '✓ ' : '') + ch.label;
+    lab.textContent = (selected ? '✓ ' : '') + FINISH_LABEL[ch.finish] + (ch.variant ? ' · ' + ch.variant.name : '');
     tile.appendChild(lab);
     tile.onclick = () => {
-      if(ch.v) entry.variantId = ch.v.id; else delete entry.variantId;
+      if(!currentDeck || !entry){ flashError(note.textContent); return; }
+      if(ch.finish !== 'normal') entry.finish = ch.finish; else delete entry.finish;
+      if(ch.variant) entry.variantId = ch.variant.id; else delete entry.variantId;
       closeModal('variant-modal');
       renderDeckPanel();
-      flashSaved('Illustration choisie — pense à sauvegarder le deck');
+      renderBinder();
+      flashSaved('Version choisie — pense à sauvegarder le deck');
     };
     box.appendChild(tile);
   });
@@ -834,7 +898,7 @@ function markCardSeen(id, badge){
 
 async function refreshCollection(silent){
   const allCards = await loadAllCardsAcrossSets();
-  ownedCollection = await loadUserCollection();
+  await reloadOwned();
   allCardsCache = allCards;
   collection = allCards.filter(c => (ownedCollection[c.id]||0) > 0);
   await updateNewCards();
@@ -1895,9 +1959,20 @@ function renderBinder(animate){
       if(cards[i]){
         const card = cards[i];
         slot.style.position='relative';
-        const el = buildCardEl(card);
+        const el = buildCardEl(binderCardView(card));
         el.onclick = ()=>onCardClick(card);
         slot.appendChild(el);
+        if(versionChoices(card.id).length > 1){
+          const star = document.createElement('button');
+          star.type = 'button';
+          star.className = 'card-version-star';
+          star.title = 'Choisir la version (foil, premium, illustration) pour le deck';
+          star.textContent = '★';
+          const inDeck = currentDeck && currentDeck.cards.find(c=>c.cardId===card.id);
+          if(inDeck && (inDeck.finish || inDeck.variantId)) star.classList.add('set');
+          star.onclick = (ev)=>{ ev.stopPropagation(); openVariantModal(card.id); };
+          slot.appendChild(star);
+        }
         const count = deckCountFor(card.id);
         const isChosenHero = currentDeck && currentDeck.heroId===card.id;
         const isChosenRegion = currentDeck && currentDeck.regionId===card.id;
@@ -1926,6 +2001,13 @@ function renderBinder(animate){
           const ownedBadge = document.createElement('div');
           ownedBadge.className='card-owned-badge';
           ownedBadge.textContent = `poss. x${owned}`;
+          const od = ownedDetail[card.id];
+          if(od && (od.foil || od.premiumNormal || od.premiumFoil)){
+            const bits = [];
+            if(od.foil) bits.push(od.foil + ' foil');
+            if(od.premiumNormal + od.premiumFoil) bits.push((od.premiumNormal + od.premiumFoil) + ' premium');
+            ownedBadge.title = 'dont ' + bits.join(', ');
+          }
           slot.appendChild(ownedBadge);
         }
       } else {
@@ -2359,7 +2441,7 @@ async function doCraft(cardId, btn){
     return;
   }
   flashSaved(`✓ ${data.name} fabriquée !`);
-  ownedCollection = await loadUserCollection();
+  await reloadOwned();
   collection = allCardsCache.filter(c=>(ownedCollection[c.id]||0) > 0);
   renderFragmentsBar();
   showCraftModal(craftModalCard);
@@ -2375,7 +2457,7 @@ async function doDisenchant(cardId, btn){
     return;
   }
   flashSaved(`✓ ${data.refund} fragments récupérés`);
-  ownedCollection = await loadUserCollection();
+  await reloadOwned();
   collection = allCardsCache.filter(c=>(ownedCollection[c.id]||0) > 0);
   renderFragmentsBar();
   showCraftModal(craftModalCard);
@@ -2491,7 +2573,7 @@ async function confirmMassDisenchant(){
     document.getElementById('md-overlay').classList.remove('show');
     MD.busy = false;
     flashSaved(`✓ ${data.disenchanted.length} carte${data.disenchanted.length>1?'s':''} désassemblée${data.disenchanted.length>1?'s':''} · ${data.total_refund} fragments`);
-    ownedCollection = await loadUserCollection();
+    await reloadOwned();
     collection = allCardsCache.filter(c=>(ownedCollection[c.id]||0) > 0);
     renderFragmentsBar();
     renderBinder();
@@ -2641,7 +2723,10 @@ function addCardToDeck(card){
     if(entry.count < max) entry.count++;
     else flashError(`${card.name} : maximum ${max} exemplaire${max>1?'s':''} (${card.rarity}).`);
   } else {
-    currentDeck.cards.push({cardId:card.id, count:1});
+    const best = bestFinish(card.id);
+    const ne = {cardId:card.id, count:1};
+    if(best !== 'normal') ne.finish = best;      // par défaut, on joue la plus haute finition possédée
+    currentDeck.cards.push(ne);
   }
 }
 function removeCardFromDeck(cardId){
@@ -2701,7 +2786,7 @@ function loadDeck(deckId){
   currentDeck = JSON.parse(JSON.stringify(d));
   if(currentDeck.regionId===undefined) currentDeck.regionId = null;
   if(currentDeck.cardBackId===undefined) currentDeck.cardBackId = null;
-  currentDeck.cards.forEach(e => { if(e.variantId && !entryVariant(e)) delete e.variantId; });   // variante supprimée ou non possédée
+  currentDeck.cards.forEach(e => { if(e.variantId && !entryVariant(e)) delete e.variantId; if(e.finish && !ownedFinishes(e.cardId).includes(e.finish)) delete e.finish; });   // variante supprimée ou non possédée
   document.getElementById('deck-name-input').value = currentDeck.name;
   deckBuildStep = 'cards';
   currentPage = 0;
@@ -2805,10 +2890,10 @@ function renderDeckPanel(){
     row.className='deck-row';
     row.innerHTML = `
       <div class="drow-cost">${c.cost ?? '–'}</div>
-      <div class="drow-name" title="${escapeHtml(c.name)}">${escapeHtml(c.name)}${c.isLegendary?' ✦':''}</div>
+      <div class="drow-name" title="${escapeHtml(c.name)}">${escapeHtml(c.name)}${c.isLegendary?' ✦':''}${entryFinish(entry)!=='normal' ? ` <span class="drow-fin" title="${FINISH_LABEL[entryFinish(entry)]}">${entryFinish(entry)==='foil'?'✨':entryFinish(entry)==='premium'?'💠':'💠✨'}</span>` : ''}</div>
       <div class="drow-count">x${entry.count}</div>
       <div class="drow-btns">
-        ${ownedVariantsFor(c.id).length ? `<button class="drow-btn" data-act="variant" title="Changer l'illustration" style="${entryVariant(entry) ? 'border-color:var(--gold);' : ''}">🎨</button>` : ''}
+        ${versionChoices(c.id).length > 1 ? `<button class="drow-btn" data-act="variant" title="Choisir la version (foil, premium, illustration)" style="${(entryVariant(entry) || entryFinish(entry)!=='normal') ? 'border-color:var(--gold);' : ''}">★</button>` : ''}
         <button class="drow-btn" data-act="minus">−</button>
         <button class="drow-btn" data-act="plus">+</button>
       </div>

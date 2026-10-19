@@ -1,0 +1,107 @@
+/* ============================================================
+   FINITIONS DE CARTES : FOIL ET PREMIUM
+   ------------------------------------------------------------
+   Une carte peut porter deux marqueurs (champs de l'objet carte) :
+     card.foil     → reflet arc-en-ciel qui défile sur la carte
+     card.premium  → effet de profondeur : la carte s'incline avec le
+                     pointeur, l'illustration se décale derrière le cadre,
+                     un reflet suit le pointeur.
+   Les deux se cumulent.
+
+   Tout passe par SCFinish.apply(root, card, size), appelé automatiquement
+   à la fin de SCCardRender.decorate (donc par tous les buildNewCardEl).
+   Le module ne touche pas aux cartes sans marqueur.
+
+   Technique : les enfants de .ncard sont regroupés dans un calque .nfin
+   (même boîte que la carte) qui reçoit l'inclinaison 3D. Le pointeur est
+   suivi sur .ncard ; sa position (de -1 à 1) est écrite dans les variables
+   CSS --px / --py, tout le reste est du CSS.
+   ============================================================ */
+(function(){
+  var CSS = ''
+  + '.ncard.n-finish{isolation:isolate;}'
+  + '.ncard.n-prem{perspective:700px;}'
+  + '.ncard .nfin{position:absolute;left:0;top:0;width:100%;height:100%;transform-style:preserve-3d;}'
+  + '.ncard.n-prem .nfin{transform:rotateX(calc(var(--py,0)*-11deg)) rotateY(calc(var(--px,0)*14deg));transition:transform .22s ease-out;will-change:transform;}'
+  + '.ncard.n-prem.n-live .nfin{transition:transform .06s linear;}'
+  + '.ncard .nart-in{position:absolute;left:0;top:0;width:100%;height:100%;background-repeat:no-repeat;}'
+  + '.ncard.n-prem .nart-in{transform:translate(calc(var(--px,0)*-5%),calc(var(--py,0)*-4%)) scale(1.12);transition:transform .22s ease-out;}'
+  + '.ncard.n-prem.n-live .nart-in{transition:transform .06s linear;}'
+  + '.ncard .nglare,.ncard .nfoil{clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 12px,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0 calc(100% - 12px),0 12px);}'
+  + '.ncard .nglare{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:30;mix-blend-mode:soft-light;'
+  +   'background:radial-gradient(circle at calc(50% + var(--px,0)*45%) calc(32% + var(--py,0)*40%),rgba(255,255,255,.7),rgba(255,255,255,0) 44%);}'
+  + '.ncard .nglare.b{mix-blend-mode:overlay;background:radial-gradient(circle at calc(50% + var(--px,0)*45%) calc(32% + var(--py,0)*40%),rgba(255,255,255,.38),rgba(255,255,255,0) 30%);}'
+  + '.ncard:not(.n-live) .nglare{animation:nglare-idle 7s ease-in-out infinite;}'
+  + '@keyframes nglare-idle{0%,100%{opacity:.45}50%{opacity:1}}'
+  + '.ncard .nfoil{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:31;mix-blend-mode:hard-light;opacity:.42;'
+  +   'background:linear-gradient(115deg,transparent 5%,rgba(255,90,90,.75) 22%,rgba(255,210,80,.75) 34%,rgba(120,255,150,.75) 46%,rgba(80,190,255,.75) 58%,rgba(190,110,255,.75) 70%,rgba(255,120,200,.75) 82%,transparent 95%);'
+  +   'background-size:260% 100%;background-position:calc(50% + var(--px,0)*50%) 0;}'
+  + '.ncard:not(.n-live) .nfoil{animation:nfoil-idle 6s ease-in-out infinite alternate;}'
+  + '@keyframes nfoil-idle{0%{background-position:0% 0}100%{background-position:100% 0}}'
+  + '@media (prefers-reduced-motion:reduce){.ncard .nglare,.ncard .nfoil{animation:none!important}.ncard.n-prem .nfin,.ncard.n-prem .nart-in{transition:none}}';
+  var installed = false;
+  function install(){
+    if(installed) return; installed = true;
+    var st = document.createElement('style'); st.setAttribute('data-sc-finish','1'); st.textContent = CSS;
+    (document.head || document.documentElement).appendChild(st);
+  }
+
+  function liftArt(root){
+    // L'illustration doit bouger DANS la fenêtre découpée par le cadre : on la déplace
+    // dans un enfant (le calque garde sa forme et son découpage).
+    var art = root.querySelector('.nart-layer');
+    if(!art || art.children.length) return;
+    var cs = art.style;
+    if(!cs.backgroundImage) return;
+    var inner = document.createElement('div'); inner.className = 'nart-in';
+    inner.style.backgroundImage = cs.backgroundImage;
+    inner.style.backgroundPosition = cs.backgroundPosition || '50% 50%';
+    inner.style.backgroundSize = cs.backgroundSize || 'cover';
+    art.style.backgroundImage = '';
+    art.appendChild(inner);
+  }
+
+  function track(root){
+    var raf = 0, nx = 0, ny = 0;
+    function flush(){ raf = 0; root.style.setProperty('--px', nx.toFixed(3)); root.style.setProperty('--py', ny.toFixed(3)); }
+    function move(e){
+      var r = root.getBoundingClientRect(); if(!r.width || !r.height) return;
+      nx = Math.max(-1, Math.min(1, ((e.clientX - r.left) / r.width - .5) * 2));
+      ny = Math.max(-1, Math.min(1, ((e.clientY - r.top) / r.height - .5) * 2));
+      root.classList.add('n-live');
+      if(!raf) raf = requestAnimationFrame(flush);
+    }
+    function leave(){ nx = 0; ny = 0; root.classList.remove('n-live'); if(!raf) raf = requestAnimationFrame(flush); }
+    root.addEventListener('pointermove', move);
+    root.addEventListener('pointerenter', move);
+    root.addEventListener('pointerleave', leave);
+    root.addEventListener('pointercancel', leave);
+  }
+
+  function apply(root, card, size){
+    if(!root || !card || (!card.foil && !card.premium)) return root;
+    if(root.querySelector(':scope > .nfin')) return root;      // déjà traitée
+    install();
+    root.classList.add('n-finish');
+    if(card.premium) liftArt(root);
+    // regroupe tous les enfants dans .nfin
+    var fin = document.createElement('div'); fin.className = 'nfin';
+    while(root.firstChild) fin.appendChild(root.firstChild);
+    root.appendChild(fin);
+    if(card.premium){
+      root.classList.add('n-prem');
+      var g1 = document.createElement('div'); g1.className = 'nglare';
+      var g2 = document.createElement('div'); g2.className = 'nglare b';
+      fin.appendChild(g1); fin.appendChild(g2);
+      track(root);
+    }
+    if(card.foil){
+      root.classList.add('n-foil');
+      var f = document.createElement('div'); f.className = 'nfoil'; fin.appendChild(f);
+      if(!card.premium) track(root);
+    }
+    return root;
+  }
+
+  window.SCFinish = { apply: apply };
+})();
