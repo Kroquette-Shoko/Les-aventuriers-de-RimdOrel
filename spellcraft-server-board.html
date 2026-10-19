@@ -246,6 +246,8 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .card.selected{outline:3px solid var(--arcane);transform:translateY(-6px);}
 .card.attacking{outline:3px solid var(--blood);}
 .card.blocked-by::after{content:"🛡";position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:14px;z-index:5;}
+/* Cartes premium sur le plateau : immobiles au repos, elles ne bougent qu'au survol de la souris. */
+body .ncard.n-prem:not(.n-live) .nfin{animation:none;}
 .card.self-targetable{cursor:crosshair;box-shadow:0 0 0 3px var(--gold), 0 4px 14px rgba(212,175,55,.5);animation:self-target-pulse 1.3s ease-in-out infinite;}
 @keyframes self-target-pulse{0%,100%{box-shadow:0 0 0 3px var(--gold), 0 4px 14px rgba(212,175,55,.5);}50%{box-shadow:0 0 0 5px var(--gold), 0 4px 20px rgba(212,175,55,.8);}}
 .card.targetable{outline:3px solid var(--blood);animation:pulse 1s infinite;}
