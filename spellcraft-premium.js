@@ -5,7 +5,7 @@
      card.foil     → reflet arc-en-ciel qui défile sur la carte
      card.premium  → effet de profondeur : la carte s'incline avec le
                      pointeur, l'illustration se décale derrière le cadre,
-                     un reflet suit le pointeur.
+                     le reflet blanc a été retiré.
    Les deux se cumulent.
 
    Tout passe par SCFinish.apply(root, card, size), appelé automatiquement
@@ -33,18 +33,14 @@
   + '.ncard .nart-in{position:absolute;left:0;top:0;width:100%;height:100%;background-repeat:no-repeat;}'
   + '.ncard.n-prem .nart-in{transform:translate(calc(var(--px,0)*-5%),calc(var(--py,0)*-4%)) scale(1.12);transition:transform .22s ease-out;}'
   + '.ncard.n-prem.n-live .nart-in{transition:transform .06s linear;}'
-  + '.ncard .nglare,.ncard .nfoil{clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 12px,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0 calc(100% - 12px),0 12px);}'
-  + '.ncard .nglare{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:30;mix-blend-mode:soft-light;'
-  +   'background:radial-gradient(circle at calc(50% + var(--px,0)*45%) calc(32% + var(--py,0)*40%),rgba(255,255,255,.7),rgba(255,255,255,0) 44%);}'
-  + '.ncard .nglare.b{mix-blend-mode:overlay;background:radial-gradient(circle at calc(50% + var(--px,0)*45%) calc(32% + var(--py,0)*40%),rgba(255,255,255,.38),rgba(255,255,255,0) 30%);}'
-  + '.ncard:not(.n-live) .nglare{animation:nglare-idle 7s ease-in-out infinite;}'
-  + '@keyframes nglare-idle{0%,100%{opacity:.45}50%{opacity:1}}'
+  + '.ncard .nfoil{clip-path:polygon(12px 0,calc(100% - 12px) 0,100% 12px,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0 calc(100% - 12px),0 12px);}'
+  + '.ncard.nd-spell .nfoil,.ncard.nd-trap .nfoil{top:-3.4%;height:103.4%;clip-path:polygon(0 0,100% 0,100% calc(100% - 12px),calc(100% - 12px) 100%,12px 100%,0 calc(100% - 12px));}'
   + '.ncard .nfoil{position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:31;mix-blend-mode:hard-light;opacity:.5;'
   +   'background:linear-gradient(115deg,transparent 5%,rgba(255,90,90,.75) 22%,rgba(255,210,80,.75) 34%,rgba(120,255,150,.75) 46%,rgba(80,190,255,.75) 58%,rgba(190,110,255,.75) 70%,rgba(255,120,200,.75) 82%,transparent 95%);'
   +   'background-size:260% 100%;background-position:calc(50% + var(--px,0)*50%) 0;}'
   + '.ncard:not(.n-live) .nfoil{animation:nfoil-idle 6s ease-in-out infinite alternate;}'
   + '@keyframes nfoil-idle{0%{background-position:0% 0}100%{background-position:100% 0}}'
-  + '@media (prefers-reduced-motion:reduce){.ncard .nglare,.ncard .nfoil{animation:none!important}.ncard.n-prem .nfin,.ncard.n-prem .nart-in{transition:none}.ncard.n-prem .nfin{animation:none!important}}';
+  + '@media (prefers-reduced-motion:reduce){.ncard .nfoil{animation:none!important}.ncard.n-prem .nfin,.ncard.n-prem .nart-in{transition:none}.ncard.n-prem .nfin{animation:none!important}}';
   var installed = false;
   function install(){
     if(installed) return; installed = true;
@@ -97,9 +93,6 @@
     if(card.premium){
       root.classList.add('n-prem');
       fin.style.animationDelay = '-' + (Math.random()*7).toFixed(2) + 's';
-      var g1 = document.createElement('div'); g1.className = 'nglare';
-      var g2 = document.createElement('div'); g2.className = 'nglare b';
-      fin.appendChild(g1); fin.appendChild(g2);
       track(root);
     }
     if(card.foil){
