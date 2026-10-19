@@ -147,6 +147,7 @@ html.embed #app{padding-top:0;min-height:0;}
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-economy.js"></script>
 <script>
+const EMBED = new URLSearchParams(location.search).get('embed') === '1';
 /* ---------- Velkrin : répliques ---------- */
 const VELKRIN_LINES = {
   welcome: [
@@ -169,6 +170,8 @@ const VELKRIN_LINES = {
 };
 let velkrinHideTimeout = null, velkrinLast = null;
 function velkrinSay(text, ms){
+  // Page intégrée à l'onglet « coffres » des quêtes : c'est la page parente qui affiche Velkrin.
+  if(typeof EMBED !== 'undefined' && EMBED){ try{ parent.postMessage({ type:'velkrin-say', text, ms: ms || 7000 }, location.origin); }catch(e){} return; }
   const bubble = document.getElementById('velkrin-bubble');
   if(!bubble) return;
   document.getElementById('velkrin-speech').textContent = text;
@@ -431,7 +434,6 @@ async function buyPremium(){
   } finally { busy = false; }
 }
 
-const EMBED = new URLSearchParams(location.search).get('embed') === '1';
 if(EMBED){
   document.documentElement.classList.add('embed');
   // Prévient la page parente de la hauteur du contenu, pour que l'onglet s'ajuste sans double barre de défilement.
@@ -440,7 +442,7 @@ if(EMBED){
 }
 initSpellcraftAuth();
 if(!EMBED){ try{ playMenuMusicRotation(0.35); }catch(e){} }
-if(!EMBED) setTimeout(() => velkrinSay(velkrinPick(VELKRIN_LINES.welcome), 8000), 700);
+setTimeout(() => velkrinSay(velkrinPick(VELKRIN_LINES.welcome), 8000), 700);
 load();
 sb.auth.onAuthStateChange(() => { load(); });
 </script>

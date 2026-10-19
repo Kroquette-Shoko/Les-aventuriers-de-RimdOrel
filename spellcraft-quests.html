@@ -135,6 +135,16 @@ main{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:22px;}
 .rw-reveal-hint{font-size:13px;color:var(--parchment-dim);letter-spacing:.04em;text-align:center;min-height:18px;opacity:0;transition:opacity .3s ease .7s;}
 .rw-reveal-overlay.show .rw-reveal-hint{opacity:1;}
 @media (max-width:640px), (max-height:560px){ .rw-reveal-flip{zoom:.75;} }
+/* Velkrin : visible seulement quand l'onglet des coffres est ouvert */
+#velkrin-float{position:fixed;right:14px;bottom:0;z-index:90;width:300px;height:312px;pointer-events:none;display:none;}
+#velkrin-float.on{display:block;}
+#velkrin-float #velkrin-portrait{position:absolute;inset:0;background:url('images/velkrin_base.png') bottom center/contain no-repeat;filter:drop-shadow(0 12px 20px rgba(0,0,0,.55));}
+#velkrin-bubble{position:absolute;z-index:2;right:46px;bottom:calc(100% + 6px);width:max-content;max-width:min(380px,calc(100vw - 40px));font-family:'Cinzel',serif;font-size:13.5px;line-height:1.5;color:var(--parchment);background:var(--bg-panel-3);border:1px solid var(--gold,#d4af37);border-radius:14px;padding:12px 16px;box-shadow:0 10px 28px rgba(0,0,0,.55);opacity:0;transform:translateY(10px) scale(.96);transform-origin:bottom right;transition:opacity .25s ease,transform .25s ease;pointer-events:none;}
+#velkrin-bubble.show{opacity:1;transform:translateY(0) scale(1);}
+#velkrin-bubble .bb-name{display:block;font-weight:700;font-size:11.5px;color:var(--gold);letter-spacing:.5px;margin-bottom:3px;}
+#velkrin-bubble::after{content:'';position:absolute;right:38px;bottom:-9px;width:16px;height:16px;background:var(--bg-panel-3);border-right:1px solid var(--gold,#d4af37);border-bottom:1px solid var(--gold,#d4af37);transform:rotate(45deg);border-radius:0 0 4px 0;}
+@media (max-width:760px){#velkrin-float{width:150px;height:156px;right:6px;}#velkrin-bubble{right:10px;font-size:12px;max-width:calc(100vw - 24px);}#velkrin-bubble::after{right:60px;}}
+@media (prefers-reduced-motion:reduce){#velkrin-bubble{transition:opacity .01s;transform:none;}}
 </style>
 <script src="spellcraft-premium.js"></script>
 <script src="spellcraft-card-render.js?v=20261019b"></script>
@@ -184,6 +194,7 @@ main{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:22px;}
 <div id="reward-card-preview"></div>
 <div id="coffres-recap"><div class="box"><div id="coffres-recap-content"></div><button class="sc-btn sc-btn-gold" id="coffres-recap-close">Fermer</button></div></div>
 
+<div id="velkrin-float" aria-live="polite"><div id="velkrin-bubble"><span class="bb-name">Velkrin</span><span id="velkrin-speech"></span></div><div id="velkrin-portrait"></div></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>window.APP_TOPBAR_DISABLED = true;</script>
 <script src="spellcraft-shared.js?v=20261019c"></script>
@@ -652,6 +663,8 @@ function showTab(name){
   document.getElementById('quests-main').style.display = coffres ? 'none' : '';
   const view = document.getElementById('coffres-view');
   view.style.display = coffres ? 'block' : 'none';
+  const vf = document.getElementById('velkrin-float'); if(vf) vf.classList.toggle('on', coffres);
+  if(!coffres){ const vb = document.getElementById('velkrin-bubble'); if(vb) vb.classList.remove('show'); }
   if(coffres && !view.firstChild){
     view.innerHTML = '<iframe src="spellcraft-calendar.html?embed=1" title="Les coffres de Velkrin"></iframe>';
   }
@@ -660,6 +673,15 @@ function showTab(name){
 document.addEventListener('click', e => { const b = e.target.closest('.quest-tab'); if(b) showTab(b.dataset.tab); });
 document.getElementById('coffres-recap-close').onclick = () => document.getElementById('coffres-recap').classList.remove('show');
 window.addEventListener('message', e => {
+  if(e.origin === location.origin && e.data && e.data.type === 'velkrin-say' && typeof e.data.text === 'string'){
+    const vb = document.getElementById('velkrin-bubble'), vf = document.getElementById('velkrin-float');
+    if(vb && vf && vf.classList.contains('on')){
+      document.getElementById('velkrin-speech').textContent = e.data.text;
+      vb.classList.add('show');
+      clearTimeout(window.__vkT); window.__vkT = setTimeout(() => vb.classList.remove('show'), Math.min(15000, +e.data.ms || 7000));
+    }
+    return;
+  }
   // La grille (iframe) demande à montrer les cartes gagnées dans la page entière, pas dans son petit cadre.
   // Récapitulatif d'une case (or, boosters ajoutés…) venant de la grille intégrée.
   if(e.origin === location.origin && e.data && e.data.type === 'coffres-recap' && typeof e.data.html === 'string'){
