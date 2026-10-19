@@ -140,7 +140,7 @@
 /* ---------- Écran d'attente ---------- */
 #waiting-overlay{
   position:fixed;inset:0;background:rgba(6,5,10,.9);z-index:50;
-  display:none;align-items:center;justify-content:center;flex-direction:column;text-align:center;
+  display:none;align-items:center;justify-content:safe center;flex-direction:column;text-align:center;overflow-y:auto;padding:20px 16px;box-sizing:border-box;
 }
 #waiting-overlay.show{display:flex;}
 #waiting-overlay h2{font-family:'Cinzel',serif;color:var(--gold);font-size:20px;margin-bottom:10px;}
@@ -230,10 +230,12 @@
   <div class="spinner"></div>
   <p id="waiting-sub" style="font-size:11.5px;">La partie démarrera automatiquement dès qu'il aura rejoint.</p>
   <button id="btn-cancel-wait" class="sc-btn sc-btn-ghost">Annuler</button>
+  <div id="minigames"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>window.APP_TOPBAR_DISABLED = true;</script>
+<script src="spellcraft-minijeux.js?v=20261020a"></script>
 <script src="spellcraft-shared.js?v=20261019c"></script>
 <script src="spellcraft-catalog.js"></script>
 <script src="spellcraft-chrono.js"></script>
@@ -480,6 +482,7 @@ function wireActionButtons(){
     if(WAIT_POLL_TIMER) clearInterval(WAIT_POLL_TIMER);
     if(WAITING_MODE==='matchmaking') await gsLeaveMatchmaking();
     WAITING_MODE = null;
+    if(window.SCMini) SCMini.stop();
     document.getElementById('waiting-overlay').classList.remove('show');
   };
 }
@@ -517,6 +520,7 @@ function showMatchmakingWaitScreen(){
   document.getElementById('waiting-code-hint').style.display = 'none';
   document.getElementById('waiting-sub').textContent = "La partie démarrera automatiquement dès qu'un autre joueur rejoint la file.";
   document.getElementById('waiting-overlay').classList.add('show');
+  if(window.SCMini) SCMini.start(document.getElementById('minigames'));
 
   const since = new Date().toISOString();
   WAIT_POLL_TIMER = setInterval(async ()=>{
@@ -524,10 +528,12 @@ function showMatchmakingWaitScreen(){
     if(res.error){
       clearInterval(WAIT_POLL_TIMER);
       document.getElementById('waiting-overlay').classList.remove('show');
+      if(window.SCMini) SCMini.stop();
       showLobbyError('Erreur : ' + res.error);
       return;
     }
     if(!res.waiting){
+      if(window.SCMini) SCMini.stop();
       clearInterval(WAIT_POLL_TIMER);
       playSfx('match-found');
       goToBoard(res.sessionId, 'p1');
