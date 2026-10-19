@@ -1341,14 +1341,9 @@ async function showAutoSummaryInner(cards, quantity){
 
   // Regroupement par carte + finition
   const groups = new Map();
-  const fragTotals = {};
   let nbCards = 0, nbNew = 0;
   const byRarity = {}, byFinish = { foil:0, premium:0, premium_foil:0 };
   cards.forEach(res=>{
-    if(res.result==='fragments'){
-      (res.fragment_classes||[]).forEach(cls=>{ fragTotals[cls] = (fragTotals[cls]||0) + (res.fragment_amount || 1); });
-      return;
-    }
     if(res.result!=='card') return;
     const base = fullCards[res.card_id] || { id: res.card_id, name: res.name, rarity: res.rarity };
     const finish = autoFinish(!!res.foil, !!res.premium);
@@ -1369,10 +1364,6 @@ async function showAutoSummaryInner(cards, quantity){
   });
   const entries = [...groups.values()];
 
-  // Succès liés aux fragments (même effet que l'ouverture classique)
-  Object.keys(fragTotals).forEach(cls=>{
-    Promise.resolve(sb.rpc('progress_achievement', { p_condition_type: `fragment_earned_${cls}`, p_amount: fragTotals[cls] })).catch(()=>{});
-  });
   Promise.resolve(sb.rpc('progress_collection_achievements')).catch(()=>{});
 
   const chips = [];
@@ -1382,10 +1373,6 @@ async function showAutoSummaryInner(cards, quantity){
   if(byFinish.foil) chips.push(`<span class="auto-chip">✨ <b>${byFinish.foil}</b> foil</span>`);
   if(byFinish.premium) chips.push(`<span class="auto-chip">💠 <b>${byFinish.premium}</b> premium</span>`);
   if(byFinish.premium_foil) chips.push(`<span class="auto-chip">💠✨ <b>${byFinish.premium_foil}</b> premium foil</span>`);
-  Object.keys(fragTotals).forEach(cls=>{
-    const icon = GEM_ICON_FILES[cls] ? `<img src="images/${GEM_ICON_FILES[cls]}" class="frag-toast-icon">` : '';
-    chips.push(`<span class="auto-chip">${icon}+<b>${fragTotals[cls]}</b> ${GEM_NAMES[cls]||cls} (doublons)</span>`);
-  });
 
   body.innerHTML = '';
   const totals = document.createElement('div'); totals.className = 'auto-totals'; totals.innerHTML = chips.join('');
@@ -1421,7 +1408,7 @@ async function showAutoSummaryInner(cards, quantity){
     li.innerHTML = `<span class="al-qty">×${e.qty}</span><span>${escapeHtmlShop(e.name)}</span>${e.isNew?'<span class="al-new">NOUVEAU</span>':''}<span class="al-meta">${escapeHtmlShop(e.rarity)}${AUTO_FINISH_LABEL[e.finish]?' · '+AUTO_FINISH_LABEL[e.finish]:''}</span>`;
     ul.appendChild(li);
   });
-  if(!entries.length){ ul.innerHTML = '<li>Aucune nouvelle carte : tout a été converti en fragments.</li>'; }
+  if(!entries.length){ ul.innerHTML = '<li>Aucune carte obtenue.</li>'; }
   body.appendChild(ul);
 }
 function closeAutoSummary(){
