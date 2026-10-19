@@ -2884,9 +2884,9 @@ function onStateUpdate(state){
     const rev = (state.__rev|0);
     const known = Math.max((S && S.__rev)|0, (__pendingStateWhileAnimating && __pendingStateWhileAnimating.__rev)|0);
     if(rev < known){ return; }
-    // Même numéro de sauvegarde que l'état déjà affiché = état identique (cas de la resynchro silencieuse toutes les 6 s) :
-    // inutile de tout reconstruire (ça faisait « sautiller » la main sous une souris immobile).
-    if(rev > 0 && S && S.p1 && ((S.__rev|0) === rev) && !__pendingStateWhileAnimating){ return; }
+    // NB : un état de même numéro n'est volontairement PAS ignoré — le message identique qui suit une action sert aussi à relancer
+    // le tour de l'IA (onStateUpdate le replanifie quand ACTION_IN_FLIGHT vient de retomber). La main, elle, n'est plus reconstruite
+    // si rien n'a changé (voir renderHand).
   }
   // Une animation de combat est en cours (voir queueCombatAnim) : re-rendre
   // maintenant reconstruirait la carte en plein vol et la ferait
