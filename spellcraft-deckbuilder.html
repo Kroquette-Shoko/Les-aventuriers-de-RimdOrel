@@ -26,6 +26,10 @@
 }
 *{box-sizing:border-box;}
 .title-font{font-family:'Cinzel',serif;}
+/* Police unique de l'interface : celle des onglets de source (Cinzel). Le texte des cartes garde sa police. */
+body,button,input,select,textarea,#sc-dlg,#sc-dlg *{font-family:'Cinzel',serif;}
+.qtog{font-family:'Cinzel',serif !important;}
+.ncard,.ncard *{font-family:'Inter',sans-serif;}
 
 #app{min-height:100vh;width:100%;display:flex;flex-direction:column;align-items:center;padding:0 0 50px;}
 
@@ -569,7 +573,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 #quick-tabs{display:flex;flex-wrap:wrap;gap:5px;}
 .qtab{font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:var(--parchment-dim);background:var(--bg-panel-2);border:1.5px solid var(--line);border-bottom:4px solid var(--qc, var(--line));border-radius:8px 8px 4px 4px;padding:7px 10px;cursor:pointer;}
 .qtab:hover{color:var(--parchment);border-color:var(--gold);border-bottom-color:var(--qc, var(--gold));}
-.qtog{font-family:Inter,system-ui,sans-serif;font-size:13px;margin-left:0;--qc:var(--gold, #d4af37);}
+.qtog{font-size:14px;margin-left:0;--qc:var(--gold, #d4af37);}
 .qtog.qico{padding-left:8px;padding-right:8px;font-size:16px;}
 .qtab.on{background:var(--qc, var(--arcane));color:#fff;border-color:var(--qc, var(--arcane));text-shadow:0 1px 2px rgba(0,0,0,.6);}
 #quick-hint{font-size:14px;color:var(--parchment-dim);}
