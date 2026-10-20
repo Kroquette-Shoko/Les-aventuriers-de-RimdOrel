@@ -802,6 +802,7 @@ body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out 
 <script src="spellcraft-card-render.js?v=20261020a"></script>
 <link rel="stylesheet" href="spellcraft-board-compact.css">
 <script src="spellcraft-board-fit.js"></script>
+<script src="spellcraft-dialogs.js?v=20261020a"></script>
 </head>
 <body>
 
@@ -6395,9 +6396,9 @@ function toggleJournal(){
 // Quitter proprement : si la partie est déjà terminée, aucun risque, on
 // part directement. Sinon, on prévient que partir compte comme un abandon
 // (l'adversaire gagnera par forfait après le délai de déconnexion habituel).
-function uiLeaveGame(){
+async function uiLeaveGame(){
   const ongoing = S && !S.gameOver;
-  if(ongoing && !confirm("Quitter maintenant compte comme un abandon — ton adversaire gagnera la partie. Confirmer ?")) return;
+  if(ongoing && !await scConfirm("Quitter maintenant compte comme un abandon — ton adversaire gagnera la partie. Confirmer ?")) return;
   gsDisconnect();
   window.location.href = 'spellcraft-lobby.html';
 }

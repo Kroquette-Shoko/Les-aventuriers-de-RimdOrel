@@ -29,6 +29,7 @@ button.sm:hover{background:hsl(calc(var(--th, 252) - 0.5) calc(var(--ts-n, 1) * 
 #msg.show{display:block;background:hsl(calc(var(--th, 252) + 0) calc(var(--ts-n, 1) * 28.7%) 17.1%);border:1px solid #d4af37;}
 .denied{padding:40px;text-align:center;}
 </style>
+<script src="spellcraft-dialogs.js?v=20261020a"></script>
 </head>
 <body>
 <div class="wrap" id="root"><p class="hint">Chargement…</p></div>
@@ -224,9 +225,9 @@ async function save(){
 
 async function newSeason(){
   syncFromDom();
-  const id=prompt('Identifiant de la nouvelle saison (ex. 2026-12) :'); if(!id) return;
+  const id=await scPrompt('Identifiant de la nouvelle saison (ex. 2026-12) :'); if(!id) return;
   if(SEASONS.some(s=>s.id===id)) return msg('Cet identifiant existe déjà.',false);
-  const name=prompt('Nom de la saison :','Les coffres de Velkrin — '+id); if(!name) return;
+  const name=await scPrompt('Nom de la saison :','Les coffres de Velkrin — '+id); if(!name) return;
   const start=SEASON?new Date(SEASON.ends_at):new Date(); const end=new Date(start.getTime()+61*86400000);
   const {error}=await sb.from('cal_seasons').insert({id,name,starts_at:start.toISOString(),ends_at:end.toISOString(),premium_price:SEASON?SEASON.premium_price:500,cells:49});
   if(error) return msg('Erreur : '+error.message,false);
@@ -239,8 +240,8 @@ async function newSeason(){
 }
 
 async function newTitle(key,i){
-  const masc=prompt('Titre (masculin) :'); if(!masc) return;
-  const fem=prompt('Titre (féminin) — laisse vide si identique :',masc)||masc;
+  const masc=await scPrompt('Titre (masculin) :'); if(!masc) return;
+  const fem=await scPrompt('Titre (féminin) — laisse vide si identique :',masc)||masc;
   const id='cal_title_'+Date.now();
   const {error}=await sb.from('achievement_definitions').insert({id,name:masc,description:'Titre obtenu via les coffres de Velkrin',condition_type:'calendar',category:'calendar',target_count:1,rewards:[],active:false,order_index:9100,grants_title:true,title_masculine:masc,title_feminine:fem});
   if(error) return msg('Erreur création du titre : '+error.message,false);

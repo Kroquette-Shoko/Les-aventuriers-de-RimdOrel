@@ -360,6 +360,7 @@ header .spacer{flex:1;}
 @media(max-width:1100px){#ed-grid{flex-direction:column;}#preview-panel{width:100%;position:static;}}
 </style>
 <script src="spellcraft-card-render.js?v=20261020a"></script>
+<script src="spellcraft-dialogs.js?v=20261020a"></script>
 </head>
 <body>
 
@@ -1300,7 +1301,7 @@ async function onSetIsBaseChange(){
   const checkbox = document.getElementById('set-is-base-checkbox');
   const current = setsIndex.find(s=>s.id===currentSetId);
   if(!current) return;
-  if(checkbox.checked && !confirm("ATTENTION : « set de base » donne immédiatement TOUTES les cartes de ce set (2 exemplaires chacune) à TOUS les joueurs, et aussi à chaque carte que tu créeras ensuite dans ce set. Décocher la case ne reprend pas les cartes déjà données.\n\nContinuer ?")){ checkbox.checked = false; return; }
+  if(checkbox.checked && !await scConfirm("ATTENTION : « set de base » donne immédiatement TOUTES les cartes de ce set (2 exemplaires chacune) à TOUS les joueurs, et aussi à chaque carte que tu créeras ensuite dans ce set. Décocher la case ne reprend pas les cartes déjà données.\n\nContinuer ?")){ checkbox.checked = false; return; }
   const res = await setCardSetIsBase(currentSetId, checkbox.checked);
   if(res.error){ alert('Erreur : ' + res.error); checkbox.checked = !checkbox.checked; return; }
   current.is_base = checkbox.checked;
@@ -1339,7 +1340,7 @@ async function onAnnounceSetSelectorChange(){
 
 async function createNewSet(){
   if(!(await requireLoginForEdit())) return;
-  const name = prompt('Nom du nouveau set :');
+  const name = await scPrompt('Nom du nouveau set :');
   if(!name || !name.trim()) return;
   const res = await createCardSet(name.trim());
   if(res.error){ alert('Erreur : ' + res.error); return; }
@@ -1354,7 +1355,7 @@ async function renameCurrentSet(){
   if(!(await requireLoginForEdit())) return;
   const current = setsIndex.find(s=>s.id===currentSetId);
   if(!current) return;
-  const name = prompt('Nouveau nom pour ce set :', current.name);
+  const name = await scPrompt('Nouveau nom pour ce set :', current.name);
   if(!name || !name.trim()) return;
   const res = await renameCardSet(currentSetId, name.trim());
   if(res.error){ alert('Erreur : ' + res.error); return; }
@@ -1367,7 +1368,7 @@ async function deleteCurrentSet(){
   if(setsIndex.length<=1){ alert('Impossible de supprimer le dernier set restant.'); return; }
   const current = setsIndex.find(s=>s.id===currentSetId);
   if(!current) return;
-  if(!confirm(`Supprimer le set "${current.name}" et ses ${cards.length} carte(s) ? Cette action est irréversible.`)) return;
+  if(!await scConfirm(`Supprimer le set "${current.name}" et ses ${cards.length} carte(s) ? Cette action est irréversible.`)) return;
   const res = await deleteCardSet(currentSetId);
   if(res.error){ alert('Erreur : ' + res.error); return; }
   setsIndex = setsIndex.filter(s=>s.id!==currentSetId);
@@ -5056,19 +5057,19 @@ function _saveCurrentCardBase(){
   renderGallery();
   renderPreview();
 }
-function deleteCurrentCard(){
+async function deleteCurrentCard(){
   if(!editingId){ newCard(); return; }
   const card = cards.find(c=>c.id===editingId);
-  if(card && !confirm(`Supprimer "${card.name}" ?`)) return;
+  if(card && !await scConfirm(`Supprimer "${card.name}" ?`)) return;
   cards = cards.filter(c=>c.id!==editingId);
   persistCards();
   renderGallery();
   newCard();
 }
-function deleteCardById(id, ev){
+async function deleteCardById(id, ev){
   ev.stopPropagation();
   const card = cards.find(c=>c.id===id);
-  if(card && !confirm(`Supprimer "${card.name}" ?`)) return;
+  if(card && !await scConfirm(`Supprimer "${card.name}" ?`)) return;
   cards = cards.filter(c=>c.id!==id);
   if(editingId===id) newCard();
   persistCards();
@@ -5665,7 +5666,7 @@ function openImportModal(){
   document.getElementById('import-text').value='';
   openModal('import-modal');
 }
-function doImport(){
+async function doImport(){
   const raw = document.getElementById('import-text').value.trim();
   if(!raw) return;
   try{
@@ -5677,7 +5678,7 @@ function doImport(){
     const msg = toUpdate.length
       ? `Importer ${parsed.length} carte(s) dans le set "${setsIndex.find(s=>s.id===currentSetId)?.name||''}" ? ${toAdd.length} nouvelle(s), ${toUpdate.length} mise(s) à jour (id déjà présent dans ce set).`
       : `Ajouter ${parsed.length} carte(s) au set "${setsIndex.find(s=>s.id===currentSetId)?.name||''}" ?`;
-    if(!confirm(msg)) return;
+    if(!await scConfirm(msg)) return;
     parsed.forEach(imported=>{
       const idx = cards.findIndex(c=>c.id===imported.id);
       if(idx>=0) cards[idx] = imported; else cards.push(imported);
@@ -5827,7 +5828,7 @@ async function saveVariant(){
 }
 async function deleteVariant(id){
   const v = variantsCache.find(x=>x.id===id); if(!v) return;
-  if(!confirm(`Supprimer la variante « ${v.name} » ? Les joueurs qui la possèdent la perdront, et les decks qui l'utilisent reviendront à l'illustration d'origine.`)) return;
+  if(!await scConfirm(`Supprimer la variante « ${v.name} » ? Les joueurs qui la possèdent la perdront, et les decks qui l'utilisent reviendront à l'illustration d'origine.`)) return;
   const { data, error } = await sb.from('card_variants').delete().eq('id', id).select('id');
   if(error || !data || !data.length){ alert('Suppression impossible : ' + (error ? error.message : 'droits administrateur requis')); return; }
   await refreshVariantsPanel();

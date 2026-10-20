@@ -401,6 +401,7 @@
 </style>
 <script src="spellcraft-premium.js?v=20261020a"></script>
 <script src="spellcraft-card-render.js?v=20261020a"></script>
+<script src="spellcraft-dialogs.js?v=20261020a"></script>
 </head>
 <body>
 
@@ -825,7 +826,7 @@ async function renderMinisetShelf(){
 async function buyMiniset(boosterId){
   const user = await scGetCurrentUser();
   if(!user){ alert('Connecte-toi pour acheter dans la boutique.'); return; }
-  if(!confirm("Acheter ce mini-set ? Tu recevras toutes ses cartes d'un coup. L'achat est unique et ne peut pas être refait.")) return;
+  if(!await scConfirm("Acheter ce mini-set ? Tu recevras toutes ses cartes d'un coup. L'achat est unique et ne peut pas être refait.")) return;
   const { data, error } = await sb.rpc('buy_miniset', { p_booster_id: boosterId });
   if(error){ alert('Erreur : ' + error.message); return; }
   if(data.error){ alert(shopErrorMessage(data.error)); return; }

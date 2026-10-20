@@ -103,6 +103,7 @@ html.embed #velkrin-float{display:none;}
 html.embed .sc-topbar, html.embed .cal-top-row{display:none !important;}
 html.embed #app{padding-top:0;min-height:0;}
 </style>
+<script src="spellcraft-dialogs.js?v=20261020a"></script>
 </head>
 <body>
 
@@ -424,7 +425,7 @@ async function claimFinal(){
 async function buyPremium(){
   if(busy) return; busy = true;
   try{
-    if(!confirm(`Débloquer le premium de cette saison pour ${CAL.premiumPrice} or ?`)) return;
+    if(!await scConfirm(`Débloquer le premium de cette saison pour ${CAL.premiumPrice} or ?`)) return;
     const { data, error } = await sb.rpc('buy_calendar_premium');
     if(error || !data){ toast('Erreur : ' + (error ? error.message : 'réponse vide')); return; }
     if(data.error){ toast(errText(data.error)); await load(); return; }

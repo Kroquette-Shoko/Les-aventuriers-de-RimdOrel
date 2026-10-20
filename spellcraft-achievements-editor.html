@@ -58,6 +58,7 @@ textarea{resize:vertical;min-height:60px;}
 .status-msg{font-size:12px;color:var(--green);margin-top:8px;}
 .status-msg.error{color:#ff8080;}
 </style>
+<script src="spellcraft-dialogs.js?v=20261020a"></script>
 </head>
 <body>
 
@@ -482,7 +483,7 @@ async function saveAchievement(){
 
 async function deleteAchievement(){
   if(!editingId) return;
-  if(!confirm('Supprimer ce succès ? La progression des joueurs sur ce succès sera perdue.')) return;
+  if(!await scConfirm('Supprimer ce succès ? La progression des joueurs sur ce succès sera perdue.')) return;
   const { error } = await sb.rpc('delete_achievement_definition', { p_id: editingId });
   if(error){ showStatus('Erreur : ' + error.message, true); return; }
   await loadAchievements();

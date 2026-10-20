@@ -53,6 +53,7 @@ input[type=text],input[type=number],select{box-sizing:border-box;width:100%;back
 .pgrid div{width:84px;text-align:center;cursor:pointer;font-size:10px;color:#a89f86;}
 .pgrid img{width:84px;height:84px;object-fit:cover;border-radius:8px;border:2px solid hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%);display:block;}
 </style>
+<script src="spellcraft-dialogs.js?v=20261020a"></script>
 </head>
 <body>
 <div class="wrap" id="root"><p class="hint">Chargement…</p></div>
@@ -217,7 +218,7 @@ async function saveBooster(){
   }
   const dist={}; document.querySelectorAll('.b-rar').forEach(i=>dist[i.dataset.r]=parseInt(i.value)||0);
   const total=Object.values(dist).reduce((a,b)=>a+b,0);
-  if(!isMs && mode==='slots' && !custom && total!==100 && !confirm(`La répartition fait ${total} % au lieu de 100 %. Enregistrer quand même ?`)) return;
+  if(!isMs && mode==='slots' && !custom && total!==100 && !await scConfirm(`La répartition fait ${total} % au lieu de 100 %. Enregistrer quand même ?`)) return;
   const cur=BOOSTERS.find(x=>x.id===SEL.boosters);
   const row={id:cur?cur.id:'booster_'+Date.now(),name,set_id:$('b-set').value,price:parseInt($('b-price').value)||120,image_url:$('b-image').value.trim()||null,rarity_distribution:isMs?(cur&&cur.rarity_distribution)||RAR_DEFAULT:dist};
   const hasKind=BOOSTERS.some(x=>'kind' in x);
@@ -232,14 +233,14 @@ async function saveBooster(){
   const {error}=await sb.from('boosters').upsert(row);
   if(error) return say('b-status','Erreur : '+error.message,false);
   const setRow=SETS.find(x=>x.id===row.set_id);
-  if(isMs && setRow && setRow.in_shop!==false && confirm(`Le set « ${setRow.name} » est encore proposé en boutique (cartes à l'unité et offres du jour). Le retirer de la boutique, pour qu'on ne puisse l'obtenir que via ce mini-set ?`)){
+  if(isMs && setRow && setRow.in_shop!==false && await scConfirm(`Le set « ${setRow.name} » est encore proposé en boutique (cartes à l'unité et offres du jour). Le retirer de la boutique, pour qu'on ne puisse l'obtenir que via ce mini-set ?`)){
     const r2=await sb.from('card_sets').update({in_shop:false}).eq('id',setRow.id);
     if(r2.error) alert('Impossible de modifier le set : '+r2.error.message);
   }
   await loadAll(); SEL.boosters=row.id; renderBoosters(); say('b-status','✓ Enregistré',true);
 }
 async function delBooster(){
-  const b=BOOSTERS.find(x=>x.id===SEL.boosters); if(!b||!confirm(`Supprimer le booster « ${b.name} » ?`)) return;
+  const b=BOOSTERS.find(x=>x.id===SEL.boosters); if(!b||!await scConfirm(`Supprimer le booster « ${b.name} » ?`)) return;
   const {error}=await sb.from('boosters').delete().eq('id',b.id);
   if(error) return say('b-status','Erreur : '+error.message,false);
   SEL.boosters=null; await loadAll(); renderBoosters();
@@ -269,7 +270,7 @@ async function saveBack(){
   await loadAll(); SEL.backs=row.id; renderBacks(); renderGold(); say('c-status','✓ Enregistré',true);
 }
 async function delBack(){
-  const c=BACKS.find(x=>x.id===SEL.backs); if(!c||!confirm(`Supprimer le dos « ${c.name} » ?`)) return;
+  const c=BACKS.find(x=>x.id===SEL.backs); if(!c||!await scConfirm(`Supprimer le dos « ${c.name} » ?`)) return;
   const {error}=await sb.from('card_backs').delete().eq('id',c.id);
   if(error) return say('c-status','Erreur : '+error.message,false);
   SEL.backs=null; await loadAll(); renderBacks(); renderGold();
@@ -339,7 +340,7 @@ async function createTitle(){
 }
 async function deleteTitle(id){
   const t=TITLES.find(x=>x.id===id); if(!t||t.category!==MANUAL) return;
-  if(!confirm(`Supprimer le titre « ${titleLabel(t)} » ? Les joueurs qui l'ont le perdent.`)) return;
+  if(!await scConfirm(`Supprimer le titre « ${titleLabel(t)} » ? Les joueurs qui l'ont le perdent.`)) return;
   const {error}=await sb.from('achievement_definitions').delete().eq('id',id);
   if(error) return say('tc-status','Erreur : '+error.message,false);
   await loadAll(); renderGold(); say('t-status','✓ Titre supprimé.',true);
@@ -357,7 +358,7 @@ async function giveTitle(revoke){
     return say('t-status',`✓ Titre « ${titleLabel(t)} » retiré à ${r.data.username}.`,true);
   }
   if(!all&&!user) return say('t-status','Indique le pseudo du joueur.',false);
-  if(all&&!confirm(`Confirmer : donner le titre « ${titleLabel(t)} » à TOUS les joueurs ?`)) return;
+  if(all&&!await scConfirm(`Confirmer : donner le titre « ${titleLabel(t)} » à TOUS les joueurs ?`)) return;
   say('t-status','Envoi…');
   const r=all?await sb.rpc('admin_grant_title_all',{p_title_id:id}):await sb.rpc('admin_grant_title',{p_username:user,p_title_id:id});
   if(r.error||(r.data&&r.data.error)) return say('t-status',titleErr(r,user),false);
@@ -376,7 +377,7 @@ async function giveGold(){
   const all=$('g-mode').value==='all', user=$('g-user').value.trim(), amount=parseInt($('g-amount').value,10);
   if(!amount||isNaN(amount)) return say('g-status','Indique un montant non nul.',false);
   if(!all&&!user) return say('g-status','Indique le pseudo du joueur.',false);
-  if(all&&!confirm(`Confirmer : donner ${amount} or à TOUS les joueurs ?`)) return;
+  if(all&&!await scConfirm(`Confirmer : donner ${amount} or à TOUS les joueurs ?`)) return;
   say('g-status','Envoi…');
   const {data,error}=await sb.functions.invoke('game-action',{body:all?{action:'adminGrantGoldAll',amount}:{action:'adminGrantGold',username:user,amount}});
   if(error||(data&&data.error)){const code=(data&&data.error)||(error&&error.message)||'erreur';

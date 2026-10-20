@@ -30,7 +30,7 @@
 #app{min-height:100vh;width:100%;display:flex;flex-direction:column;align-items:center;padding:0 0 50px;}
 
 /* ---------- Barre du haut (custom, comme le hub) ---------- */
-.save-indicator{font-size:11.5px;color:var(--green);opacity:0;transition:opacity .4s;white-space:nowrap;}
+.save-indicator{font-size:14px;color:var(--green);opacity:0;transition:opacity .4s;white-space:nowrap;}
 .save-indicator.show{opacity:1;}
 
 #deck-saved-popup{position:fixed;top:40%;left:50%;transform:translate(-50%,-50%) scale(.9);z-index:99998;
@@ -45,13 +45,13 @@
 #deck-saved-popup.error .dsp-icon{background:var(--blood);color:#2a0b0b;}
 
 /* ---------- Boutons / contrôles génériques de cette page ---------- */
-.btn{background:var(--bg-panel-3);border:1.5px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));color:var(--parchment);border-radius:7px;padding:8px 14px;font-family:'Inter';font-size:12.5px;font-weight:600;cursor:pointer;white-space:nowrap;}
+.btn{background:var(--bg-panel-3);border:1.5px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));color:var(--parchment);border-radius:7px;padding:8px 14px;font-family:'Inter';font-size:15px;font-weight:600;cursor:pointer;white-space:nowrap;}
 .btn:hover{border-color:var(--gold);}
 .btn.primary{background:linear-gradient(180deg,var(--arcane),hsl(calc(var(--th, 252) + 0.9) calc(var(--ts-a, 1) * 55.8%) calc(48.8% + var(--tl-a, 0%))));border:none;color:#fff;}
 .btn.primary:hover{filter:brightness(1.12);}
-.btn.small{padding:5px 10px;font-size:11px;}
-.deck-name-input{background:var(--bg-panel-2);border:1px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));color:var(--parchment);border-radius:8px;padding:7px 12px;font-family:'Cinzel',serif;font-size:13px;width:180px;}
-select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));color:var(--parchment);border-radius:8px;padding:7px 10px;font-size:12px;}
+.btn.small{padding:5px 10px;font-size:14px;}
+.deck-name-input{background:var(--bg-panel-2);border:1px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));color:var(--parchment);border-radius:8px;padding:7px 12px;font-family:'Cinzel',serif;font-size:16px;width:180px;}
+select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));color:var(--parchment);border-radius:8px;padding:7px 10px;font-size:15px;}
 
 /* ---------- Barre d'outils / filtres — colonne verticale à gauche
    du classeur (même contenu que l'ancienne barre du haut) ---------- */
@@ -71,21 +71,21 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 .dropdown-panel{position:absolute;top:calc(100% + 6px);left:0;background:var(--bg-panel);border:1px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));border-radius:8px;padding:10px;z-index:40;display:none;min-width:180px;box-shadow:0 8px 20px rgba(0,0,0,.5);max-height:240px;overflow-y:auto;}
 #filter-panel{min-width:300px;max-width:340px;max-height:80vh;padding:16px;}
 #filter-panel .ff-group{margin-bottom:14px;}
-#filter-panel label{display:block;font-size:11px;color:var(--parchment-dim);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px;}
-#filter-panel input[type=text], #filter-panel select{width:100%;background:var(--bg-void);border:1px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));color:var(--parchment);border-radius:6px;padding:7px 9px;font-size:12.5px;}
+#filter-panel label{display:block;font-size:14px;color:var(--parchment-dim);margin-bottom:4px;text-transform:uppercase;letter-spacing:.4px;}
+#filter-panel input[type=text], #filter-panel select{width:100%;background:var(--bg-void);border:1px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));color:var(--parchment);border-radius:6px;padding:7px 9px;font-size:15px;}
 #filter-panel .ff-row{display:flex;gap:8px;}
 #filter-panel .ff-row select{flex:0 0 118px;}
 #filter-panel .ff-checks{display:flex;flex-wrap:wrap;gap:6px;}
-#filter-panel .ff-check{display:flex;align-items:center;gap:5px;font-size:11.5px;background:var(--bg-void);border:1px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));border-radius:14px;padding:4px 9px;cursor:pointer;}
+#filter-panel .ff-check{display:flex;align-items:center;gap:5px;font-size:14px;background:var(--bg-void);border:1px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));border-radius:14px;padding:4px 9px;cursor:pointer;}
 #filter-panel .ff-check input{margin:0;}
-#filter-panel .ff-toggle{display:flex;align-items:center;justify-content:space-between;font-size:12px;padding:6px 0;}
+#filter-panel .ff-toggle{display:flex;align-items:center;justify-content:space-between;font-size:15px;padding:6px 0;}
 #filter-panel .ff-actions{display:flex;gap:8px;margin-top:6px;position:sticky;bottom:0;background:var(--bg-panel);padding-top:8px;}
 .dropdown-panel.show{display:block;}
-.dropdown-panel label{display:flex;align-items:center;gap:6px;font-size:12px;padding:4px 2px;cursor:pointer;}
-.results-count{font-size:11px;color:var(--parchment-dim);white-space:nowrap;}
+.dropdown-panel label{display:flex;align-items:center;gap:6px;font-size:15px;padding:4px 2px;cursor:pointer;}
+.results-count{font-size:14px;color:var(--parchment-dim);white-space:nowrap;}
 
 #craftable-toggle.active{border-color:var(--gold, #d4af37);color:var(--gold, #d4af37);}
-.currency-chip{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:4px 8px;border-radius:14px;background:var(--bg-panel-3,hsl(calc(var(--th, 252) + 0) calc(var(--ts-n, 1) * 28.7%) 17.1%));color:var(--parchment,#efe6c8);}
+.currency-chip{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:700;padding:4px 8px;border-radius:14px;background:var(--bg-panel-3,hsl(calc(var(--th, 252) + 0) calc(var(--ts-n, 1) * 28.7%) 17.1%));color:var(--parchment,#efe6c8);}
 .currency-chip .gem-icon{width:16px;height:16px;flex-shrink:0;background-size:contain;background-repeat:no-repeat;background-position:center;}
 .currency-chip.aube .gem-icon{background-color:#d4af37;-webkit-mask-image:url('images/gem-aub.png');mask-image:url('images/gem-aub.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;}
 .currency-chip.crepuscule .gem-icon{background-color:#8a5cf0;-webkit-mask-image:url('images/gem-crep.png');mask-image:url('images/gem-crep.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;}
@@ -104,7 +104,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 .db-collection-col{flex:none;min-width:0;display:flex;flex-direction:column;align-items:center;gap:16px;}
 .db-deck-col{flex:none;width:320px;}
 
-#wizard-hint{display:flex;align-items:center;gap:14px;background:var(--bg-panel);border:1px solid var(--gold, #d4af37);border-radius:10px;padding:9px 16px;font-family:'Cinzel',serif;font-size:12.5px;color:var(--gold, #d4af37);}
+#wizard-hint{display:flex;align-items:center;gap:14px;background:var(--bg-panel);border:1px solid var(--gold, #d4af37);border-radius:10px;padding:9px 16px;font-family:'Cinzel',serif;font-size:15px;color:var(--gold, #d4af37);}
 #binder-nav{display:flex;align-items:center;justify-content:center;gap:16px;background:var(--bg-panel);border:1px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));border-radius:20px;padding:8px 18px;align-self:center;}
 
 #binder-frame{
@@ -148,10 +148,10 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 @media (hover:none){.card-craft-btn{opacity:.9;}}
 .card-version-star:hover{filter:brightness(1.12) drop-shadow(0 2px 3px rgba(0,0,0,.55));}
 .card-version-star.set{background:linear-gradient(180deg,#9be7ff,#3a8fd0);color:#06243b;}
-.ver-tile{background:var(--bg-panel-2);border:2px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));border-radius:10px;padding:8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--parchment);font-size:12px;}
+.ver-tile{background:var(--bg-panel-2);border:2px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));border-radius:10px;padding:8px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--parchment);font-size:15px;}
 .ver-tile.sel{border-color:var(--gold);}
 .ver-tile:hover{border-color:var(--gold);}
-.drow-fin{font-size:10px;}
+.drow-fin{font-size:14px;}
 .card-add-badge{position:absolute;top:34px;right:2px;background:var(--green);color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 5px;z-index:5;box-shadow:0 2px 4px rgba(0,0,0,.5);}
 .card-new-badge{position:absolute;top:4px;left:-2px;z-index:6;background:#ffd23f;color:#3a2a00;font:800 10px/1 'Inter',sans-serif;letter-spacing:.04em;text-transform:uppercase;padding:3px 7px;border-radius:4px;box-shadow:0 0 0 1px rgba(0,0,0,.5),0 0 10px rgba(255,210,63,.75);pointer-events:none;transform:rotate(-6deg);}
 .card-owned-badge{position:absolute;bottom:2px;left:2px;background:hsl(calc(var(--th, 252) + 10.5) calc(var(--ts-n, 1) * 25%) 6.3% / .75);border:1px solid var(--gold, #d4af37);color:var(--gold, #d4af37);font-size:8.5px;font-weight:700;border-radius:8px;padding:1px 5px;z-index:5;}
@@ -159,7 +159,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 .nav-arrow{background:var(--bg-panel-2);border:1.5px solid var(--gold, #d4af37);color:var(--gold, #d4af37);width:34px;height:34px;border-radius:50%;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .nav-arrow:hover{border-color:var(--gold, #d4af37);}
 .nav-arrow:disabled{opacity:.3;cursor:not-allowed;}
-.page-indicator{font-family:'Cinzel',serif;font-size:13px;color:var(--parchment-dim);min-width:90px;text-align:center;}
+.page-indicator{font-family:'Cinzel',serif;font-size:16px;color:var(--parchment-dim);min-width:90px;text-align:center;}
 
 #binder-pages.hero-grid-area{
   display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:1fr;gap:20px;width:100%;max-width:960px;
@@ -168,7 +168,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 .cardback-select-tile .cardback-visual{width:100%;aspect-ratio:300/423.2;border-radius:11px;border:4px solid var(--gold, #d4af37);box-shadow:0 4px 10px rgba(0,0,0,.5);background-color:var(--bg-panel-3);background-size:contain;background-repeat:no-repeat;background-position:center;transition:transform .15s, box-shadow .15s;}
 .cardback-select-tile:hover .cardback-visual{transform:translateY(-4%);box-shadow:0 8px 18px rgba(0,0,0,.6);}
 .cardback-select-tile.equipped .cardback-visual{border-color:var(--green);}
-.cardback-select-tile .cardback-status{font-size:10px;color:var(--green);font-weight:700;}
+.cardback-select-tile .cardback-status{font-size:14px;color:var(--green);font-weight:700;}
 
 /* ---------- Card visual (identique aux autres outils) ---------- */
 .card{
@@ -285,12 +285,12 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 /* ---------- Deck panel (colonne latérale fixe) ---------- */
 #deck-header{padding:14px 16px;border-bottom:1px solid var(--line-soft, hsl(calc(var(--th, 252) + 3) calc(var(--ts-n, 1) * 28%) 19.6%));flex-shrink:0;}
 #deck-header .deck-title-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
-#deck-header input{flex:1;background:var(--bg-panel-2);border:1px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));color:var(--parchment);border-radius:6px;padding:6px 10px;font-family:'Cinzel',serif;font-size:13px;}
-.deck-count{font-size:12px;color:var(--parchment-dim);}
+#deck-header input{flex:1;background:var(--bg-panel-2);border:1px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));color:var(--parchment);border-radius:6px;padding:6px 10px;font-family:'Cinzel',serif;font-size:16px;}
+.deck-count{font-size:15px;color:var(--parchment-dim);}
 .deck-count.full{color:var(--green);}
-#hero-slot{display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg-panel-2);border-radius:8px;border:1px dashed var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));margin-top:8px;font-size:11.5px;color:var(--parchment-dim);}
+#hero-slot{display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg-panel-2);border-radius:8px;border:1px dashed var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));margin-top:8px;font-size:14px;color:var(--parchment-dim);}
 #hero-slot.set{border-style:solid;border-color:var(--gold, #d4af37);color:var(--parchment);}
-#region-slot{display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg-panel-2);border-radius:8px;border:1px dashed var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));margin-top:6px;font-size:11.5px;color:var(--parchment-dim);}
+#region-slot{display:flex;align-items:center;gap:8px;padding:8px;background:var(--bg-panel-2);border-radius:8px;border:1px dashed var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));margin-top:6px;font-size:14px;color:var(--parchment-dim);}
 #region-slot.set{border-style:solid;border-color:var(--green);color:var(--parchment);}
 #deck-col{
   display:flex;flex-direction:column;
@@ -300,41 +300,41 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
   overflow:hidden;max-height:calc(100vh - 150px);position:sticky;top:86px;
 }
 
-#deck-empty-state{flex:1;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:20px;text-align:center;color:var(--parchment-dim);font-size:13px;}
+#deck-empty-state{flex:1;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:20px;text-align:center;color:var(--parchment-dim);font-size:16px;}
 #deck-empty-state.show{display:flex;}
 #deck-editor{flex:1;display:flex;flex-direction:column;min-height:0;}
 #deck-editor.hide{display:none;}
-#hero-mini{width:26px;height:26px;border-radius:50%;background:var(--bg-panel-3);display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-size:11px;color:var(--gold, #d4af37);flex-shrink:0;}
+#hero-mini{width:26px;height:26px;border-radius:50%;background:var(--bg-panel-3);display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-size:14px;color:var(--gold, #d4af37);flex-shrink:0;}
 
 #mana-curve{display:flex;align-items:flex-end;gap:3px;height:50px;padding:10px 16px;border-bottom:1px solid var(--line-soft, hsl(calc(var(--th, 252) + 3) calc(var(--ts-n, 1) * 28%) 19.6%));flex-shrink:0;}
 .curve-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:2px;}
 .curve-bar{width:100%;background:var(--arcane);border-radius:2px 2px 0 0;min-height:2px;}
-.curve-label{font-size:8.5px;color:var(--parchment-dim);}
+.curve-label{font-size:14px;color:var(--parchment-dim);}
 
 #deck-list{flex:1;overflow-y:auto;padding:8px 10px;}
-.deck-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;font-size:12px;cursor:default;}
+.deck-row{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:6px;font-size:15px;cursor:default;}
 .deck-row:hover{background:var(--bg-panel-2);}
-.deck-row .drow-cost{width:20px;height:20px;border-radius:50%;background:var(--bg-panel-3);color:var(--gold, #d4af37);font-weight:700;font-size:10.5px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.deck-row .drow-cost{width:20px;height:20px;border-radius:50%;background:var(--bg-panel-3);color:var(--gold, #d4af37);font-weight:700;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .deck-row .drow-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.deck-row .drow-count{color:var(--parchment-dim);font-size:11px;}
+.deck-row .drow-count{color:var(--parchment-dim);font-size:14px;}
 .deck-row .drow-btns{display:flex;gap:2px;}
-.drow-btn{width:18px;height:18px;border-radius:4px;background:var(--bg-panel-3);border:1px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));color:var(--parchment);cursor:pointer;font-size:11px;line-height:1;display:flex;align-items:center;justify-content:center;}
+.drow-btn{width:18px;height:18px;border-radius:4px;background:var(--bg-panel-3);border:1px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));color:var(--parchment);cursor:pointer;font-size:14px;line-height:1;display:flex;align-items:center;justify-content:center;}
 .drow-btn:hover{border-color:var(--gold, #d4af37);}
 
 #deck-footer{padding:10px 14px;border-top:1px solid var(--line-soft, hsl(calc(var(--th, 252) + 3) calc(var(--ts-n, 1) * 28%) 19.6%));display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;}
 #deck-footer .btn{flex:1;}
-.empty-deck-msg{color:var(--parchment-dim);font-size:12px;font-style:italic;text-align:center;padding:20px 10px;}
+.empty-deck-msg{color:var(--parchment-dim);font-size:15px;font-style:italic;text-align:center;padding:20px 10px;}
 
 .modal-overlay{position:fixed;inset:0;background:rgba(5,4,10,.88);display:none;align-items:center;justify-content:center;z-index:60;}
 .modal-overlay.show{display:flex;}
 .modal-box{background:var(--bg-panel);border:1px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));border-radius:12px;padding:22px;width:420px;max-width:90vw;max-height:80vh;display:flex;flex-direction:column;gap:10px;}
 .modal-box h2{font-family:'Cinzel',serif;font-size:15px;margin:0;color:var(--gold, #d4af37);}
-.modal-box textarea{width:100%;min-height:180px;background:var(--bg-panel-2);border:1px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));color:var(--parchment);border-radius:8px;padding:10px;font-family:'Menlo',monospace;font-size:11.5px;}
-.deck-list-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;background:var(--bg-panel-2);cursor:pointer;font-size:12.5px;margin-bottom:6px;}
+.modal-box textarea{width:100%;min-height:180px;background:var(--bg-panel-2);border:1px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));color:var(--parchment);border-radius:8px;padding:10px;font-family:'Menlo',monospace;font-size:14px;}
+.deck-list-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;background:var(--bg-panel-2);cursor:pointer;font-size:15px;margin-bottom:6px;}
 .deck-list-item:hover{border:1px solid var(--gold, #d4af37);}
 .deck-list-item .spacer{flex:1;}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;}
-.empty-state{color:var(--parchment-dim);font-size:13px;font-style:italic;padding:12px 0;text-align:center;}
+.empty-state{color:var(--parchment-dim);font-size:16px;font-style:italic;padding:12px 0;text-align:center;}
 
 #card-preview{position:fixed;z-index:200;pointer-events:none;display:none;opacity:0;transition:opacity .15s ease;}
 
@@ -349,25 +349,25 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 #craft-modal-visual{flex-shrink:0;display:flex;justify-content:center;}
 #craft-modal-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:14px;}
 .craft-kw-box{background:var(--bg-panel-2,hsl(calc(var(--th, 252) + 1.6) calc(var(--ts-n, 1) * 29.7%) 14.5%));border:1.5px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));border-radius:10px;padding:10px 12px;margin-bottom:8px;}
-.craft-kw-box .craft-kw-name{font-family:'Cinzel',serif;font-weight:700;color:var(--gold,#d4af37);font-size:13px;margin-bottom:3px;}
-.craft-kw-box .craft-kw-desc{font-size:12px;color:var(--parchment-dim,#d9cfae);line-height:1.4;}
+.craft-kw-box .craft-kw-name{font-family:'Cinzel',serif;font-weight:700;color:var(--gold,#d4af37);font-size:16px;margin-bottom:3px;}
+.craft-kw-box .craft-kw-desc{font-size:15px;color:var(--parchment-dim,#d9cfae);line-height:1.4;}
 #craft-modal-linked{display:flex;flex-direction:column;gap:6px;}
-.craft-linked-title{font-family:'Cinzel',serif;font-weight:700;color:var(--gold,#d4af37);font-size:13px;}
+.craft-linked-title{font-family:'Cinzel',serif;font-weight:700;color:var(--gold,#d4af37);font-size:16px;}
 .craft-linked-list{display:flex;gap:8px;flex-wrap:wrap;}
-.craft-linked-card{width:70px;text-align:center;font-size:10px;color:var(--parchment-dim,#d9cfae);cursor:pointer;}
+.craft-linked-card{width:70px;text-align:center;font-size:14px;color:var(--parchment-dim,#d9cfae);cursor:pointer;}
 .craft-linked-card .ncard{width:70px !important;height:98.7px !important;border-radius:6px;overflow:hidden;margin-bottom:3px;}
-#craft-modal-lore{font-style:italic;color:var(--parchment-dim,#d9cfae);font-size:12.5px;line-height:1.5;
+#craft-modal-lore{font-style:italic;color:var(--parchment-dim,#d9cfae);font-size:15px;line-height:1.5;
   border-left:2px solid var(--gold,#d4af37);padding-left:12px;}
 #craft-modal-action{margin-top:auto;display:flex;flex-direction:column;gap:10px;}
-.craft-btn{font-family:'Cinzel',serif;font-weight:700;font-size:13.5px;border-radius:9px;padding:10px 18px;cursor:pointer;border:none;}
+.craft-btn{font-family:'Cinzel',serif;font-weight:700;font-size:16px;border-radius:9px;padding:10px 18px;cursor:pointer;border:none;}
 .craft-btn.craft-make{background:linear-gradient(180deg,var(--gold,#d4af37),#a9852a);color:hsl(calc(var(--th, 252) - 2) calc(var(--ts-n, 1) * 33.3%) 14.1%);}
 .craft-btn.craft-make:hover{filter:brightness(1.08);}
-.craft-btn.craft-finish{font-size:12px;padding:8px 14px;background:linear-gradient(180deg,#f3dc8a,#c9a12c);}
+.craft-btn.craft-finish{font-size:15px;padding:8px 14px;background:linear-gradient(180deg,#f3dc8a,#c9a12c);}
 .craft-btn.craft-finish.premium,.craft-btn.craft-finish.premium_foil{background:linear-gradient(180deg,#9be7ff,#3a8fd0);color:#06243b;}
 .craft-btn.craft-disenchant{background:var(--bg-panel-3,hsl(calc(var(--th, 252) + 0) calc(var(--ts-n, 1) * 28.7%) 17.1%));border:1.5px solid #6b3030;color:#e88;}
 .craft-btn.craft-disenchant:hover{border-color:#e88;}
 .craft-btn:disabled{opacity:.5;cursor:not-allowed;}
-.craft-btn-note{font-size:11px;color:var(--parchment-dim,#d9cfae);}
+.craft-btn-note{font-size:14px;color:var(--parchment-dim,#d9cfae);}
 #card-preview .ncard{transform:scale(1.1);transform-origin:top left;box-shadow:0 16px 34px rgba(0,0,0,.65);}
 #card-preview.show{display:block;opacity:1;}
 
@@ -377,7 +377,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 .hero-select-tile:hover{border-color:var(--gold);transform:translateY(-4px);box-shadow:0 14px 30px rgba(0,0,0,.55);}
 .hero-select-tile .hp-portrait{width:64px;height:64px;}
 .hero-select-tile .hp-name{font-size:15px;}
-.hero-select-tile .hp-section-text, .hero-select-tile .hp-linked-empty{font-size:10.5px;}
+.hero-select-tile .hp-section-text, .hero-select-tile .hp-linked-empty{font-size:14px;}
 .hero-select-tile .hp-linked-slot{width:44px;height:72px;}
 .hero-select-tile .hp-linked-slot .mini-linked-card{border-width:1.5px;}
 .hero-select-tile .hp-linked-slot .mlc-name{font-size:5.5px;padding:2px 2px 4px;}
@@ -390,15 +390,15 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 .hp-name-row{display:flex;align-items:center;gap:8px;}
 .hp-name{font-family:'Cinzel',serif;font-size:24px;font-weight:700;color:var(--parchment);}
 .hp-class-dot{width:13px;height:13px;border-radius:50%;background:var(--class-color, var(--gold));box-shadow:0 0 6px var(--class-color, var(--gold));flex-shrink:0;}
-.hp-class-label{font-size:12px;color:var(--parchment-dim);margin-top:2px;}
+.hp-class-label{font-size:15px;color:var(--parchment-dim);margin-top:2px;}
 .hp-profile-block{margin-top:8px;}
-.hp-profile-title{font-family:'Cinzel',serif;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:2px;}
+.hp-profile-title{font-family:'Cinzel',serif;font-size:14px;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:2px;}
 .hp-health{font-size:14px;color:var(--parchment);}
 .hp-section{margin-top:14px;padding-top:12px;border-top:1px solid var(--line-soft, hsl(calc(var(--th, 252) + 3) calc(var(--ts-n, 1) * 28%) 19.6%));}
 .hp-section-title{font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:var(--gold);margin-bottom:5px;}
-.hp-section-text{font-size:12.5px;line-height:1.5;color:var(--parchment-dim);white-space:pre-wrap;}
+.hp-section-text{font-size:15px;line-height:1.5;color:var(--parchment-dim);white-space:pre-wrap;}
 .hp-linked{margin-top:16px;padding-top:12px;border-top:1px solid var(--line-soft, hsl(calc(var(--th, 252) + 3) calc(var(--ts-n, 1) * 28%) 19.6%));}
-.hp-linked-title{font-family:'Cinzel',serif;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--parchment-dim);margin-bottom:8px;}
+.hp-linked-title{font-family:'Cinzel',serif;font-size:14px;letter-spacing:1px;text-transform:uppercase;color:var(--parchment-dim);margin-bottom:8px;}
 .hp-linked-cards{display:flex;gap:14px;flex-wrap:wrap;}
 .hp-linked-slot{width:104px;height:145px;position:relative;border-radius:8px;overflow:hidden;background:#f7f2e2;box-shadow:0 4px 10px rgba(0,0,0,.5);pointer-events:auto;cursor:pointer;transition:transform .15s;}
 .hp-linked-slot:hover{transform:translateY(-4px);}
@@ -417,7 +417,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 .mlc-rarity-gem.rarity-Rare{background:var(--frost);color:var(--frost);}
 .mlc-rarity-gem.rarity-Épique{background:var(--arcane);color:var(--arcane);}
 .mlc-rarity-gem.rarity-Mythique{background:var(--gold);color:var(--gold);}
-.hp-linked-empty{font-size:12px;color:var(--parchment-dim);font-style:italic;}
+.hp-linked-empty{font-size:15px;color:var(--parchment-dim);font-style:italic;}
 
 @media (max-width:900px){
   .db-main{flex-direction:column;}
@@ -446,15 +446,15 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 #md-head h2{font-family:'Cinzel',serif;font-size:16px;margin:0;color:var(--gold,#d4af37);margin-right:auto;}
 #md-close{background:none;border:none;color:var(--parchment,#efe6c8);font-size:20px;cursor:pointer;}
 #md-top{display:flex;align-items:center;gap:14px;padding:8px 18px 10px;flex-wrap:wrap;border-bottom:1px solid var(--line,hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));}
-#md-sum{flex:1;min-width:220px;font-size:12.5px;line-height:1.5;display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+#md-sum{flex:1;min-width:220px;font-size:15px;line-height:1.5;display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
 #md-sum .md-sum-main{width:100%;}
-#md-go{font-family:'Cinzel',serif;font-weight:700;font-size:13.5px;padding:10px 18px;}
-#md-fin-btns{display:flex;flex-wrap:wrap;gap:8px;padding:8px 18px 0;align-items:center;font-size:11px;color:var(--parchment-dim,#d9cfae);}
-#md-fin-btns .btn{font-size:11.5px;padding:5px 11px;}
+#md-go{font-family:'Cinzel',serif;font-weight:700;font-size:16px;padding:10px 18px;}
+#md-fin-btns{display:flex;flex-wrap:wrap;gap:8px;padding:8px 18px 0;align-items:center;font-size:14px;color:var(--parchment-dim,#d9cfae);}
+#md-fin-btns .btn{font-size:14px;padding:5px 11px;}
 #md-fin-btns .btn.on{border-color:var(--gold,#d4af37);color:var(--gold,#d4af37);}
-.md-fin{margin-left:6px;font-size:11px;}
-#md-legend{display:flex;flex-wrap:wrap;gap:6px 12px;padding:6px 18px;font-size:10.5px;color:var(--parchment-dim,#d9cfae);align-items:center;}
-#md-legend .md-src{padding:1px 8px;font-size:10px;}
+.md-fin{margin-left:6px;font-size:14px;}
+#md-legend{display:flex;flex-wrap:wrap;gap:6px 12px;padding:6px 18px;font-size:14px;color:var(--parchment-dim,#d9cfae);align-items:center;}
+#md-legend .md-src{padding:1px 8px;font-size:14px;}
 #md-list{flex:1;overflow-y:auto;padding:4px 18px 14px;}
 .md-row{display:flex;align-items:center;gap:10px;padding:5px 4px;border-bottom:1px solid rgba(255,255,255,.06);transition:opacity .15s;}
 .md-row.md-off{opacity:.38;}
@@ -464,8 +464,8 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 .md-diamond.r-Rare{color:var(--frost,#4aa3ff);}
 .md-diamond.r-Épique{color:var(--arcane,#a05cf0);}
 .md-diamond.r-Mythique{color:var(--gold,#d4af37);}
-.md-star{color:var(--gold,#ffd23f);font-size:13px;line-height:1;text-shadow:0 0 5px rgba(255,210,63,.8);}
-.md-src{flex:1;min-width:0;padding:4px 12px;border-radius:5px;font-weight:700;font-size:12.5px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);}
+.md-star{color:var(--gold,#ffd23f);font-size:16px;line-height:1;text-shadow:0 0 5px rgba(255,210,63,.8);}
+.md-src{flex:1;min-width:0;padding:4px 12px;border-radius:5px;font-weight:700;font-size:15px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.65);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);}
 .md-src.s-Aube{background:linear-gradient(90deg,#b8922a,#d9b84f);color:#2a1f05;text-shadow:none;}
 .md-src.s-Crépuscule{background:linear-gradient(90deg,#6a40c8,#8a5cf0);}
 .md-src.s-Volonté{background:linear-gradient(90deg,#9c2a2a,#c23b3b);}
@@ -473,15 +473,15 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 .md-src.s-Arcane{background:linear-gradient(90deg,#3f78b0,#5b9bd5);}
 .md-src.s-Opale{background:linear-gradient(90deg,#d4af37,#c23b3b,#8a5cf0,#5b9bd5,#3fae5c);}
 .md-src.s-Neutre{background:linear-gradient(90deg,#5d5a66,#7a7784);}
-.md-gain{width:96px;flex:none;font-size:11.5px;}
+.md-gain{width:96px;flex:none;font-size:14px;}
 .md-gain .currency-chip{display:inline-flex;}
 .md-ctl{display:flex;align-items:center;gap:4px;flex:none;}
 .md-ctl button{width:26px;height:26px;border-radius:6px;border:1px solid var(--line,hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));background:var(--bg-panel-3,hsl(calc(var(--th, 252) + 0) calc(var(--ts-n, 1) * 28.7%) 17.1%));color:var(--parchment,#efe6c8);font-size:15px;line-height:1;cursor:pointer;}
 .md-ctl button:hover:not(:disabled){border-color:var(--gold,#d4af37);}
 .md-ctl button:disabled{opacity:.3;cursor:default;}
-.md-qty{min-width:38px;text-align:center;font-weight:700;font-size:12.5px;}
-.md-qty small{font-weight:400;opacity:.65;font-size:10.5px;}
-.md-empty{padding:30px 10px;text-align:center;color:var(--parchment-dim,#d9cfae);font-size:13px;font-style:italic;}
+.md-qty{min-width:38px;text-align:center;font-weight:700;font-size:15px;}
+.md-qty small{font-weight:400;opacity:.65;font-size:14px;}
+.md-empty{padding:30px 10px;text-align:center;color:var(--parchment-dim,#d9cfae);font-size:16px;font-style:italic;}
 /* animation : paquet de cartes -> blanc -> explosion de fragments */
 #md-fx{position:fixed;inset:0;z-index:175;pointer-events:none;display:none;overflow:hidden;}
 #md-fx.on{display:block;pointer-events:auto;}
@@ -492,10 +492,63 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 .md-fx-flash{position:absolute;inset:0;background:#fff;opacity:0;}
 .md-part{position:absolute;left:0;top:0;will-change:transform,opacity;}
 .md-gem{width:100%;height:100%;background-size:contain;background-repeat:no-repeat;background-position:center;-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;}
-.md-fx-skip{position:absolute;right:18px;bottom:16px;font-size:11px;color:#fff;opacity:.55;font-family:'Inter',sans-serif;}
+.md-fx-skip{position:absolute;right:18px;bottom:16px;font-size:14px;color:#fff;opacity:.55;font-family:'Inter',sans-serif;}
+
+/* ============ Ergonomie (retours de test) ============ */
+.db-main{flex-wrap:nowrap;}
+@media (max-width:900px){.db-main{flex-wrap:wrap;}.db-toolbar-col,.db-deck-col{width:100%;}}
+.db-toolbar-col{width:250px;}
+.db-collection-col{flex:1 1 0;min-width:0;}
+.db-deck-col{width:340px;}
+#left-toolbar .btn{font-size:16px;padding:11px 14px;}
+#left-toolbar .btn.small{font-size:15px;padding:9px 12px;}
+#left-toolbar .btn.nav-active{background:linear-gradient(180deg,var(--arcane),hsl(calc(var(--th, 252) + 0.9) calc(var(--ts-a, 1) * 55.8%) calc(42% + var(--tl-a, 0%))));border-color:var(--gold);color:#fff;font-weight:700;box-shadow:inset 5px 0 0 var(--gold);}
+#left-toolbar .btn:disabled{opacity:.4;cursor:not-allowed;border-color:var(--line);}
+#left-toolbar .tb-sep{height:1px;background:var(--line-soft, var(--line));margin:2px 0;}
+#left-toolbar .tb-title{font-family:'Cinzel',serif;font-size:14px;color:var(--parchment-dim);text-transform:uppercase;letter-spacing:.6px;}
+.currency-chip{font-size:15px;justify-content:flex-start;padding:5px 10px;}
+.currency-chip .chip-name{flex:1;font-weight:500;}
+.currency-chip .chip-n{font-weight:700;}
+/* plus de grossissement au survol, plus de pages qui tournent : un simple fondu court */
+.binder-slot .ncard:hover{transform:scale(0.66667);}
+.hero-select-tile:hover{transform:none;}
+.cardback-select-tile:hover .cardback-visual{transform:none;}
+.hero-select-tile{cursor:pointer;}
+.hero-select-tile .hp-name{font-size:18px;}
+.hero-select-tile .hp-linked-slot{width:84px;height:134px;}
+.hero-select-tile .hp-linked-slot .mlc-name{font-size:11px;}
+.hero-select-tile .hp-linked-slot:hover{outline:2px solid var(--gold);border-radius:6px;}
+.hp-linked-slot{cursor:pointer;}
+#binder-pages.bp-fade{animation:bp-fade .14s ease-out;}
+@keyframes bp-fade{from{opacity:.35}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){#binder-pages.bp-fade{animation:none;}}
+#binder-pages{flex-wrap:nowrap;}
+.card-zoom-btn{position:absolute;top:2px;left:30px;z-index:6;width:26px;height:26px;border-radius:50%;border:1px solid rgba(0,0,0,.5);background:rgba(20,16,8,.85);cursor:pointer;font-size:14px;line-height:24px;padding:0;}
+.card-zoom-btn:hover{border-color:var(--gold);}
+.deck-row .drow-cost{width:26px;height:26px;font-size:14px;}
+.drow-btn{width:26px;height:26px;font-size:15px;}
+.deck-row .drow-name:hover{color:var(--gold);text-decoration:underline;}
+.curve-label{font-size:12px;}
+.deck-row{font-size:15px;}
+/* Barre rapide : onglets de source + recherche nom / coût */
+#quick-bar{display:none;flex-direction:column;gap:10px;width:100%;background:var(--bg-panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;}
+#quick-bar.show{display:flex;}
+#quick-tabs{display:flex;flex-wrap:wrap;gap:6px;}
+.qtab{font-family:'Cinzel',serif;font-size:15px;font-weight:700;color:var(--parchment-dim);background:var(--bg-panel-2);border:1.5px solid var(--line);border-bottom:4px solid var(--qc, var(--line));border-radius:8px 8px 4px 4px;padding:7px 14px;cursor:pointer;}
+.qtab:hover{color:var(--parchment);border-color:var(--gold);border-bottom-color:var(--qc, var(--gold));}
+.qtab.on{background:var(--qc, var(--arcane));color:#fff;border-color:var(--qc, var(--arcane));text-shadow:0 1px 2px rgba(0,0,0,.6);}
+#quick-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+#quick-search{flex:1 1 220px;min-width:0;background:var(--bg-void);border:1px solid var(--line);color:var(--parchment);border-radius:8px;padding:9px 12px;font-size:16px;font-family:inherit;}
+#quick-search:focus{outline:2px solid var(--gold);outline-offset:1px;}
+#quick-costs{display:flex;flex-wrap:wrap;gap:5px;align-items:center;}
+.qcost-label{font-size:15px;color:var(--parchment-dim);margin-right:2px;}
+.qcost{min-width:36px;height:36px;border-radius:50%;border:1.5px solid var(--line);background:var(--bg-panel-2);color:var(--parchment);font-weight:700;font-size:15px;cursor:pointer;}
+.qcost:hover{border-color:var(--gold);}
+.qcost.on{background:var(--gold);color:#241a02;border-color:var(--gold);}
 </style>
 <script src="spellcraft-premium.js?v=20261020a"></script>
 <script src="spellcraft-card-render.js?v=20261020a"></script>
+<script src="spellcraft-dialogs.js?v=20261020a"></script>
 </head>
 <body>
 
@@ -518,13 +571,15 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
     <div class="db-main">
       <div class="db-toolbar-col">
         <div id="left-toolbar">
+          <div class="tb-title">Parcourir</div>
+          <button class="btn" id="nav-cards" onclick="jumpToBinderStart()">📖 Voir les cartes</button>
+          <button class="btn" id="nav-heroes" onclick="jumpToHeroPage()">🦸 Voir les héros</button>
+          <button class="btn" id="nav-backs" onclick="jumpToCardBackPage()">🎴 Voir les dos de carte</button>
+          <div class="tb-sep"></div>
           <div class="dropdown-wrap">
-            <button class="btn" onclick="toggleFilterPanel()">🔎 Filtre de recherche</button>
+            <button class="btn small" onclick="toggleFilterPanel()">🔎 Filtres avancés</button>
             <div class="dropdown-panel" id="filter-panel"></div>
           </div>
-          <button class="btn" onclick="jumpToBinderStart()">📖 Voir les cartes</button>
-          <button class="btn" onclick="jumpToHeroPage()">🦸 Voir les héros</button>
-          <button class="btn" onclick="jumpToCardBackPage()">🎴 Voir les dos de carte</button>
           <select class="select-mini" id="sort-select" onchange="onFilterChange()">
             <option value="class-cost-name">Tri : Source → Coût → Alphabétique</option>
             <option value="name-asc">Nom (A → Z)</option>
@@ -535,8 +590,11 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
             <option value="rarity">Rareté</option>
           </select>
           <span class="results-count" id="results-count"></span>
+          <div class="tb-sep"></div>
+          <div class="tb-title">Mes fragments</div>
           <div id="fragments-bar"></div>
-          <button class="btn small" id="craftable-toggle" onclick="toggleCraftableOnly()">🔨 Fabriquer des cartes</button>
+          <div class="tb-sep"></div>
+          <button class="btn small" id="craftable-toggle" onclick="toggleCraftableOnly()" title="Affiche les cartes que tu peux fabriquer avec tes fragments (uniquement dans « Voir les cartes »)">🔨 Fabriquer des cartes</button>
           <button class="btn small" id="bulk-disenchant-toggle" onclick="openMassDisenchant()">♻️ Désassembler en masse</button>
         </div>
 
@@ -544,6 +602,13 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 
       <div class="db-collection-col">
         <div id="wizard-hint" style="display:none;"></div>
+        <div id="quick-bar">
+          <div id="quick-tabs"></div>
+          <div id="quick-row">
+            <input type="search" id="quick-search" placeholder="Nom de carte, ou coût (3, 5+, 2-)" autocomplete="off" oninput="onQuickInput(this.value)">
+            <div id="quick-costs"></div>
+          </div>
+        </div>
         <div id="binder-frame">
           <div id="binder-pages"></div>
         </div>
@@ -570,8 +635,8 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
               <div id="hero-slot">Clique une carte Héros dans le classeur pour la définir</div>
               <div id="region-slot">Clique une carte Région dans le classeur pour la définir</div>
               <div class="field" style="margin-top:8px;">
-                <label style="font-size:10.5px;color:var(--parchment-dim);display:block;margin-bottom:4px;">Dos de carte pour ce deck</label>
-                <select id="deck-cardback-select" onchange="onDeckCardBackChange()" style="width:100%;background:var(--bg-panel-2);border:1px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));color:var(--parchment);border-radius:6px;padding:6px 8px;font-size:12px;">
+                <label style="font-size:14px;color:var(--parchment-dim);display:block;margin-bottom:4px;">Dos de carte pour ce deck</label>
+                <select id="deck-cardback-select" onchange="onDeckCardBackChange()" style="width:100%;background:var(--bg-panel-2);border:1px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));color:var(--parchment);border-radius:6px;padding:6px 8px;font-size:15px;">
                   <option value="">Utiliser mon dos équipé par défaut</option>
                 </select>
               </div>
@@ -625,7 +690,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 <div class="modal-overlay" id="import-modal" onclick="if(event.target===this) closeModal('import-modal')">
   <div class="modal-box">
     <h2>Importer une collection</h2>
-    <p style="font-size:11.5px;color:var(--parchment-dim);margin:0;">Colle ici le JSON exporté depuis l'éditeur de cartes ("Exporter (sauvegarde)"). Utile si la collection ne s'est pas synchronisée automatiquement.</p>
+    <p style="font-size:14px;color:var(--parchment-dim);margin:0;">Colle ici le JSON exporté depuis l'éditeur de cartes ("Exporter (sauvegarde)"). Utile si la collection ne s'est pas synchronisée automatiquement.</p>
     <textarea id="import-text" placeholder="Colle le JSON ici..."></textarea>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal('import-modal')">Annuler</button>
@@ -647,7 +712,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 <div class="modal-overlay" id="variant-modal" onclick="if(event.target===this) closeModal('variant-modal')">
   <div class="modal-box" style="max-width:640px;">
     <h2 id="variant-modal-title">Choisir la version</h2>
-    <p id="variant-modal-note" style="font-size:11.5px;color:var(--parchment-dim);margin:0 0 12px;"></p>
+    <p id="variant-modal-note" style="font-size:14px;color:var(--parchment-dim);margin:0 0 12px;"></p>
     <div id="variant-modal-content" style="display:flex;flex-wrap:wrap;gap:14px;justify-content:center;"></div>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal('variant-modal')">Fermer</button>
@@ -658,7 +723,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 <div class="modal-overlay" id="cardback-modal" onclick="if(event.target===this) closeModal('cardback-modal')">
   <div class="modal-box">
     <h2>Mes dos de cartes</h2>
-    <p style="font-size:11.5px;color:var(--parchment-dim);margin:0 0 12px;">Choisis ton dos par défaut (utilisé partout, sauf si un deck a le sien). Achète-en d'autres dans la Boutique.</p>
+    <p style="font-size:14px;color:var(--parchment-dim);margin:0 0 12px;">Choisis ton dos par défaut (utilisé partout, sauf si un deck a le sien). Achète-en d'autres dans la Boutique.</p>
     <div id="cardback-modal-content" style="display:flex;flex-wrap:wrap;gap:12px;"></div>
     <div class="modal-actions">
       <button class="btn" onclick="closeModal('cardback-modal')">Fermer</button>
@@ -671,7 +736,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 <div class="modal-overlay" id="tutorial-welcome-modal">
   <div class="modal-box">
     <h2>Construis ton premier deck</h2>
-    <p style="font-size:12px;color:var(--parchment-dim);line-height:1.6;margin:0 0 12px;">
+    <p style="font-size:15px;color:var(--parchment-dim);line-height:1.6;margin:0 0 12px;">
       Voici ta collection : toutes les cartes que tu possèdes (dont celles de tes boosters offerts, si tu les as déjà ouverts).<br><br>
       Un deck se construit en 3 étapes, avec le petit guide doré en haut de l'écran :<br>
       1. Choisis ton <strong>Héros</strong> — il fixe la source de ton deck.<br>
@@ -1537,6 +1602,7 @@ const HOVER_DELAY = 500;
 document.addEventListener('mousemove', (e)=>{ lastMouse = {x:e.clientX, y:e.clientY}; });
 
 function attachHoverPreviewDelayed(el, card, delay){
+  return; // l'aperçu au survol est remplacé par le clic (loupe 🔍, nom cliquable, cartes liées cliquables)
   let timer = null;
   el.addEventListener('mouseenter', ()=>{
     clearTimeout(timer);
@@ -1615,7 +1681,7 @@ function showPreview(card, x, y){
       wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:6px;';
       const arrow = document.createElement('div');
       arrow.textContent = '→ conjure';
-      arrow.style.cssText = 'font-family:Inter,sans-serif;font-size:13px;font-weight:700;color:var(--gold);text-shadow:0 1px 2px rgba(0,0,0,.8);white-space:nowrap;';
+      arrow.style.cssText = 'font-family:Inter,sans-serif;font-size:16px;font-weight:700;color:var(--gold);text-shadow:0 1px 2px rgba(0,0,0,.8);white-space:nowrap;';
       const conjSlot = document.createElement('div');
       conjSlot.style.cssText = `width:${cw}px;height:${ch}px;position:relative;`;
       const conjEl = buildCardEl(conjuredCard, {isPreview:true});
@@ -1710,7 +1776,8 @@ function fillHeroProfileContent(box, card){
       const slot = document.createElement('div');
       slot.className = 'hp-linked-slot';
       slot.appendChild(buildMiniLinkedCard(lc));
-      attachHoverPreviewDelayed(slot, lc, 500);
+      slot.title = 'Cliquer pour agrandir';
+      slot.addEventListener('click', (ev)=>{ ev.stopPropagation(); showCraftModal(lc); });
       cardsRow.appendChild(slot);
     });
   }
@@ -1893,7 +1960,108 @@ function fitBinderToWidth(){
 }
 window.addEventListener('resize', fitBinderToWidth);
 
+/* Plus de page qui tourne : un fondu très court suffit (et ne casse jamais l'affichage). */
 function renderBinder(animate){
+  renderBinderInner(false);
+  const bp = document.getElementById('binder-pages');
+  if(bp && animate){ bp.classList.remove('bp-fade'); void bp.offsetWidth; bp.classList.add('bp-fade'); }
+  updateNavActive();
+  syncQuickBar();
+  requestAnimationFrame(fitBinderToWidth);
+}
+function currentView(){
+  if(browsingCardBacksStandalone) return 'backs';
+  if((currentDeck && deckBuildStep==='hero') || browsingHeroesStandalone) return 'heroes';
+  if(currentDeck && deckBuildStep==='region') return 'region';
+  return 'cards';
+}
+function updateNavActive(){
+  const v = currentView();
+  const set = (id, on)=>{ const b = document.getElementById(id); if(b){ b.classList.toggle('nav-active', on); if(on) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); } };
+  set('nav-cards', v==='cards' || v==='region');
+  set('nav-heroes', v==='heroes');
+  set('nav-backs', v==='backs');
+  const ct = document.getElementById('craftable-toggle');
+  if(ct){
+    const ok = v==='cards';
+    ct.disabled = !ok;
+    ct.title = ok ? 'Affiche les cartes que tu peux fabriquer avec tes fragments' : 'Disponible uniquement dans « Voir les cartes »';
+  }
+}
+
+/* ---------- Barre rapide : onglets de source + recherche nom / coût ---------- */
+const QUICK_CLASSES = ['Aube','Crépuscule','Prima','Volonté','Arcane','Neutre'];
+function buildQuickBar(){
+  const tabs = document.getElementById('quick-tabs');
+  const costs = document.getElementById('quick-costs');
+  if(!tabs || tabs.dataset.built) return;
+  tabs.dataset.built = '1';
+  tabs.innerHTML = `<button type="button" class="qtab" data-k="">Toutes</button>` +
+    QUICK_CLASSES.map(k=>`<button type="button" class="qtab" data-k="${escapeHtml(k)}" style="--qc:${getClassColor(k)}">${escapeHtml(k)}</button>`).join('');
+  tabs.querySelectorAll('.qtab').forEach(b=>b.onclick = ()=>quickTab(b.dataset.k));
+  costs.innerHTML = `<span class="qcost-label">Coût</span>` +
+    [0,1,2,3,4,5,6,7].map(n=>`<button type="button" class="qcost" data-n="${n}">${n===7?'7+':n}</button>`).join('');
+  costs.querySelectorAll('.qcost').forEach(b=>b.onclick = ()=>quickCost(+b.dataset.n));
+}
+function quickTab(k){
+  filters.classes = k ? new Set([k]) : new Set();
+  filters.classMode = 'any';
+  currentPage = 0;
+  renderBinder();
+}
+function quickCost(n){
+  const cur = quickCostState();
+  if(cur === n){ filters.costValue = ''; }
+  else if(n === 7){ filters.costMode = 'gt'; filters.costValue = '6'; }
+  else { filters.costMode = 'eq'; filters.costValue = String(n); }
+  currentPage = 0;
+  renderBinder();
+}
+function quickCostState(){
+  if(filters.costValue === '') return null;
+  if(filters.costMode === 'eq') return parseInt(filters.costValue, 10);
+  if(filters.costMode === 'gt' && filters.costValue === '6') return 7;
+  return null;
+}
+let quickTimer = null;
+function onQuickInput(v){
+  clearTimeout(quickTimer);
+  quickTimer = setTimeout(()=>{
+    v = (v||'').trim().toLowerCase();
+    let m;
+    if(/^\d+$/.test(v)){ filters.costMode = 'eq'; filters.costValue = v; filters.search = ''; }
+    else if((m = v.match(/^(\d+)\s*\+$/))){ filters.costMode = 'gt'; filters.costValue = String(+m[1]-1); filters.search = ''; }
+    else if((m = v.match(/^(\d+)\s*-$/))){ filters.costMode = 'lt'; filters.costValue = String(+m[1]+1); filters.search = ''; }
+    else { filters.search = v; }
+    currentPage = 0;
+    renderBinder();
+  }, 150);
+}
+function syncQuickBar(){
+  const bar = document.getElementById('quick-bar');
+  if(!bar) return;
+  buildQuickBar();
+  const show = currentView() === 'cards';
+  bar.classList.toggle('show', show);
+  if(!show) return;
+  const one = filters.classes.size === 1 ? [...filters.classes][0] : null;
+  document.querySelectorAll('#quick-tabs .qtab').forEach(b=>{
+    const k = b.dataset.k;
+    b.classList.toggle('on', k ? one === k : filters.classes.size === 0);
+  });
+  const cs = quickCostState();
+  document.querySelectorAll('#quick-costs .qcost').forEach(b=>b.classList.toggle('on', cs === +b.dataset.n));
+  const inp = document.getElementById('quick-search');
+  if(inp && document.activeElement !== inp){
+    const typedCost = filters.search === '' && filters.costValue !== '' && cs === null
+      ? (filters.costMode==='gt' ? (parseInt(filters.costValue,10)+1)+'+' : filters.costMode==='lt' ? (parseInt(filters.costValue,10)-1)+'-' : '')
+      : '';
+    inp.value = filters.search || typedCost;
+  }
+}
+
+function renderBinderInner(animate){
+  animate = false;
   if(browsingCardBacksStandalone){ renderCardBackGrid(animate); return; }
   if((currentDeck && deckBuildStep==='hero') || browsingHeroesStandalone){ renderHeroSelectionGrid(animate); return; }
   browsingHeroesStandalone = false;
@@ -1997,6 +2165,13 @@ function renderBinder(animate){
           fb.onclick = (ev)=>{ ev.stopPropagation(); showCraftModal(card); };
           slot.appendChild(fb);
         }
+        const zb = document.createElement('button');
+        zb.type = 'button';
+        zb.className = 'card-zoom-btn';
+        zb.title = 'Agrandir la carte';
+        zb.textContent = '🔍';
+        zb.onclick = (ev)=>{ ev.stopPropagation(); showCraftModal(card); };
+        slot.appendChild(zb);
         const count = deckCountFor(card.id);
         const isChosenHero = currentDeck && currentDeck.heroId===card.id;
         const isChosenRegion = currentDeck && currentDeck.regionId===card.id;
@@ -2322,8 +2497,8 @@ async function renderFragmentsBar(){
   if(!profile){ bar.style.display = 'none'; return; }
   bar.style.display = 'flex';
   bar.innerHTML = FRAGMENT_COLUMNS.map(f=>`
-    <div class="currency-chip ${f.chipClass}" title="${f.label} (fragments ${f.chipClass})">
-      <span class="gem-icon"></span> ${profile[f.key]||0}
+    <div class="currency-chip ${f.chipClass}" title="Fragments de ${f.chipClass} (${f.label}) : servent à fabriquer des cartes">
+      <span class="gem-icon"></span><span class="chip-name">${f.label}</span><span class="chip-n">${profile[f.key]||0}</span>
     </div>
   `).join('');
 }
@@ -2498,7 +2673,7 @@ async function doCraftFinish(cardId, finish, btn){
   renderBinder();
 }
 async function doDisenchant(cardId, btn){
-  if(!confirm('Détruire cet exemplaire pour récupérer des fragments ? Cette action est irréversible.')) return;
+  if(!await scConfirm('Détruire cet exemplaire pour récupérer des fragments ? Cette action est irréversible.')) return;
   btn.disabled = true;
   const { data, error } = await sb.rpc('disenchant_card', { p_card_id: cardId });
   if(error || (data && data.error)){
@@ -2816,8 +2991,8 @@ function removeCardFromDeck(cardId){
   entry.count--;
   if(entry.count<=0) currentDeck.cards = currentDeck.cards.filter(c=>c.cardId!==cardId);
 }
-function clearDeck(){
-  if(currentDeck.cards.length && !confirm('Vider entièrement ce deck ?')) return;
+async function clearDeck(){
+  if(currentDeck.cards.length && !await scConfirm('Vider entièrement ce deck ?')) return;
   currentDeck.cards = [];
   currentDeck.heroId = null;
   currentDeck.regionId = null;
@@ -2878,7 +3053,7 @@ function loadDeck(deckId){
 }
 async function deleteDeck(deckId, ev){
   ev.stopPropagation();
-  if(!confirm('Supprimer ce deck sauvegardé ?')) return;
+  if(!await scConfirm('Supprimer ce deck sauvegardé ?')) return;
   const res = await deleteUserDeck(deckId);
   if(res.error){ flashError('Erreur : ' + res.error); return; }
   savedDecks = savedDecks.filter(d=>d.id!==deckId);
@@ -2910,7 +3085,7 @@ function renderDeckPanel(){
   if(heroCard){
     heroSlot.classList.add('set');
     heroSlot.innerHTML = `<div id="hero-mini">${escapeHtml(heroCard.name[0]||'H')}</div><span id="hero-slot-name" style="cursor:pointer;text-decoration:underline dotted;">${escapeHtml(heroCard.name)} · ${escapeHtml(heroCard.class)}</span>`;
-    attachHoverPreview(document.getElementById('hero-slot-name'), heroCard);
+    document.getElementById('hero-slot-name').onclick = ()=>showCraftModal(heroCard);
   } else {
     heroSlot.classList.remove('set');
     heroSlot.textContent = 'Clique une carte Héros dans le classeur pour la définir';
@@ -2983,7 +3158,8 @@ function renderDeckPanel(){
     row.querySelector('[data-act="plus"]').onclick = ()=>{ addCardToDeck(c); renderDeckPanel(); renderBinder(); };
     const variantBtn = row.querySelector('[data-act="variant"]');
     if(variantBtn) variantBtn.onclick = ()=>openVariantModal(c.id);
-    attachHoverPreview(row, entryCardView(entry, c));
+    const nm = row.querySelector('.drow-name');
+    if(nm){ nm.style.cursor = 'pointer'; nm.title = 'Cliquer pour agrandir'; nm.onclick = ()=>showCraftModal(c); }
     listEl.appendChild(row);
   });
 }
@@ -3027,7 +3203,7 @@ function openDeckListModal(){
       item.className='deck-list-item';
       const total = d.cards.reduce((s,c)=>s+c.count,0);
       const hero = d.heroId ? cardById(d.heroId) : null;
-      item.innerHTML = `<span>${escapeHtml(d.name)}</span><span class="spacer"></span><span style="color:var(--parchment-dim);font-size:11px;">${hero?escapeHtml(hero.name)+' · ':''}${total} cartes</span>`;
+      item.innerHTML = `<span>${escapeHtml(d.name)}</span><span class="spacer"></span><span style="color:var(--parchment-dim);font-size:14px;">${hero?escapeHtml(hero.name)+' · ':''}${total} cartes</span>`;
       item.onclick = ()=>loadDeck(d.id);
       const del = document.createElement('button');
       del.className='drow-btn'; del.textContent='×'; del.style.marginLeft='8px';
@@ -3084,7 +3260,7 @@ async function openCardBackModal(){
       return `
         <div style="width:150px;text-align:center;">
           <div style="width:150px;height:211px;border-radius:11px;background:var(--bg-panel-3);margin-bottom:6px;border:4px solid var(--gold);box-shadow:0 4px 10px rgba(0,0,0,.5);${cb.image_url?`background-image:url('${cb.image_url}');background-size:contain;background-repeat:no-repeat;background-position:center;`:''}"></div>
-          <div style="font-size:11.5px;font-weight:700;margin-bottom:6px;">${escapeHtml(cb.name)}</div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px;">${escapeHtml(cb.name)}</div>
           ${isEquipped
             ? `<button class="btn small" disabled style="background:var(--green);">Équipé ✓</button>`
             : `<button class="btn small" onclick="equipCardBackDefault('${cb.id}')">Équiper</button>`}

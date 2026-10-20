@@ -875,8 +875,8 @@ async function tutMarkCompletedThenGo(url){
   }
   window.location.href = url;
 }
-function tutSkip(){
-  if(!confirm('Passer le tutoriel et retourner au menu ?')) return;
+async function tutSkip(){
+  if(!await scConfirm('Passer le tutoriel et retourner au menu ?')) return;
   tutMarkCompletedThenGo('spellcraft-hub.html');
 }
 function tutFinish(){ tutMarkCompletedThenGo('spellcraft-hub.html'); }

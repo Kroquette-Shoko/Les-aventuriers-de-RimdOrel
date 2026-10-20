@@ -248,3 +248,15 @@ Récompenses « carte » (coffres de Velkrin, pass…) : `pass_grant_rewards` ac
 
 
 **Page classement** (`spellcraft-achievements.html`, bouton « Voir le classement ») : deux colonnes. Gauche = tableau des joueurs (RPC `get_ranked_board(p_search, p_limit, p_offset)` : tout joueur ayant `total_games_played > 0` ou des parties classées, même contre des bots ; rang, ligue, titre équipé, badges mis en avant, nom cliquable vers `spellcraft-profile.html?uid=`), recherche par nom, 10 par page. Droite = tableau des grades (paliers + récompenses), carte de progression du joueur (`get_ranked_profile`). SQL : `classement_tableau_20261019.sql`.
+
+## Boîtes de dialogue (`spellcraft-dialogs.js`)
+
+Ne jamais utiliser `alert()` / `confirm()` / `prompt()` natifs : les navigateurs (ou les joueurs) peuvent les bloquer. Le module expose `await scAlert(msg)`, `await scConfirm(msg, {danger, okText, cancelText, title})` (renvoie `true` / `false`) et `await scPrompt(msg, valeurParDefaut)` (texte, ou `null` si annulé). `window.alert` est redirigé vers `scAlert` ; `confirm` et `prompt` doivent être remplacés à la main (la fonction englobante devient `async`). Toutes les pages qui en avaient besoin chargent le module dans leur `<head>`.
+
+## Bibliothèque (`spellcraft-deckbuilder.html`) : ergonomie
+
+- Menu de gauche : « Parcourir » (cartes / héros / dos), la vue courante est surlignée (`updateNavActive`) ; « Fabriquer des cartes » n'est actif que dans « Voir les cartes ».
+- Barre rapide au-dessus du classeur (vue cartes uniquement) : onglets par source, recherche par nom (un nombre tapé = filtre de coût : `3`, `5+`, `2-`) et pastilles de coût 0 à 7+. Elle écrit dans les mêmes `filters` que le panneau « Filtres avancés ».
+- Plus d'aperçu au survol : loupe 🔍 sur chaque carte, nom cliquable dans le deck, cartes liées d'un héros cliquables ; tout ouvre la fenêtre de détail (`showCraftModal`).
+- Plus de page qui tourne : un fondu de 0,14 s (`bp-fade`). Le deck reste toujours à droite (mise en page sans retour à la ligne, le classeur est réduit par `fitBinderToWidth`).
+- Les textes de l'interface font au moins 14 px.
