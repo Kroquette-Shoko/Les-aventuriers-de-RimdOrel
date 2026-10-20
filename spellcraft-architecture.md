@@ -260,3 +260,9 @@ Ne jamais utiliser `alert()` / `confirm()` / `prompt()` natifs : les navigateurs
 - Plus d'aperçu au survol : clic droit sur une carte (ou sur sa ligne dans le deck) pour l'agrandir, nom cliquable dans le deck, cartes liées d'un héros cliquables ; tout ouvre la fenêtre de détail (`showCraftModal`).
 - Plus de page qui tourne : un fondu de 0,14 s (`bp-fade`). Le deck reste toujours à droite (mise en page sans retour à la ligne, le classeur est réduit par `fitBinderToWidth`).
 - Les textes de l'interface font au moins 14 px.
+
+## Panneau « Votre deck » (spellcraft-deckbuilder.html)
+- Ordre : ✕ fermer · titre · nom · ligne Héros · ligne Région · ligne Dos · compteur · courbe de mana · onglets « Deck list » (défaut, trié par coût, ligne colorée par source + icône de type) / « Détails » (types, sources, sous-types, conjuration, coût moyen) · Vider (confirmation) · Sauvegarder.
+- Un clic sur Héros / Région / Dos ouvre la page correspondante du classeur (`openDeckHeroPage`, `openDeckRegionPage`, `openDeckBackPage`) ; « Voir les cartes » → `openDeckCardsPage`. Plus de bandeau d'étape (`#wizard-hint` supprimé).
+- Avec un deck ouvert, la page des dos choisit le dos du deck (`currentDeck.cardBackId`, `null` = dos de base) au lieu d'équiper. Le lobby utilise le dos de base si le deck n'en a pas choisi.
+- Sauvegarde : héros ET région obligatoires (message centré via `scAlert`) ; si le nom n'a pas été modifié, `scPrompt` demande le nom (re-validation).

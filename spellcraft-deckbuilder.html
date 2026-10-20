@@ -323,6 +323,41 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 
 #deck-footer{padding:10px 14px;border-top:1px solid var(--line-soft, hsl(calc(var(--th, 252) + 3) calc(var(--ts-n, 1) * 28%) 19.6%));display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;}
 #deck-footer .btn{flex:1;}
+
+/* ---- Panneau « Votre deck » ---- */
+#dk-top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px 4px;flex-shrink:0;}
+#dk-title{margin:0;font-family:'Cinzel',serif;font-size:22px;color:var(--gold, #d4af37);}
+#dk-close{width:36px;height:36px;border-radius:8px;border:1px solid var(--line, #3a3560);background:var(--bg-panel-3);color:var(--parchment);font-size:18px;cursor:pointer;line-height:1;}
+#dk-close:hover{border-color:var(--blood, #c23b3b);color:var(--blood, #e06666);}
+#deck-header{display:flex;flex-direction:column;gap:6px;}
+#deck-header input{width:100%;box-sizing:border-box;font-size:18px;}
+#hero-slot.dk-pick,#region-slot.dk-pick,#back-slot.dk-pick{margin:0;padding:8px 10px;font-size:16px;border:1px solid var(--line, #3a3560);border-style:solid;background:var(--bg-panel-2);color:var(--parchment);}
+#hero-slot.dk-pick:hover,#region-slot.dk-pick:hover,#back-slot.dk-pick:hover,#hero-slot.dk-pick.active,#region-slot.dk-pick.active,#back-slot.dk-pick.active{border-color:var(--gold, #d4af37);}
+.dk-pick{display:flex;align-items:center;gap:10px;width:100%;text-align:left;font:inherit;font-size:16px;color:var(--parchment);padding:8px 10px;margin:0;background:var(--bg-panel-2);border:1px solid var(--line, #3a3560);border-radius:8px;cursor:pointer;}
+.dk-pick:hover{border-color:var(--gold, #d4af37);}
+.dk-pick.active{border-color:var(--gold, #d4af37);box-shadow:0 0 0 1px var(--gold, #d4af37) inset;}
+.dk-pick .dk-k{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--parchment-dim);min-width:58px;}
+.dk-pick .dk-v{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.dk-pick .dk-v em{opacity:.7;}
+.dk-pick .dk-go{opacity:.6;}
+.dk-pick.empty .dk-v{color:var(--blood, #e06666);}
+#dk-tabs{display:flex;gap:6px;padding:8px 10px 0;flex-shrink:0;}
+.dk-tab{flex:1;padding:8px 10px;font:inherit;font-size:16px;font-weight:600;color:var(--parchment-dim);background:var(--bg-panel-2);border:1px solid var(--line, #3a3560);border-bottom:none;border-radius:8px 8px 0 0;cursor:pointer;}
+.dk-tab.active{color:var(--gold, #d4af37);background:var(--bg-panel-3);border-color:var(--gold, #d4af37);}
+#deck-details{flex:1;overflow-y:auto;padding:10px 14px;font-size:16px;}
+#deck-details[hidden]{display:none;}
+#deck-details h3{margin:12px 0 6px;font-size:15px;text-transform:uppercase;letter-spacing:.06em;color:var(--gold, #d4af37);}
+#deck-details h3:first-child{margin-top:0;}
+.dt-line{display:flex;align-items:center;gap:8px;margin:4px 0;}
+.dt-line .dt-lbl{width:110px;flex-shrink:0;}
+.dt-line .dt-bar{flex:1;height:10px;border-radius:5px;background:var(--bg-panel-3);overflow:hidden;}
+.dt-line .dt-bar i{display:block;height:100%;background:var(--gold, #d4af37);}
+.dt-line .dt-n{width:34px;text-align:right;color:var(--parchment-dim);}
+.dt-note{color:var(--parchment-dim);font-size:14px;margin-top:6px;}
+.deck-row{border-left:5px solid var(--rowc, transparent);background:var(--rowbg, transparent);margin-bottom:3px;}
+.deck-row .drow-type{width:24px;text-align:center;flex-shrink:0;font-size:17px;}
+.deck-row .drow-cost{background:var(--bg-void, #0c0a18);}
+#deck-footer{flex-direction:column;}
 .empty-deck-msg{color:var(--parchment-dim);font-size:15px;font-style:italic;text-align:center;padding:20px 10px;}
 
 .modal-overlay{position:fixed;inset:0;background:rgba(5,4,10,.88);display:none;align-items:center;justify-content:center;z-index:60;}
@@ -601,7 +636,6 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
       </div>
 
       <div class="db-collection-col">
-        <div id="wizard-hint" style="display:none;"></div>
         <div id="quick-bar">
           <div id="quick-tabs"></div>
           <div id="quick-hint">Clic gauche : ajouter au deck · <b>Clic droit : agrandir la carte</b></div>
@@ -628,25 +662,26 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
             <button class="btn" onclick="openDeckListModal()">📚 Charger un deck existant</button>
           </div>
           <div id="deck-editor">
+            <div id="dk-top">
+              <h2 id="dk-title">Votre deck</h2>
+              <button type="button" id="dk-close" onclick="exitDeckBuilding()" title="Fermer la création de deck" aria-label="Fermer la création de deck">✕</button>
+            </div>
             <div id="deck-header">
-              <div class="deck-title-row">
-                <input type="text" id="deck-name-input" value="Deck sans nom" oninput="onDeckNameChange()">
-              </div>
-              <div class="deck-count" id="deck-count">0 cartes (30 à 45)</div>
-              <div id="hero-slot">Clique une carte Héros dans le classeur pour la définir</div>
-              <div id="region-slot">Clique une carte Région dans le classeur pour la définir</div>
-              <div class="field" style="margin-top:8px;">
-                <label style="font-size:14px;color:var(--parchment-dim);display:block;margin-bottom:4px;">Dos de carte pour ce deck</label>
-                <select id="deck-cardback-select" onchange="onDeckCardBackChange()" style="width:100%;background:var(--bg-panel-2);border:1px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));color:var(--parchment);border-radius:6px;padding:6px 8px;font-size:15px;">
-                  <option value="">Utiliser mon dos équipé par défaut</option>
-                </select>
-              </div>
+              <input type="text" id="deck-name-input" value="Deck sans nom" oninput="onDeckNameChange()" aria-label="Nom du deck" maxlength="40">
+              <button type="button" class="dk-pick" id="hero-slot" onclick="openDeckHeroPage()"></button>
+              <button type="button" class="dk-pick" id="region-slot" onclick="openDeckRegionPage()"></button>
+              <button type="button" class="dk-pick" id="back-slot" onclick="openDeckBackPage()"></button>
+              <div class="deck-count" id="deck-count">0 cartes</div>
             </div>
             <div id="mana-curve"></div>
+            <div id="dk-tabs" role="tablist">
+              <button type="button" class="dk-tab active" id="dk-tab-list" role="tab" onclick="setDeckTab('list')">Deck list</button>
+              <button type="button" class="dk-tab" id="dk-tab-details" role="tab" onclick="setDeckTab('details')">Détails</button>
+            </div>
             <div id="deck-list"></div>
+            <div id="deck-details" hidden></div>
             <div id="deck-footer">
-              <button class="btn" onclick="exitDeckBuilding()">✕ Quitter le deck</button>
-              <button class="btn" onclick="clearDeck()">Vider</button>
+              <button class="btn" onclick="clearDeck()">🗑 Vider le deck</button>
               <button class="btn primary" onclick="saveDeck()">💾 Sauvegarder le deck</button>
             </div>
           </div>
@@ -1197,7 +1232,8 @@ function onFilterChange(){
 let browsingHeroesStandalone = false;
 
 function jumpToHeroPage(){
-  if((currentDeck && deckBuildStep==='hero') || browsingHeroesStandalone){ flashSaved("Tu es déjà sur la sélection des héros."); return; }
+  if(currentDeck){ openDeckHeroPage(); return; }
+  if(browsingHeroesStandalone){ flashSaved("Tu es déjà sur la sélection des héros."); return; }
   const heroList = collection.filter(c=>c.type==='Héros' && !(c.subtypes||[]).some(s=>s.trim().toLowerCase()==='conjuration'));
   if(heroList.length===0){ flashError("Aucun héros dans la collection pour l'instant."); return; }
   browsingHeroesStandalone = true;
@@ -1206,8 +1242,38 @@ function jumpToHeroPage(){
   renderBinder('spread');
 }
 
+/* Depuis le panneau « Votre deck » : un clic sur le héros / la région / le dos ouvre la page correspondante. */
+function openDeckHeroPage(){
+  if(!currentDeck) return;
+  browsingCardBacksStandalone = false; browsingHeroesStandalone = false;
+  deckBuildStep = 'hero'; currentPage = 0;
+  renderDeckPanel(); renderBinder('spread');
+}
+function openDeckRegionPage(){
+  if(!currentDeck) return;
+  if(!currentDeck.heroId){ scAlert("Choisis d'abord un héros : les régions proposées dépendent de lui."); openDeckHeroPage(); return; }
+  browsingCardBacksStandalone = false; browsingHeroesStandalone = false;
+  deckBuildStep = 'region'; currentPage = 0;
+  renderDeckPanel(); renderBinder('spread');
+}
+async function openDeckBackPage(){
+  if(!currentDeck) return;
+  await loadOwnedCardBacks();
+  browsingHeroesStandalone = false;
+  browsingCardBacksStandalone = true;
+  currentPage = 0;
+  renderDeckPanel(); renderBinder('spread');
+}
+function openDeckCardsPage(){
+  if(!currentDeck) return;
+  browsingCardBacksStandalone = false; browsingHeroesStandalone = false;
+  deckBuildStep = 'cards'; currentPage = 0;
+  renderDeckPanel(); renderBinder('spread');
+}
+
 let browsingCardBacksStandalone = false;
 async function jumpToCardBackPage(){
+  if(currentDeck){ await openDeckBackPage(); return; }
   if(browsingCardBacksStandalone){ flashSaved('Tu es déjà sur tes dos de cartes.'); return; }
   await loadOwnedCardBacks();
   if(ownedCardBacksCache.length===0){ flashError("Tu ne possèdes encore aucun dos de carte — direction la Boutique !"); return; }
@@ -1218,6 +1284,10 @@ async function jumpToCardBackPage(){
 }
 
 function jumpToBinderStart(){
+  if(currentDeck){
+    if(!currentDeck.heroId){ scAlert("Choisis d'abord un héros pour voir les cartes que ton deck peut jouer."); openDeckHeroPage(); return; }
+    openDeckCardsPage(); return;
+  }
   if(currentPage===0 && !browsingHeroesStandalone && !browsingCardBacksStandalone){ flashSaved('Déjà au début du classeur.'); return; }
   browsingHeroesStandalone = false;
   browsingCardBacksStandalone = false;
@@ -1814,7 +1884,9 @@ function hidePreview(){
 const HERO_PAGE_SIZE = 3;
 
 function renderCardBackGrid(animate){
-  const filtered = filters.search ? ownedCardBacksCache.filter(cb=>cb.name.toLowerCase().includes(filters.search)) : ownedCardBacksCache;
+  const BASE_BACK = { id:'base', name:'Dos de base', image_url:'images/card/back/dos-de-carte-base.png' };
+  const allBacks = (currentDeck && !ownedCardBacksCache.some(b=>b.id==='base')) ? [BASE_BACK, ...ownedCardBacksCache] : ownedCardBacksCache;
+  const filtered = filters.search ? allBacks.filter(cb=>cb.name.toLowerCase().includes(filters.search)) : allBacks;
   const totalPages = Math.max(1, Math.ceil(filtered.length / SPREAD_SIZE));
   if(currentPage >= totalPages) currentPage = totalPages - 1;
   if(currentPage < 0) currentPage = 0;
@@ -1832,17 +1904,25 @@ function renderCardBackGrid(animate){
       slot.className = 'binder-slot';
       if(backs[i]){
         const cb = backs[i];
-        const isEquipped = equippedCardBackId === cb.id;
+        const inDeck = !!currentDeck;
+        const isEquipped = inDeck ? ((currentDeck.cardBackId || 'base') === cb.id) : (equippedCardBackId === cb.id);
         slot.style.position = 'relative';
         const tile = document.createElement('div');
         tile.className = 'cardback-select-tile' + (isEquipped ? ' equipped' : '');
+        const bgUrl = cb.image_url || (cb.id==='base' ? 'images/card/back/dos-de-carte-base.png' : '');
         tile.innerHTML = `
-          <div class="cardback-visual" style="${cb.image_url?`background-image:url('${cb.image_url.replace(/'/g,"")}');`:''}"></div>
-          <div class="cardback-status">${isEquipped ? 'Équipé ✓' : ''}</div>
+          <div class="cardback-visual" style="${bgUrl?`background-image:url('${bgUrl.replace(/'/g,"")}');`:''}"></div>
+          <div class="cardback-status">${escapeHtml(cb.name||'')}${isEquipped ? (inDeck ? ' — choisi ✓' : ' — équipé ✓') : ''}</div>
         `;
         tile.addEventListener('mouseenter', (ev)=>showCardBackPreview(cb, ev.clientX, ev.clientY));
         tile.addEventListener('mouseleave', hidePreview);
-        if(!isEquipped) tile.onclick = async ()=>{
+        if(inDeck){
+          tile.onclick = ()=>{
+            currentDeck.cardBackId = (cb.id==='base') ? null : cb.id;
+            flashSaved('✓ Dos « ' + (cb.name||'') + ' » choisi pour ce deck');
+            renderDeckPanel(); renderCardBackGrid(false);
+          };
+        } else if(!isEquipped) tile.onclick = async ()=>{
           const { data, error } = await sb.rpc('equip_card_back', { p_card_back_id: cb.id });
           if(error){ flashError('Erreur : ' + error.message); return; }
           if(data.error){ flashError(data.error==='not-owned' ? "Tu ne possèdes pas ce dos de carte." : data.error); return; }
@@ -2420,7 +2500,6 @@ function onCardClick(card){
       : `✓ ${card.name} choisi comme héros`);
     currentPage = 0;
     renderDeckPanel();
-    renderWizardHint();
     renderBinder('spread');
     return;
   }
@@ -2431,7 +2510,6 @@ function onCardClick(card){
     flashSaved(`✓ ${card.name} choisie comme région`);
     currentPage = 0;
     renderDeckPanel();
-    renderWizardHint();
     renderBinder('spread');
     return;
   }
@@ -2919,41 +2997,6 @@ function playMassFx(cards, byClass, onDone){
 
 
 
-// Région facultative : on passe à l'étape suivante sans région ; le serveur
-// (et le lobby) utilisent alors la Côte de Rimd'Orël par défaut.
-function skipRegionStep(){
-  if(!currentDeck || deckBuildStep!=='region') return;
-  currentDeck.regionId = null;
-  deckBuildStep = 'cards';
-  flashSaved('✓ Aucune région choisie : la Côte de Rimd\'Orël sera utilisée');
-  currentPage = 0;
-  renderDeckPanel();
-  renderWizardHint();
-  renderBinder('spread');
-}
-
-function wizardBack(){
-  if(!currentDeck) return;
-  if(deckBuildStep==='region'){ deckBuildStep='hero'; currentDeck.heroId=null; }
-  else if(deckBuildStep==='cards'){ deckBuildStep='region'; currentDeck.regionId=null; }
-  else return;
-  currentPage = 0;
-  renderDeckPanel();
-  renderWizardHint();
-  renderBinder('spread');
-}
-
-function renderWizardHint(){
-  const el = document.getElementById('wizard-hint');
-  if(!el) return;
-  if(!currentDeck || !deckBuildStep){ el.style.display='none'; return; }
-  el.style.display='flex';
-  const labels = { hero:'Étape 1/3 — Choisis ton Héros', region:'Étape 2/3 — Choisis ta Région (de ta source ou Neutre) — facultatif : sans choix, la Côte de Rimd\'Orël est utilisée', cards:'Étape 3/3 — Construis ton deck (30 à 45 cartes)' };
-  const showBack = deckBuildStep==='region' || deckBuildStep==='cards';
-  const skipBtn = deckBuildStep==='region' ? '<button class="btn small" onclick="skipRegionStep()">Utiliser la Côte de Rimd\'Orël (défaut) →</button>' : '';
-  el.innerHTML = `${showBack?'<button class="btn small" onclick="wizardBack()">← Retour</button>':''}<span>${labels[deckBuildStep]}</span>${skipBtn}`;
-}
-
 /* ============================================================
    DECK
    ============================================================ */
@@ -2988,49 +3031,75 @@ function removeCardFromDeck(cardId){
   if(entry.count<=0) currentDeck.cards = currentDeck.cards.filter(c=>c.cardId!==cardId);
 }
 async function clearDeck(){
-  if(currentDeck.cards.length && !await scConfirm('Vider entièrement ce deck ?')) return;
+  if(!currentDeck) return;
+  if(!await scConfirm('Vider entièrement ce deck ?\nLes cartes, le héros et la région seront retirés (le nom et le dos sont conservés).', {danger:true, okText:'Vider le deck', title:'Vider le deck'})) return;
   currentDeck.cards = [];
   currentDeck.heroId = null;
   currentDeck.regionId = null;
+  browsingCardBacksStandalone = false; browsingHeroesStandalone = false;
   deckBuildStep = 'hero';
   currentPage = 0;
   renderDeckPanel();
-  renderWizardHint();
   renderBinder('spread');
 }
-function exitDeckBuilding(){
+async function exitDeckBuilding(){
+  if(!currentDeck) return;
   currentDeck = null;
   deckBuildStep = null;
   browsingHeroesStandalone = false;
+  browsingCardBacksStandalone = false;
   currentPage = 0;
   renderDeckPanel();
-  renderWizardHint();
   renderBinder('spread');
   flashSaved('Retour à la collection.');
 }
 function newDeck(){
   currentDeck = { id:null, name:'Deck sans nom', heroId:null, regionId:null, cards:[], cardBackId:null };
   document.getElementById('deck-name-input').value = currentDeck.name;
+  deckNameTouched = false;
   deckBuildStep = 'hero';
+  browsingCardBacksStandalone = false; browsingHeroesStandalone = false;
   currentPage = 0;
+  setDeckTab('list');
   renderDeckPanel();
-  renderWizardHint();
   renderBinder('spread');
 }
+let deckNameTouched = false;
 function onDeckNameChange(){
   if(!currentDeck) return;
+  deckNameTouched = true;
   currentDeck.name = document.getElementById('deck-name-input').value.trim() || 'Deck sans nom';
 }
 async function saveDeck(){
   if(!currentDeck) return;
-  if(!currentDeck.heroId){ flashError('Choisis un Héros avant de sauvegarder.'); return; }
-  if(totalDeckCount() < DECK_MIN) flashError(`Deck sauvegardé, mais il lui manque ${DECK_MIN-totalDeckCount()} carte(s) : il faut au moins ${DECK_MIN} cartes pour jouer.`);
+  // 1) Héros et région obligatoires : message d'erreur au milieu de l'écran
+  const manque = [];
+  if(!currentDeck.heroId) manque.push('un héros');
+  if(!currentDeck.regionId) manque.push('une région');
+  if(manque.length){
+    await scAlert('Ton deck ne peut pas être sauvegardé : il lui faut ' + manque.join(' et ') + '.\nClique sur la ligne « Héros » ou « Région » du panneau pour en choisir.', {title:'Sauvegarde impossible'});
+    if(!currentDeck.heroId) openDeckHeroPage(); else openDeckRegionPage();
+    return;
+  }
+  // 2) Nom jamais modifié : fenêtre pour le choisir (sert aussi de dernière validation)
+  const defaultName = !currentDeck.name || currentDeck.name==='Deck sans nom';
+  if(defaultName || !deckNameTouched && !currentDeck.id){
+    const nom = await scPrompt('Quel nom veux-tu donner à ce deck ?', defaultName ? '' : currentDeck.name, {title:'Nom du deck', okText:'Sauvegarder', cancelText:'Annuler'});
+    if(nom===null) return;
+    const clean = nom.trim();
+    if(!clean){ await scAlert('Le nom du deck ne peut pas être vide.'); return; }
+    currentDeck.name = clean.slice(0,40);
+    document.getElementById('deck-name-input').value = currentDeck.name;
+    deckNameTouched = true;
+  }
+  const n = totalDeckCount();
   const res = await saveUserDeck(currentDeck);
-  if(res.error){ flashError('Erreur : ' + res.error); return; }
+  if(res.error){ await scAlert('Erreur : ' + res.error, {title:'Sauvegarde impossible'}); return; }
   currentDeck.id = res.id;
   savedDecks = await loadUserDecks();
-  flashSaved('✓ Deck sauvegardé');
-  showDeckSavedPopup(`✓ « ${currentDeck.name || 'Deck'} » sauvegardé`);
+  renderDeckPanel();
+  showDeckSavedPopup(`✓ « ${currentDeck.name} » sauvegardé`);
+  if(n < DECK_MIN) flashError(`Il lui manque ${DECK_MIN-n} carte(s) : il faut au moins ${DECK_MIN} cartes pour jouer.`);
 }
 function loadDeck(deckId){
   const d = savedDecks.find(x=>x.id===deckId);
@@ -3040,11 +3109,13 @@ function loadDeck(deckId){
   if(currentDeck.cardBackId===undefined) currentDeck.cardBackId = null;
   currentDeck.cards.forEach(e => { if(e.variantId && !entryVariant(e)) delete e.variantId; if(e.finish && !ownedFinishes(e.cardId).includes(e.finish)) delete e.finish; });   // variante supprimée ou non possédée
   document.getElementById('deck-name-input').value = currentDeck.name;
+  deckNameTouched = true;
+  browsingCardBacksStandalone = false; browsingHeroesStandalone = false;
+  setDeckTab('list');
   deckBuildStep = 'cards';
   currentPage = 0;
   closeModal('decklist-modal');
   renderDeckPanel();
-  renderWizardHint();
   renderBinder();
 }
 async function deleteDeck(deckId, ev){
@@ -3072,37 +3143,25 @@ function renderDeckPanel(){
   const total = totalDeckCount();
   const countEl = document.getElementById('deck-count');
   countEl.textContent = total < DECK_MIN
-    ? `${total} cartes — encore ${DECK_MIN-total} pour le minimum (${DECK_MIN}–${DECK_MAX})`
+    ? `${total} / ${DECK_MAX} cartes — encore ${DECK_MIN-total} pour le minimum (${DECK_MIN})`
     : `${total} / ${DECK_MAX} cartes ✓ deck valide`;
   countEl.classList.toggle('full', total>=DECK_MIN);
 
-  const heroSlot = document.getElementById('hero-slot');
+  const view = currentView();
+  const pick = (id, key, valueHtml, empty, active)=>{
+    const el = document.getElementById(id);
+    el.className = 'dk-pick' + (empty?' empty':'') + (active?' active':'');
+    el.innerHTML = `<span class="dk-k">${key}</span><span class="dk-v">${valueHtml}</span><span class="dk-go">›</span>`;
+  };
   const heroCard = deckHeroCard();
-  if(heroCard){
-    heroSlot.classList.add('set');
-    heroSlot.innerHTML = `<div id="hero-mini">${escapeHtml(heroCard.name[0]||'H')}</div><span id="hero-slot-name" style="cursor:pointer;text-decoration:underline dotted;">${escapeHtml(heroCard.name)} · ${escapeHtml(heroCard.class)}</span>`;
-    document.getElementById('hero-slot-name').onclick = ()=>showCraftModal(heroCard);
-  } else {
-    heroSlot.classList.remove('set');
-    heroSlot.textContent = 'Clique une carte Héros dans le classeur pour la définir';
-  }
-
-  const regionSlot = document.getElementById('region-slot');
+  pick('hero-slot', 'Héros', heroCard ? `${escapeHtml(heroCard.name)} · ${escapeHtml(heroCard.class)}` : 'À choisir', !heroCard, view==='heroes');
   const chosenRegion = currentDeck.regionId ? (cardById(currentDeck.regionId) || allCardsCache.find(c=>c.id===currentDeck.regionId)) : null;
-  const regionOk = isRegionValidForHero(chosenRegion, heroCard);
-  if(chosenRegion && regionOk){
-    regionSlot.classList.add('set');
-    regionSlot.innerHTML = `<div id="hero-mini" style="color:var(--green);">${escapeHtml(chosenRegion.name[0]||'R')}</div><span>${escapeHtml(chosenRegion.name)}</span>`;
-  } else {
-    // Aucune région, ou région invalide (introuvable, mauvais type, mauvaise classe) : Côte par défaut.
-    const defRegion = allCardsCache.find(c=>c.id===DEFAULT_REGION_ID);
-    const defName = defRegion ? defRegion.name : "Côte de Rimd'Orël";
-    const why = currentDeck.regionId ? 'région choisie invalide' : 'aucune région choisie';
-    regionSlot.classList.add('set');
-    regionSlot.innerHTML = `<div id="hero-mini" style="color:var(--green);">${escapeHtml(defName[0]||'R')}</div><span>${escapeHtml(defName)} <em style="opacity:.7;">(par défaut — ${why})</em></span>`;
-  }
-
-  populateDeckCardBackSelect();
+  const regionOk = !!chosenRegion && isRegionValidForHero(chosenRegion, heroCard);
+  pick('region-slot', 'Région', regionOk ? escapeHtml(chosenRegion.name) : 'À choisir', !regionOk, view==='region');
+  const backId = currentDeck.cardBackId || 'base';
+  const backObj = ownedCardBacksCache.find(b=>b.id===backId);
+  const backName = backId==='base' ? 'Dos de base' : (backObj ? backObj.name : 'Dos choisi');
+  pick('back-slot', 'Dos', escapeHtml(backName) + (currentDeck.cardBackId ? '' : ' <em>(par défaut)</em>'), false, view==='backs');
 
   // courbe de mana
   const buckets = [0,0,0,0,0,0,0,0]; // 0..6, 7+
@@ -3128,6 +3187,7 @@ function renderDeckPanel(){
   listEl.innerHTML = '';
   if(currentDeck.cards.length===0){
     listEl.innerHTML = `<div class="empty-deck-msg">Clique des cartes dans le classeur pour les ajouter à ton deck.</div>`;
+    renderDeckDetails();
     return;
   }
   const sorted = [...currentDeck.cards].sort((a,b)=>{
@@ -3140,10 +3200,17 @@ function renderDeckPanel(){
     if(!c) return;
     const row = document.createElement('div');
     row.className='deck-row';
+    const cols = [c.class, c.classSecondary].filter(Boolean).map(getClassColor);
+    if(!cols.length) cols.push(getClassColor('Neutre'));
+    row.style.setProperty('--rowc', cols[0]);
+    row.style.setProperty('--rowbg', cols.length>1
+      ? `linear-gradient(90deg, ${cols[0]}55, ${cols[1]}55)`
+      : `linear-gradient(90deg, ${cols[0]}55, ${cols[0]}18)`);
     row.innerHTML = `
       <div class="drow-cost">${c.cost ?? '–'}</div>
       <div class="drow-name" title="${escapeHtml(c.name)}">${escapeHtml(c.name)}${c.isLegendary?' ✦':''}${entryFinish(entry)!=='normal' ? ` <span class="drow-fin" title="${FINISH_LABEL[entryFinish(entry)]}">${entryFinish(entry)==='foil'?'✨':entryFinish(entry)==='premium'?'💠':'💠✨'}</span>` : ''}</div>
       <div class="drow-count">x${entry.count}</div>
+      <div class="drow-type" title="${escapeHtml(c.type)}">${TYPE_ICON[c.type]||'•'}</div>
       <div class="drow-btns">
         ${versionChoices(c.id).length > 1 ? `<button class="drow-btn" data-act="variant" title="Choisir la version (foil, premium, illustration)" style="${(entryVariant(entry) || entryFinish(entry)!=='normal') ? 'border-color:var(--gold);' : ''}">★</button>` : ''}
         <button class="drow-btn" data-act="minus">−</button>
@@ -3159,6 +3226,67 @@ function renderDeckPanel(){
     if(nm){ nm.style.cursor = 'pointer'; nm.title = 'Clic gauche ou droit : agrandir'; nm.onclick = ()=>showCraftModal(c); }
     listEl.appendChild(row);
   });
+  renderDeckDetails();
+}
+
+const TYPE_ICON = { 'Créature':'🐾', 'Artefact':'⚙️', 'Sortilège':'✨', 'Piège':'🪤' };
+let deckTab = 'list';
+function setDeckTab(t){
+  deckTab = t;
+  const l = document.getElementById('deck-list'), d = document.getElementById('deck-details');
+  if(!l || !d) return;
+  l.hidden = (t!=='list'); d.hidden = (t!=='details');
+  l.style.display = (t==='list') ? '' : 'none';
+  document.getElementById('dk-tab-list').classList.toggle('active', t==='list');
+  document.getElementById('dk-tab-details').classList.toggle('active', t==='details');
+  if(t==='details') renderDeckDetails();
+}
+function renderDeckDetails(){
+  const el = document.getElementById('deck-details');
+  if(!el || !currentDeck) return;
+  const total = totalDeckCount();
+  if(!total){ el.innerHTML = '<div class="empty-deck-msg">Ajoute des cartes pour voir la répartition de ton deck.</div>'; return; }
+  const byType = {}, bySource = {}, bySub = {};
+  let conjCards = 0, conjMax = 0, conjDyn = false, costSum = 0, costN = 0;
+  currentDeck.cards.forEach(e=>{
+    const c = cardById(e.cardId); if(!c) return;
+    byType[c.type] = (byType[c.type]||0) + e.count;
+    const src = [c.class, c.classSecondary].filter(Boolean);
+    (src.length?src:['Neutre']).forEach(k=>{ bySource[k] = (bySource[k]||0) + e.count; });
+    (c.subtypes||[]).forEach(t=>{ const k=String(t).trim(); if(k) bySub[k] = (bySub[k]||0) + e.count; });
+    if(typeof c.cost==='number'){ costSum += c.cost*e.count; costN += e.count; }
+    let q = 0, has = false;
+    (c.abilities||[]).forEach(ab=>{
+      const lists = ab.useChoice ? ['A','B','C','D'].slice(0, ab.numChoices||2).map(k=>(ab['choice'+k]||{}).effects||[]) : [ab.effects||[]];
+      lists.forEach(effs=>effs.forEach(eff=>{
+        if(eff.effectType!=='conjure') return;
+        has = true;
+        if(eff.conjureQuantityMode==='dynamic') conjDyn = true; else q += Math.max(1, +eff.conjureQuantity||1);
+      }));
+    });
+    if(has){ conjCards += e.count; conjMax += q * e.count; }
+  });
+  const bars = (obj, order, color)=>{
+    const keys = (order||Object.keys(obj).sort((a,b)=>obj[b]-obj[a]));
+    const mx = Math.max(1, ...keys.map(k=>obj[k]||0));
+    return keys.filter(k=>obj[k]).map(k=>`<div class="dt-line"><span class="dt-lbl">${TYPE_ICON[k]?TYPE_ICON[k]+' ':''}${escapeHtml(k)}</span><span class="dt-bar"><i style="width:${Math.round((obj[k]/mx)*100)}%;${color?`background:${color(k)}`:''}"></i></span><span class="dt-n">${obj[k]}</span></div>`).join('');
+  };
+  const subs = Object.keys(bySub).sort((a,b)=>bySub[b]-bySub[a]||a.localeCompare(b)).slice(0,6);
+  const subObj = {}; subs.forEach(k=>subObj[k]=bySub[k]);
+  el.innerHTML = `
+    <h3>Répartition par type</h3>
+    ${bars(byType, ['Créature','Artefact','Sortilège','Piège'])}
+    <h3>Répartition par source</h3>
+    ${bars(bySource, null, getClassColor)}
+    <h3>Sous-types les plus présents</h3>
+    ${subs.length ? bars(subObj, subs) : '<div class="dt-note">Aucun sous-type dans ce deck.</div>'}
+    <h3>Conjuration</h3>
+    <div class="dt-line"><span class="dt-lbl" style="width:auto">Cartes qui conjurent</span><span class="dt-n" style="margin-left:auto">${conjCards}</span></div>
+    <div class="dt-line"><span class="dt-lbl" style="width:auto">Cartes conjurables en une partie</span><span class="dt-n" style="margin-left:auto">${conjMax}${conjDyn?'+':''}</span></div>
+    ${conjDyn ? '<div class="dt-note">« + » : certains effets conjurent un nombre variable de cartes.</div>' : ''}
+    <h3>Général</h3>
+    <div class="dt-line"><span class="dt-lbl" style="width:auto">Coût moyen</span><span class="dt-n" style="margin-left:auto">${costN?(costSum/costN).toFixed(1):'–'}</span></div>
+  `;
 }
 
 /* ============================================================
@@ -3231,21 +3359,6 @@ async function loadOwnedCardBacks(){
   equippedCardBackId = (profile && profile.equipped_card_back_id) || 'base';
 }
 
-function populateDeckCardBackSelect(){
-  const sel = document.getElementById('deck-cardback-select');
-  if(!sel) return;
-  const current = currentDeck ? currentDeck.cardBackId : null;
-  sel.innerHTML = `<option value="">Utiliser mon dos équipé par défaut</option>` +
-    ownedCardBacksCache.map(cb=>`<option value="${escapeHtml(cb.id)}">${escapeHtml(cb.name)}</option>`).join('');
-  sel.value = current || '';
-}
-
-function onDeckCardBackChange(){
-  if(!currentDeck) return;
-  const val = document.getElementById('deck-cardback-select').value;
-  currentDeck.cardBackId = val || null;
-}
-
 async function openCardBackModal(){
   await loadOwnedCardBacks();
   const el = document.getElementById('cardback-modal-content');
@@ -3281,14 +3394,13 @@ async function equipCardBackDefault(id){
 function renderAll(){
   renderBinder();
   renderDeckPanel();
-  renderWizardHint();
   fitBinderToWidth();
 }
 loadAll();
 initSpellcraftAuth();
 playMenuMusicRotation(0.35);
-loadOwnedCardBacks().then(()=>{ if(currentDeck) populateDeckCardBackSelect(); });
-sb.auth.onAuthStateChange(()=>{ loadOwnedCardBacks().then(()=>{ if(currentDeck) populateDeckCardBackSelect(); }); });
+loadOwnedCardBacks().then(()=>{ if(currentDeck) renderDeckPanel(); });
+sb.auth.onAuthStateChange(()=>{ loadOwnedCardBacks().then(()=>{ if(currentDeck) renderDeckPanel(); }); });
 </script>
 </body>
 </html>

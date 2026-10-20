@@ -321,7 +321,7 @@ function renderDeckGrid(){
     const wrap = document.createElement('div');
     wrap.className = 'deck-tile-wrap' + (d.id===CHOSEN_DECK_ID ? ' selected' : '');
     // sans dos choisi pour le deck : dos équipé, à défaut dos de base
-    const backUrl = CARD_BACKS_BY_ID[d.cardBackId] || CARD_BACKS_BY_ID[EQUIPPED_BACK_ID] || CARD_BACKS_BY_ID['base'] || 'images/card/back/dos-de-carte-base.png';
+    const backUrl = CARD_BACKS_BY_ID[d.cardBackId] || CARD_BACKS_BY_ID['base'] || 'images/card/back/dos-de-carte-base.png';
     const heroImg = sum.hero && sum.hero.image;
 
     wrap.innerHTML = `
