@@ -523,8 +523,6 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 @keyframes bp-fade{from{opacity:.35}to{opacity:1}}
 @media (prefers-reduced-motion:reduce){#binder-pages.bp-fade{animation:none;}}
 #binder-pages{flex-wrap:nowrap;}
-.card-zoom-btn{position:absolute;top:2px;left:30px;z-index:6;width:26px;height:26px;border-radius:50%;border:1px solid rgba(0,0,0,.5);background:rgba(20,16,8,.85);cursor:pointer;font-size:14px;line-height:24px;padding:0;}
-.card-zoom-btn:hover{border-color:var(--gold);}
 .deck-row .drow-cost{width:26px;height:26px;font-size:14px;}
 .drow-btn{width:26px;height:26px;font-size:15px;}
 .deck-row .drow-name:hover{color:var(--gold);text-decoration:underline;}
@@ -537,6 +535,8 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 .qtab{font-family:'Cinzel',serif;font-size:15px;font-weight:700;color:var(--parchment-dim);background:var(--bg-panel-2);border:1.5px solid var(--line);border-bottom:4px solid var(--qc, var(--line));border-radius:8px 8px 4px 4px;padding:7px 14px;cursor:pointer;}
 .qtab:hover{color:var(--parchment);border-color:var(--gold);border-bottom-color:var(--qc, var(--gold));}
 .qtab.on{background:var(--qc, var(--arcane));color:#fff;border-color:var(--qc, var(--arcane));text-shadow:0 1px 2px rgba(0,0,0,.6);}
+#quick-hint{font-size:14px;color:var(--parchment-dim);}
+#quick-hint b{color:var(--gold);font-weight:600;}
 #quick-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
 #quick-search{flex:1 1 220px;min-width:0;background:var(--bg-void);border:1px solid var(--line);color:var(--parchment);border-radius:8px;padding:9px 12px;font-size:16px;font-family:inherit;}
 #quick-search:focus{outline:2px solid var(--gold);outline-offset:1px;}
@@ -604,6 +604,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
         <div id="wizard-hint" style="display:none;"></div>
         <div id="quick-bar">
           <div id="quick-tabs"></div>
+          <div id="quick-hint">Clic gauche : ajouter au deck · <b>Clic droit : agrandir la carte</b></div>
           <div id="quick-row">
             <input type="search" id="quick-search" placeholder="Nom de carte, ou coût (3, 5+, 2-)" autocomplete="off" oninput="onQuickInput(this.value)">
             <div id="quick-costs"></div>
@@ -2144,6 +2145,7 @@ function renderBinderInner(animate){
         slot.style.position='relative';
         const el = buildCardEl(binderCardView(card));
         el.onclick = ()=>onCardClick(card);
+        el.oncontextmenu = (ev)=>{ ev.preventDefault(); showCraftModal(card); };   // clic droit : agrandir
         slot.appendChild(el);
         if(versionChoices(card.id).length > 1){
           const star = document.createElement('button');
@@ -2165,13 +2167,7 @@ function renderBinderInner(animate){
           fb.onclick = (ev)=>{ ev.stopPropagation(); showCraftModal(card); };
           slot.appendChild(fb);
         }
-        const zb = document.createElement('button');
-        zb.type = 'button';
-        zb.className = 'card-zoom-btn';
-        zb.title = 'Agrandir la carte';
-        zb.textContent = '🔍';
-        zb.onclick = (ev)=>{ ev.stopPropagation(); showCraftModal(card); };
-        slot.appendChild(zb);
+
         const count = deckCountFor(card.id);
         const isChosenHero = currentDeck && currentDeck.heroId===card.id;
         const isChosenRegion = currentDeck && currentDeck.regionId===card.id;
@@ -3159,7 +3155,8 @@ function renderDeckPanel(){
     const variantBtn = row.querySelector('[data-act="variant"]');
     if(variantBtn) variantBtn.onclick = ()=>openVariantModal(c.id);
     const nm = row.querySelector('.drow-name');
-    if(nm){ nm.style.cursor = 'pointer'; nm.title = 'Cliquer pour agrandir'; nm.onclick = ()=>showCraftModal(c); }
+    row.oncontextmenu = (ev)=>{ ev.preventDefault(); showCraftModal(c); };
+    if(nm){ nm.style.cursor = 'pointer'; nm.title = 'Clic gauche ou droit : agrandir'; nm.onclick = ()=>showCraftModal(c); }
     listEl.appendChild(row);
   });
 }

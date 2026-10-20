@@ -257,6 +257,6 @@ Ne jamais utiliser `alert()` / `confirm()` / `prompt()` natifs : les navigateurs
 
 - Menu de gauche : « Parcourir » (cartes / héros / dos), la vue courante est surlignée (`updateNavActive`) ; « Fabriquer des cartes » n'est actif que dans « Voir les cartes ».
 - Barre rapide au-dessus du classeur (vue cartes uniquement) : onglets par source, recherche par nom (un nombre tapé = filtre de coût : `3`, `5+`, `2-`) et pastilles de coût 0 à 7+. Elle écrit dans les mêmes `filters` que le panneau « Filtres avancés ».
-- Plus d'aperçu au survol : loupe 🔍 sur chaque carte, nom cliquable dans le deck, cartes liées d'un héros cliquables ; tout ouvre la fenêtre de détail (`showCraftModal`).
+- Plus d'aperçu au survol : clic droit sur une carte (ou sur sa ligne dans le deck) pour l'agrandir, nom cliquable dans le deck, cartes liées d'un héros cliquables ; tout ouvre la fenêtre de détail (`showCraftModal`).
 - Plus de page qui tourne : un fondu de 0,14 s (`bp-fade`). Le deck reste toujours à droite (mise en page sans retour à la ligne, le classeur est réduit par `fitBinderToWidth`).
 - Les textes de l'interface font au moins 14 px.
