@@ -192,6 +192,7 @@ function migrateCard(c){
   if(c.imageMirrorAnnounce===undefined) c.imageMirrorAnnounce = false;
   if(c.imageMirrorAnnounceRight===undefined) c.imageMirrorAnnounceRight = true;
   if(c.classSecondary===undefined) c.classSecondary = '';
+  if(c.classSecondary && c.classSecondary===c.class) c.classSecondary = '';   // 2e source identique à la 1re = pas une carte multi-source
   if(!c.heroMultiClass) c.heroMultiClass = {enabled:false, mode:'allowed', anySource:'', allowedClasses:[], maxCount:6, scope:'Toutes'};
   if(!c.class) c.class = 'Neutre';
   if(!c.rarity) c.rarity = 'Commune';

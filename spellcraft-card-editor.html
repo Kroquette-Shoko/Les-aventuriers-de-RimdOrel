@@ -811,7 +811,7 @@ header .spacer{flex:1;}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="spellcraft-shared.js?v=20261019c"></script>
+<script src="spellcraft-shared.js?v=20261020b"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>
 <script src="spellcraft-atelier-nav.js"></script>
@@ -4572,7 +4572,7 @@ function readForm(){
     id: editingId || newId(),
     name: document.getElementById('f-name').value.trim() || 'Carte sans nom',
     class: document.getElementById('f-class').value,
-    classSecondary: document.getElementById('f-class2').value || '',
+    classSecondary: (document.getElementById('f-class2').value && document.getElementById('f-class2').value!==document.getElementById('f-class').value) ? document.getElementById('f-class2').value : '',
     type: currentType,
     subtypes: [...subtypes],
     cost: (currentType==='Héros' || currentType==='Région') ? null : (parseInt(document.getElementById('f-cost').value) || 0),
