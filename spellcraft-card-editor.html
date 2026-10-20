@@ -811,7 +811,7 @@ header .spacer{flex:1;}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="spellcraft-shared.js?v=20261020b"></script>
+<script src="spellcraft-shared.js?v=20261020c"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>
 <script src="spellcraft-atelier-nav.js"></script>
@@ -1208,7 +1208,7 @@ function blankEffect(){
     conjureSubtype:'', conjureMode:'filter', conjureSpecificName:'', conjureQuantity:1,
     conjureQuantityMode:'fixed', conjureQuantityDynamic:'thisAtk',
     exploreOwner:'own',
-    discoverCriteria:'random', discoverValue:'2', discoverCardType:'Créature', discoverSubtype:'', discoverSource:'deck',
+    discoverCriteria:'random', discoverValue:'2', discoverCardType:'Créature', discoverSubtype:'', discoverSource:'deck', discoverDestination:'hand',
     discoverSpecificNames:[],
     discoverFTypes:['Créature'], discoverFClass:'any', discoverFSubtype:'', discoverFSet:'', discoverFRarity:'any', discoverFKeyword:'',
     discoverFCostMode:'any', discoverFCostValue:2, discoverFAtkMode:'any', discoverFAtkValue:1, discoverFHpMode:'any', discoverFHpValue:1,
@@ -1946,7 +1946,7 @@ function buildTargetsSectionUI(ab, targetsArray, choiceKey, heading){
       trow.appendChild(sfToggle);
       if(tgt.statFilterEnabled){
         trow.appendChild(makeSelectField('Stat', [{key:'atk',label:'Force'},{key:'hp',label:'Endurance'},{key:'cost',label:'Coût'},{key:'charges',label:'Utilisation'}], tgt.statFilterStat, v=>{ tgt.statFilterStat=v; onFormChange(); }));
-        trow.appendChild(makeSelectField('Comparaison', [{key:'atLeast',label:'Au moins'},{key:'atMost',label:'Au plus'},{key:'exactly',label:'Exactement'}], tgt.statFilterMode, v=>{ tgt.statFilterMode=v; onFormChange(); }));
+        trow.appendChild(makeSelectField('Comparaison', [{key:'atLeast',label:'Au moins'},{key:'atMost',label:'Au plus'},{key:'exactly',label:'Exactement'},{key:'greater',label:'Strictement plus que'},{key:'less',label:'Strictement moins que'}], tgt.statFilterMode, v=>{ tgt.statFilterMode=v; onFormChange(); }));
         // Valeur fixe ou dynamique (cartes existantes : sans mode enregistré = fixe)
         if(!tgt.statFilterValueMode) tgt.statFilterValueMode='fixed';
         if(!tgt.statFilterDynamic) tgt.statFilterDynamic='thisAtk';
@@ -2574,6 +2574,9 @@ function rebuildAbilitiesUI(){
         const eventOptions = typeNow==='artifact' ? [['died','Mortes'],['arrived','Arrivées'],['activated','Activées']] : [['died','Mortes'],['arrived','Arrivées']];
         row.appendChild(makeCondSelectField(cond, 'countThisTurnEvent', eventOptions, 'died', 'Événement'));
         row.appendChild(makeCondSelectField(cond, 'compareMode', [['atLeast','Au moins'],['exactly','Exactement']], 'atLeast', 'Comparaison'));
+        if(typeNow==='creature' && (cond.countThisTurnEvent||'died')==='died'){
+          row.appendChild(makeSelectField('Compter depuis', [{key:'turn',label:'Le début du tour'},{key:'spell',label:"Le début de cette carte (sortilège)"}], cond.countSinceSpellStart?'spell':'turn', v=>{ cond.countSinceSpellStart = (v==='spell'); onFormChange(); }));
+        }
       }
       if(ctDef && ctDef.isDeadCreatureCause){
         const tg = ab.targets||[];
@@ -3237,6 +3240,7 @@ function buildEffectRow(ab, eff, choiceKey){
       {key:'enemyDiscard', label:'Défausse adverse'},
       {key:'elsewhere', label:"Ailleurs (n'importe quelle carte existante, possédée ou non)"}
     ], eff.discoverSource, v=>{ eff.discoverSource=v; onFormChange(); }));
+    row.appendChild(makeSelectField('Destination', [{key:'hand',label:'Dans la main'},{key:'battlefield',label:'En jeu (créature)'}], eff.discoverDestination||'hand', v=>{ eff.discoverDestination=v; onFormChange(); }));
     const DISCOVER_CRITERIA = [...RETRIEVE_CRITERIA, {key:'filter', label:'Selon plusieurs critères (comme la conjuration)', hasValue:false}, {key:'specificList', label:'Liste de cartes précises (plusieurs, nommées)', hasValue:false}];
     row.appendChild(makeSelectField('Critère', DISCOVER_CRITERIA, eff.discoverCriteria, v=>{ eff.discoverCriteria=v; rebuildAbilitiesUI(); onFormChange(); }));
     const dCritDef = DISCOVER_CRITERIA.find(c=>c.key===eff.discoverCriteria);
@@ -4184,7 +4188,8 @@ function discoverClause(eff){
     enemyDiscard: 'de la défausse adverse',
     elsewhere: "de l'ensemble des cartes existantes"
   }[eff.discoverSource] || 'de votre deck';
-  return `révélez 3 cartes ${sourceLabel} ${critPhrase} et choisissez-en une à ajouter à votre main${followUpClause(eff)}`;
+  const destPhrase = eff.discoverDestination==='battlefield' ? 'à renvoyer en jeu' : 'à ajouter à votre main';
+  return `révélez 3 cartes ${sourceLabel} ${critPhrase} et choisissez-en une ${destPhrase}${followUpClause(eff)}`;
 }
 
 function followUpClause(eff){
@@ -4321,7 +4326,7 @@ function conditionClause(cond, ab){
       const evLabel = {died:'mortes',arrived:'arrivées',activated:'activées'}[cond.countThisTurnEvent||'died'];
       const comp = cond.compareMode==='exactly' ? 'exactement' : 'au moins';
       const ownerLabel = {self:'alliées ',enemy:'ennemies ',both:''}[cond.owner||'self'];
-      return `${comp} ${condValueText(cond)} ${typeLabel} ${ownerLabel}${evLabel} ce tour-ci`;
+      return `${comp} ${condValueText(cond)} ${typeLabel} ${ownerLabel}${evLabel} ${cond.countSinceSpellStart ? 'depuis le début de cette carte' : 'ce tour-ci'}`;
     }
     case 'deadCreatureCause': {
       const idx = ab && ab.targets ? ab.targets.findIndex(t=>t.id===cond.deadCauseTarget) : -1;

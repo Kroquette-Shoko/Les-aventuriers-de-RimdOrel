@@ -85,6 +85,7 @@ function migrateCard(c){
       if(cond.compareMode===undefined) cond.compareMode='atLeast';
       if(cond.countThisTurnType===undefined) cond.countThisTurnType='creature';
       if(cond.countThisTurnEvent===undefined) cond.countThisTurnEvent='died';
+      if(cond.countSinceSpellStart===undefined) cond.countSinceSpellStart=false;
       if(cond.subtypeCardType===undefined) cond.subtypeCardType='creature';
       if(cond.subtypeZone===undefined) cond.subtypeZone='board';
       if(cond.subtype===undefined) cond.subtype='';
@@ -129,6 +130,7 @@ function migrateCard(c){
       if(eff.discoverCardType===undefined) eff.discoverCardType='Créature';
       if(eff.discoverSubtype===undefined) eff.discoverSubtype='';
       if(eff.discoverSource===undefined) eff.discoverSource='deck';
+      if(eff.discoverDestination===undefined) eff.discoverDestination='hand';
       if(eff.setStatsScope===undefined) eff.setStatsScope='board';
       if(eff.setStatsOwner===undefined) eff.setStatsOwner='ally';
       if(eff.setStatsAtk===undefined) eff.setStatsAtk=1;
