@@ -566,10 +566,11 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 /* Barre rapide : onglets de source + recherche nom / coût */
 #quick-bar{display:none;flex-direction:column;gap:10px;width:100%;background:var(--bg-panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;}
 #quick-bar.show{display:flex;}
-#quick-tabs{display:flex;flex-wrap:wrap;gap:6px;}
-.qtab{font-family:'Cinzel',serif;font-size:15px;font-weight:700;color:var(--parchment-dim);background:var(--bg-panel-2);border:1.5px solid var(--line);border-bottom:4px solid var(--qc, var(--line));border-radius:8px 8px 4px 4px;padding:7px 14px;cursor:pointer;}
+#quick-tabs{display:flex;flex-wrap:wrap;gap:5px;}
+.qtab{font-family:'Cinzel',serif;font-size:14px;font-weight:700;color:var(--parchment-dim);background:var(--bg-panel-2);border:1.5px solid var(--line);border-bottom:4px solid var(--qc, var(--line));border-radius:8px 8px 4px 4px;padding:7px 10px;cursor:pointer;}
 .qtab:hover{color:var(--parchment);border-color:var(--gold);border-bottom-color:var(--qc, var(--gold));}
-.qtog{font-family:Inter,system-ui,sans-serif;font-size:14px;margin-left:0;--qc:var(--gold, #d4af37);}
+.qtog{font-family:Inter,system-ui,sans-serif;font-size:13px;margin-left:0;--qc:var(--gold, #d4af37);}
+.qtog.qico{padding-left:8px;padding-right:8px;font-size:16px;}
 .qtab.on{background:var(--qc, var(--arcane));color:#fff;border-color:var(--qc, var(--arcane));text-shadow:0 1px 2px rgba(0,0,0,.6);}
 #quick-hint{font-size:14px;color:var(--parchment-dim);}
 #quick-hint b{color:var(--gold);font-weight:600;}
@@ -2086,11 +2087,11 @@ function buildQuickBar(){
   tabs.innerHTML = `<button type="button" class="qtab" data-k="">Toutes</button>` +
     QUICK_CLASSES.map(k=>`<button type="button" class="qtab" data-k="${escapeHtml(k)}" style="--qc:${getClassColor(k)}">${escapeHtml(k)}</button>`).join('');
   tabs.querySelectorAll('.qtab').forEach(b=>b.onclick = ()=>quickTab(b.dataset.k));
-  const TOG = [['multiOnly','Multi-source','Affiche seulement les cartes de 2 sources'],['foilOnly','✨ Foils','Affiche seulement les cartes que tu possèdes en foil'],['showUnowned','Non possédées','Affiche aussi les cartes que tu ne possèdes pas'],['hideOwned','Cacher possédées','Cache les cartes que tu possèdes déjà']];
+  const TOG = [['multiOnly','Multi-source','Affiche seulement les cartes de 2 sources'],['foilOnly','✨','Foils : affiche seulement les cartes que tu possèdes en foil'],['showUnowned','👁','Non possédées : affiche aussi les cartes que tu ne possèdes pas'],['hideOwned','🙈','Cacher les possédées : retire les cartes que tu as déjà']];
   TOG.forEach(([k,label,tip],i)=>{
     const b = document.createElement('button');
-    b.type='button'; b.className='qtab qtog'; b.dataset.tog=k; b.textContent=label; b.title=tip;
-    if(i===0) b.style.marginLeft='14px';
+    b.type='button'; b.className='qtab qtog'; b.dataset.tog=k; b.textContent=label; b.title=tip; b.setAttribute('aria-label',tip); if(k!=='multiOnly') b.classList.add('qico');
+    if(i===0) b.style.marginLeft='8px';
     b.onclick = ()=>quickToggle(k);
     tabs.appendChild(b);
   });
