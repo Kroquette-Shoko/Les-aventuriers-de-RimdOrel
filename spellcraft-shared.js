@@ -1054,3 +1054,12 @@ function scTavernOpenNow(date){
   }catch(e){ return false; }
 }
 const SC_TAVERN_HOURS_LABEL = 'Ouvert le vendredi de 18h à 2h (heure de Paris)';
+
+/* Ouverture exceptionnelle : la ligne app_flags « tavern_force_open » (valeur vraie) ouvre la taverne pendant 2 h
+   à partir de sa dernière mise à jour. Le serveur applique la même règle (tavernAllowed). */
+async function scTavernForcedOpen(){
+  try{
+    const { data } = await sb.from('app_flags').select('value, updated_at').eq('key', 'tavern_force_open').maybeSingle();
+    return !!data && data.value === true && (Date.now() - new Date(data.updated_at).getTime()) < 2*60*60*1000;
+  }catch(e){ return false; }
+}

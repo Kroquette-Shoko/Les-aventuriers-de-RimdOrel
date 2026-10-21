@@ -245,7 +245,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>window.APP_TOPBAR_DISABLED = true;</script>
 <script src="spellcraft-minijeux.js?v=20261020b"></script>
-<script src="spellcraft-shared.js?v=20261021d"></script>
+<script src="spellcraft-shared.js?v=20261022a"></script>
 <script src="spellcraft-catalog.js"></script>
 <script src="spellcraft-chrono.js"></script>
 <script src="spellcraft-server-client.js"></script>
@@ -298,8 +298,8 @@ async function initLobby(){
   setupLastDeckButton();
 }
 
-function setupTavernEntryButton(){
-  const open = scTavernOpenNow();
+async function setupTavernEntryButton(){
+  const open = scTavernOpenNow() || await scTavernForcedOpen();
   document.getElementById('btn-tavern-sub').textContent = open
     ? 'Ouverte ! Deck sans héros, héros tiré au hasard'
     : '🔒 ' + SC_TAVERN_HOURS_LABEL + ' — construis déjà ton deck';
@@ -316,7 +316,7 @@ async function setupTavernMode(){
   document.getElementById('no-decks-msg').innerHTML = 'Aucun deck de taverne — <a href="spellcraft-deckbuilder.html?mode=taverne">construis-en un</a> d\'abord (sans héros, 3 couleurs maximum).';
   let isTester = false;
   try{ const u = await scGetCurrentUser(); if(u){ const { data } = await sb.from('profiles').select('username').eq('id', u.id).single(); isTester = !!data && data.username==='Kroquette'; } }catch(e){}
-  const open = scTavernOpenNow();
+  const open = scTavernOpenNow() || await scTavernForcedOpen();
   TAVERN_LOCKED = !open && !isTester;
   const b = document.getElementById('tavern-banner');
   b.style.display = 'block';
