@@ -74,6 +74,17 @@ function migrateCard(c){
     if(ab.extraCostAmount===undefined) ab.extraCostAmount = 1;
     if(ab.extraCostCustom===undefined) ab.extraCostCustom = '';
     (ab.conditions||[]).forEach(cond=>{
+      if(cond.conditionType==='boardEmpty'){ cond.conditionType='resourceCompare'; cond.owner='enemy'; cond.resourceType='board'; cond.compareMode='exactly'; cond.valueMode='fixed'; cond.valueFixed=0; cond.value='0'; }
+      if(cond.negate===undefined) cond.negate=false;
+      if(cond.orPrev===undefined) cond.orPrev=false;
+      if(cond.playerCompareMetric===undefined) cond.playerCompareMetric='hp';
+      if(cond.playerCompareRel===undefined) cond.playerCompareRel='more';
+      if(cond.playerCompareMargin===undefined) cond.playerCompareMargin=1;
+      if(cond.turnParityKind===undefined) cond.turnParityKind='even';
+      if(cond.cardNameOwner===undefined) cond.cardNameOwner='self';
+      if(cond.cardName===undefined) cond.cardName='';
+      if(cond.creatureStateScope===undefined) cond.creatureStateScope='self';
+      if(cond.creatureStateKind===undefined) cond.creatureStateKind='wounded';
       if(cond.healthChangeDirection===undefined) cond.healthChangeDirection='lost';
       if(cond.healthChangeOwner===undefined) cond.healthChangeOwner='self';
       if(cond.healthChangeMode===undefined) cond.healthChangeMode='atLeast';

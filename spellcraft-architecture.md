@@ -283,3 +283,11 @@ L'étape « Déclencheur » d'une capacité est un **constructeur pas à pas** (
 - **Type de capacité « Activation »** : option de l'éditeur seulement (Créature, Héros, Artefact). Elle enregistre `kind:'triggered'` avec le déclencheur `activated` ; le moteur ne change pas. Voir `isActivationAbility`.
 - **Filtre type / sous-type** sur les déclencheurs « Quand une carte … » (`TB_FILTERABLE`) : champs `watchCardType` et `watchSubtype` du déclencheur. Case « Exception » (`watchSubtypeExclude`) : tout sauf ce sous-type. Appliqué par le moteur dans `matched` de `runNewFormatAbilities` (script `filtre_declencheurs_20261021.sql`).
 - **Pas encore géré par le moteur** : phase principale 2 (elle n'existe pas dans le jeu, voir `spec-phases-du-tour`), « après avoir gagné X PV », sous-type pour « Après avoir joué X cartes ».
+
+## Conditions : inverser, OU, nouvelles conditions (21/10/2026)
+- Chaque condition a `negate` (case « Inverser (NON) ») et, à partir de la 2e, `orPrev` (ET/OU avec la précédente). Moteur : `evalCondition` applique `negate` ; `conditionsMet` regroupe les conditions reliées par OU (`some`) puis fait un ET entre groupes (le OU lie plus fort que le ET). Texte généré : « il n'est pas vrai que … », « … ou … ».
+- `boardEmpty` est fusionné dans `resourceCompare` (adversaire, créatures en jeu, exactement 0) ; l'ancien type reste géré par le moteur pour les cartes déjà en base, et `migrateCard` le convertit à l'ouverture dans l'éditeur.
+- `resourceCompare.resourceType` accepte `artifacts`.
+- Nouveaux types : `playerCompare` (vous − adversaire sur PV/créatures/main/défausse/deck/mana/artefacts, `playerCompareRel` more/less/equal, `playerCompareMargin`), `turnParity` (parité de `myTurnCount` du lanceur), `cardNameInPlay` (nom vide = un artefact quelconque ; cherche sur plateau + reliques), `creatureState` (`self`/`target` ; `wounded` = curHp < hp, `attacked` = hasAttacked).
+- Le menu « Condition » est groupé (`COND_GROUPS`), « Condition personnalisée » est dans « Avancé » (dernier groupe).
+- Script moteur : `conditions_20261021.sql` (morceau 0, sauvegarde `_backup_game_action_chunks_20261021_conditions`).

@@ -811,7 +811,7 @@ header .spacer{flex:1;}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="spellcraft-shared.js?v=20261021a"></script>
+<script src="spellcraft-shared.js?v=20261021b"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>
 <script src="spellcraft-atelier-nav.js"></script>
@@ -927,7 +927,6 @@ const CONDITION_TYPES = [
   {key:'countThisTurn', label:'[Comparaison] X cartes mortes/arrivées/activées ce tour-ci', hasValue:true, isCountThisTurn:true},
   {key:'deadCreatureCause', label:'Une créature est morte à cause de [Cible A/B/C…]', hasValue:false, isDeadCreatureCause:true},
   {key:'deadCreatureSubtype', label:'Les créatures mortes sont du sous-type [X]', hasValue:false, isDeadCreatureSubtype:true},
-  {key:'boardEmpty', label:'Le plateau adverse est vide', hasValue:false},
   {key:'subtypeCount', label:"Vous avez [comparaison] X cartes d'un sous-type précis", hasValue:true, isSubtypeCount:true},
   {key:'statCompare', label:"La Force/Endurance d'une créature est [comparaison] à X", hasValue:true, isStatCompare:true},
   {key:'turnAtLeast', label:'À partir du tour X de la partie', hasValue:true, valueType:'number'},
@@ -940,7 +939,19 @@ const CONDITION_TYPES = [
   {key:'targetHasKeyword', label:'La cible/carte concernée a le mot-clé [X]', hasValue:false, isTargetHasKeyword:true},
   {key:'whileInHand', label:'Tant que cette carte est dans votre main', hasValue:false},
   {key:'whileYourTurn', label:"Tant que c'est votre tour", hasValue:false},
+  {key:'playerCompare', label:'Comparer vous et l\'adversaire (PV, créatures, cartes…)', hasValue:false, isPlayerCompare:true},
+  {key:'turnParity', label:'Votre numéro de tour est pair / impair', hasValue:false, isTurnParity:true},
+  {key:'cardNameInPlay', label:'Un artefact / une carte précise est en jeu', hasValue:false, isCardNameInPlay:true},
+  {key:'creatureState', label:'Une créature est blessée / a déjà attaqué', hasValue:false, isCreatureState:true},
   {key:'custom', label:'⚠ Condition personnalisée (texte libre)', hasValue:true, valueType:'text'}
+];
+/* Groupes d'affichage du menu « Condition » (l'ordre des clés = ordre dans le groupe) */
+const COND_GROUPS = [
+  ['Ressources et comparaisons', ['resourceCompare','playerCompare','subtypeCount','cardNameInPlay','deckComposition']],
+  ['Ce tour-ci', ['healthChange','drawnThisTurn','countThisTurn','selfDrawnThisTurn','hpLostLastTurn','manaNotFromRegion']],
+  ['Cartes et créatures', ['statCompare','targetHasKeyword','creatureState','deadCreatureCause','deadCreatureSubtype','playedCardCost','playedCardType']],
+  ['Timing et hasard', ['turnAtLeast','turnParity','chance','whileInHand','whileYourTurn']],
+  ['Avancé', ['custom']]
 ];
 
 const EFFECT_TYPES = [
@@ -1239,7 +1250,11 @@ function blankCondition(){
     subtypeCardType:'creature', subtypeZone:'board', subtype:'',
     statType:'force', statScope:'target', statCompareMode:'greater',
     deckCompMode:'singleClassAny', deckCompClass:'Aube', deckCompValue:1,
-    playedCardCostMode:'greater', playedCardType:'Créature', playedCardSubtype:'' };
+    playedCardCostMode:'greater', playedCardType:'Créature', playedCardSubtype:'',
+    negate:false, orPrev:false,
+    playerCompareMetric:'hp', playerCompareRel:'more', playerCompareMargin:1,
+    turnParityKind:'even', cardNameOwner:'self', cardName:'',
+    creatureStateScope:'self', creatureStateKind:'wounded' };
 }
 
 let abilities = [];
@@ -2714,17 +2729,37 @@ function rebuildAbilitiesUI(){
     const condBox = document.createElement('div');
     condBox.className='conditions-box';
     condBox.innerHTML = `<h4>Conditions (optionnel)</h4>`;
-    ab.conditions.forEach(cond=>{
+    ab.conditions.forEach((cond, condIdx)=>{
+      if(condIdx>0){
+        const conn = document.createElement('div');
+        conn.className='cond-connector';
+        conn.style.cssText='display:flex;gap:6px;align-items:center;margin:4px 0;font-size:12px;';
+        conn.innerHTML = '<span style="opacity:.7">Relier à la condition précédente par :</span>';
+        [['and','ET'],['or','OU']].forEach(([k,l])=>{
+          const b=document.createElement('button');
+          b.type='button'; b.className='mini-btn'; b.textContent=l;
+          const active = (k==='or')===!!cond.orPrev;
+          b.style.cssText = active ? 'font-weight:bold;outline:2px solid var(--gold,#c9a54c);' : 'opacity:.6;';
+          b.onclick=()=>{ cond.orPrev = (k==='or'); rebuildAbilitiesUI(); onFormChange(); };
+          conn.appendChild(b);
+        });
+        condBox.appendChild(conn);
+      }
       const row = document.createElement('div');
       row.className='condition-row';
       const typeField = document.createElement('div');
       typeField.className='field';
       typeField.innerHTML = `<label class="mini-field">Condition</label>`;
       const typeSel = document.createElement('select');
-      sortOptionsAlpha(CONDITION_TYPES.map(ct=>({key:ct.key,label:ct.label}))).forEach(ct=>{
-        const opt=document.createElement('option'); opt.value=ct.key; opt.textContent=ct.label;
-        if(ct.key===cond.conditionType) opt.selected=true;
-        typeSel.appendChild(opt);
+      COND_GROUPS.forEach(([gLabel, gKeys])=>{
+        const og=document.createElement('optgroup'); og.label=gLabel;
+        gKeys.forEach(k=>{
+          const ct=CONDITION_TYPES.find(c=>c.key===k); if(!ct) return;
+          const opt=document.createElement('option'); opt.value=ct.key; opt.textContent=ct.label;
+          if(ct.key===cond.conditionType) opt.selected=true;
+          og.appendChild(opt);
+        });
+        typeSel.appendChild(og);
       });
       typeSel.onchange=()=>{ cond.conditionType=typeSel.value; rebuildAbilitiesUI(); onFormChange(); };
       typeField.appendChild(typeSel);
@@ -2732,9 +2767,35 @@ function rebuildAbilitiesUI(){
 
       const ctDef = CONDITION_TYPES.find(c=>c.key===cond.conditionType);
 
+      if(ctDef && ctDef.isPlayerCompare){
+        row.appendChild(makeCondSelectField(cond, 'playerCompareMetric', [['hp','PV'],['board','Créatures en jeu'],['hand','Cartes en main'],['discard','Cartes en défausse'],['deck','Cartes dans le deck'],['mana','Mana'],['artifacts','Artefacts en jeu']], 'hp', 'Quoi'));
+        row.appendChild(makeCondSelectField(cond, 'playerCompareRel', [['more','Vous en avez plus'],['less','Vous en avez moins'],['equal','Autant']], 'more', 'Comparaison'));
+        if((cond.playerCompareRel||'more')!=='equal'){
+          const mf=document.createElement('div'); mf.className='field';
+          mf.innerHTML='<label class="mini-field">Écart minimum</label>';
+          const mi=document.createElement('input'); mi.type='number'; mi.min='1'; mi.value=cond.playerCompareMargin||1;
+          mi.oninput=()=>{ cond.playerCompareMargin=Math.max(1,parseInt(mi.value)||1); onFormChange(); };
+          mf.appendChild(mi); row.appendChild(mf);
+        }
+      }
+      if(ctDef && ctDef.isTurnParity){
+        row.appendChild(makeCondSelectField(cond, 'turnParityKind', [['even','Pair (2, 4, 6…)'],['odd','Impair (1, 3, 5…)']], 'even', 'Votre numéro de tour est…'));
+      }
+      if(ctDef && ctDef.isCardNameInPlay){
+        row.appendChild(makeCondSelectField(cond, 'cardNameOwner', [['self','Chez vous'],['enemy','Chez l\'adversaire']], 'self', 'Où'));
+        const nf=document.createElement('div'); nf.className='field';
+        nf.innerHTML='<label class="mini-field">Nom de la carte (vide = un artefact quelconque)</label>';
+        const ni=document.createElement('input'); ni.type='text'; ni.value=cond.cardName||'';
+        ni.oninput=()=>{ cond.cardName=ni.value; onFormChange(); };
+        nf.appendChild(ni); row.appendChild(nf);
+      }
+      if(ctDef && ctDef.isCreatureState){
+        row.appendChild(makeCondSelectField(cond, 'creatureStateScope', [['self','Cette créature'],['target','La cible de cette capacité']], 'self', 'Laquelle'));
+        row.appendChild(makeCondSelectField(cond, 'creatureStateKind', [['wounded','Est blessée (PV sous le max)'],['attacked','A déjà attaqué ce tour']], 'wounded', 'État'));
+      }
       if(ctDef && ctDef.isResourceCompare){
         row.appendChild(makeCondSelectField(cond, 'owner', [['self','Vous'],['enemy','Adversaire']], 'self', 'Qui'));
-        row.appendChild(makeCondSelectField(cond, 'resourceType', [['hp','PV'],['mana','Mana'],['hand','Cartes en main'],['discard','Cartes en défausse'],['deck','Cartes dans le deck'],['board','Créatures en jeu']], 'hp', 'Ressource'));
+        row.appendChild(makeCondSelectField(cond, 'resourceType', [['hp','PV'],['mana','Mana'],['hand','Cartes en main'],['discard','Cartes en défausse'],['deck','Cartes dans le deck'],['board','Créatures en jeu'],['artifacts','Artefacts en jeu']], 'hp', 'Ressource'));
         row.appendChild(makeCondSelectField(cond, 'compareMode', [['atLeast','Au moins'],['atMost','Au plus'],['exactly','Exactement']], 'atLeast', 'Comparaison'));
       }
       if(ctDef && ctDef.isDrawnThisTurn){
@@ -2891,6 +2952,13 @@ function rebuildAbilitiesUI(){
       } else if(ctDef && ctDef.hasValue){
         row.appendChild(buildValueField(cond, 'valueMode', 'valueFixed', 'valueDynamic', 'Valeur', true));
       }
+      const negLbl = document.createElement('label');
+      negLbl.style.cssText='display:flex;align-items:center;gap:4px;font-size:12px;white-space:nowrap;';
+      negLbl.title = "Inverse la condition : elle devient vraie quand elle n'est PAS remplie";
+      const negCb = document.createElement('input'); negCb.type='checkbox'; negCb.checked=!!cond.negate;
+      negCb.onchange=()=>{ cond.negate=negCb.checked; onFormChange(); };
+      negLbl.appendChild(negCb); negLbl.appendChild(document.createTextNode('Inverser (NON)'));
+      row.appendChild(negLbl);
       const rm = document.createElement('button');
       rm.className='mini-btn'; rm.textContent='×';
       rm.onclick=()=>removeCondition(ab.id, cond.id);
@@ -4495,11 +4563,16 @@ function condValueText(cond){
 }
 
 function conditionClause(cond, ab){
+  const t = conditionClauseBase(cond, ab);
+  return (t && cond.negate) ? `il n'est pas vrai que ${t}` : t;
+}
+function conditionClauseBase(cond, ab){
   const def = CONDITION_TYPES.find(c=>c.key===cond.conditionType);
   if(!def) return '';
   switch(cond.conditionType){
     case 'resourceCompare': {
-      const resLabel = {hp:'PV', mana:'mana', hand:'cartes en main', discard:'cartes en défausse', deck:'cartes dans le deck', board:'créatures en jeu'}[cond.resourceType||'hp'];
+      if(cond.owner==='enemy' && cond.resourceType==='board' && cond.compareMode==='exactly' && String(cond.valueMode==='dynamic'?'x':(cond.valueFixed ?? cond.value))==='0') return 'le plateau adverse est vide';
+      const resLabel = {hp:'PV', mana:'mana', hand:'cartes en main', discard:'cartes en défausse', deck:'cartes dans le deck', board:'créatures en jeu', artifacts:'artefacts en jeu'}[cond.resourceType||'hp'];
       const compLabel = {atLeast:'au moins', atMost:'au plus', exactly:'exactement'}[cond.compareMode||'atLeast'];
       const who = cond.owner==='enemy' ? "le héros adverse a" : 'votre héros a';
       return `${who} ${compLabel} ${condValueText(cond)} ${resLabel}`;
@@ -4533,6 +4606,23 @@ function conditionClause(cond, ab){
       return `${quant} du sous-type ${cond.deadSubtype||'?'}`;
     }
     case 'boardEmpty': return 'le plateau adverse est vide';
+    case 'playerCompare': {
+      const m = {hp:'de PV', board:'de créatures en jeu', hand:'de cartes en main', discard:'de cartes en défausse', deck:'de cartes dans le deck', mana:'de mana', artifacts:"d'artefacts en jeu"}[cond.playerCompareMetric||'hp'];
+      const rel = cond.playerCompareRel||'more';
+      const n = Math.max(1, parseInt(cond.playerCompareMargin)||1);
+      if(rel==='equal') return `vous avez autant ${m} que l'adversaire`;
+      const w = rel==='more' ? 'plus' : 'moins';
+      return n<=1 ? `vous avez ${w} ${m} que l'adversaire` : `vous avez au moins ${n} ${m.replace(/^d'|^de /,'')} de ${w} que l'adversaire`;
+    }
+    case 'turnParity': return cond.turnParityKind==='odd' ? 'votre numéro de tour est impair' : 'votre numéro de tour est pair';
+    case 'cardNameInPlay': {
+      const where = cond.cardNameOwner==='enemy' ? "chez l'adversaire" : 'chez vous';
+      return cond.cardName ? `« ${cond.cardName} » est en jeu ${where}` : `un artefact est en jeu ${where}`;
+    }
+    case 'creatureState': {
+      const who = cond.creatureStateScope==='target' ? 'la cible' : 'cette créature';
+      return cond.creatureStateKind==='attacked' ? `${who} a déjà attaqué ce tour-ci` : `${who} est blessée`;
+    }
     case 'subtypeCount': {
       const typeLabel = {creature:'créature(s)',artifact:'artefact(s)',sortilege:'sortilège(s)',piege:'piège(s)',any:'carte(s)'}[cond.subtypeCardType||'creature'];
       const zoneLabel = {board:'en jeu',hand:'en main',discard:'en défausse'}[cond.subtypeZone||'board'];
@@ -4602,7 +4692,15 @@ function buildAbilitySentence(cardType, ab){
   }
 
   const condClauses = (ab.conditions||[]).map(c=>conditionClause(c, ab)).filter(Boolean);
-  const condText = condClauses.length ? condClauses.join(' et ') : '';
+  let condText = '';
+  {
+    const parts = [];
+    (ab.conditions||[]).forEach(c=>{
+      const t = conditionClause(c, ab); if(!t) return;
+      parts.push((parts.length && c.orPrev) ? ' ou '+t : (parts.length ? ' et '+t : t));
+    });
+    condText = parts.join('');
+  }
 
   let sentence;
   if(cardType==='Sortilège'){
