@@ -2103,6 +2103,151 @@ function removeEffect(abilityId, effId, choiceKey){
   onFormChange();
 }
 
+/* ============================================================
+   Constructeur de déclencheur (étape « Déclencheur »)
+   Interface uniquement : il écrit les mêmes clés te.trigger qu'avant, donc
+   les cartes existantes et le moteur ne changent pas. Chaque choix ouvre le
+   suivant : Moment → (Qui / quoi) → Précision → détails (valeurs, types…).
+   Un choix grisé (key:null) n'existe pas encore dans le moteur.
+   ============================================================ */
+const TB_FILTERABLE = ['watchPlay','watchArrival','watchDeath','watchAttack','watchDamaged','watchHealed','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchTargeted'];
+const TB_MOMENTS = [
+  {k:'arrival', label:'Arrivée', leaves:[{key:'onPlay'}]},
+  {k:'final', label:'Final', leaves:[{key:'onDeath'}]},
+  {k:'assault', label:'Assaut', leaves:[{key:'onAttack'}]},
+  {k:'start', label:'Au début', leaves:[
+    {key:'gameStart', label:'de la partie'},
+    {key:'startOfTurn', label:'de votre tour'},
+    {key:'startOfTurnX', label:'de votre tour numéro X'},
+    {key:'startOfCombat', label:"du combat (s'il y a au moins un attaquant)"},
+    {key:'startOfMainPhase1', label:'de la 1re phase principale'},
+    {key:null, label:'de la 2e phase principale', off:"cette phase n'existe pas dans le jeu"},
+    {key:'startOfBlockPhase', label:'de la phase de blocage'}
+  ]},
+  {k:'end', label:'À la fin', leaves:[
+    {key:'endOfTurn', label:'de votre tour'},
+    {key:'endOfTurnX', label:'de votre tour numéro X'},
+    {key:'endOfCombat', label:'du combat'},
+    {key:'onOpponentEndTurn', label:"du tour de l'adversaire"}
+  ]},
+  {k:'after', label:'Après avoir', leaves:[
+    {key:'playedCardTypeCountThisTurn', label:'joué X cartes [type] ce tour-ci'},
+    {key:'playedCardTypeCountMatch', label:'joué X cartes [type] pendant la partie'},
+    {key:'attackedWithCountThisTurn', label:'attaqué avec X créatures ce tour-ci'},
+    {key:'hpLostLastTurnThreshold', label:'perdu X PV (au tour précédent)'},
+    {key:null, label:'gagné X PV', off:'pas encore géré par le moteur'},
+    {key:'onBlocked', label:'bloqué (cette créature)'},
+    {key:'onWasBlocked', label:'été bloquée (cette créature)'},
+    {key:'onDealtHeroDamage', label:'infligé des blessures au héros adverse (cette créature)'},
+    {key:'onKill', label:'éliminé une créature (cette créature)'},
+    {key:'usedXTimes', label:'utilisé cette capacité X fois'}
+  ]},
+  {k:'when', label:'Quand', subjects:[
+    {k:'self', label:'cette carte', leaves:[
+      {key:'onDamaged', label:'subit des dégâts'}, {key:'onHealed', label:'est soignée'},
+      {key:'onDestroyed', label:'est détruite'}, {key:'onRevive', label:'revient du cimetière'},
+      {key:'onDrawn', label:'est piochée'}, {key:'onTargeted', label:'est désignée (ciblée par un effet)'},
+      {key:'onUse', label:'est utilisée (artefact)'}
+    ]},
+    {k:'card', label:'une carte', leaves:[
+      {key:'watchPlay', label:'est jouée (créature, depuis la main)'}, {key:'watchArrival', label:'arrive en jeu'},
+      {key:'watchDeath', label:'meurt'}, {key:'watchAttack', label:'attaque'},
+      {key:'watchDamaged', label:'subit des dégâts'}, {key:'watchHealed', label:'est soignée'},
+      {key:'watchBuffed', label:'gagne un bonus'}, {key:'watchFromDiscard', label:'arrive depuis la défausse'},
+      {key:'watchFromDeck', label:'arrive depuis le deck'}, {key:'watchConjured', label:'est conjurée'},
+      {key:'watchTargeted', label:'est désignée (ciblée par un effet)'}
+    ]},
+    {k:'you', label:'vous', leaves:[
+      {key:'onManaGained', label:'gagnez du mana'}, {key:'onManaGainedNonRegion', label:'gagnez du mana autrement que par la région'},
+      {key:'onDraw', label:'piochez une carte'}, {key:'onHandDiscard', label:'défaussez une carte depuis votre main'},
+      {key:'onSummonSubtype', label:'invoquez une créature du sous-type X'}, {key:'onReturnFromGraveyard', label:'ramenez une créature de la défausse'}
+    ]},
+    {k:'event', label:'un autre événement', leaves:[
+      {key:'watchHeroHealed', label:'un héros est soigné'}, {key:'watchSpell', label:'un sortilège est joué'},
+      {key:'watchTrap', label:'un piège se déclenche'}, {key:'watchArtifactActivated', label:'un artefact est activé'},
+      {key:'watchHeroPowerActivated', label:'un héros déclenche son pouvoir'}, {key:'watchExplore', label:'un joueur explore'},
+      {key:'watchReveal', label:'un joueur révèle'}, {key:'watchAfterReveal', label:'une carte arrive après avoir été révélée'},
+      {key:'watchDiscovered', label:'vous découvrez une carte'}, {key:'watchRetrieveDiscard', label:'une carte est récupérée depuis la défausse'},
+      {key:'watchRetrieveDeck', label:'une carte est récupérée depuis le deck'}, {key:'watchDrawFromOpponentDeck', label:'vous piochez dans le deck adverse'}
+    ]},
+    {k:'opponent', label:"l'adversaire", leaves:[
+      {key:'onOpponentAttack', label:'attaque avec une créature'}, {key:'onOpponentSpell', label:'lance un sortilège'},
+      {key:'onOpponentPlayCreature', label:'invoque une créature'}, {key:'onOpponentPlayArtifact', label:'joue un artefact'},
+      {key:'onOpponentPlayCard', label:'joue une carte'}, {key:'onOpponentTargetsAlly', label:'cible une de vos créatures'}
+    ]},
+    {k:'combat', label:'un combat', leaves:[
+      {key:'onAllySurvivesCombat', label:'une créature alliée survit à un combat'}, {key:'onEnemySurvivesCombat', label:'une créature ennemie survit à un combat'},
+      {key:'beforeAllyFights', label:'une créature alliée va combattre'}, {key:'onAllyBlocked', label:'une créature alliée est bloquée'}
+    ]}
+  ]},
+  {k:'replace', label:'Remplace le gain de mana', leaves:[{key:'manaAlternative'}]}
+];
+const TB_INDEX = {};
+TB_MOMENTS.forEach(m=>{
+  const groups = m.subjects ? m.subjects : [{k:null, leaves:m.leaves}];
+  groups.forEach(g=>g.leaves.forEach(l=>{ if(l.key) TB_INDEX[l.key] = {m, g, l}; }));
+});
+function tbMomentGroups(m){ return m.subjects ? m.subjects : [{k:null, label:'', leaves:m.leaves}]; }
+function tbVisibleKeys(leaves, avail){ return leaves.filter(l=>l.key && avail.includes(l.key)); }
+function tbSelect(label, options, value, onChange){
+  const f = document.createElement('div');
+  f.className='field';
+  f.innerHTML = `<label class="mini-field">${label}</label>`;
+  const sel = document.createElement('select');
+  options.forEach(o=>{
+    const opt = document.createElement('option');
+    opt.value = o.value; opt.textContent = o.text;
+    if(o.disabled){ opt.disabled = true; }
+    if(o.value===value) opt.selected = true;
+    sel.appendChild(opt);
+  });
+  sel.onchange = ()=>onChange(sel.value);
+  f.appendChild(sel);
+  return f;
+}
+function buildTriggerBuilder(te, avail){
+  const wrap = document.createElement('div');
+  wrap.className = 'tb-row';
+  wrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;';
+  if(te.trigger==='activated'){
+    const h = document.createElement('div');
+    h.className='hint'; h.style.margin='0';
+    h.textContent = "Capacité activée : le joueur la déclenche lui-même (voir le coût ci-dessous).";
+    wrap.appendChild(h);
+    return wrap;
+  }
+  const info = TB_INDEX[te.trigger];
+  const moments = TB_MOMENTS.filter(m=>tbMomentGroups(m).some(g=>tbVisibleKeys(g.leaves, avail).length));
+  if(!info || !moments.includes(info.m)){
+    // déclencheur inconnu du constructeur : ancien menu complet, pour ne rien perdre
+    const opts = avail.map(t=>({value:t, text: TRIGGER_SHORT_NAME[t] ? `${TRIGGER_SHORT_NAME[t]} — ${TRIGGER_TEXT[t]}` : TRIGGER_TEXT[t]}));
+    wrap.appendChild(tbSelect('Déclencheur', opts, te.trigger, v=>{ te.trigger=v; rebuildAbilitiesUI(); onFormChange(); }));
+    return wrap;
+  }
+  const setTrigger = (key)=>{ if(key && key!==te.trigger){ te.trigger = key; rebuildAbilitiesUI(); onFormChange(); } };
+  const firstKeyOf = (m)=>{
+    for(const g of tbMomentGroups(m)){ const v = tbVisibleKeys(g.leaves, avail)[0]; if(v) return v.key; }
+    return null;
+  };
+  const momentLabel = (m)=> (m.k==='arrival' && currentType==='Sortilège') ? 'Au jeu' : m.label;
+  wrap.appendChild(tbSelect('1. Moment', moments.map(m=>({value:m.k, text:momentLabel(m)})), info.m.k, v=>{
+    const m = moments.find(x=>x.k===v); setTrigger(m && firstKeyOf(m));
+  }));
+  if(info.m.subjects){
+    const subs = info.m.subjects.filter(g=>tbVisibleKeys(g.leaves, avail).length);
+    wrap.appendChild(tbSelect('2. Qui / quoi', subs.map(g=>({value:g.k, text:g.label})), info.g.k, v=>{
+      const g = subs.find(x=>x.k===v); setTrigger(g && tbVisibleKeys(g.leaves, avail)[0].key);
+    }));
+  }
+  const leaves = info.g.leaves.filter(l=>!l.key || avail.includes(l.key));
+  if(leaves.length>1){
+    const stepNo = info.m.subjects ? '3' : '2';
+    const opts = leaves.map(l=>({value:l.key||('_off_'+l.label), text: l.key ? l.label : `${l.label} — ${l.off}`, disabled:!l.key}));
+    wrap.appendChild(tbSelect(stepNo+'. Précision', opts, te.trigger, v=>setTrigger(v)));
+  }
+  return wrap;
+}
+
 function buildTriggerEntryBox(te, tIdx, totalCount, availableTriggers, onRemove){
   const tBox = document.createElement('div');
   tBox.className = 'trigger-entry-box';
@@ -2110,20 +2255,7 @@ function buildTriggerEntryBox(te, tIdx, totalCount, availableTriggers, onRemove)
   const trow = document.createElement('div');
   trow.className='ability-row';
   trow.innerHTML = `<div class="field"><label class="mini-field">Déclencheur ${totalCount>1 ? String.fromCharCode(65+tIdx) : ''}</label></div>`;
-  const sel = document.createElement('select');
-  const sortedTriggers = [...availableTriggers].sort((a,b)=>{
-    const la = TRIGGER_SHORT_NAME[a] ? `${TRIGGER_SHORT_NAME[a]} — ${TRIGGER_TEXT[a]}` : TRIGGER_TEXT[a];
-    const lb = TRIGGER_SHORT_NAME[b] ? `${TRIGGER_SHORT_NAME[b]} — ${TRIGGER_TEXT[b]}` : TRIGGER_TEXT[b];
-    return (la||'').localeCompare(lb||'','fr',{sensitivity:'base'});
-  });
-  sortedTriggers.forEach(t=>{
-    const opt = document.createElement('option');
-    opt.value=t; opt.textContent = TRIGGER_SHORT_NAME[t] ? `${TRIGGER_SHORT_NAME[t]} — ${TRIGGER_TEXT[t]}` : TRIGGER_TEXT[t];
-    if(t===te.trigger) opt.selected=true;
-    sel.appendChild(opt);
-  });
-  sel.onchange = ()=>{ te.trigger=sel.value; rebuildAbilitiesUI(); onFormChange(); };
-  trow.querySelector('.field').appendChild(sel);
+  trow.querySelector('.field').appendChild(buildTriggerBuilder(te, availableTriggers));
   if(onRemove){
     const rmBtn = document.createElement('button');
     rmBtn.className='mini-btn'; rmBtn.textContent='✕'; rmBtn.title='Retirer ce déclencheur';
@@ -2144,6 +2276,13 @@ function buildTriggerEntryBox(te, tIdx, totalCount, availableTriggers, onRemove)
     });
     osel.onchange = ()=>{ te.triggerOwner=osel.value; onFormChange(); };
     orow.querySelector('.field').appendChild(osel);
+    if(TB_FILTERABLE.includes(te.trigger)){
+      orow.appendChild(tbSelect('Type de carte', [{value:'any',text:'Peu importe'}, ...CARD_TYPES.filter(t=>t!=='Héros' && t!=='Région').map(t=>({value:t,text:t}))], te.watchCardType||'any', v=>{ te.watchCardType=v; onFormChange(); }));
+      const stF = document.createElement('div'); stF.className='field';
+      stF.innerHTML = `<label class="mini-field">Sous-type (optionnel)</label><input type="text" value="${escapeHtml(te.watchSubtype||'')}" placeholder="Ex : Zombie">`;
+      stF.querySelector('input').oninput = (e)=>{ te.watchSubtype=e.target.value; onFormChange(); };
+      orow.appendChild(stF);
+    }
     tBox.appendChild(orow);
   }
 
@@ -2341,10 +2480,13 @@ function buildTriggerEntryBox(te, tIdx, totalCount, availableTriggers, onRemove)
    ============================================================ */
 const ABIL_UNLOCKED = {};
 const ABIL_OPEN = {};
+function isActivationAbility(ab){
+  return ab.kind==='triggered' && (ab.triggers||[]).length>0 && ab.triggers.every(t=>t.trigger==='activated');
+}
 function abilityStepList(ab, isSpellLike){
   const L = [];
   if(!isSpellLike) L.push({k:'type', n:'Type de capacité'});
-  if(ab.kind==='triggered') L.push({k:'trig', n:'Déclencheur'});
+  if(ab.kind==='triggered') L.push({k:'trig', n: isActivationAbility(ab) ? 'Activation' : 'Déclencheur'});
   L.push({k:'cond', n:'Conditions'});
   L.push({k:'eff', n:'Effets'});
   L.push({k:'tgt', n:'Cibles'});
@@ -2353,7 +2495,7 @@ function abilityStepList(ab, isSpellLike){
 }
 function abilityStepSummary(ab, k){
   const eff = (ab.useChoice ? [] : (ab.effects||[]));
-  if(k==='type') return ab.kind==='continuous' ? 'Continue' : 'Déclencheur';
+  if(k==='type') return ab.kind==='continuous' ? 'Continue' : (isActivationAbility(ab) ? 'Activation' : 'Déclencheur');
   if(k==='trig') return (ab.triggers||[]).map(t=>TRIGGER_SHORT_NAME[t.trigger]||TRIGGER_TEXT[t.trigger]||t.trigger).join(' + ');
   if(k==='cond') return (ab.conditions||[]).length ? (ab.conditions.length+' condition(s)') : 'aucune';
   if(k==='eff') return ab.useChoice ? ('Choix 1 parmi '+(ab.numChoices||2)) : (eff.map(e=>{const d=EFFECT_TYPES.find(x=>x.key===e.effectType);return d?d.label:e.effectType;}).join(', ')||'—');
@@ -2510,12 +2652,25 @@ function rebuildAbilitiesUI(){
       kindRow.className='ability-row';
       kindRow.innerHTML = `<div class="field"><label>Quel type de capacité ?</label></div>`;
       const kindSel = document.createElement('select');
-      sortTuples([['triggered','Déclencheur'],['continuous','Continue']]).forEach(([k,l])=>{
+      const kindChoices = [['triggered','Déclencheur'],['continuous','Continue']];
+      if(availableTriggers.includes('activated')) kindChoices.push(['activation','Activation (le joueur la déclenche : pouvoir, artefact…)']);
+      const kindNow = isActivationAbility(ab) ? 'activation' : ab.kind;
+      sortTuples(kindChoices).forEach(([k,l])=>{
         const opt=document.createElement('option'); opt.value=k; opt.textContent=l;
-        if(ab.kind===k) opt.selected=true;
+        if(kindNow===k) opt.selected=true;
         kindSel.appendChild(opt);
       });
-      kindSel.onchange = ()=>{ ab.kind=kindSel.value; rebuildAbilitiesUI(); onFormChange(); };
+      kindSel.onchange = ()=>{
+        const v = kindSel.value;
+        if(v==='activation'){
+          ab.kind = 'triggered';
+          ab.triggers = [ Object.assign(blankTriggerEntry(), {trigger:'activated'}) ];
+        } else {
+          if(isActivationAbility(ab)) ab.triggers = [ blankTriggerEntry() ];
+          ab.kind = v;
+        }
+        rebuildAbilitiesUI(); onFormChange();
+      };
       kindRow.querySelector('.field').appendChild(kindSel);
       S.type.appendChild(kindRow);
     }
@@ -2527,17 +2682,19 @@ function rebuildAbilitiesUI(){
     if(ab.kind==='triggered'){
       const trigList = document.createElement('div');
       trigList.className = 'trigger-list-box';
-      trigList.innerHTML = `<h4>Déclencheur(s)</h4>`;
+      trigList.innerHTML = isActivationAbility(ab) ? `<h4>Activation</h4>` : `<h4>Déclencheur(s)</h4>`;
 
       ab.triggers.forEach((te, tIdx)=>{
         const tBox = buildTriggerEntryBox(te, tIdx, ab.triggers.length, availableTriggers, ab.triggers.length>1 ? ()=>removeTriggerEntry(ab.id, te.id) : null);
         trigList.appendChild(tBox);
       });
 
-      const addTrigBtn = document.createElement('button');
-      addTrigBtn.className='add-row-btn'; addTrigBtn.textContent='+ Ajouter un déclencheur';
-      addTrigBtn.onclick = ()=>addTriggerEntry(ab.id);
-      trigList.appendChild(addTrigBtn);
+      if(!isActivationAbility(ab)){
+        const addTrigBtn = document.createElement('button');
+        addTrigBtn.className='add-row-btn'; addTrigBtn.textContent='+ Ajouter un déclencheur';
+        addTrigBtn.onclick = ()=>addTriggerEntry(ab.id);
+        trigList.appendChild(addTrigBtn);
+      }
 
       S.trig.appendChild(trigList);
     }
@@ -4458,7 +4615,15 @@ function buildAbilitySentence(cardType, ab){
         if(te.trigger==='watchArtifactActivated'){
           const art = {ally:' allié', enemy:' ennemi', both:''}[te.triggerOwner||'ally'];
           if(art) prefix += ` (artefact${art})`;
-        } else if(ownerSuffix) prefix += ` (carte${ownerSuffix})`;
+        } else {
+          const parts = [];
+          if(ownerSuffix) parts.push(`carte${ownerSuffix}`);
+          if(TB_FILTERABLE.includes(te.trigger)){
+            if(te.watchCardType && te.watchCardType!=='any') parts.push(te.watchCardType.toLowerCase());
+            if(te.watchSubtype && te.watchSubtype.trim()) parts.push(`sous-type ${te.watchSubtype.trim()}`);
+          }
+          if(parts.length) prefix += ` (${parts.join(', ')})`;
+        }
       }
       if(te.trigger==='startOfTurnX') prefix = `Au début de votre tour ${te.triggerTurn||1}`;
       if(te.trigger==='endOfTurnX') prefix = `À la fin de votre tour ${te.triggerTurn||1}`;

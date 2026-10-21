@@ -275,3 +275,11 @@ Ces options existent dans l'éditeur (`spellcraft-card-editor.html`), dans `migr
 - **Effet `copyKeyword`** : la cible copie un mot-clé (au hasard) ou tous les mots-clés d'une autre créature (alliée, ennemie ou les deux), de façon permanente ou « ce tour-ci ». Champs : `copyKeywordDonorOwner`, `copyKeywordMode`, `copyKeywordDuration`. Non pris en charge en capacité continue.
 - **Effet `upgrade`** (amélioration aléatoire) : champs `upgradeCount` (1 à 6) et `upgradeDuration` (permanent / thisTurn).
 - **Déclencheur** : case `oncePerTurn` (« une seule fois par tour »). Le moteur mémorise le tour du dernier déclenchement sur la carte (`__oncePerTurn[id de la capacité]`) après vérification des conditions.
+
+## Éditeur de cartes : constructeur de déclencheur (octobre 2026)
+
+L'étape « Déclencheur » d'une capacité est un **constructeur pas à pas** (`buildTriggerBuilder`, tables `TB_MOMENTS` / `TB_INDEX` dans `spellcraft-card-editor.html`) : **1. Moment** (Arrivée, Final, Assaut, Au début, À la fin, Après avoir, Quand, Remplace le gain de mana) → **2. Qui / quoi** (seulement pour « Quand ») → **3. Précision** → détails (valeurs, types, sous-types). Il écrit les **mêmes clés `te.trigger`** qu'avant : les cartes existantes et le moteur ne changent pas. Seuls les choix présents dans `TRIGGERS_BY_TYPE` du type de carte sont proposés. Un choix grisé (`key:null`) n'existe pas dans le moteur (2e phase principale, « avoir gagné X PV »).
+
+- **Type de capacité « Activation »** : option de l'éditeur seulement (Créature, Héros, Artefact). Elle enregistre `kind:'triggered'` avec le déclencheur `activated` ; le moteur ne change pas. Voir `isActivationAbility`.
+- **Filtre type / sous-type** sur les déclencheurs « Quand une carte … » (`TB_FILTERABLE`) : champs `watchCardType` et `watchSubtype` du déclencheur. Appliqué par le moteur dans `runNewFormatAbilities` (script `filtre_declencheurs_20261021.sql`).
+- **Pas encore géré par le moteur** : phase principale 2 (elle n'existe pas dans le jeu, voir `spec-phases-du-tour`), « après avoir gagné X PV », sous-type pour « Après avoir joué X cartes ».
