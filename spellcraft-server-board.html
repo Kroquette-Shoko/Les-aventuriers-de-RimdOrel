@@ -871,6 +871,14 @@ body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out 
   .hero-frame{position:absolute;bottom:8px;z-index:7;}
   .hero-portrait-big{width:178px;height:178px;border-radius:50%;background:radial-gradient(circle at 35% 30%, var(--arcane), hsl(calc(var(--th, 252) + 0.2) calc(var(--ts-n, 1) * 46.6%) 22.7%));background-size:cover;background-position:center;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:700;font-size:55px;color:#fff;flex-shrink:0;border:4px solid var(--gold);position:relative;cursor:pointer;padding:0;}
   .hero-portrait-big:hover{border-color:#fff;}
+  /* Repères visuels de héros (compteurs, effets en attente, tour de jeu) */
+  .hero-indicators{position:absolute;left:-14px;bottom:-14px;display:flex;gap:1px;align-items:center;z-index:3;pointer-events:none;max-width:200px;}
+  .hero-indicator{font-size:34px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,.85));}
+  .hero-indicator svg{width:38px;height:38px;display:block;}
+  .hero-indicator.dim{opacity:.28;filter:grayscale(.7) drop-shadow(0 2px 3px rgba(0,0,0,.6));}
+  .hero-indicator.ready{animation:heroIndPulse 1.4s ease-in-out infinite;}
+  @keyframes heroIndPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.18);}}
+  @media (prefers-reduced-motion: reduce){.hero-indicator.ready{animation:none;}}
   .hero-portrait-big.can-activate{border-color:var(--green, #4a9d6b);box-shadow:0 0 14px rgba(74,157,107,.6);}
   .hero-portrait-big.targetable{border-color:var(--gold);box-shadow:0 0 16px rgba(212,175,55,.75);cursor:crosshair;}
   .card.targetable{outline:3px solid var(--gold);outline-offset:2px;cursor:crosshair;}
@@ -3873,6 +3881,53 @@ function renderManaBox(key, slot){
 
 // Cadre du héros : le portrait lui-même sert de bouton d'activation quand
 // le héros a un pouvoir activable. Survoler affiche son aperçu complet.
+/* Repères visuels sur le cadre de certains héros. Données lues dans l'état de partie
+   (compteurs de cartes jouées, effets « prochaine carte » en attente, tour actif, PV perdus). */
+const HERO_INDICATOR_BROKEN_SHIELD = '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3 L35 8 V20 C35 28 28 34 20 37 C12 34 5 28 5 20 V8 Z" fill="#b8c2cc" stroke="#39424b" stroke-width="2.5" stroke-linejoin="round"/><path d="M20 3 L23 14 L16 20 L22 27 L19 37" fill="none" stroke="#1b1f23" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+const HERO_INDICATORS = {
+  "nayenn'der": { kind:'remaining', icon:'🦈', label:'créature(s) à jouer avant le prochain Squale' },
+  "rascal":     { kind:'progress',  icon:'⚡', label:'sortilège(s) joué(s) vers le prochain effet' },
+  "brick":      { kind:'pending',   icon:'🔁', label:'Mot-clé en attente : votre prochaine créature jouée l\'obtiendra' },
+  "aurore":     { kind:'pending',   icon:'🔥', label:'Prête : la prochaine créature alliée jouée gagnera +1/+1' },
+  "nowa":       { kind:'myTurn',    icon:'🍵', label:'C\'est votre tour : vos capacités « Final » sont doublées' },
+  "la tortue":  { kind:'turtle',    icon:HERO_INDICATOR_BROKEN_SHIELD, svg:true, label:'Passif prêt : vos créatures arrivent avec +1/+0 supplémentaire' }
+};
+function heroIndicatorsHtml(key, hero){
+  try{
+    const p = S[key];
+    const name = String((hero && hero.name) || '').toLowerCase().replace(/[\u2019\u2018]/g, "'").trim();
+    const cfg = HERO_INDICATORS[name];
+    if(!cfg) return '';
+    const esc = (t)=>String(t).replace(/"/g,'&quot;');
+    const one = (cls)=>`<span class="hero-indicator ${cls||''}" title="${esc(cfg.label)}">${cfg.icon}</span>`;
+    if(cfg.kind==='remaining' || cfg.kind==='progress'){
+      const te = ((hero.abilities||[]).flatMap(a=>a.triggers||[])).find(t=>t.trigger==='playedCardTypeCountMatch');
+      if(!te) return '';
+      const filter = te.playedCardTypeMatchFilter || 'any';
+      const threshold = Math.max(1, te.playedCardTypeMatchCount || 3);
+      const counts = p.matchCardsPlayedByType || {};
+      const total = filter==='any' ? Object.values(counts).reduce((a,n)=>a+(n||0),0) : (counts[filter]||0);
+      const done = te.playedCardTypeMatchReset ? (total % threshold) : Math.min(total, threshold);
+      if(cfg.kind==='remaining'){
+        const left = te.playedCardTypeMatchReset ? threshold - done : Math.max(0, threshold - total);
+        return Array.from({length:left}, ()=>one('')).join('');
+      }
+      return Array.from({length:threshold}, (_, i)=>one(i<done ? '' : 'dim')).join('');
+    }
+    if(cfg.kind==='pending'){
+      return (p.pendingNextCardEffects && p.pendingNextCardEffects.length) ? one('ready') : '';
+    }
+    if(cfg.kind==='myTurn'){
+      return S.active===key ? one('') : '';
+    }
+    if(cfg.kind==='turtle'){
+      const oppKey = key==='p1' ? 'p2' : 'p1';
+      return (S.active===key && (S[oppKey].hpLostThisTurn||0) > 0) ? one('ready') : '';
+    }
+  }catch(e){}
+  return '';
+}
+
 function renderHeroFrame(key, slot){
   const p = S[key];
   const el = document.getElementById(`hero-frame-${slot}`);
@@ -3889,6 +3944,7 @@ function renderHeroFrame(key, slot){
       ${hero.image ? '' : (heroName[0]||'?')}
       <span class="hp-badge-big">${p.hp}</span>
     </button>
+    ${(()=>{ const h = heroIndicatorsHtml(key, hero); return h ? `<div class="hero-indicators">${h}</div>` : ''; })()}
   `;
   const btn = el.querySelector('.hero-portrait-big');
   btn.onmouseenter = (ev)=>showHeroPreview(hero, ev);

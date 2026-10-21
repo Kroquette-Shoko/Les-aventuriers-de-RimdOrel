@@ -309,3 +309,8 @@ L'étape « Déclencheur » d'une capacité est un **constructeur pas à pas** (
 - Anciennes évolutions (`targetEffectId` + `newValue*`) : converties à l'ouverture dans l'éditeur (`migrateEvolutionLegacy`) ; le moteur gère encore l'ancien format. Aucune carte en base n'utilise d'évolution à cette date.
 - Moteur (`evolutions_20261021.sql`, morceaux 5 et 6) : `__evoChanges`, `getEvolvedEffectsList`, `patchEvolvedEffect`, `patchEvolvedTarget` ; étapes cumulatives (l'étape N applique aussi 0…N-1). Une étape ne se déclenche qu'une fois, permanente.
 - Limite : le client ne connaît pas un nouveau nombre de cibles ; le serveur tranche.
+
+## Repères visuels sur le cadre des héros (21/10/2026)
+- `spellcraft-server-board.html` : `HERO_INDICATORS` (clé = nom du héros en minuscules) + `heroIndicatorsHtml(key, hero)`, affiché dans `renderHeroFrame` (bas gauche du portrait, à l'opposé des PV). Purement client : lit l'état déjà envoyé (`matchCardsPlayedByType`, `pendingNextCardEffects`, `S.active`, `hpLostThisTurn`) ; aucun script SQL.
+- Nayenn'der 🦈 = nombre de créatures restantes avant le prochain déclenchement ; Rascal ⚡ = sortilèges joués vers le seuil (allumés / éteints) ; Brick 🔁 et Aurore 🔥 = effet « prochaine carte » en attente ; Nowa 🍵 = c'est son tour ; La tortue = bouclier brisé (SVG) quand c'est son tour et que l'adversaire a perdu des PV ce tour-ci.
+- Seuil et type de carte des compteurs lus dans le déclencheur « playedCardTypeCountMatch » du héros. Pour ajouter un héros : une entrée dans `HERO_INDICATORS`.
