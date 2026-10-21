@@ -2281,6 +2281,10 @@ function buildTriggerEntryBox(te, tIdx, totalCount, availableTriggers, onRemove)
       const stF = document.createElement('div'); stF.className='field';
       stF.innerHTML = `<label class="mini-field">Sous-type (optionnel)</label><input type="text" value="${escapeHtml(te.watchSubtype||'')}" placeholder="Ex : Zombie">`;
       stF.querySelector('input').oninput = (e)=>{ te.watchSubtype=e.target.value; onFormChange(); };
+      const exF = document.createElement('div'); exF.className='field';
+      exF.innerHTML = `<label class="mini-field" style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" style="width:auto;" ${te.watchSubtypeExclude?'checked':''}> Exception : tout sauf ce sous-type</label>`;
+      exF.querySelector('input').onchange = (e)=>{ te.watchSubtypeExclude=e.target.checked; onFormChange(); };
+      stF.appendChild(exF);
       orow.appendChild(stF);
     }
     tBox.appendChild(orow);
@@ -4620,7 +4624,7 @@ function buildAbilitySentence(cardType, ab){
           if(ownerSuffix) parts.push(`carte${ownerSuffix}`);
           if(TB_FILTERABLE.includes(te.trigger)){
             if(te.watchCardType && te.watchCardType!=='any') parts.push(te.watchCardType.toLowerCase());
-            if(te.watchSubtype && te.watchSubtype.trim()) parts.push(`sous-type ${te.watchSubtype.trim()}`);
+            if(te.watchSubtype && te.watchSubtype.trim()) parts.push(te.watchSubtypeExclude ? `pas du sous-type ${te.watchSubtype.trim()}` : `sous-type ${te.watchSubtype.trim()}`);
           }
           if(parts.length) prefix += ` (${parts.join(', ')})`;
         }
