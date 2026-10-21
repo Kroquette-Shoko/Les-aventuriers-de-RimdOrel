@@ -954,6 +954,17 @@ const COND_GROUPS = [
   ['Avancé', ['custom']]
 ];
 
+/* Familles d'effets pour le menu « Type d'effet » (upgrade et keywordChoice sont regroupés avec grantKeyword) */
+const EFFECT_GROUPS = [
+  ['Dégâts et soins', ['damage','heal','halveLife','preventHealing','amplifyEffect']],
+  ['Cartes (pioche, main, deck)', ['draw','drawTempCard','drawTyped','discard','explore','retrieve','discover','conjure','stealCard','copyCard']],
+  ['Mana et coûts', ['grantMana','refillMana','burnMana','manaTheft','reduceCost','reduceAbilityCost','increaseCost']],
+  ['Stats et mots-clés', ['buff','weaken','setStat','swapStats','stealStat','grantKeyword','copyKeyword','removeKeyword','silence','evolveTarget']],
+  ['Créatures et plateau', ['destroy','stun','bounce','sacrificeEffect','summonCopy','transformCard','stealCreature','fight','destroyDealAtk','reviveDestroyedLastTurn','redirectTarget']],
+  ['Artefacts et pièges', ['removeArtifactCharges','addCharges','exhaustArtifact','disarmTraps','counterCard']],
+  ['Spécial', ['coinFlip','doubleTrigger','doubleEffectsTrigger','custom']]
+];
+
 const EFFECT_TYPES = [
   {key:'damage', label:'Dégâts', needsTarget:true, needsValue:true},
   {key:'heal', label:'Soin', needsTarget:true, needsValue:true},
@@ -3153,14 +3164,37 @@ function buildEffectRow(ab, eff, choiceKey){
   typeField.className='field';
   typeField.innerHTML = `<label class="mini-field">Type d'effet</label>`;
   const typeSel = document.createElement('select');
-  sortOptionsAlpha(EFFECT_TYPES.map(et=>({key:et.key,label:et.label}))).forEach(et=>{
-    const opt=document.createElement('option'); opt.value=et.key; opt.textContent=et.label;
-    if(et.key===eff.effectType) opt.selected=true;
-    typeSel.appendChild(opt);
+  const KW_TRIO = ['grantKeyword','upgrade','keywordChoice'];
+  const shownKey = KW_TRIO.includes(eff.effectType) ? 'grantKeyword' : eff.effectType;
+  const placed = new Set();
+  EFFECT_GROUPS.forEach(([gLabel, gKeys])=>{
+    const og=document.createElement('optgroup'); og.label=gLabel;
+    gKeys.forEach(k=>{
+      const et=EFFECT_TYPES.find(e=>e.key===k); if(!et) return;
+      placed.add(k);
+      const opt=document.createElement('option'); opt.value=et.key;
+      opt.textContent = k==='grantKeyword' ? 'Donner un mot-clé (précis, aléatoire ou au choix)' : et.label;
+      if(et.key===shownKey) opt.selected=true;
+      og.appendChild(opt);
+    });
+    typeSel.appendChild(og);
   });
+  const leftovers = EFFECT_TYPES.filter(e=>!placed.has(e.key) && !KW_TRIO.includes(e.key));
+  if(leftovers.length){
+    const og=document.createElement('optgroup'); og.label='Autres';
+    leftovers.forEach(et=>{ const opt=document.createElement('option'); opt.value=et.key; opt.textContent=et.label; if(et.key===shownKey) opt.selected=true; og.appendChild(opt); });
+    typeSel.appendChild(og);
+  }
   typeSel.onchange=()=>{ eff.effectType=typeSel.value; rebuildAbilitiesUI(); onFormChange(); };
   typeField.appendChild(typeSel);
   row.appendChild(typeField);
+  if(shownKey==='grantKeyword'){
+    row.appendChild(makeSelectField('Quel mot-clé ?', [
+      {key:'grantKeyword',label:'Un mot-clé précis (je le choisis)'},
+      {key:'upgrade',label:'Un mot-clé aléatoire parmi les mots-clés positifs'},
+      {key:'keywordChoice',label:'Au choix parmi 3 mots-clés tirés au hasard'}
+    ], eff.effectType, v=>{ eff.effectType=v; rebuildAbilitiesUI(); onFormChange(); }));
+  }
 
   const def = EFFECT_TYPES.find(e=>e.key===eff.effectType);
 

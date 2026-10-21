@@ -291,3 +291,8 @@ L'étape « Déclencheur » d'une capacité est un **constructeur pas à pas** (
 - Nouveaux types : `playerCompare` (vous − adversaire sur PV/créatures/main/défausse/deck/mana/artefacts, `playerCompareRel` more/less/equal, `playerCompareMargin`), `turnParity` (parité de `myTurnCount` du lanceur), `cardNameInPlay` (nom vide = un artefact quelconque ; cherche sur plateau + reliques), `creatureState` (`self`/`target` ; `wounded` = curHp < hp, `attacked` = hasAttacked).
 - Le menu « Condition » est groupé (`COND_GROUPS`), « Condition personnalisée » est dans « Avancé » (dernier groupe).
 - Script moteur : `conditions_20261021.sql` (morceau 0, sauvegarde `_backup_game_action_chunks_20261021_conditions`).
+
+## Effets : menu par familles (21/10/2026)
+- `EFFECT_GROUPS` range le menu « Type d'effet » en 7 familles ; un effet absent des familles tombe dans « Autres ».
+- « Donner un mot-clé » regroupe 3 effets du moteur (clés inchangées) via un sous-choix : `grantKeyword` (précis), `upgrade` (aléatoire parmi les mots-clés positifs), `keywordChoice` (au choix parmi 3). Aucun changement moteur.
+- Audit : les 52 effets de l'éditeur ont un exécuteur nommé dans le moteur ; `custom` (texte libre) n'a aucun effet en jeu. Effets présents dans le moteur mais sans entrée éditeur (anciens) : freeze, emptyManaEffect, fragileManaEffect, buffPlayedThisTurn, setStats, loseLife.
