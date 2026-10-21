@@ -825,7 +825,7 @@ header .spacer{flex:1;}
 const WATCH_TRIGGERS = ['watchPlay','watchArrival','watchDeath','watchAttack','watchDamaged','watchHealed','watchHeroHealed','watchSpell','watchTrap','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchAfterReveal','watchReveal','watchExplore','watchRetrieveDiscard','watchRetrieveDeck','watchTargeted','watchDiscovered','watchDrawFromOpponentDeck','watchHeroPowerActivated','watchArtifactActivated','onTargeted'];
 
 const TRIGGERS_BY_TYPE = {
-  'Créature': ['onPlay','onAttack','onBlocked','onWasBlocked','onDealtHeroDamage','onDamaged','onHealed','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
+  'Créature': ['onPlay','onAttack','onBlocked','onWasBlocked','onDealtHeroDamage','onDamaged','onHealed','onBuffed','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
   'Héros':    ['gameStart','onPlay','onDamaged','onHealed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
   // Une Région n'est jamais jouée, détruite, ni ramenée du cimetière, et n'a
   // pas de capacité activée : ces déclencheurs ne sont pas proposés ici.
@@ -872,6 +872,7 @@ const TRIGGER_TEXT = {
   onManaGainedNonRegion: 'Quand vous gagnez du mana autrement que par la région',
   onDraw: 'Quand vous piochez une carte',
   onDrawn: 'Quand cette carte est piochée',
+  onBuffed: 'Quand cette créature reçoit un bonus ou un malus',
   onHandDiscard: 'Quand vous défaussez une carte depuis votre main',
   onSummonSubtype: 'Quand vous invoquez une créature du sous-type X',
   onOpponentAttack: 'Quand une créature ennemie attaque',
@@ -2278,7 +2279,7 @@ const TB_MOMENTS = [
     {k:'self', label:'cette carte', leaves:[
       {key:'onDamaged', label:'subit des dégâts'}, {key:'onHealed', label:'est soignée'},
       {key:'onDestroyed', label:'est détruite'}, {key:'onRevive', label:'revient du cimetière'},
-      {key:'onDrawn', label:'est piochée'}, {key:'onTargeted', label:'est désignée (ciblée par un effet)'},
+      {key:'onBuffed', label:'reçoit un bonus ou un malus'}, {key:'onDrawn', label:'est piochée'}, {key:'onTargeted', label:'est désignée (ciblée par un effet)'},
       {key:'onUse', label:'est utilisée (artefact)'}
     ]},
     {k:'card', label:'une carte', leaves:[
@@ -2422,7 +2423,7 @@ function buildTriggerEntryBox(te, tIdx, totalCount, availableTriggers, onRemove)
     tBox.appendChild(orow);
   }
 
-  if(te.trigger==='watchBuffed'){
+  if(te.trigger==='watchBuffed' || te.trigger==='onBuffed'){
     // Précision du bonus / malus : quel changement déclenche la capacité ?
     const brow = document.createElement('div');
     brow.className='ability-row';
@@ -4947,7 +4948,7 @@ function buildAbilitySentence(cardType, ab){
           if(parts.length) prefix += ` (${parts.join(', ')})`;
         }
       }
-      if(te.trigger==='watchBuffed'){
+      if(te.trigger==='watchBuffed' || te.trigger==='onBuffed'){
         const bk = TB_BUFF_KINDS.find(k=>k.key===(te.buffKind||'statUp')) || TB_BUFF_KINDS[0];
         const kwTxt = (bk.key==='keywordGain' && te.buffKeyword && te.buffKeyword!=='any') ? ` « ${(KEYWORDS.find(k=>k.key===te.buffKeyword)||{}).label || te.buffKeyword} »` : '';
         prefix = prefix.replace('reçoit un bonus ou un malus', bk.text + kwTxt);
