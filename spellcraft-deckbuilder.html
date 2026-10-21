@@ -795,7 +795,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>window.APP_TOPBAR_DISABLED = true;</script>
-<script src="spellcraft-shared.js?v=20261021c"></script>
+<script src="spellcraft-shared.js?v=20261021d"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>
 <script>
@@ -810,6 +810,17 @@ const SPREAD_SIZE = PAGE_SIZE * 2; // deux pages affichées côte à côte
 const DECK_MIN = 30;   // un deck contient entre 30 et 45 cartes (hors Héros et Région)
 const DECK_MAX = 45;
 const MAX_COPIES = 2;
+// Mode « Baston de taverne » (?mode=taverne) : decks SANS héros (le héros est tiré au hasard à chaque partie), 3 couleurs max.
+const TAVERN = new URLSearchParams(location.search).get('mode')==='taverne';
+async function loadScopedDecks(){
+  const all = await loadUserDecks();
+  return all.filter(d => TAVERN ? d.taverne : !d.taverne);
+}
+function tavernDeckColors(deck){
+  const set = new Set();
+  (deck.cards||[]).forEach(e=>{ const c = cardById(e.cardId); if(c) [c.class,c.classSecondary].filter(k=>k && k!=='Neutre').forEach(k=>set.add(k)); });
+  return set;
+}
 let ownedCollection = {}; // { cardId: quantité possédée }
 let isLoggedInCache = false;
 
@@ -952,7 +963,7 @@ async function loadAll(){
   isLoggedInCache = !!(await scGetCurrentUser());
   await refreshCollection(true);
   if(isLoggedInCache) await migrateLocalDecksToSupabaseIfNeeded();
-  savedDecks = await loadUserDecks();
+  savedDecks = await loadScopedDecks();
   await refreshVariants();
   buildFilterDropdowns();
   renderAll();
@@ -974,7 +985,7 @@ sb.auth.onAuthStateChange(async (event)=>{
     isLoggedInCache = event==='SIGNED_IN';
     await refreshCollection(false);
     if(isLoggedInCache) await migrateLocalDecksToSupabaseIfNeeded();
-    savedDecks = await loadUserDecks();
+    savedDecks = await loadScopedDecks();
     await refreshVariants();
     renderAll();
     renderFragmentsBar();
@@ -1291,7 +1302,7 @@ async function jumpToCardBackPage(){
 
 function jumpToBinderStart(){
   if(currentDeck){
-    if(!currentDeck.heroId){ scAlert("Choisis d'abord un héros pour voir les cartes que ton deck peut jouer."); openDeckHeroPage(); return; }
+    if(!currentDeck.heroId && !currentDeck.taverne){ scAlert("Choisis d'abord un héros pour voir les cartes que ton deck peut jouer."); openDeckHeroPage(); return; }
     openDeckCardsPage(); return;
   }
   if(currentPage===0 && !browsingHeroesStandalone && !browsingCardBacksStandalone){ flashSaved('Déjà au début du classeur.'); return; }
@@ -2454,6 +2465,13 @@ function deckChosenSecondSource(deck, hero){
 }
 
 function classAllowedByDeck(card){
+  if(currentDeck && currentDeck.taverne){
+    // Baston de taverne : pas de héros, donc aucune carte réservée à un héros ; 3 couleurs maximum (Neutre ne compte pas).
+    if(card.hero && String(card.hero).trim()) return false;
+    const cols = tavernDeckColors(currentDeck);
+    [card.class, card.classSecondary].filter(k=>k && k!=='Neutre').forEach(k=>cols.add(k));
+    return cols.size <= SC_TAVERN_MAX_COLORS;
+  }
   const hero = deckHeroCard();
   if(!hero) return true; // pas encore de héros choisi, pas de restriction pour l'instant
   // Une carte liée à un héros précis (champ "hero") n'apparaît que si ce
@@ -2542,6 +2560,12 @@ function onCardClick(card){
   }
   if(card.type==='Héros' || card.type==='Région') return;
   if(!classAllowedByDeck(card)){
+    if(currentDeck.taverne){
+      flashError(card.hero && String(card.hero).trim()
+        ? `${card.name} est exclusive à ${card.hero} : impossible dans un deck de taverne (pas de héros fixe).`
+        : `${card.name} ajouterait une 4e couleur : un deck de taverne est limité à ${SC_TAVERN_MAX_COLORS} couleurs.`);
+      return;
+    }
     const hero = deckHeroCard();
     flashError(classRefusalMessage(card, hero));
     return;
@@ -3064,7 +3088,7 @@ async function clearDeck(){
   currentDeck.heroId = null;
   currentDeck.regionId = null;
   browsingCardBacksStandalone = false; browsingHeroesStandalone = false;
-  deckBuildStep = 'hero';
+  deckBuildStep = TAVERN ? 'cards' : 'hero';
   currentPage = 0;
   renderDeckPanel();
   renderBinder('spread');
@@ -3082,9 +3106,10 @@ async function exitDeckBuilding(){
 }
 function newDeck(){
   currentDeck = { id:null, name:'Deck sans nom', heroId:null, regionId:null, cards:[], cardBackId:null };
+  if(TAVERN) currentDeck.taverne = true;
   document.getElementById('deck-name-input').value = currentDeck.name;
   deckNameTouched = false;
-  deckBuildStep = 'hero';
+  deckBuildStep = TAVERN ? 'cards' : 'hero';
   browsingCardBacksStandalone = false; browsingHeroesStandalone = false;
   currentPage = 0;
   setDeckTab('list');
@@ -3101,8 +3126,10 @@ async function saveDeck(){
   if(!currentDeck) return;
   // 1) Héros et région obligatoires : message d'erreur au milieu de l'écran
   const manque = [];
-  if(!currentDeck.heroId) manque.push('un héros');
-  if(!currentDeck.regionId) manque.push('une région');
+  if(!currentDeck.taverne){
+    if(!currentDeck.heroId) manque.push('un héros');
+    if(!currentDeck.regionId) manque.push('une région');
+  }
   if(manque.length){
     await scAlert('Ton deck ne peut pas être sauvegardé : il lui faut ' + manque.join(' et ') + '.\nClique sur la ligne « Héros » ou « Région » du panneau pour en choisir.', {title:'Sauvegarde impossible'});
     if(!currentDeck.heroId) openDeckHeroPage(); else openDeckRegionPage();
@@ -3123,7 +3150,7 @@ async function saveDeck(){
   const res = await saveUserDeck(currentDeck);
   if(res.error){ await scAlert('Erreur : ' + res.error, {title:'Sauvegarde impossible'}); return; }
   currentDeck.id = res.id;
-  savedDecks = await loadUserDecks();
+  savedDecks = await loadScopedDecks();
   renderDeckPanel();
   showDeckSavedPopup(`✓ « ${currentDeck.name} » sauvegardé`);
   if(n < DECK_MIN) flashError(`Il lui manque ${DECK_MIN-n} carte(s) : il faut au moins ${DECK_MIN} cartes pour jouer.`);
@@ -3181,6 +3208,15 @@ function renderDeckPanel(){
     el.innerHTML = `<span class="dk-k">${key}</span><span class="dk-v">${valueHtml}</span><span class="dk-go">›</span>`;
   };
   const heroCard = deckHeroCard();
+  // Baston de taverne : ni héros ni région à choisir (héros au hasard, région par défaut).
+  document.getElementById('hero-slot').style.display = currentDeck.taverne ? 'none' : '';
+  document.getElementById('region-slot').style.display = currentDeck.taverne ? 'none' : '';
+  let __tvb = document.getElementById('tavern-banner');
+  if(currentDeck.taverne){
+    if(!__tvb){ __tvb = document.createElement('div'); __tvb.id = 'tavern-banner'; __tvb.style.cssText = 'padding:8px 10px;margin:4px 0;border:1px solid var(--gold);border-radius:8px;font-size:13px;line-height:1.4;background:rgba(212,175,55,.12);'; document.getElementById('hero-slot').parentNode.insertBefore(__tvb, document.getElementById('hero-slot')); }
+    const __cols = [...tavernDeckColors(currentDeck)];
+    __tvb.innerHTML = `🍺 <b>Baston de taverne</b> — pas de héros : il sera tiré au hasard à chaque partie.<br>Couleurs : <b>${__cols.length} / ${SC_TAVERN_MAX_COLORS}</b>${__cols.length ? ' (' + __cols.map(escapeHtml).join(', ') + ')' : ''}`;
+  } else if(__tvb){ __tvb.remove(); }
   pick('hero-slot', 'Héros', heroCard ? `${escapeHtml(heroCard.name)} · ${escapeHtml(heroCard.class)}` : 'À choisir', !heroCard, view==='heroes');
   const chosenRegion = currentDeck.regionId ? (cardById(currentDeck.regionId) || allCardsCache.find(c=>c.id===currentDeck.regionId)) : null;
   const regionOk = !!chosenRegion && isRegionValidForHero(chosenRegion, heroCard);

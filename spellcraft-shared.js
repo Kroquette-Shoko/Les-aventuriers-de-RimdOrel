@@ -1039,3 +1039,18 @@ function rarityGemImg(card, slug, cls, mk){
   if(dir) img.onerror = function(){ this.onerror = null; this.src = def; };
   return img;
 }
+
+
+/* ---------- Baston de taverne (mode du vendredi soir) ----------
+   Ouvert du vendredi 18h00 au samedi 02h00, heure de Paris. Le serveur applique la même règle
+   (fonction tavernIsOpenNow du moteur) : ceci ne sert qu'à l'affichage. */
+const SC_TAVERN_MAX_COLORS = 3;
+function scTavernOpenNow(date){
+  try{
+    const parts = new Intl.DateTimeFormat('en-GB', { timeZone:'Europe/Paris', weekday:'short', hour:'numeric', hour12:false }).formatToParts(date || new Date());
+    const wd = parts.find(p=>p.type==='weekday').value;
+    const h = parseInt(parts.find(p=>p.type==='hour').value, 10) % 24;
+    return (wd==='Fri' && h>=18) || (wd==='Sat' && h<2);
+  }catch(e){ return false; }
+}
+const SC_TAVERN_HOURS_LABEL = 'Ouvert le vendredi de 18h à 2h (heure de Paris)';

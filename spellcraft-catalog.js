@@ -259,6 +259,7 @@ async function loadUserDecks(){
     regionId: row.data?.regionId ?? null,
     cards: row.data?.cards || [],
     cardBackId: row.data?.cardBackId ?? null,
+    taverne: row.data?.taverne === true,
     isExempt: !!row.is_exempt
   }));
 }
@@ -269,7 +270,7 @@ async function saveUserDeck(deck){
   const payload = {
     user_id: user.id,
     name: deck.name || 'Deck sans nom',
-    data: { heroId: deck.heroId, regionId: deck.regionId, cards: deck.cards || [], cardBackId: deck.cardBackId ?? null },
+    data: { heroId: deck.heroId, regionId: deck.regionId, cards: deck.cards || [], cardBackId: deck.cardBackId ?? null, ...(deck.taverne ? { taverne: true } : {}) },
     updated_at: new Date().toISOString()
   };
   const isExistingRemoteId = deck.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(deck.id);

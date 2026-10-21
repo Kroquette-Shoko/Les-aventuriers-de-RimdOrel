@@ -181,9 +181,9 @@ async function gsRecordPresence(sessionId) {
 // par code (utiles pour les duels/tests entre amis, mais pas pour trouver
 // un adversaire au hasard).
 // ------------------------------------------------------------
-async function gsJoinMatchmaking(deckId) {
+async function gsJoinMatchmaking(deckId, mode) {
   const { data, error } = await sb.functions.invoke('game-action', {
-    body: { action: 'joinMatchmaking', deckId }
+    body: { action: 'joinMatchmaking', deckId, mode: mode || 'normal' }
   });
   if (error) return { error: error.message || String(error) };
   if (data.error) return data;

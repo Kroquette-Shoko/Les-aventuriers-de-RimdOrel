@@ -172,8 +172,9 @@
   </div>
 
   <div class="lobby-shell">
-    <h1 class="sc-h1">Recherche de partie</h1>
-    <p class="sc-sub">Choisis ton deck, puis lance-toi</p>
+    <h1 class="sc-h1" id="lobby-title">Recherche de partie</h1>
+    <p class="sc-sub" id="lobby-sub">Choisis ton deck, puis lance-toi</p>
+    <div id="tavern-banner" style="display:none;margin:0 auto 14px;max-width:720px;padding:10px 14px;border:1px solid var(--gold);border-radius:10px;text-align:center;font-size:13px;line-height:1.5;background:rgba(212,175,55,.12);"></div>
 
     <div id="lobby-columns">
       <div class="lobby-col sc-panel" id="deck-col">
@@ -182,6 +183,7 @@
         <div id="deck-grid-wrap">
           <div id="deck-grid"></div>
           <div id="no-decks-msg" style="display:none;">Aucun deck valide trouvé — <a href="spellcraft-deckbuilder.html">construis-en un dans le classeur</a> d'abord.</div>
+          <a id="tavern-build-link" href="spellcraft-deckbuilder.html?mode=taverne" style="display:none;text-align:center;color:var(--gold);font-size:13px;margin-top:8px;">➕ Construire / modifier un deck de taverne</a>
           <div id="deck-pagination"></div>
         </div>
         <div id="chosen-deck-label">Sélectionne un deck ci-dessus</div>
@@ -236,7 +238,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>window.APP_TOPBAR_DISABLED = true;</script>
 <script src="spellcraft-minijeux.js?v=20261020b"></script>
-<script src="spellcraft-shared.js?v=20261021c"></script>
+<script src="spellcraft-shared.js?v=20261021d"></script>
 <script src="spellcraft-catalog.js"></script>
 <script src="spellcraft-chrono.js"></script>
 <script src="spellcraft-server-client.js"></script>
@@ -250,9 +252,16 @@ let CHOSEN_DECK_ID = null;
 let DECK_PAGE = 0;
 const DECKS_PER_PAGE = 6; // grille 3 colonnes x 2 lignes
 
-const LAST_DECK_STORAGE_KEY = 'spellcraft-last-used-deck-id';
+const TAVERN = new URLSearchParams(location.search).get('mode')==='taverne';
+let TAVERN_LOCKED = false; // Baston de taverne fermée (hors vendredi 18h-2h) et joueur non autorisé à tester
+const LAST_DECK_STORAGE_KEY = TAVERN ? 'spellcraft-last-used-tavern-deck-id' : 'spellcraft-last-used-deck-id';
 
 function deckSummaryLobby(d, collection){
+  if(d.taverne){
+    // Deck de taverne : pas de héros (tiré au hasard à chaque partie), région par défaut.
+    const t = (d.cards||[]).reduce((s,c)=>s+c.count,0);
+    return { hero:null, region:null, regionIsDefault:true, total:t, valid: t>0 };
+  }
   const hero = collection.find(c=>c.id===d.heroId);
   const chosenRegion = collection.find(c=>c.id===d.regionId);
   // Région absente ou invalide (introuvable, mauvais type, mauvaise classe) :
@@ -267,7 +276,8 @@ function deckSummaryLobby(d, collection){
 async function initLobby(){
   playMenuMusicRotation(0.35);
   LOADED_COLLECTION = await loadAllCardsAcrossSets();
-  LOADED_DECKS = await loadUserDecks();
+  LOADED_DECKS = (await loadUserDecks()).filter(d => TAVERN ? d.taverne : !d.taverne);
+  if(TAVERN) await setupTavernMode();
 
   try{
     const { data: backs } = await sb.from('card_backs').select('id, image_url');
@@ -278,6 +288,25 @@ async function initLobby(){
   renderDeckGrid();
   wireActionButtons();
   setupLastDeckButton();
+}
+
+async function setupTavernMode(){
+  document.getElementById('lobby-title').textContent = '🍺 Baston de taverne';
+  document.getElementById('lobby-sub').textContent = 'Un deck sans héros : le héros est tiré au hasard à chaque partie.';
+  document.getElementById('tavern-build-link').style.display = 'block';
+  // Seule la recherche d'adversaire existe dans ce mode.
+  ['btn-create-private','btn-vs-ai','btn-join','btn-spectate-list'].forEach(id=>{ const el = document.getElementById(id); if(el) el.style.display = 'none'; });
+  document.querySelector('#btn-matchmaking .btn-sub').textContent = 'Adversaire au hasard, héros tiré au sort';
+  document.getElementById('no-decks-msg').innerHTML = 'Aucun deck de taverne — <a href="spellcraft-deckbuilder.html?mode=taverne">construis-en un</a> d\'abord (sans héros, 3 couleurs maximum).';
+  let isTester = false;
+  try{ const u = await scGetCurrentUser(); if(u){ const { data } = await sb.from('profiles').select('username').eq('id', u.id).single(); isTester = !!data && data.username==='Kroquette'; } }catch(e){}
+  const open = scTavernOpenNow();
+  TAVERN_LOCKED = !open && !isTester;
+  const b = document.getElementById('tavern-banner');
+  b.style.display = 'block';
+  b.innerHTML = open ? '🍻 La taverne est <b>ouverte</b> ! ' + SC_TAVERN_HOURS_LABEL + '.'
+    : (isTester ? '🔒 Taverne fermée (' + SC_TAVERN_HOURS_LABEL + '), mais tu peux la tester.' : '🔒 La taverne est <b>fermée</b>. ' + SC_TAVERN_HOURS_LABEL + '.<br>Tu peux déjà construire ton deck !');
+  updateActionButtons();
 }
 
 function setupLastDeckButton(){
@@ -327,10 +356,10 @@ function renderDeckGrid(){
     wrap.innerHTML = `
       <div class="deck-tile">
         <div class="db-back" style="${backUrl?`background-image:url('${backUrl.replace(/'/g,"")}')`:''}"></div>
-        <div class="db-hero" style="${heroImg?`background-image:url('${heroImg.replace(/'/g,"")}')`:''}"></div>
+        <div class="db-hero" style="${heroImg?`background-image:url('${heroImg.replace(/'/g,"")}')`:''}">${d.taverne ? '<span style="display:flex;align-items:center;justify-content:center;height:100%;font-size:44px;">🍺</span>' : ''}</div>
       </div>
       <div class="db-name-below">${escapeHtmlLobby(d.name||'Deck sans nom')}</div>
-      <div class="db-region-below" style="font-size:11px;opacity:.75;text-align:center;">${escapeHtmlLobby((sum.region && sum.region.name) || "Côte de Rimd'Orël")}${sum.regionIsDefault ? ' (défaut)' : ''}</div>
+      <div class="db-region-below" style="font-size:11px;opacity:.75;text-align:center;">${d.taverne ? '🍺 Héros au hasard' : escapeHtmlLobby((sum.region && sum.region.name) || "Côte de Rimd'Orël") + (sum.regionIsDefault ? ' (défaut)' : '')}</div>
     `;
     wrap.onclick = ()=>{ CHOSEN_DECK_ID = d.id; renderDeckGrid(); updateActionButtons(); };
     grid.appendChild(wrap);
@@ -363,7 +392,7 @@ function escapeHtmlLobby(s){ return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp
 function updateActionButtons(){
   const has = !!CHOSEN_DECK_ID;
   document.getElementById('btn-vs-ai').disabled = !has;
-  document.getElementById('btn-matchmaking').disabled = !has;
+  document.getElementById('btn-matchmaking').disabled = !has || TAVERN_LOCKED;
   document.getElementById('btn-create-private').disabled = !has;
   document.getElementById('btn-join').disabled = !has;
   const d = LOADED_DECKS.find(x=>x.id===CHOSEN_DECK_ID);
@@ -400,7 +429,8 @@ function wireActionButtons(){
   document.getElementById('btn-matchmaking').onclick = async ()=>{
     showLobbyError(''); closeInlinePanels();
     rememberLastDeck(CHOSEN_DECK_ID);
-    const res = await gsJoinMatchmaking(CHOSEN_DECK_ID);
+    const res = await gsJoinMatchmaking(CHOSEN_DECK_ID, TAVERN ? 'taverne' : 'normal');
+    if(res.error==='taverne-fermee') return showLobbyError('La taverne est fermée : ' + SC_TAVERN_HOURS_LABEL + '.');
     if(res.error) return showLobbyError('Erreur : ' + res.error);
     if(!res.waiting){
       // Un adversaire attendait déjà — la partie est prête immédiatement.
