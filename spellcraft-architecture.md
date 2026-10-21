@@ -317,3 +317,6 @@ L'étape « Déclencheur » d'une capacité est un **constructeur pas à pas** (
 
 ## Affichage du mana (21/10/2026)
 - `renderManaBox` (plateau et tutoriel) : plus de colonnes de points. Pile verticale identique pour les deux camps : [mana fragile : grosse icône + nombre, seulement s'il y en a] / [icône pleine + disponible/max] / illustration de la région. Le nombre « disponible » = `manaNormal` (le fragile est affiché à part ; le calcul de coût/jouabilité utilise toujours normal + fragile).
+
+### Nayenn'der : améliorations permanentes des requins
+Sur le cadre du héros, une 2e rangée s'affiche à côté des icônes de requin (au-dessus pour le joueur, en dessous pour l'adversaire). Elle lit `conjurationUpgrades['Squale affamé'].keywords` (une icône par mot-clé) et affiche un « + » par point de bonus (max(atkBonus, hpBonus), « +N » au-delà de 8). Client uniquement (`heroIndicatorsHtml` dans `spellcraft-server-board.html`).

@@ -882,7 +882,13 @@ body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out 
   /* Repères visuels de héros (compteurs, effets en attente, tour de jeu) */
   .hero-indicators{position:absolute;left:-14px;bottom:-14px;display:flex;gap:1px;align-items:center;z-index:3;pointer-events:none;max-width:200px;}
   /* Cadre adverse : en bas à gauche. Cadre du joueur : en haut à droite. */
-  #hero-frame-p1 .hero-indicators{left:auto;bottom:auto;right:-14px;top:-14px;}
+  .hero-indicators{flex-direction:column;gap:2px;}
+  .hero-ind-row{display:flex;gap:1px;align-items:center;}
+  #hero-frame-p1 .hero-indicators{left:auto;top:auto;right:-14px;bottom:calc(100% - 24px);align-items:flex-end;}
+  #hero-frame-p2 .hero-indicators{left:-14px;bottom:auto;top:calc(100% - 24px);align-items:flex-start;}
+  .hero-ind-row.sub{min-height:26px;}
+  .hero-ind-row.sub img{width:26px;height:26px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.85));}
+  .hero-ind-plus{font-family:'Cinzel',serif;font-weight:900;font-size:24px;line-height:1;color:#7be08a;text-shadow:0 0 3px #000,0 2px 3px #000;}
   .hero-indicator.shark-black{filter:brightness(0) drop-shadow(0 0 2px rgba(255,255,255,.55));}
   .hero-indicator.shark-white{filter:brightness(0) invert(1) drop-shadow(0 1px 3px rgba(0,0,0,.9));}
   .hero-indicator{font-size:34px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,.85));}
@@ -3892,12 +3898,19 @@ const HERO_INDICATORS = {
   "nowa":       { kind:'myTurn',    icon:'🍵', label:'C\'est votre tour : vos capacités « Final » sont doublées' },
   "la tortue":  { kind:'turtle',    icon:HERO_INDICATOR_BROKEN_SHIELD, svg:true, label:'Passif prêt : vos créatures arrivent avec +1/+0 supplémentaire' }
 };
-function heroIndicatorsHtml(key, hero){
+function heroIndicatorsHtml(key, hero, slot){
   try{
     const p = S[key];
     const name = String((hero && hero.name) || '').toLowerCase().replace(/[\u2019\u2018]/g, "'").trim();
     const cfg = HERO_INDICATORS[name];
     if(!cfg) return '';
+    const __wrap = (r)=>{
+      if(r && typeof r==='object'){
+        const rows = [`<div class="hero-ind-row">${r.main}</div>`, r.sub ? `<div class="hero-ind-row sub">${r.sub}</div>` : ''];
+        return (slot==='p1' ? rows.reverse() : rows).join('');
+      }
+      return r ? `<div class="hero-ind-row">${r}</div>` : '';
+    };
     const esc = (t)=>String(t).replace(/"/g,'&quot;');
     const one = (cls)=>`<span class="hero-indicator ${cls||''}" title="${esc(cfg.label)}">${cfg.icon}</span>`;
     if(cfg.kind==='sharks' || cfg.kind==='progress'){
@@ -3909,19 +3922,30 @@ function heroIndicatorsHtml(key, hero){
       const total = filter==='any' ? Object.values(counts).reduce((a,n)=>a+(n||0),0) : (counts[filter]||0);
       const done = te.playedCardTypeMatchReset ? (total % threshold) : Math.min(total, threshold);
       if(cfg.kind==='sharks'){
-        return Array.from({length:threshold}, (_, i)=>one(i<done ? 'shark-white' : 'shark-black')).join('');
+        const sharks = Array.from({length:threshold}, (_, i)=>one(i<done ? 'shark-white' : 'shark-black')).join('');
+        // Améliorations permanentes des créatures conjurées (ex. « Squale affamé ») : mots-clés + un « + » par point de bonus
+        const conj = (hero.abilities||[]).flatMap(a=>(a.effects||[])).find(e=>e.effectType==='conjure' && e.conjureSpecificName);
+        const upg = (p.conjurationUpgrades||{})[(conj && conj.conjureSpecificName) || 'Squale affamé'] || null;
+        let sub = '';
+        if(upg){
+          const kws = (upg.keywords||[]).map(k=>KEYWORD_ICON_FILES[k] ? `<img src="images/${KEYWORD_ICON_FILES[k]}" alt="" title="${esc(KEYWORD_LABELS[k]||k)} (définitif)">` : `<span class="hero-ind-plus" title="${esc(KEYWORD_LABELS[k]||k)} (définitif)">${esc((KEYWORD_LABELS[k]||k)[0])}</span>`).join('');
+          const n = Math.max(upg.atkBonus||0, upg.hpBonus||0);
+          const plus = n>0 ? `<span class="hero-ind-plus" title="+${upg.atkBonus||0}/+${upg.hpBonus||0} définitif">${n<=8 ? '+'.repeat(n) : '+'+n}</span>` : '';
+          sub = kws + plus;
+        }
+        return __wrap({ main: sharks, sub });
       }
-      return Array.from({length:threshold}, (_, i)=>one(i<done ? '' : 'dim')).join('');
+      return __wrap(Array.from({length:threshold}, (_, i)=>one(i<done ? '' : 'dim')).join(''));
     }
     if(cfg.kind==='pending'){
-      return (p.pendingNextCardEffects && p.pendingNextCardEffects.length) ? one('ready') : '';
+      return __wrap((p.pendingNextCardEffects && p.pendingNextCardEffects.length) ? one('ready') : '');
     }
     if(cfg.kind==='myTurn'){
-      return S.active===key ? one('') : '';
+      return __wrap(S.active===key ? one('') : '');
     }
     if(cfg.kind==='turtle'){
       const oppKey = key==='p1' ? 'p2' : 'p1';
-      return (S.active===key && (S[oppKey].hpLostThisTurn||0) > 0) ? one('ready') : '';
+      return __wrap((S.active===key && (S[oppKey].hpLostThisTurn||0) > 0) ? one('ready') : '');
     }
   }catch(e){}
   return '';
@@ -3943,7 +3967,7 @@ function renderHeroFrame(key, slot){
       ${hero.image ? '' : (heroName[0]||'?')}
       <span class="hp-badge-big">${p.hp}</span>
     </button>
-    ${(()=>{ const h = heroIndicatorsHtml(key, hero); return h ? `<div class="hero-indicators">${h}</div>` : ''; })()}
+    ${(()=>{ const h = heroIndicatorsHtml(key, hero, slot); return h ? `<div class="hero-indicators">${h}</div>` : ''; })()}
   `;
   const btn = el.querySelector('.hero-portrait-big');
   btn.onmouseenter = (ev)=>showHeroPreview(hero, ev);
