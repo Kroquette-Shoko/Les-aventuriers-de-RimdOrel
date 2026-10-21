@@ -3896,6 +3896,7 @@ const HERO_INDICATOR_TEAPOT = '<svg viewBox="0 0 48 40" aria-hidden="true"><circ
 const HERO_INDICATORS = {
   "nayenn'der": { kind:'sharks',    icon:'🦈', label:'Requins blancs = créatures jouées vers le prochain Squale affamé' },
   "rascal":     { kind:'progress',  icon:'⚡', label:'sortilège(s) joué(s) vers le prochain effet' },
+  "linéasthasia": { kind:'progress', icon:'⚡', label:'sortilège(s) joué(s) ce tour-ci vers l\'effet' },
   "brick":      { kind:'pending',   icon:'🔍', label:'Mot-clé en attente : votre prochaine créature jouée l\'obtiendra' },
   "aurore":     { kind:'pending',   icon:'☀️', label:'Prête : la prochaine créature alliée jouée gagnera +1/+1' },
   "nowa":       { kind:'myTurn',    icon:HERO_INDICATOR_TEAPOT, svg:true, label:'C\'est votre tour : vos capacités « Final » sont doublées' },
@@ -3917,13 +3918,15 @@ function heroIndicatorsHtml(key, hero, slot){
     const esc = (t)=>String(t).replace(/"/g,'&quot;');
     const one = (cls)=>`<span class="hero-indicator ${cls||''}" title="${esc(cfg.label)}">${cfg.icon}</span>`;
     if(cfg.kind==='sharks' || cfg.kind==='progress'){
-      const te = ((hero.abilities||[]).flatMap(a=>a.triggers||[])).find(t=>t.trigger==='playedCardTypeCountMatch');
+      const allTr = (hero.abilities||[]).flatMap(a=>a.triggers||[]);
+      const te = allTr.find(t=>t.trigger==='playedCardTypeCountMatch') || allTr.find(t=>t.trigger==='playedCardTypeCountThisTurn');
       if(!te) return '';
-      const filter = te.playedCardTypeMatchFilter || 'any';
-      const threshold = Math.max(1, te.playedCardTypeMatchCount || 3);
-      const counts = p.matchCardsPlayedByType || {};
+      const perTurn = te.trigger==='playedCardTypeCountThisTurn';
+      const filter = (perTurn ? te.playedCardTypeFilter : te.playedCardTypeMatchFilter) || 'any';
+      const threshold = Math.max(1, (perTurn ? te.playedCardTypeCount : te.playedCardTypeMatchCount) || (perTurn ? 1 : 3));
+      const counts = (perTurn ? p.cardsPlayedThisTurnByType : p.matchCardsPlayedByType) || {};
       const total = filter==='any' ? Object.values(counts).reduce((a,n)=>a+(n||0),0) : (counts[filter]||0);
-      const done = te.playedCardTypeMatchReset ? (total % threshold) : Math.min(total, threshold);
+      const done = (!perTurn && te.playedCardTypeMatchReset) ? (total % threshold) : Math.min(total, threshold);
       if(cfg.kind==='sharks'){
         const sharks = Array.from({length:threshold}, (_, i)=>one(i<done ? 'shark-white' : 'shark-black')).join('');
         // Améliorations permanentes des créatures conjurées (ex. « Squale affamé ») : mots-clés + un « + » par point de bonus
