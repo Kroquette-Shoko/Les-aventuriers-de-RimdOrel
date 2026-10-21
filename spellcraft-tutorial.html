@@ -1190,7 +1190,7 @@ html::-webkit-scrollbar, body::-webkit-scrollbar{width:0;height:0;background:tra
   // (deck, héros). C'est la cause réelle du plateau adverse "coupé".
   window.APP_TOPBAR_DISABLED = true;
 </script>
-<script src="spellcraft-shared.js?v=20261021b"></script>
+<script src="spellcraft-shared.js?v=20261021c"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>
 <script src="spellcraft-board-fx.js"></script>
@@ -4403,8 +4403,17 @@ function newFormatStatOf(c, stat){
 // (Non reproduits, car l'état client ne les expose pas : "cartes hors deck de
 // base" et "a attaqué au tour précédent" — le serveur les vérifie.)
 function newFormatMatchesFilters(tgt, c){
-  if(tgt.subtypeFilter && !(c.subtypes||[]).some(s=>String(s).toLowerCase()===String(tgt.subtypeFilter).toLowerCase())) return false;
-  if(tgt.keywordFilter && !(c.keywords||[]).includes(tgt.keywordFilter)) return false;
+  if(tgt.subtypeFilter){
+    const __has = (c.subtypes||[]).some(s=>String(s).toLowerCase()===String(tgt.subtypeFilter).toLowerCase());
+    if(tgt.subtypeFilterExclude ? __has : !__has) return false;
+  }
+  if(tgt.keywordFilter){
+    const __hk = (c.keywords||[]).includes(tgt.keywordFilter);
+    if(tgt.keywordFilterExclude ? __hk : !__hk) return false;
+  }
+  if(tgt.woundedFilter && !(typeof c.curHp==='number' && typeof c.hp==='number' && c.curHp<c.hp)) return false;
+  if(tgt.notAttackedFilter && c.hasAttacked) return false;
+  // rareté, région et comparaison à la carte source : tranchés par le serveur
   if(tgt.statFilterEnabled){
     const stat = newFormatStatOf(c, tgt.statFilterStat);
     if(stat==null) return false;
@@ -4417,7 +4426,7 @@ function newFormatMatchesFilters(tgt, c){
   return true;
 }
 function newFormatHasAnyFilter(tgt){
-  return !!(tgt.subtypeFilter || tgt.keywordFilter || tgt.statFilterEnabled || tgt.zoneTypeFilterEnabled || tgt.attackedLastTurnFilter);
+  return !!(tgt.subtypeFilter || tgt.keywordFilter || tgt.statFilterEnabled || tgt.zoneTypeFilterEnabled || tgt.attackedLastTurnFilter || tgt.woundedFilter || tgt.notAttackedFilter || tgt.sourceCompareFilter || tgt.rarityFilter || tgt.classFilter);
 }
 // Candidats valides pour une définition de cible : camp, catégorie, Parade
 // (créature adverse protégée exclue), filtres. `selected` = marqueurs déjà pris.
@@ -4469,8 +4478,10 @@ function newFormatTargetPrompt(tgt){
   const pluralAdj = adj ? (adj+'s') : '';
   const max = newFormatTargetMax(tgt, 0);
   const extras = [];
-  if(tgt.subtypeFilter) extras.push(`de type ${tgt.subtypeFilter}`);
-  if(tgt.keywordFilter) extras.push(`avec ${KEYWORD_LABELS[tgt.keywordFilter] || tgt.keywordFilter}`);
+  if(tgt.subtypeFilter) extras.push(tgt.subtypeFilterExclude ? `non-${tgt.subtypeFilter}` : `de type ${tgt.subtypeFilter}`);
+  if(tgt.keywordFilter) extras.push(`${tgt.keywordFilterExclude ? 'sans' : 'avec'} ${KEYWORD_LABELS[tgt.keywordFilter] || tgt.keywordFilter}`);
+  if(tgt.woundedFilter) extras.push('blessée');
+  if(tgt.notAttackedFilter) extras.push("n'ayant pas attaqué");
   if(tgt.statFilterEnabled){
     const statLabel = ({atk:'Force', hp:'Endurance', cost:'Coût', charges:'Utilisations'})[tgt.statFilterStat] || tgt.statFilterStat;
     const op = ({atLeast:'≥', atMost:'≤', exactly:'='})[tgt.statFilterMode] || '=';

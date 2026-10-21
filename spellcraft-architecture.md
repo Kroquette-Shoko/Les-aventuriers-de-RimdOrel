@@ -296,3 +296,10 @@ L'étape « Déclencheur » d'une capacité est un **constructeur pas à pas** (
 - `EFFECT_GROUPS` range le menu « Type d'effet » en 7 familles ; un effet absent des familles tombe dans « Autres ».
 - « Donner un mot-clé » regroupe 3 effets du moteur (clés inchangées) via un sous-choix : `grantKeyword` (précis), `upgrade` (aléatoire parmi les mots-clés positifs), `keywordChoice` (au choix parmi 3). Aucun changement moteur.
 - Audit : les 52 effets de l'éditeur ont un exécuteur nommé dans le moteur ; `custom` (texte libre) n'a aucun effet en jeu. Effets présents dans le moteur mais sans entrée éditeur (anciens) : freeze, emptyManaEffect, fragileManaEffect, buffPlayedThisTurn, setStats, loseLife.
+
+## Cibles : constructeur en 4 temps, exceptions, nouveaux filtres (21/10/2026)
+- Éditeur : « 1. Quoi ? » (cette carte / la carte qui déclenche / son adversaire au combat / dernière carte piochée / à choisir parmi…) → « 2. Camp, Catégorie, Façon de choisir » → « 3. Combien ? » → « 4. Filtres ». Les valeurs enregistrées (`targetOwner`, `targetCategory`, `selectionMode`) sont inchangées : « Quoi ? » n'est qu'un affichage de `targetOwner`.
+- Nouveaux champs de cible (tous faux/vides par défaut) : `subtypeFilterExclude`, `keywordFilterExclude`, `woundedFilter` (curHp < hp), `notAttackedFilter` (!hasAttacked), `sourceCompareFilter` (stronger/weaker/costlier/cheaper vs la carte source), `rarityFilter`, `classFilter`.
+- Moteur : morceau 5 (`cibles_20261021.sql`). Client (`spellcraft-server-board.html`, `spellcraft-tutorial.html`) : exceptions + blessée + n'a pas attaqué ; rareté, région et comparaison à la source sont tranchés par le serveur.
+- « Même cible que A » : inutile, chaque effet choisit sa cible (`usesTarget`) et plusieurs effets peuvent partager la même.
+- Suggestions de cibles : celles liées au déclencheur passent en tête avec « ⭐ Suggérée ».

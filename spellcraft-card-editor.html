@@ -811,7 +811,7 @@ header .spacer{flex:1;}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="spellcraft-shared.js?v=20261021b"></script>
+<script src="spellcraft-shared.js?v=20261021c"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>
 <script src="spellcraft-atelier-nav.js"></script>
@@ -1188,7 +1188,10 @@ function blankTargetEntry(){
     subtypeFilter: '',
     costFilterEnabled: false, costFilterMode: 'atLeast', costFilterValue: 1,
     statFilterEnabled: false, statFilterStat: 'atk', statFilterMode: 'atLeast', statFilterValue: 1,
-    statFilterValueMode: 'fixed', statFilterDynamic: 'thisAtk'
+    statFilterValueMode: 'fixed', statFilterDynamic: 'thisAtk',
+    subtypeFilterExclude: false, keywordFilterExclude: false,
+    woundedFilter: false, notAttackedFilter: false,
+    sourceCompareFilter: '', rarityFilter: '', classFilter: ''
   };
 }
 function blankEvolution(){
@@ -1882,14 +1885,39 @@ function buildTargetsSectionUI(ab, targetsArray, choiceKey, heading){
     trow.className = 'target-entry-row';
     trow.innerHTML = `<div class="field"><label class="mini-field">Cible ${choiceKey ? choiceKey+' supp. ' : ''}${String.fromCharCode(65+tIdx)}</label></div>`;
 
-    trow.appendChild(makeSelectField('Quel type de ciblage ?', SELECTION_MODES, tgt.selectionMode, v=>{ tgt.selectionMode=v; rebuildAbilitiesUI(); onFormChange(); }));
-    trow.appendChild(makeSelectField('Catégorie', TARGET_CATEGORIES, tgt.targetCategory, v=>{ tgt.targetCategory=v; rebuildAbilitiesUI(); onFormChange(); }));
-    trow.appendChild(makeSelectField('Parmi', TARGET_OWNERS, tgt.targetOwner, v=>{ tgt.targetOwner=v; onFormChange(); }));
+    // Constructeur en 4 temps : 1. Quoi ? → 2. Parmi quoi / catégorie / façon de choisir → 3. Combien ? → 4. Filtres
+    const REF_OWNERS = ['self','trigger','fight_opponent','last_drawn_by_ability'];
+    const isRefTarget = REF_OWNERS.includes(tgt.targetOwner);
+    trow.appendChild(tbSelect('1. Quoi ?', [
+      {value:'self', text:'Cette carte'},
+      {value:'trigger', text:'La carte qui déclenche'},
+      {value:'fight_opponent', text:"Son adversaire au combat"},
+      {value:'last_drawn_by_ability', text:'La dernière carte piochée par cette capacité'},
+      {value:'pick', text:'Une ou plusieurs cartes à choisir parmi…'}
+    ], isRefTarget ? tgt.targetOwner : 'pick', v=>{
+      if(v==='pick'){ if(REF_OWNERS.includes(tgt.targetOwner)) tgt.targetOwner='enemy'; }
+      else { tgt.targetOwner=v; if(v==='last_drawn_by_ability') tgt.targetCategory='card_in_hand'; else if(tgt.targetCategory==='card_in_hand'&&v!=='last_drawn_by_ability') tgt.targetCategory='creature'; }
+      rebuildAbilitiesUI(); onFormChange();
+    }));
+    if(!isRefTarget){
+      trow.appendChild(tbSelect('2. Camp', [
+        {value:'enemy', text:'Ennemies / adversaire'},
+        {value:'ally', text:'Alliées / vous'},
+        {value:'any', text:'Peu importe'},
+        {value:'random', text:'Au hasard (un camp tiré une fois)'}
+      ], tgt.targetOwner, v=>{ tgt.targetOwner=v; onFormChange(); }));
+    }
+    if(tgt.targetOwner!=='fight_opponent' && tgt.targetOwner!=='last_drawn_by_ability'){
+      trow.appendChild(makeSelectField(isRefTarget ? 'Type de carte visée' : '2. Catégorie', TARGET_CATEGORIES, tgt.targetCategory, v=>{ tgt.targetCategory=v; rebuildAbilitiesUI(); onFormChange(); }));
+    }
+    if(!isRefTarget){
+      trow.appendChild(tbSelect('2. Façon de choisir', SELECTION_MODES.map(m=>({value:m.key, text:m.label})), tgt.selectionMode, v=>{ tgt.selectionMode=v; rebuildAbilitiesUI(); onFormChange(); }));
+    }
 
-    if(tgt.selectionMode!=='all' && tgt.targetOwner!=='self' && tgt.targetOwner!=='trigger'){
+    if(tgt.selectionMode!=='all' && !REF_OWNERS.includes(tgt.targetOwner)){
       const cField = document.createElement('div');
       cField.className='field';
-      cField.innerHTML = `<label class="mini-field">Nombre de cibles</label>`;
+      cField.innerHTML = `<label class="mini-field">3. Combien ?</label>`;
       const cModeSel = document.createElement('select');
       sortTuples([['fixed','Fixe'],['dynamic','Dynamique']]).forEach(([k,l])=>{
         const opt=document.createElement('option'); opt.value=k; opt.textContent=l;
@@ -1913,6 +1941,10 @@ function buildTargetsSectionUI(ab, targetsArray, choiceKey, heading){
     }
 
     if(tgt.targetCategory==='creature' || tgt.targetCategory==='hero_creature' || tgt.targetCategory==='artifact' || (tgt.targetCategory && tgt.targetCategory.startsWith('card_in_'))){
+      const fHead = document.createElement('div');
+      fHead.className='mini-field'; fHead.style.cssText='flex-basis:100%;margin-top:6px;font-weight:600;';
+      fHead.textContent='4. Filtres (facultatifs)';
+      trow.appendChild(fHead);
       const nbdToggle = document.createElement('label');
       nbdToggle.className='evolve-toggle';
       nbdToggle.innerHTML = `<input type="checkbox" ${tgt.notInBaseDeck?'checked':''}> Uniquement les cartes qui n'étaient pas dans votre deck de base (générées en cours de partie)`;
@@ -1933,10 +1965,20 @@ function buildTargetsSectionUI(ab, targetsArray, choiceKey, heading){
       subInp.type='text'; subInp.value=tgt.subtypeFilter||''; subInp.placeholder='Ex : Dragon';
       subInp.oninput=()=>{ tgt.subtypeFilter=subInp.value; onFormChange(); };
       subField.appendChild(subInp); trow.appendChild(subField);
+      const subEx = document.createElement('label');
+      subEx.className='evolve-toggle';
+      subEx.innerHTML = `<input type="checkbox" ${tgt.subtypeFilterExclude?'checked':''}> Exception : tout sauf ce sous-type (ex : « non-Zombie »)`;
+      subEx.querySelector('input').onchange=(e)=>{ tgt.subtypeFilterExclude=e.target.checked; onFormChange(); };
+      trow.appendChild(subEx);
     }
 
     if(tgt.targetCategory==='creature' || tgt.targetCategory==='hero_creature'){
       trow.appendChild(makeSelectField('Mot-clé requis (optionnel)', [{key:'',label:'Aucun'}, ...KEYWORDS.map(k=>({key:k.key,label:k.label}))], tgt.keywordFilter||'', v=>{ tgt.keywordFilter=v; onFormChange(); }));
+      const kwEx = document.createElement('label');
+      kwEx.className='evolve-toggle';
+      kwEx.innerHTML = `<input type="checkbox" ${tgt.keywordFilterExclude?'checked':''}> Exception : seulement les créatures qui n'ont PAS ce mot-clé`;
+      kwEx.querySelector('input').onchange=(e)=>{ tgt.keywordFilterExclude=e.target.checked; onFormChange(); };
+      trow.appendChild(kwEx);
       const kwNote = document.createElement('div');
       kwNote.style.cssText = 'font-size:10.5px;color:var(--parchment-dim);margin-top:2px;flex-basis:100%;';
       kwNote.textContent = "Filtre de ciblage : seules les créatures qui ont ce mot-clé peuvent être choisies (ex : Chute mortelle → Vol). Un sort qui exige une cible alors qu'aucune n'est valide est refusé : il reste en main et rien n'est dépensé. Une créature adverse protégée par Parade n'est jamais ciblable par un sort.";
@@ -1992,6 +2034,28 @@ function buildTargetsSectionUI(ab, targetsArray, choiceKey, heading){
       alToggle.innerHTML = `<input type="checkbox" ${tgt.attackedLastTurnFilter?'checked':''}> Uniquement les créatures qui ont attaqué au tour précédent`;
       alToggle.querySelector('input').onchange=(e)=>{ tgt.attackedLastTurnFilter=e.target.checked; onFormChange(); };
       trow.appendChild(alToggle);
+    }
+
+    if(tgt.targetCategory==='creature' || tgt.targetCategory==='hero_creature'){
+      [['woundedFilter','Uniquement les créatures blessées (PV sous leur maximum)'],
+       ['notAttackedFilter',"Uniquement les créatures qui n'ont pas encore attaqué ce tour-ci"]].forEach(([k,l])=>{
+        const tg = document.createElement('label');
+        tg.className='evolve-toggle';
+        tg.innerHTML = `<input type="checkbox" ${tgt[k]?'checked':''}> ${l}`;
+        tg.querySelector('input').onchange=(e)=>{ tgt[k]=e.target.checked; onFormChange(); };
+        trow.appendChild(tg);
+      });
+    }
+    if(tgt.targetCategory==='creature' || tgt.targetCategory==='hero_creature' || tgt.targetCategory==='artifact' || (tgt.targetCategory && tgt.targetCategory.startsWith('card_in_'))){
+      trow.appendChild(tbSelect('Comparée à cette carte', [
+        {value:'', text:'Pas de comparaison'},
+        {value:'stronger', text:'Plus forte (Force strictement supérieure)'},
+        {value:'weaker', text:'Moins forte (Force strictement inférieure)'},
+        {value:'costlier', text:'Plus chère (coût strictement supérieur)'},
+        {value:'cheaper', text:'Moins chère (coût strictement inférieur)'}
+      ], tgt.sourceCompareFilter||'', v=>{ tgt.sourceCompareFilter=v; onFormChange(); }));
+      trow.appendChild(tbSelect('Rareté', [{value:'',text:'Peu importe'}, ...['Basique','Commune','Rare','Épique','Mythique'].map(r=>({value:r,text:r}))], tgt.rarityFilter||'', v=>{ tgt.rarityFilter=v; onFormChange(); }));
+      trow.appendChild(tbSelect('Région / source', [{value:'',text:'Peu importe'}, ...['Aube','Crépuscule','Volonté','Prima','Arcane','Neutre'].map(r=>({value:r,text:r}))], tgt.classFilter||'', v=>{ tgt.classFilter=v; onFormChange(); }));
     }
 
     if(tgt.targetCategory==='next_played_card'){
@@ -2585,13 +2649,14 @@ function suggestTargets(ab){
   const effs = ab.useChoice ? [] : (ab.effects||[]);
   const S = [];
   const add = (label, extra)=>S.push({label, entry:Object.assign(blankTargetEntry(), extra)});
-  add('Cette carte', {targetOwner:'self', targetCategory:'creature'});
+  const BADGE = '⭐ Suggérée : ';
   if(ab.kind==='triggered' && trigs.some(t=>WATCH_TRIGGERS.includes(t)||t==='onTargeted'))
-    add('La carte qui a déclenché la capacité', {targetOwner:'trigger', targetCategory:'creature'});
+    add(BADGE+'La carte qui a déclenché la capacité', {targetOwner:'trigger', targetCategory:'creature'});
   if(trigs.includes('beforeAllyFights'))
-    add('La créature qu\'elle va affronter', {targetOwner:'fight_opponent', targetCategory:'creature'});
+    add(BADGE+'La créature qu\'elle va affronter', {targetOwner:'fight_opponent', targetCategory:'creature'});
   if(effs.some(e=>e.effectType==='draw'))
-    add('La dernière carte piochée par cette capacité', {targetOwner:'last_drawn_by_ability', targetCategory:'card_in_hand'});
+    add(BADGE+'La dernière carte piochée par cette capacité', {targetOwner:'last_drawn_by_ability', targetCategory:'card_in_hand'});
+  add('Cette carte', {targetOwner:'self', targetCategory:'creature'});
   if((ab.conditions||[]).some(c=>c.conditionType && (CONDITION_TYPES.find(x=>x.key===c.conditionType)||{}).isStatCompare && c.statScope==='target'))
     S.push({label:'ℹ Une condition compare la « cible de la capacité » : définis ci-dessous la cible à comparer.', info:true});
   add('Une créature ennemie (désignée)', {targetOwner:'enemy', targetCategory:'creature', selectionMode:'chosen'});
@@ -4152,10 +4217,15 @@ function targetPhrase(t){
   const adjPlur = {ally:'alliées', enemy:'ennemies', any:'', random:''}[t.targetOwner] || '';
   const randomOwnerPrefix = t.targetOwner==='random' ? "(camp tiré au hasard) " : '';
 
-  const subtypeSuffix = t.subtypeFilter ? ` ${t.subtypeFilter}` : '';
+  const subtypeSuffix = t.subtypeFilter ? (t.subtypeFilterExclude ? ` non-${t.subtypeFilter}` : ` ${t.subtypeFilter}`) : '';
   const zoneTypeSuffix = (t.zoneTypeFilterEnabled && t.zoneTypeFilter) ? ` ${t.zoneTypeFilter.toLowerCase()}` : '';
   const attackedLastTurnSuffix = (t.attackedLastTurnFilter ? ' ayant attaqué au tour précédent' : '')
-    + (t.keywordFilter ? ` ayant ${(KEYWORDS.find(k=>k.key===t.keywordFilter)||{}).label||t.keywordFilter}` : '');
+    + (t.keywordFilter ? ` ${t.keywordFilterExclude ? "n'ayant pas" : 'ayant'} ${(KEYWORDS.find(k=>k.key===t.keywordFilter)||{}).label||t.keywordFilter}` : '')
+    + (t.woundedFilter ? ' blessée' : '')
+    + (t.notAttackedFilter ? " n'ayant pas encore attaqué ce tour-ci" : '')
+    + (t.sourceCompareFilter ? ({stronger:' plus forte que cette carte', weaker:' moins forte que cette carte', costlier:' plus chère que cette carte', cheaper:' moins chère que cette carte'}[t.sourceCompareFilter]||'') : '')
+    + (t.rarityFilter ? ` de rareté ${t.rarityFilter}` : '')
+    + (t.classFilter ? ` de la région ${t.classFilter}` : '');
 
   if(t.selectionMode==='strongest' || t.selectionMode==='mostEnduring'){
     const statLabel = t.selectionMode==='strongest' ? 'la plus forte' : 'la plus endurante';
