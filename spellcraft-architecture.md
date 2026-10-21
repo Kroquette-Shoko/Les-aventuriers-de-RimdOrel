@@ -320,3 +320,6 @@ L'étape « Déclencheur » d'une capacité est un **constructeur pas à pas** (
 
 ### Nayenn'der : améliorations permanentes des requins
 Sur le cadre du héros, une 2e rangée s'affiche à côté des icônes de requin (au-dessus pour le joueur, en dessous pour l'adversaire). Elle lit `conjurationUpgrades['Squale affamé'].keywords` (une icône par mot-clé) et affiche un « + » par point de bonus (max(atkBonus, hpBonus), « +N » au-delà de 8). Client uniquement (`heroIndicatorsHtml` dans `spellcraft-server-board.html`).
+
+### Indicateurs de héros : noir = inactif, blanc = actif
+Rascal (éclairs), Brick (loupe), Aurore (soleil) et Nowa (théière SVG `HERO_INDICATOR_TEAPOT`) affichent toujours leur icône : noire (classe `shark-black`) tant que la condition n'est pas remplie, blanche (`shark-white`) quand elle l'est. Les « + » et icônes de mots-clés des requins ne changent pas de couleur.

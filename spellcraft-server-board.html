@@ -3890,12 +3890,13 @@ function renderManaBox(key, slot){
 /* Repères visuels sur le cadre de certains héros. Données lues dans l'état de partie
    (compteurs de cartes jouées, effets « prochaine carte » en attente, tour actif, PV perdus). */
 const HERO_INDICATOR_BROKEN_SHIELD = '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3 L35 8 V20 C35 28 28 34 20 37 C12 34 5 28 5 20 V8 Z" fill="#b8c2cc" stroke="#39424b" stroke-width="2.5" stroke-linejoin="round"/><path d="M20 3 L23 14 L16 20 L22 27 L19 37" fill="none" stroke="#1b1f23" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+const HERO_INDICATOR_TEAPOT = '<svg viewBox="0 0 48 40" aria-hidden="true"><circle cx="22" cy="5" r="2.6" fill="#000"/><path d="M14 11 Q22 6 30 11 Z" fill="#000"/><ellipse cx="22" cy="23" rx="15" ry="12" fill="#000"/><rect x="12" y="33" width="20" height="4" rx="2" fill="#000"/><path d="M35 20 Q40 22 42 10 L46 8 Q46 24 36 29 Z" fill="#000"/><path d="M8 18 Q-1 16 2 28 Q4 31 8 29" fill="none" stroke="#000" stroke-width="3.4" stroke-linecap="round"/></svg>';
 const HERO_INDICATORS = {
   "nayenn'der": { kind:'sharks',    icon:'🦈', label:'Requins blancs = créatures jouées vers le prochain Squale affamé' },
   "rascal":     { kind:'progress',  icon:'⚡', label:'sortilège(s) joué(s) vers le prochain effet' },
   "brick":      { kind:'pending',   icon:'🔍', label:'Mot-clé en attente : votre prochaine créature jouée l\'obtiendra' },
   "aurore":     { kind:'pending',   icon:'☀️', label:'Prête : la prochaine créature alliée jouée gagnera +1/+1' },
-  "nowa":       { kind:'myTurn',    icon:'🍵', label:'C\'est votre tour : vos capacités « Final » sont doublées' },
+  "nowa":       { kind:'myTurn',    icon:HERO_INDICATOR_TEAPOT, svg:true, label:'C\'est votre tour : vos capacités « Final » sont doublées' },
   "la tortue":  { kind:'turtle',    icon:HERO_INDICATOR_BROKEN_SHIELD, svg:true, label:'Passif prêt : vos créatures arrivent avec +1/+0 supplémentaire' }
 };
 function heroIndicatorsHtml(key, hero, slot){
@@ -3935,13 +3936,13 @@ function heroIndicatorsHtml(key, hero, slot){
         }
         return __wrap({ main: sharks, sub });
       }
-      return __wrap(Array.from({length:threshold}, (_, i)=>one(i<done ? '' : 'dim')).join(''));
+      return __wrap(Array.from({length:threshold}, (_, i)=>one(i<done ? 'shark-white' : 'shark-black')).join(''));
     }
     if(cfg.kind==='pending'){
-      return __wrap((p.pendingNextCardEffects && p.pendingNextCardEffects.length) ? one('ready') : '');
+      return __wrap((p.pendingNextCardEffects && p.pendingNextCardEffects.length) ? one('shark-white ready') : one('shark-black'));
     }
     if(cfg.kind==='myTurn'){
-      return __wrap(S.active===key ? one('') : '');
+      return __wrap(S.active===key ? one('shark-white') : one('shark-black'));
     }
     if(cfg.kind==='turtle'){
       const oppKey = key==='p1' ? 'p2' : 'p1';
