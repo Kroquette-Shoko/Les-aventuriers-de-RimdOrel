@@ -894,7 +894,7 @@ const TRIGGER_TEXT = {
   watchHeroHealed: 'Quand un héros est soigné',
   watchSpell: 'Quand un sortilège est joué',
   watchTrap: "Quand un piège se déclenche",
-  watchBuffed: 'Quand une carte gagne un bonus',
+  watchBuffed: 'Quand une carte reçoit un bonus ou un malus',
   watchFromDiscard: 'Quand une carte arrive depuis la défausse',
   watchFromDeck: 'Quand une carte arrive depuis le deck',
   watchConjured: 'Quand une carte est conjurée',
@@ -2234,6 +2234,14 @@ function removeEffect(abilityId, effId, choiceKey){
    suivant : Moment → (Qui / quoi) → Précision → détails (valeurs, types…).
    Un choix grisé (key:null) n'existe pas encore dans le moteur.
    ============================================================ */
+// Précision de « reçoit un bonus ou un malus » (watchBuffed). Absent = « statUp » (ancien comportement).
+const TB_BUFF_KINDS = [
+  {key:'statUp',      label:"Gagne de la force et/ou de l'endurance (+X/+X)", text:"gagne de la force ou de l'endurance"},
+  {key:'statDown',    label:"Perd de la force et/ou de l'endurance (−X/−X)", text:"perd de la force ou de l'endurance"},
+  {key:'keywordGain', label:'Gagne un mot-clé', text:'gagne un mot-clé'},
+  {key:'keywordLoss', label:'Perd ses mots-clés (réduite au silence)', text:'perd ses mots-clés'},
+  {key:'any',         label:"N'importe lequel de ces changements", text:'reçoit un bonus ou un malus'}
+];
 const TB_FILTERABLE = ['watchPlay','watchArrival','watchDeath','watchAttack','watchDamaged','watchHealed','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchTargeted'];
 const TB_MOMENTS = [
   {k:'arrival', label:'Arrivée', leaves:[{key:'onPlay'}]},
@@ -2277,7 +2285,7 @@ const TB_MOMENTS = [
       {key:'watchPlay', label:'est jouée (créature, depuis la main)'}, {key:'watchArrival', label:'arrive en jeu'},
       {key:'watchDeath', label:'meurt'}, {key:'watchAttack', label:'attaque'},
       {key:'watchDamaged', label:'subit des dégâts'}, {key:'watchHealed', label:'est soignée'},
-      {key:'watchBuffed', label:'gagne un bonus'}, {key:'watchFromDiscard', label:'arrive depuis la défausse'},
+      {key:'watchBuffed', label:'reçoit un bonus ou un malus'}, {key:'watchFromDiscard', label:'arrive depuis la défausse'},
       {key:'watchFromDeck', label:'arrive depuis le deck'}, {key:'watchConjured', label:'est conjurée'},
       {key:'watchTargeted', label:'est désignée (ciblée par un effet)'}
     ]},
@@ -2412,6 +2420,17 @@ function buildTriggerEntryBox(te, tIdx, totalCount, availableTriggers, onRemove)
       orow.appendChild(stF);
     }
     tBox.appendChild(orow);
+  }
+
+  if(te.trigger==='watchBuffed'){
+    // Précision du bonus / malus : quel changement déclenche la capacité ?
+    const brow = document.createElement('div');
+    brow.className='ability-row';
+    brow.appendChild(tbSelect('Quel changement ?', TB_BUFF_KINDS.map(k=>({value:k.key, text:k.label})), te.buffKind||'statUp', v=>{ te.buffKind=v; rebuildAbilitiesUI(); onFormChange(); }));
+    if((te.buffKind||'statUp')==='keywordGain'){
+      brow.appendChild(tbSelect('Quel mot-clé ?', [{value:'any', text:'Peu importe'}, ...KEYWORDS.map(k=>({value:k.key, text:k.label}))], te.buffKeyword||'any', v=>{ te.buffKeyword=v; onFormChange(); }));
+    }
+    tBox.appendChild(brow);
   }
 
   if(te.trigger && te.trigger!=='activated' && te.trigger!=='manaAlternative'){
@@ -4927,6 +4946,11 @@ function buildAbilitySentence(cardType, ab){
           }
           if(parts.length) prefix += ` (${parts.join(', ')})`;
         }
+      }
+      if(te.trigger==='watchBuffed'){
+        const bk = TB_BUFF_KINDS.find(k=>k.key===(te.buffKind||'statUp')) || TB_BUFF_KINDS[0];
+        const kwTxt = (bk.key==='keywordGain' && te.buffKeyword && te.buffKeyword!=='any') ? ` « ${(KEYWORDS.find(k=>k.key===te.buffKeyword)||{}).label || te.buffKeyword} »` : '';
+        prefix = prefix.replace('reçoit un bonus ou un malus', bk.text + kwTxt);
       }
       if(te.trigger==='startOfTurnX') prefix = `Au début de votre tour ${te.triggerTurn||1}`;
       if(te.trigger==='endOfTurnX') prefix = `À la fin de votre tour ${te.triggerTurn||1}`;
