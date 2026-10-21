@@ -104,9 +104,11 @@
 
 #btn-matchmaking{padding:22px 14px;font-size:18px;}
 #btn-matchmaking .btn-sub{font-size:11.5px;}
-#btn-create-private{padding:16px 14px;font-size:15px;}
-#btn-create-private .btn-sub{font-size:10.5px;}
+#btn-tavern{padding:16px 14px;font-size:15px;}
+#btn-tavern .btn-sub{font-size:10.5px;}
 #btn-vs-ai{padding:14px 14px;font-size:14px;}
+#btn-create-private{padding:11px 14px;font-size:13px;}
+#btn-create-private .btn-sub{font-size:10.5px;}
 #btn-join{padding:11px 14px;font-size:13px;}
 #btn-spectate-list{padding:9px 14px;font-size:12px;color:var(--parchment-dim);}
 
@@ -197,12 +199,17 @@
           <span class="btn-sub">Trouve un adversaire au hasard</span>
         </button>
 
-        <button id="btn-create-private" class="sc-btn sc-btn-gold" disabled>
-          Créer une partie privée
-          <span class="btn-sub">Génère un code à partager</span>
+        <button id="btn-tavern" class="sc-btn sc-btn-gold">
+          🍺 Baston de taverne
+          <span class="btn-sub" id="btn-tavern-sub">Vendredi 18h–2h : deck sans héros, héros tiré au hasard</span>
         </button>
 
         <button id="btn-vs-ai" class="sc-btn" disabled>Affronter l'IA</button>
+
+        <button id="btn-create-private" class="sc-btn sc-btn-ghost" disabled>
+          Créer une partie privée
+          <span class="btn-sub">Génère un code à partager</span>
+        </button>
 
         <button id="btn-join" class="sc-btn sc-btn-ghost" disabled>Rejoindre une partie</button>
         <div id="join-inline">
@@ -278,6 +285,7 @@ async function initLobby(){
   LOADED_COLLECTION = await loadAllCardsAcrossSets();
   LOADED_DECKS = (await loadUserDecks()).filter(d => TAVERN ? d.taverne : !d.taverne);
   if(TAVERN) await setupTavernMode();
+  else setupTavernEntryButton();
 
   try{
     const { data: backs } = await sb.from('card_backs').select('id, image_url');
@@ -290,12 +298,20 @@ async function initLobby(){
   setupLastDeckButton();
 }
 
+function setupTavernEntryButton(){
+  const open = scTavernOpenNow();
+  document.getElementById('btn-tavern-sub').textContent = open
+    ? 'Ouverte ! Deck sans héros, héros tiré au hasard'
+    : '🔒 ' + SC_TAVERN_HOURS_LABEL + ' — construis déjà ton deck';
+  document.getElementById('btn-tavern').onclick = ()=>{ window.location.href = 'spellcraft-lobby.html?mode=taverne'; };
+}
+
 async function setupTavernMode(){
   document.getElementById('lobby-title').textContent = '🍺 Baston de taverne';
   document.getElementById('lobby-sub').textContent = 'Un deck sans héros : le héros est tiré au hasard à chaque partie.';
   document.getElementById('tavern-build-link').style.display = 'block';
   // Seule la recherche d'adversaire existe dans ce mode.
-  ['btn-create-private','btn-vs-ai','btn-join','btn-spectate-list'].forEach(id=>{ const el = document.getElementById(id); if(el) el.style.display = 'none'; });
+  ['btn-tavern','btn-create-private','btn-vs-ai','btn-join','btn-spectate-list'].forEach(id=>{ const el = document.getElementById(id); if(el) el.style.display = 'none'; });
   document.querySelector('#btn-matchmaking .btn-sub').textContent = 'Adversaire au hasard, héros tiré au sort';
   document.getElementById('no-decks-msg').innerHTML = 'Aucun deck de taverne — <a href="spellcraft-deckbuilder.html?mode=taverne">construis-en un</a> d\'abord (sans héros, 3 couleurs maximum).';
   let isTester = false;

@@ -3815,6 +3815,7 @@ function renderDiscoverChoiceModal(){
 // fonctionnelle) : le débordement, s'il y en a, se gère par un défilement
 // normal plutôt que par un rétrécissement silencieux de tout le plateau.
 
+let __tavernRewardChecked = false, __tavernRewardGiven = false; // Baston de taverne : booster offert pour le 1er match de la soirée
 let __gameOverSfxPlayed = false; // évite de relancer le jingle à chaque re-rendu tant que l'écran de fin reste affiché
 function renderGameOverOverlay(){
   const overlay = document.getElementById('overlay');
@@ -3858,8 +3859,21 @@ function renderGameOverOverlay(){
       </tbody>
     </table>
     ${sm.coinsEarned && sm.coinsEarned[MY_KEY] ? `<div class="summary-coins">🪙 ${sm.coinsEarned[MY_KEY]} pièces gagnées</div>` : ''}
+    ${__tavernRewardGiven ? `<div class="summary-coins">🎁 Premier match de la soirée : 1 « Booster + classique » offert (dans « Mes boosters »)</div>` : ''}
   `;
   overlay.classList.add('show');
+  if(S.mode==='taverne' && !__tavernRewardChecked){
+    __tavernRewardChecked = true;
+    (async()=>{
+      for(let essai=0; essai<3 && !__tavernRewardGiven; essai++){
+        try{
+          const { data } = await sb.from('tavern_rewards').select('booster_id').eq('session_id', GS_SESSION_ID).maybeSingle();
+          if(data){ __tavernRewardGiven = true; renderGameOverOverlay(); break; }
+        }catch(e){}
+        await new Promise(r=>setTimeout(r, 2500));
+      }
+    })();
+  }
 }
 
 // key = camp réel côté serveur (p1/p2) ; slot = 'p1' (moi) ou 'p2' (adversaire)
