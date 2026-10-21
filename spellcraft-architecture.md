@@ -323,3 +323,4 @@ Sur le cadre du héros, une 2e rangée s'affiche à côté des icônes de requin
 
 ### Indicateurs de héros : noir = inactif, blanc = actif
 Rascal (éclairs), Brick (loupe), Aurore (soleil) et Nowa (théière SVG `HERO_INDICATOR_TEAPOT`) affichent toujours leur icône : noire (classe `shark-black`) tant que la condition n'est pas remplie, blanche (`shark-white`) quand elle l'est. Les « + » et icônes de mots-clés des requins ne changent pas de couleur.
+La tortue (bouclier brisé SVG) suit la même règle : noir (`turtle-black`) par défaut, blanc (`turtle-white`) quand le passif est prêt ; la fissure est inversée pour rester visible.

@@ -891,6 +891,8 @@ body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out 
   .hero-ind-plus{font-family:'Cinzel',serif;font-weight:900;font-size:24px;line-height:1;color:#7be08a;text-shadow:0 0 3px #000,0 2px 3px #000;}
   .hero-indicator.shark-black{filter:brightness(0) drop-shadow(0 0 2px rgba(255,255,255,.55));}
   .hero-indicator.shark-white{filter:brightness(0) invert(1) drop-shadow(0 1px 3px rgba(0,0,0,.9));}
+  .hero-indicator.turtle-black{--ind-fill:#000;--ind-edge:rgba(255,255,255,.55);--ind-crack:#fff;}
+  .hero-indicator.turtle-white{--ind-fill:#fff;--ind-edge:#000;--ind-crack:#000;}
   .hero-indicator{font-size:34px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,.85));}
   .hero-indicator svg{width:38px;height:38px;display:block;}
   .hero-indicator.dim{opacity:.28;filter:grayscale(.7) drop-shadow(0 2px 3px rgba(0,0,0,.6));}
@@ -3889,7 +3891,7 @@ function renderManaBox(key, slot){
 // le héros a un pouvoir activable. Survoler affiche son aperçu complet.
 /* Repères visuels sur le cadre de certains héros. Données lues dans l'état de partie
    (compteurs de cartes jouées, effets « prochaine carte » en attente, tour actif, PV perdus). */
-const HERO_INDICATOR_BROKEN_SHIELD = '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3 L35 8 V20 C35 28 28 34 20 37 C12 34 5 28 5 20 V8 Z" fill="#b8c2cc" stroke="#39424b" stroke-width="2.5" stroke-linejoin="round"/><path d="M20 3 L23 14 L16 20 L22 27 L19 37" fill="none" stroke="#1b1f23" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+const HERO_INDICATOR_BROKEN_SHIELD = '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3 L35 8 V20 C35 28 28 34 20 37 C12 34 5 28 5 20 V8 Z" fill="var(--ind-fill)" stroke="var(--ind-edge)" stroke-width="2.5" stroke-linejoin="round"/><path d="M20 3 L23 14 L16 20 L22 27 L19 37" fill="none" stroke="var(--ind-crack)" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/></svg>';
 const HERO_INDICATOR_TEAPOT = '<svg viewBox="0 0 48 40" aria-hidden="true"><circle cx="22" cy="5" r="2.6" fill="#000"/><path d="M14 11 Q22 6 30 11 Z" fill="#000"/><ellipse cx="22" cy="23" rx="15" ry="12" fill="#000"/><rect x="12" y="33" width="20" height="4" rx="2" fill="#000"/><path d="M35 20 Q40 22 42 10 L46 8 Q46 24 36 29 Z" fill="#000"/><path d="M8 18 Q-1 16 2 28 Q4 31 8 29" fill="none" stroke="#000" stroke-width="3.4" stroke-linecap="round"/></svg>';
 const HERO_INDICATORS = {
   "nayenn'der": { kind:'sharks',    icon:'🦈', label:'Requins blancs = créatures jouées vers le prochain Squale affamé' },
@@ -3946,7 +3948,7 @@ function heroIndicatorsHtml(key, hero, slot){
     }
     if(cfg.kind==='turtle'){
       const oppKey = key==='p1' ? 'p2' : 'p1';
-      return __wrap((S.active===key && (S[oppKey].hpLostThisTurn||0) > 0) ? one('ready') : '');
+      return __wrap((S.active===key && (S[oppKey].hpLostThisTurn||0) > 0) ? one('turtle-white ready') : one('turtle-black'));
     }
   }catch(e){}
   return '';
