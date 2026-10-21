@@ -303,3 +303,9 @@ L'étape « Déclencheur » d'une capacité est un **constructeur pas à pas** (
 - Moteur : morceau 5 (`cibles_20261021.sql`). Client (`spellcraft-server-board.html`, `spellcraft-tutorial.html`) : exceptions + blessée + n'a pas attaqué ; rareté, région et comparaison à la source sont tranchés par le serveur.
 - « Même cible que A » : inutile, chaque effet choisit sa cible (`usesTarget`) et plusieurs effets peuvent partager la même.
 - Suggestions de cibles : celles liées au déclencheur passent en tête avec « ⭐ Suggérée ».
+
+## Évolutions : liste de changements (21/10/2026)
+- Une évolution = déclencheurs + `changes[]`. Chaque changement a un `kind` : `value` (nouvelle valeur d'un effet), `keyword` (mot-clé d'un effet « Octroi »), `duration` (permanent / ce tour-ci), `targetCount` (nombre de cibles d'une cible), `addEffect`, `replaceEffect` (`newEffect` = définition complète d'effet, éditée avec le même éditeur d'effet).
+- Anciennes évolutions (`targetEffectId` + `newValue*`) : converties à l'ouverture dans l'éditeur (`migrateEvolutionLegacy`) ; le moteur gère encore l'ancien format. Aucune carte en base n'utilise d'évolution à cette date.
+- Moteur (`evolutions_20261021.sql`, morceaux 5 et 6) : `__evoChanges`, `getEvolvedEffectsList`, `patchEvolvedEffect`, `patchEvolvedTarget` ; étapes cumulatives (l'étape N applique aussi 0…N-1). Une étape ne se déclenche qu'une fois, permanente.
+- Limite : le client ne connaît pas un nouveau nombre de cibles ; le serveur tranche.

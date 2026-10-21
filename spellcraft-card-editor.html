@@ -1197,9 +1197,17 @@ function blankTargetEntry(){
 function blankEvolution(){
   return {
     id: rowId(), triggers: [ blankTriggerEntry() ],
-    targetEffectId: null,
+    changes: [ blankEvolutionChange() ]
+  };
+}
+/* Un changement d'évolution : kind = value | keyword | duration | targetCount | addEffect | replaceEffect */
+function blankEvolutionChange(){
+  return {
+    id: rowId(), kind: 'value', effectId: null,
     newValueMode: 'fixed', newValueFixed: 0, newValueDynamic: 'thisAtk',
-    newValueMode2: 'fixed', newValueFixed2: 0, newValueDynamic2: 'thisAtk'
+    newValueMode2: 'fixed', newValueFixed2: 0, newValueDynamic2: 'thisAtk',
+    newKeyword: 'charge', newDuration: 'permanent',
+    targetId: null, newCount: 2, newEffect: null
   };
 }
 function blankAbility(){
@@ -2124,6 +2132,32 @@ function addEvolution(abilityId){
   ab.evolutions.push(blankEvolution());
   rebuildAbilitiesUI();
   onFormChange();
+}
+function addEvolutionChange(abilityId, evoId){
+  const ab = abilities.find(a=>a.id===abilityId);
+  const evo = ab && (ab.evolutions||[]).find(e=>e.id===evoId);
+  if(!evo) return;
+  if(!evo.changes) evo.changes = [];
+  evo.changes.push(blankEvolutionChange());
+  rebuildAbilitiesUI(); onFormChange();
+}
+function removeEvolutionChange(abilityId, evoId, changeId){
+  const ab = abilities.find(a=>a.id===abilityId);
+  const evo = ab && (ab.evolutions||[]).find(e=>e.id===evoId);
+  if(!evo) return;
+  evo.changes = (evo.changes||[]).filter(c=>c.id!==changeId);
+  rebuildAbilitiesUI(); onFormChange();
+}
+function migrateEvolutionLegacy(evo){
+  if(evo.changes) return;
+  evo.changes = [];
+  if(evo.targetEffectId){
+    const c = blankEvolutionChange();
+    c.kind='value'; c.effectId=evo.targetEffectId;
+    ['newValueMode','newValueFixed','newValueDynamic','newValueMode2','newValueFixed2','newValueDynamic2'].forEach(k=>{ if(evo[k]!==undefined) c[k]=evo[k]; });
+    evo.changes.push(c);
+    evo.targetEffectId = null;
+  } else evo.changes.push(blankEvolutionChange());
 }
 function removeEvolution(abilityId, evoId){
   const ab = abilities.find(a=>a.id===abilityId);
@@ -3154,32 +3188,95 @@ function rebuildAbilitiesUI(){
       addEvoTrigBtn.onclick = ()=>addEvolutionTrigger(ab.id, evo.id);
       evoStageBox.appendChild(addEvoTrigBtn);
 
-      // choix de l'effet à modifier + sa nouvelle valeur (fixe ou dynamique)
+      // Liste de changements apportés par cette évolution
+      migrateEvolutionLegacy(evo);
       const effOptions = (ab.effects||[]).map((eff, i)=>{
         const def = EFFECT_TYPES.find(e=>e.key===eff.effectType);
         return { key: eff.id, label: `Effet ${i+1}${def?` (${def.label})`:''}` };
       });
+      const chHead = document.createElement('div');
+      chHead.className='mini-field'; chHead.style.cssText='margin:8px 0 4px;font-weight:600;';
+      chHead.textContent = 'Alors, cette évolution change :';
+      evoStageBox.appendChild(chHead);
       if(effOptions.length===0){
         const warn = document.createElement('div');
         warn.className='field'; warn.style.marginTop='8px';
         warn.innerHTML = `<label class="mini-field" style="color:#c9a86a;">⚠ Ajoute d'abord un effet à la capacité ci-dessus.</label>`;
         evoStageBox.appendChild(warn);
       } else {
-        if(!evo.targetEffectId || !effOptions.some(o=>o.key===evo.targetEffectId)) evo.targetEffectId = effOptions[0].key;
-        const effRow = document.createElement('div');
-        effRow.className='ability-row'; effRow.style.marginTop='8px';
-        effRow.appendChild(makeSelectField('Effet à modifier', effOptions, evo.targetEffectId, v=>{ evo.targetEffectId=v; onFormChange(); }));
-        evoStageBox.appendChild(effRow);
-
-        const targetEff = (ab.effects||[]).find(e=>e.id===evo.targetEffectId);
-        const targetDef = targetEff ? EFFECT_TYPES.find(e=>e.key===targetEff.effectType) : null;
-        const valRow = document.createElement('div');
-        valRow.className='ability-row';
-        valRow.appendChild(buildValueField(evo, 'newValueMode', 'newValueFixed', 'newValueDynamic', targetDef && targetDef.key==='buff' ? 'Nouvelle valeur (Force)' : 'Nouvelle valeur', false, false));
-        if(targetDef && targetDef.key==='buff'){
-          valRow.appendChild(buildValueField(evo, 'newValueMode2', 'newValueFixed2', 'newValueDynamic2', 'Nouvelle valeur (Endurance)', false, false));
-        }
-        evoStageBox.appendChild(valRow);
+        evo.changes.forEach((ch, cIdx)=>{
+          const chBox = document.createElement('div');
+          chBox.className='ability-row'; chBox.style.cssText='border:1px solid var(--border,#444);border-radius:8px;padding:8px;margin-bottom:6px;align-items:flex-end;flex-wrap:wrap;';
+          chBox.appendChild(tbSelect(`Changement ${cIdx+1}`, [
+            {value:'value', text:"La valeur d'un effet (dégâts, soin, +Force/+Endurance…)"},
+            {value:'keyword', text:"Le mot-clé donné par un effet"},
+            {value:'duration', text:"La durée d'un effet de mot-clé (permanent / ce tour-ci)"},
+            {value:'targetCount', text:"Le nombre de cibles"},
+            {value:'addEffect', text:"Ajoute un effet"},
+            {value:'replaceEffect', text:"Remplace un effet par un autre"}
+          ], ch.kind, v=>{
+            ch.kind=v;
+            if((v==='addEffect'||v==='replaceEffect') && !ch.newEffect) ch.newEffect = blankEffect();
+            rebuildAbilitiesUI(); onFormChange();
+          }));
+          const needsEffectPick = ['value','keyword','duration','replaceEffect'].includes(ch.kind);
+          if(needsEffectPick){
+            let opts = effOptions;
+            if(ch.kind==='keyword') opts = (ab.effects||[]).map((eff,i)=>({eff,i})).filter(x=>x.eff.effectType==='grantKeyword').map(x=>({key:x.eff.id,label:`Effet ${x.i+1} (Octroi de mot-clé)`}));
+            if(ch.kind==='duration') opts = (ab.effects||[]).map((eff,i)=>({eff,i})).filter(x=>['grantKeyword','upgrade','copyKeyword'].includes(x.eff.effectType)).map(x=>({key:x.eff.id,label:`Effet ${x.i+1} (${(EFFECT_TYPES.find(e=>e.key===x.eff.effectType)||{}).label||x.eff.effectType})`}));
+            if(opts.length===0){
+              const w = document.createElement('div'); w.className='hint';
+              w.textContent = ch.kind==='keyword' ? "Aucun effet « Donner un mot-clé précis » dans cette capacité." : "Aucun effet de mot-clé dans cette capacité.";
+              chBox.appendChild(w);
+            } else {
+              if(!ch.effectId || !opts.some(o=>o.key===ch.effectId)) ch.effectId = opts[0].key;
+              chBox.appendChild(tbSelect('Effet concerné', opts.map(o=>({value:o.key,text:o.label})), ch.effectId, v=>{ ch.effectId=v; rebuildAbilitiesUI(); onFormChange(); }));
+            }
+          }
+          if(ch.kind==='value'){
+            const targetEff = (ab.effects||[]).find(e=>e.id===ch.effectId);
+            const targetDef = targetEff ? EFFECT_TYPES.find(e=>e.key===targetEff.effectType) : null;
+            chBox.appendChild(buildValueField(ch, 'newValueMode', 'newValueFixed', 'newValueDynamic', targetDef && targetDef.key==='buff' ? 'Nouvelle valeur (Force)' : 'Nouvelle valeur', false, false));
+            if(targetDef && targetDef.key==='buff') chBox.appendChild(buildValueField(ch, 'newValueMode2', 'newValueFixed2', 'newValueDynamic2', 'Nouvelle valeur (Endurance)', false, false));
+          }
+          if(ch.kind==='keyword'){
+            chBox.appendChild(tbSelect('Nouveau mot-clé', KEYWORDS.map(k=>({value:k.key,text:k.label})), ch.newKeyword||'charge', v=>{ ch.newKeyword=v; onFormChange(); }));
+          }
+          if(ch.kind==='duration'){
+            chBox.appendChild(tbSelect('Nouvelle durée', [{value:'permanent',text:'Permanent'},{value:'thisTurn',text:'Ce tour-ci seulement'}], ch.newDuration||'permanent', v=>{ ch.newDuration=v; onFormChange(); }));
+          }
+          if(ch.kind==='targetCount'){
+            const tg = ab.targets||[];
+            if(tg.length===0){
+              const w = document.createElement('div'); w.className='hint'; w.textContent="Aucune cible définie dans l'étape « Cibles »."; chBox.appendChild(w);
+            } else {
+              if(!ch.targetId || !tg.some(t=>t.id===ch.targetId)) ch.targetId = tg[0].id;
+              chBox.appendChild(tbSelect('Cible concernée', tg.map((t,i)=>({value:t.id,text:`Cible ${String.fromCharCode(65+i)}`})), ch.targetId, v=>{ ch.targetId=v; onFormChange(); }));
+              const nf = document.createElement('div'); nf.className='field'; nf.innerHTML='<label class="mini-field">Nouveau nombre de cibles</label>';
+              const ni = document.createElement('input'); ni.type='number'; ni.min=1; ni.max=8; ni.value=ch.newCount||2;
+              ni.oninput=()=>{ ch.newCount=Math.max(1,parseInt(ni.value)||1); onFormChange(); };
+              nf.appendChild(ni); chBox.appendChild(nf);
+            }
+          }
+          if((ch.kind==='addEffect' || ch.kind==='replaceEffect') && ch.newEffect){
+            const wrapE = document.createElement('div');
+            wrapE.style.cssText='flex-basis:100%;';
+            const lab = document.createElement('div'); lab.className='mini-field';
+            lab.textContent = ch.kind==='addEffect' ? 'Effet ajouté :' : 'Nouvel effet (à la place de celui choisi) :';
+            wrapE.appendChild(lab);
+            wrapE.appendChild(buildEffectRow(ab, ch.newEffect, null));
+            chBox.appendChild(wrapE);
+          }
+          const rmCh = document.createElement('button');
+          rmCh.className='mini-btn'; rmCh.textContent='✕'; rmCh.title='Retirer ce changement';
+          rmCh.onclick=()=>removeEvolutionChange(ab.id, evo.id, ch.id);
+          chBox.appendChild(rmCh);
+          evoStageBox.appendChild(chBox);
+        });
+        const addChBtn = document.createElement('button');
+        addChBtn.className='add-row-btn'; addChBtn.textContent='+ Ajouter un changement';
+        addChBtn.onclick=()=>addEvolutionChange(ab.id, evo.id);
+        evoStageBox.appendChild(addChBtn);
       }
 
       const rmEvoBtn = document.createElement('button');
@@ -4893,20 +4990,31 @@ function buildAbilitySentence(cardType, ab){
       if(te.trigger==='usedXTimes') return `après ${te.useCount||3} utilisations de cette capacité`;
       return TRIGGER_TEXT[te.trigger]||'?';
     }).join(' ou ');
-    const targetEff = (ab.effects||[]).find(e=>e.id===evo.targetEffectId);
-    const targetDef = targetEff ? EFFECT_TYPES.find(e=>e.key===targetEff.effectType) : null;
-    let changeDesc = '?';
-    if(targetEff && targetDef){
-      const oldVal = valuePhrase(targetEff, targetEff.valueMode, targetEff.valueFixed, 'valueDynamic');
-      const newVal = valuePhrase(evo, evo.newValueMode, evo.newValueFixed, 'newValueDynamic');
-      if(targetDef.key==='buff'){
-        const oldVal2 = valuePhrase(targetEff, targetEff.valueMode2, targetEff.valueFixed2, 'valueDynamic2');
-        const newVal2 = valuePhrase(evo, evo.newValueMode2, evo.newValueFixed2, 'newValueDynamic2');
-        changeDesc = `${targetDef.label} devient +${newVal}/+${newVal2} (au lieu de +${oldVal}/+${oldVal2})`;
-      } else {
-        changeDesc = `${targetDef.label} devient ${newVal} (au lieu de ${oldVal})`;
+    migrateEvolutionLegacy(evo);
+    const effIdx = (id)=> (ab.effects||[]).findIndex(e=>e.id===id);
+    const parts = (evo.changes||[]).map(ch=>{
+      const targetEff = (ab.effects||[]).find(e=>e.id===ch.effectId);
+      const targetDef = targetEff ? EFFECT_TYPES.find(e=>e.key===targetEff.effectType) : null;
+      switch(ch.kind){
+        case 'keyword': { const kw=KEYWORDS.find(k=>k.key===ch.newKeyword); return `le mot-clé donné devient ${kw?kw.label:'?'}`; }
+        case 'duration': return ch.newDuration==='thisTurn' ? "l'effet de mot-clé ne dure plus que ce tour-ci" : "l'effet de mot-clé devient permanent";
+        case 'targetCount': { const ti=(ab.targets||[]).findIndex(t=>t.id===ch.targetId); return ti>=0 ? `la cible ${String.fromCharCode(65+ti)} passe à ${ch.newCount||2} cible(s)` : '?'; }
+        case 'addEffect': return ch.newEffect ? `ajoute : ${buildEffectClause(ch.newEffect, ab)||'?'}` : '?';
+        case 'replaceEffect': { const n=effIdx(ch.effectId); return ch.newEffect ? `l'effet ${n>=0?n+1:'?'} est remplacé par : ${buildEffectClause(ch.newEffect, ab)||'?'}` : '?'; }
+        default: {
+          if(!(targetEff && targetDef)) return '?';
+          const oldVal = valuePhrase(targetEff, targetEff.valueMode, targetEff.valueFixed, 'valueDynamic');
+          const newVal = valuePhrase(ch, ch.newValueMode, ch.newValueFixed, 'newValueDynamic');
+          if(targetDef.key==='buff'){
+            const oldVal2 = valuePhrase(targetEff, targetEff.valueMode2, targetEff.valueFixed2, 'valueDynamic2');
+            const newVal2 = valuePhrase(ch, ch.newValueMode2, ch.newValueFixed2, 'newValueDynamic2');
+            return `${targetDef.label} devient +${newVal}/+${newVal2} (au lieu de +${oldVal}/+${oldVal2})`;
+          }
+          return `${targetDef.label} devient ${newVal} (au lieu de ${oldVal})`;
+        }
       }
-    }
+    });
+    const changeDesc = parts.length ? parts.join(' ; ') : '?';
     sentence += ` Évolution (${trigDesc}) : ${changeDesc}.`;
   });
   return sentence;
