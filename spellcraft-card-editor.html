@@ -5080,10 +5080,11 @@ function buildCardText(){
     }
   }
   if(keywords.length){
+    // Texte de la carte : seulement le nom des mots-clés (l'explication s'affiche au survol / dans le grimoire)
     parts.push(keywords.map(k=>{
       const kw = KEYWORDS.find(x=>x.key===k);
-      return kw ? `${kw.label} (${kw.desc.charAt(0).toLowerCase()+kw.desc.slice(1).replace(/\.$/,'')}).` : '';
-    }).filter(Boolean).join(' '));
+      return kw ? kw.label : '';
+    }).filter(Boolean).join(', '));
   }
   abilities.forEach(ab=>{
     const s = buildAbilitySentence(currentType, ab);
