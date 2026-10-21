@@ -811,7 +811,7 @@ header .spacer{flex:1;}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="spellcraft-shared.js?v=20261020c"></script>
+<script src="spellcraft-shared.js?v=20261021a"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>
 <script src="spellcraft-atelier-nav.js"></script>
@@ -963,8 +963,9 @@ const EFFECT_TYPES = [
   {key:'destroy', label:'Destruction', needsTarget:true, needsValue:false},
   {key:'removeArtifactCharges', label:"Retire des utilisations d'un artefact", needsTarget:true, needsValue:true},
   {key:'silence', label:'Retire les capacités et/ou les bonus de stats', needsTarget:true, needsValue:false, isSilence:true},
-  {key:'upgrade', label:'Amélioration (mot-clé aléatoire)', needsTarget:true, needsValue:false},
+  {key:'upgrade', label:'Amélioration (mot-clé aléatoire)', needsTarget:true, needsValue:false, isUpgrade:true},
   {key:'grantKeyword', label:'Octroi de mot-clé précis', needsTarget:true, needsValue:false, isGrantKeyword:true},
+  {key:'copyKeyword', label:"Copie un mot-clé d'une autre créature sur la cible", needsTarget:true, needsValue:false, isCopyKeyword:true},
   {key:'keywordChoice', label:'Choix parmi 3 mots-clés', needsTarget:true, needsValue:false},
   {key:'summonCopy', label:'Invoquer des copies de cette carte', needsTarget:false, needsValue:true},
   {key:'fight', label:'Combat forcé (première cible contre seconde cible)', needsTarget:true, needsValue:false, isFight:true},
@@ -1079,9 +1080,11 @@ const SELECTION_MODES = [
 const DYNAMIC_VALUES = [
   {key:'thisAtk', label:'= la Force de cette créature'},
   {key:'thisHp', label:"= l'Endurance de cette créature"},
+  {key:'thisKeywordCount', label:'= le nombre de mots-clés de cette créature'},
   {key:'targetAtk', label:'= la Force de la cible'},
   {key:'targetHp', label:"= l'Endurance de la cible"},
   {key:'targetCost', label:'= le coût de la cible'},
+  {key:'targetKeywordCount', label:'= le nombre de mots-clés de la cible'},
   {key:'targetCharges', label:"= l'utilisation (charges) de la cible"},
   {key:'enemyManaCurrent', label:"= mana actuellement disponible de l'adversaire"},
   {key:'attackersCount', label:'= nombre de créatures actuellement attaquantes'},
@@ -1148,7 +1151,7 @@ function blankTriggerEntry(){
     id: rowId(), trigger: null, triggerSubtype: '', triggerOwner: 'ally', triggerTurn: 1,
     activationCost: 2, activationCooldown: 0,
     extraCostEnabled: false, extraCostType: 'sacrificeCreature', extraCostAmount: 1, extraCostCustom: '',
-    useCount: 3, replacesManaGain: false,
+    useCount: 3, replacesManaGain: false, oncePerTurn: false,
     playedCardTypeFilter: 'any', playedCardTypeCount: 1,
     playedCardTypeMatchFilter: 'any', playedCardTypeMatchCount: 3, playedCardTypeMatchReset: false,
     hpLostLastTurnOwner: 'self', hpLostLastTurnCompare: 'atLeast', hpLostLastTurnValue: 5,
@@ -1219,6 +1222,8 @@ function blankEffect(){
     reduceCostScope:'hand', reduceCostOwner:'ally', reduceCostType:'any', reduceCostSubtype:'', reduceCostAmount:1,
     nextDiscountType:'Sortilège',
     grantKeywordKey:'charge', grantKeywordDuration:'permanent',
+    copyKeywordDonorOwner:'ally', copyKeywordMode:'random', copyKeywordDuration:'permanent',
+    upgradeCount:1, upgradeDuration:'permanent',
     fightAllySelection:'chosen', fightEnemySelection:'chosen',
     coinFlipTargetCategory:'creature', coinFlipTargetOwner:'enemy', coinFlipSelectionMode:'all',
     coinFlipSuccessEffect:'destroy', coinFlipSuccessValue:2,
@@ -2140,6 +2145,14 @@ function buildTriggerEntryBox(te, tIdx, totalCount, availableTriggers, onRemove)
     osel.onchange = ()=>{ te.triggerOwner=osel.value; onFormChange(); };
     orow.querySelector('.field').appendChild(osel);
     tBox.appendChild(orow);
+  }
+
+  if(te.trigger && te.trigger!=='activated' && te.trigger!=='manaAlternative'){
+    const orow2 = document.createElement('div');
+    orow2.className='ability-row';
+    orow2.innerHTML = `<div class="field"><label class="mini-field" style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="trigopt-${te.id}" style="width:auto;" ${te.oncePerTurn?'checked':''}> Une seule fois par tour (ignore les déclenchements suivants du même tour)</label></div>`;
+    orow2.querySelector(`#trigopt-${te.id}`).onchange = (e)=>{ te.oncePerTurn=e.target.checked; onFormChange(); };
+    tBox.appendChild(orow2);
   }
 
   if(te.trigger==='startOfTurnX' || te.trigger==='endOfTurnX'){
@@ -3203,6 +3216,19 @@ function buildEffectRow(ab, eff, choiceKey){
     row.appendChild(makeSelectField('Durée', [{key:'permanent',label:'Permanent'},{key:'thisTurn',label:'Ce tour-ci seulement'}], eff.grantKeywordDuration, v=>{ eff.grantKeywordDuration=v; onFormChange(); }));
   }
 
+  if(def.isCopyKeyword){
+    row.appendChild(makeSelectField('Copier depuis', [{key:'ally',label:'Une autre créature alliée'},{key:'enemy',label:'Une créature ennemie'},{key:'any',label:'Une autre créature (alliée ou ennemie)'}], eff.copyKeywordDonorOwner||'ally', v=>{ eff.copyKeywordDonorOwner=v; onFormChange(); }));
+    row.appendChild(makeSelectField('Quoi copier', [{key:'random',label:'Un mot-clé au hasard'},{key:'all',label:'Tous ses mots-clés'}], eff.copyKeywordMode||'random', v=>{ eff.copyKeywordMode=v; onFormChange(); }));
+    row.appendChild(makeSelectField('Durée', [{key:'permanent',label:'Permanent'},{key:'thisTurn',label:'Ce tour-ci seulement'}], eff.copyKeywordDuration||'permanent', v=>{ eff.copyKeywordDuration=v; onFormChange(); }));
+  }
+
+  if(def.isUpgrade){
+    const nF = document.createElement('div'); nF.className='field'; nF.innerHTML=`<label class="mini-field">Nombre de mots-clés</label>`;
+    const nI = document.createElement('input'); nI.type='number'; nI.min=1; nI.max=6; nI.value=eff.upgradeCount||1;
+    nI.oninput=()=>{ eff.upgradeCount=Math.max(1,parseInt(nI.value)||1); onFormChange(); }; nF.appendChild(nI); row.appendChild(nF);
+    row.appendChild(makeSelectField('Durée', [{key:'permanent',label:'Permanent'},{key:'thisTurn',label:'Ce tour-ci seulement'}], eff.upgradeDuration||'permanent', v=>{ eff.upgradeDuration=v; onFormChange(); }));
+  }
+
   if(def.isCoinFlip){
     const buildOutcomeField = (side, label)=>{
       const wrap = document.createElement('div');
@@ -3989,6 +4015,12 @@ function buildEffectClause(eff, ab){
       const durLabel = eff.grantKeywordDuration==='thisTurn' ? ' ce tour-ci' : '';
       return `${targetPhrase(resolvedTarget)} obtient ${kw?kw.label:'?'}${durLabel}`;
     }
+    case 'copyKeyword': {
+      const what = eff.copyKeywordMode==='all' ? 'tous les mots-clés' : 'un mot-clé au hasard';
+      const durC = eff.copyKeywordDuration==='thisTurn' ? ' ce tour-ci' : '';
+      const donorDe = {ally:"d'une autre créature alliée", enemy:"d'une créature ennemie", any:"d'une autre créature"}[eff.copyKeywordDonorOwner||'ally'];
+      return `${targetPhrase(resolvedTarget)} copie${durC} ${what} ${donorDe}`;
+    }
     case 'keywordChoice':
       return `révélez 3 mots-clés au hasard : ${targetPhrase(resolvedTarget)} obtient celui que vous choisissez`;
     case 'summonCopy': {
@@ -4125,8 +4157,11 @@ function buildEffectClause(eff, ab){
       const isNum = eff.valueMode==='fixed';
       return `explorez ${val} ${isNum ? plural(eff.valueFixed,'carte','cartes') : 'cartes'} ${ownerLabel} (envoyées dans la défausse)`;
     }
-    case 'upgrade':
-      return `donnez un mot-clé aléatoire à ${targetPhrase(resolvedTarget)}`;
+    case 'upgrade': {
+      const n = Math.max(1, eff.upgradeCount||1);
+      const durU = eff.upgradeDuration==='thisTurn' ? ' ce tour-ci' : '';
+      return n>1 ? `donnez ${n} mots-clés aléatoires${durU} à ${targetPhrase(resolvedTarget)}` : `donnez un mot-clé aléatoire${durU} à ${targetPhrase(resolvedTarget)}`;
+    }
     case 'retrieve':
       return retrieveClause(eff);
     case 'discover':
@@ -4467,6 +4502,7 @@ function buildAbilitySentence(cardType, ab){
         }
         if(currentType!=='Artefact' && te.activationCooldown>0) prefix += ` (rechargement : ${te.activationCooldown} tour${te.activationCooldown>1?'s':''})`;
       }
+      if(te.oncePerTurn && te.trigger!=='activated') prefix += ' (une fois par tour)';
       return prefix;
     };
     const triggerEntries = ab.triggers && ab.triggers.length ? ab.triggers : [{trigger:null}];

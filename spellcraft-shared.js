@@ -146,6 +146,11 @@ function migrateCard(c){
       if(eff.nextDiscountType===undefined) eff.nextDiscountType='Sortilège';
       if(eff.grantKeywordKey===undefined) eff.grantKeywordKey='charge';
       if(eff.grantKeywordDuration===undefined) eff.grantKeywordDuration='permanent';
+      if(eff.copyKeywordDonorOwner===undefined) eff.copyKeywordDonorOwner='ally';
+      if(eff.copyKeywordMode===undefined) eff.copyKeywordMode='random';
+      if(eff.copyKeywordDuration===undefined) eff.copyKeywordDuration='permanent';
+      if(eff.upgradeCount===undefined) eff.upgradeCount=1;
+      if(eff.upgradeDuration===undefined) eff.upgradeDuration='permanent';
       if(eff.fightAllySelection===undefined) eff.fightAllySelection='chosen';
       if(eff.fightEnemySelection===undefined) eff.fightEnemySelection='chosen';
       if(eff.coinFlipTargetCategory===undefined) eff.coinFlipTargetCategory='creature';

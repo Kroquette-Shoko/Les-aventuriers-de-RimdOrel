@@ -266,3 +266,12 @@ Ne jamais utiliser `alert()` / `confirm()` / `prompt()` natifs : les navigateurs
 - Un clic sur Héros / Région / Dos ouvre la page correspondante du classeur (`openDeckHeroPage`, `openDeckRegionPage`, `openDeckBackPage`) ; « Voir les cartes » → `openDeckCardsPage`. Plus de bandeau d'étape (`#wizard-hint` supprimé).
 - Avec un deck ouvert, la page des dos choisit le dos du deck (`currentDeck.cardBackId`, `null` = dos de base) au lieu d'équiper. Le lobby utilise le dos de base si le deck n'en a pas choisi.
 - Sauvegarde : héros ET région obligatoires (message centré via `scAlert`) ; si le nom n'a pas été modifié, `scPrompt` demande le nom (re-validation).
+
+## Éditeur de cartes : options ajoutées pour les archétypes (octobre 2026)
+
+Ces options existent dans l'éditeur (`spellcraft-card-editor.html`), dans `migrateCard` (valeurs par défaut) et dans le moteur (`game-action`, script `editeur_nouvelles_capacites_20261021.sql`) :
+
+- **Valeurs dynamiques** `thisKeywordCount` / `targetKeywordCount` : nombre de mots-clés de cette créature / de la cible. Utilisables dans un bonus de Force/Endurance, y compris en capacité continue (aura recalculée en permanence).
+- **Effet `copyKeyword`** : la cible copie un mot-clé (au hasard) ou tous les mots-clés d'une autre créature (alliée, ennemie ou les deux), de façon permanente ou « ce tour-ci ». Champs : `copyKeywordDonorOwner`, `copyKeywordMode`, `copyKeywordDuration`. Non pris en charge en capacité continue.
+- **Effet `upgrade`** (amélioration aléatoire) : champs `upgradeCount` (1 à 6) et `upgradeDuration` (permanent / thisTurn).
+- **Déclencheur** : case `oncePerTurn` (« une seule fois par tour »). Le moteur mémorise le tour du dernier déclenchement sur la carte (`__oncePerTurn[id de la capacité]`) après vérification des conditions.
