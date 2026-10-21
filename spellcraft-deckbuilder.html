@@ -428,7 +428,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
   background:linear-gradient(to right, var(--class-color, var(--gold)) 50%, var(--class-color-2, var(--class-color, var(--gold))) 50%);}
 .hp-name-row{display:flex;align-items:center;gap:8px;}
 .hp-name{font-family:'Cinzel',serif;font-size:24px;font-weight:700;color:var(--parchment);}
-.hp-class-dot{width:13px;height:13px;border-radius:50%;background:var(--class-color, var(--gold));box-shadow:0 0 6px var(--class-color, var(--gold));flex-shrink:0;}
+.hp-class-dot{width:13px;height:13px;border-radius:50%;background:linear-gradient(to right, var(--class-color, var(--gold)) 50%, var(--class-color-2, var(--class-color, var(--gold))) 50%);box-shadow:0 0 6px var(--class-color, var(--gold));flex-shrink:0;}
 .hp-class-label{font-size:15px;color:var(--parchment-dim);margin-top:2px;}
 .hp-profile-block{margin-top:8px;}
 .hp-profile-title{font-family:'Cinzel',serif;font-size:14px;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:2px;}
@@ -1828,7 +1828,7 @@ function fillHeroProfileContent(box, card){
     <div class="hp-portrait" style="${portraitStyle}"></div>
     <div>
       <div class="hp-name-row"><span class="hp-class-dot"></span><span class="hp-name">${escapeHtml(card.name||'')}</span></div>
-      <div class="hp-class-label">${escapeHtml(card.class||'')}</div>
+      <div class="hp-class-label">${escapeHtml([card.class, card.classSecondary].filter(Boolean).join(' / '))}</div>
     </div>
   `;
   box.appendChild(header);
@@ -2518,7 +2518,7 @@ function classRefusalMessage(card, hero){
     const chosen = deckChosenSecondSource(currentDeck, hero);
     if(chosen) return `${card.name} (${card.class}${card.classSecondary?'/'+card.classSecondary:''}) refusée : ton deck est verrouillé sur ${[hero.class, hero.classSecondary].filter(Boolean).join('/')} + ${chosen} (seconde source choisie). Retire les cartes ${chosen} pour changer.`;
   }
-  return `${card.name} (${card.class}${card.classSecondary?'/'+card.classSecondary:''}) n'est pas autorisée avec ${hero.name} (${hero.class}).`;
+  return `${card.name} (${card.class}${card.classSecondary?'/'+card.classSecondary:''}) n'est pas autorisée avec ${hero.name} (${[hero.class, hero.classSecondary].filter(Boolean).join('/')}).`;
 }
 
 function onCardClick(card){
@@ -3217,7 +3217,7 @@ function renderDeckPanel(){
     const __cols = [...tavernDeckColors(currentDeck)];
     __tvb.innerHTML = `🍺 <b>Baston de taverne</b> — pas de héros : il sera tiré au hasard à chaque partie.<br>Couleurs : <b>${__cols.length} / ${SC_TAVERN_MAX_COLORS}</b>${__cols.length ? ' (' + __cols.map(escapeHtml).join(', ') + ')' : ''}`;
   } else if(__tvb){ __tvb.remove(); }
-  pick('hero-slot', 'Héros', heroCard ? `${escapeHtml(heroCard.name)} · ${escapeHtml(heroCard.class)}` : 'À choisir', !heroCard, view==='heroes');
+  pick('hero-slot', 'Héros', heroCard ? `${escapeHtml(heroCard.name)} · ${escapeHtml([heroCard.class, heroCard.classSecondary].filter(Boolean).join(' / '))}` : 'À choisir', !heroCard, view==='heroes');
   const chosenRegion = currentDeck.regionId ? (cardById(currentDeck.regionId) || allCardsCache.find(c=>c.id===currentDeck.regionId)) : null;
   const regionOk = !!chosenRegion && isRegionValidForHero(chosenRegion, heroCard);
   pick('region-slot', 'Région', regionOk ? escapeHtml(chosenRegion.name) : 'À choisir', !regionOk, view==='region');
