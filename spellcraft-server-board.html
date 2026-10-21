@@ -873,6 +873,10 @@ body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out 
   .hero-portrait-big:hover{border-color:#fff;}
   /* Repères visuels de héros (compteurs, effets en attente, tour de jeu) */
   .hero-indicators{position:absolute;left:-14px;bottom:-14px;display:flex;gap:1px;align-items:center;z-index:3;pointer-events:none;max-width:200px;}
+  /* Cadre adverse : en bas à gauche. Cadre du joueur : en haut à droite. */
+  #hero-frame-p1 .hero-indicators{left:auto;bottom:auto;right:-14px;top:-14px;}
+  .hero-indicator.shark-black{filter:brightness(0) drop-shadow(0 0 2px rgba(255,255,255,.55));}
+  .hero-indicator.shark-white{filter:brightness(0) invert(1) drop-shadow(0 1px 3px rgba(0,0,0,.9));}
   .hero-indicator{font-size:34px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,.85));}
   .hero-indicator svg{width:38px;height:38px;display:block;}
   .hero-indicator.dim{opacity:.28;filter:grayscale(.7) drop-shadow(0 2px 3px rgba(0,0,0,.6));}
@@ -3885,10 +3889,10 @@ function renderManaBox(key, slot){
    (compteurs de cartes jouées, effets « prochaine carte » en attente, tour actif, PV perdus). */
 const HERO_INDICATOR_BROKEN_SHIELD = '<svg viewBox="0 0 40 40" aria-hidden="true"><path d="M20 3 L35 8 V20 C35 28 28 34 20 37 C12 34 5 28 5 20 V8 Z" fill="#b8c2cc" stroke="#39424b" stroke-width="2.5" stroke-linejoin="round"/><path d="M20 3 L23 14 L16 20 L22 27 L19 37" fill="none" stroke="#1b1f23" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/></svg>';
 const HERO_INDICATORS = {
-  "nayenn'der": { kind:'remaining', icon:'🦈', label:'créature(s) à jouer avant le prochain Squale' },
+  "nayenn'der": { kind:'sharks',    icon:'🦈', label:'Requins blancs = créatures jouées vers le prochain Squale affamé' },
   "rascal":     { kind:'progress',  icon:'⚡', label:'sortilège(s) joué(s) vers le prochain effet' },
-  "brick":      { kind:'pending',   icon:'🔁', label:'Mot-clé en attente : votre prochaine créature jouée l\'obtiendra' },
-  "aurore":     { kind:'pending',   icon:'🔥', label:'Prête : la prochaine créature alliée jouée gagnera +1/+1' },
+  "brick":      { kind:'pending',   icon:'🔍', label:'Mot-clé en attente : votre prochaine créature jouée l\'obtiendra' },
+  "aurore":     { kind:'pending',   icon:'☀️', label:'Prête : la prochaine créature alliée jouée gagnera +1/+1' },
   "nowa":       { kind:'myTurn',    icon:'🍵', label:'C\'est votre tour : vos capacités « Final » sont doublées' },
   "la tortue":  { kind:'turtle',    icon:HERO_INDICATOR_BROKEN_SHIELD, svg:true, label:'Passif prêt : vos créatures arrivent avec +1/+0 supplémentaire' }
 };
@@ -3900,7 +3904,7 @@ function heroIndicatorsHtml(key, hero){
     if(!cfg) return '';
     const esc = (t)=>String(t).replace(/"/g,'&quot;');
     const one = (cls)=>`<span class="hero-indicator ${cls||''}" title="${esc(cfg.label)}">${cfg.icon}</span>`;
-    if(cfg.kind==='remaining' || cfg.kind==='progress'){
+    if(cfg.kind==='sharks' || cfg.kind==='progress'){
       const te = ((hero.abilities||[]).flatMap(a=>a.triggers||[])).find(t=>t.trigger==='playedCardTypeCountMatch');
       if(!te) return '';
       const filter = te.playedCardTypeMatchFilter || 'any';
@@ -3908,9 +3912,8 @@ function heroIndicatorsHtml(key, hero){
       const counts = p.matchCardsPlayedByType || {};
       const total = filter==='any' ? Object.values(counts).reduce((a,n)=>a+(n||0),0) : (counts[filter]||0);
       const done = te.playedCardTypeMatchReset ? (total % threshold) : Math.min(total, threshold);
-      if(cfg.kind==='remaining'){
-        const left = te.playedCardTypeMatchReset ? threshold - done : Math.max(0, threshold - total);
-        return Array.from({length:left}, ()=>one('')).join('');
+      if(cfg.kind==='sharks'){
+        return Array.from({length:threshold}, (_, i)=>one(i<done ? 'shark-white' : 'shark-black')).join('');
       }
       return Array.from({length:threshold}, (_, i)=>one(i<done ? '' : 'dim')).join('');
     }
