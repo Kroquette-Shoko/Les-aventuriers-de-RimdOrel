@@ -1084,6 +1084,7 @@ const TARGET_OWNERS = [
   {key:'self', label:'Cette carte'},
   {key:'trigger', label:'La carte qui déclenche (source du trigger)'},
   {key:'fight_opponent', label:"La créature qu'elle va affronter (avec le déclencheur \"Avant qu'une créature alliée ne combatte\")"},
+  {key:'combat_attacker', label:"La créature attaquante (avec les déclencheurs « a bloqué » ou « est blessée » pendant un combat)"},
   {key:'last_drawn_by_ability', label:"La dernière carte piochée par cette capacité (avec un effet \"pioche\" précédent)"},
   {key:'ally', label:'Alliée / vous'},
   {key:'enemy', label:'Ennemie / adversaire'},
@@ -1895,17 +1896,18 @@ function buildTargetsSectionUI(ab, targetsArray, choiceKey, heading){
     trow.innerHTML = `<div class="field"><label class="mini-field">Cible ${choiceKey ? choiceKey+' supp. ' : ''}${String.fromCharCode(65+tIdx)}</label></div>`;
 
     // Constructeur en 4 temps : 1. Quoi ? → 2. Parmi quoi / catégorie / façon de choisir → 3. Combien ? → 4. Filtres
-    const REF_OWNERS = ['self','trigger','fight_opponent','last_drawn_by_ability'];
+    const REF_OWNERS = ['self','trigger','fight_opponent','combat_attacker','last_drawn_by_ability'];
     const isRefTarget = REF_OWNERS.includes(tgt.targetOwner);
     trow.appendChild(tbSelect('1. Quoi ?', [
       {value:'self', text:'Cette carte'},
       {value:'trigger', text:'La carte qui déclenche'},
       {value:'fight_opponent', text:"Son adversaire au combat"},
+      {value:'combat_attacker', text:'La créature attaquante (en combat)'},
       {value:'last_drawn_by_ability', text:'La dernière carte piochée par cette capacité'},
       {value:'pick', text:'Une ou plusieurs cartes à choisir parmi…'}
     ], isRefTarget ? tgt.targetOwner : 'pick', v=>{
       if(v==='pick'){ if(REF_OWNERS.includes(tgt.targetOwner)) tgt.targetOwner='enemy'; }
-      else { tgt.targetOwner=v; if(v==='last_drawn_by_ability') tgt.targetCategory='card_in_hand'; else if(tgt.targetCategory==='card_in_hand'&&v!=='last_drawn_by_ability') tgt.targetCategory='creature'; }
+      else { tgt.targetOwner=v; if(v==='combat_attacker') tgt.targetCategory='creature'; if(v==='last_drawn_by_ability') tgt.targetCategory='card_in_hand'; else if(tgt.targetCategory==='card_in_hand'&&v!=='last_drawn_by_ability') tgt.targetCategory='creature'; }
       rebuildAbilitiesUI(); onFormChange();
     }));
     if(!isRefTarget){
@@ -1916,7 +1918,7 @@ function buildTargetsSectionUI(ab, targetsArray, choiceKey, heading){
         {value:'random', text:'Au hasard (un camp tiré une fois)'}
       ], tgt.targetOwner, v=>{ tgt.targetOwner=v; onFormChange(); }));
     }
-    if(tgt.targetOwner!=='fight_opponent' && tgt.targetOwner!=='last_drawn_by_ability'){
+    if(tgt.targetOwner!=='fight_opponent' && tgt.targetOwner!=='combat_attacker' && tgt.targetOwner!=='last_drawn_by_ability'){
       trow.appendChild(makeSelectField(isRefTarget ? 'Type de carte visée' : '2. Catégorie', TARGET_CATEGORIES, tgt.targetCategory, v=>{ tgt.targetCategory=v; rebuildAbilitiesUI(); onFormChange(); }));
     }
     if(!isRefTarget){
@@ -2708,6 +2710,8 @@ function suggestTargets(ab){
     add(BADGE+'La carte qui a déclenché la capacité', {targetOwner:'trigger', targetCategory:'creature'});
   if(trigs.includes('beforeAllyFights'))
     add(BADGE+'La créature qu\'elle va affronter', {targetOwner:'fight_opponent', targetCategory:'creature'});
+  if(trigs.includes('onBlocked') || trigs.includes('onDamaged'))
+    add(BADGE+'La créature attaquante', {targetOwner:'combat_attacker', targetCategory:'creature'});
   if(effs.some(e=>e.effectType==='draw'))
     add(BADGE+'La dernière carte piochée par cette capacité', {targetOwner:'last_drawn_by_ability', targetCategory:'card_in_hand'});
   add('Cette carte', {targetOwner:'self', targetCategory:'creature'});
@@ -4320,6 +4324,7 @@ function targetPhrase(t){
   if(!t) return 'une cible';
   if(t.targetOwner==='self') return 'cette carte';
   if(t.targetOwner==='trigger') return 'la carte qui a déclenché cet effet';
+  if(t.targetOwner==='combat_attacker') return 'la créature attaquante';
   if(t.targetCategory==='hero'){
     if(t.targetOwner==='random') return 'un héros tiré au hasard (allié ou ennemi)';
     return t.targetOwner==='enemy' ? 'le héros ennemi' : 'votre héros';
