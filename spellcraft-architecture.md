@@ -342,3 +342,8 @@ Linéasthasia : mêmes éclairs que Rascal, mais lus sur `p.cardsPlayedThisTurnB
 ## Texte automatique des cartes : mots-clés sans explication (octobre 2026)
 - `buildCardText` (éditeur de cartes) écrit désormais seulement le **nom** des mots-clés, séparés par des virgules (« Armure, Tenace »), sans l'explication entre parenthèses. L'explication reste dans `KEYWORDS[].desc` (liste de l'éditeur, grimoire, infobulles).
 - Les cartes déjà enregistrées avec l'ancien format ont été nettoyées par `texte_mots_cles_20261022.sql`.
+
+## Accélération des actions : mesure et allègement (octobre 2026)
+- Mesure (22 oct.) : l'état d'une partie pèse en moyenne 385 Ko dans `game_sessions.state` (max 564 Ko) ; chaque action le lit, le réécrit et le renvoie. Paquet ≈ 104 Ko par joueur, défausse ≈ 50 Ko par joueur. Retour du joueur : 2 à 5 s entre le clic et l'animation d'une carte jouée.
+- Une action = un seul appel `game-action` (la réponse contient déjà l'état, voir `runAction`) : verrou (RPC) → lecture de la session → catalogue (mis en cache 5 min, test de fraîcheur) → moteur → écriture → diffusion → libération du verrou.
+- `acceleration_1_20261022.sql` : `redactStateForViewer` fait une copie légère (plus de `JSON.parse(JSON.stringify())`), masque aussi le paquet du joueur (le plateau n'utilise que `deck.length`) et retire `destroyedLastTurn`, `destroyedThisTurn`, `lastPlayedCard`, `matchPlayedCardsLog`, `matchDrawnCardsLog` de la réponse (la base garde tout). Chaque réponse porte `_t` (temps cumulés auth/lock/load/catalog/dispatch/redact, en ms), affichés par le chrono (`?chrono=1`).

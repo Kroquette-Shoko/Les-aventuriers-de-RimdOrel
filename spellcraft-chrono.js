@@ -73,6 +73,12 @@
       let kb = null;
       try { kb = JSON.stringify(result).length / 1024; } catch (e) { /* ignoré */ }
       record('action:' + action, performance.now() - startedAt, kb);
+      // Étapes mesurées côté serveur (temps cumulé depuis l'arrivée de la requête, en ms) :
+      // auth -> lock -> load -> catalog -> dispatch -> redact. Seulement pour les actions de jeu.
+      if (result && result._t && typeof result._t === 'object') {
+        Object.keys(result._t).forEach((k) => record('serveur · ' + k + ' (cumul)', result._t[k]));
+        record('réseau + attente (hors serveur)', Math.max(0, performance.now() - startedAt - (result._t.redact || 0)));
+      }
     },
     // Une action de jeu de CE joueur part vers le serveur
     onOwnActionSent(action, startedAt) {
