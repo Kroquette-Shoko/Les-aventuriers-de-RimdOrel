@@ -357,3 +357,6 @@ Linéasthasia : mêmes éclairs que Rascal, mais lus sur `p.cardsPlayedThisTurnB
 Les cadres PNG (`images/card/big frame/`, `images/card/small frame/`) sont supprimés. Toutes les cartes sont dessinées en SVG/CSS par `spellcraft-card-render.js` (généré par `python3 tools/build_module.py spellcraft-card-render.js` à partir de `tools/gen.py` + `tools/module_tpl.js` — ne pas éditer le .js à la main). L'option « Style des cartes » a disparu des réglages et l'ancienne clé `sc-card-style` est effacée du navigateur. `ncardRealPath` / `ncardHalfFramePath` n'existent plus dans les pages. Les icônes (mana, stats, rareté, bandeau du nom) restent des images dans `images/card/icon/`.
 
 Note : `tools/build_tutorial.py` échouait déjà avant ce changement (« démarrage » introuvable dans le plateau) ; `spellcraft-tutorial.html` a donc été modifié directement, de la même façon que le plateau.
+
+## Initiative permanente (22 oct. 2026)
+- Retour à l'Initiative de base : elle ne s'épuise plus (`initiativeUsed` n'est plus jamais mis à `true` : `applyDamage` et le coup au héros dans `resolveCombat…` ne le font plus). Les textes (éditeur, bulles, grimoire, règles §7.5/7.7) sont à jour. Script : `initiative_permanente_20261022.sql`. Le test `!initiativeUsed` reste dans le moteur mais est toujours vrai.

@@ -32,7 +32,7 @@ const KEYWORDS = [
   {key:'reach', label:'Portée', desc:'Peut bloquer les créatures volantes sans avoir elle-même le Vol.'},
   {key:'pierce', label:'Brutalité', desc:"L'excédent de dégâts passe sur le héros adverse."},
   {key:'lifesteal', label:'Vol de vie', desc:'Les dégâts infligés soignent votre héros.'},
-  {key:'initiative', label:'Initiative', desc:'Frappe avant son adversaire (si elle tue sa cible, elle ne subit pas de dégâts). Ne sert qu\'une fois : s\'épuise au premier dégât infligé.'},
+  {key:'initiative', label:'Initiative', desc:'Frappe avant son adversaire (si elle tue sa cible, elle ne subit pas de dégâts).'},
   {key:'armor', label:'Armure', desc:"Annule la première fois qu'elle subit des dégâts."},
   {key:'stealth', label:'Parade', desc:"Ne peut pas être la cible d'un sortilège le tour où elle arrive."},
   {key:'relentless', label:'Tenace', desc:'Quand elle meurt, revient en jeu une fois (sans Tenace).'},
