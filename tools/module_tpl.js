@@ -1,7 +1,6 @@
 /* Rendu "dessiné" des cartes (cadres SVG/CSS, sans images de cadre).
    FICHIER GÉNÉRÉ — ne pas éditer à la main (source : gen/build_module.py).
-   Les anciens cadres PNG restent disponibles : choisir le style avec
-     SCCardRender.setStyle('png' | 'drawn')   ou   ?cartes=png / ?cartes=dessine
+   Les cadres PNG ont été supprimés : seul le rendu dessiné existe.
    Les icônes (mana, force, endurance, rareté…) restent des images. */
 (function(){
   'use strict';
@@ -22,15 +21,13 @@
   }
   function fromUrl(){
     try{
-      var q = new URLSearchParams(location.search).get('cartes');
-      if(q === 'png') ls('sc-card-style', 'png');
-      else if(q === 'dessine' || q === 'drawn') ls('sc-card-style', 'drawn');
       var a = new URLSearchParams(location.search).get('anim');
       if(a === 'oui') ls('sc-card-anim', 'always'); else if(a === 'non') ls('sc-card-anim', 'hover');
     }catch(e){}
   }
-  function getStyle(){ return ls('sc-card-style') === 'png' ? 'png' : 'drawn'; }
-  function setStyle(v){ ls('sc-card-style', v === 'png' ? 'png' : 'drawn'); }
+  /* Conservés pour compatibilité : le style est toujours « dessiné ». */
+  function getStyle(){ return 'drawn'; }
+  function setStyle(){}
   function getAnim(){ return ls('sc-card-anim') === 'hover' ? 'hover' : 'always'; }
   function setAnim(v){ ls('sc-card-anim', v === 'always' ? 'always' : 'hover'); document.documentElement.classList.toggle('nd-anim-on', v === 'always'); }
 
@@ -83,12 +80,11 @@
     root.appendChild(rim);
   }
 
-  /* Remplace, sur une carte déjà construite par buildNewCardEl, les cadres PNG
-     par le rendu dessiné. Ne fait rien (carte laissée telle quelle) si le style
-     "png" est choisi ou si ce type/format n'a pas de version dessinée. */
+  /* Dessine le cadre d'une carte déjà construite par buildNewCardEl.
+     Ne fait rien si ce type/format n'a pas de version dessinée. */
   function decorateFrame(root, card, size, opts){
     try{
-      if(getStyle() === 'png' || !root || !card) return root;
+      if(!root || !card) return root;
       var type = TYPE[card.type];
       if(!type) return root;
       if(size === 'small' && !FR.small[type]) return root;
@@ -119,7 +115,7 @@
   }
 
   /* Cadres dessinés, puis finitions foil / premium (spellcraft-premium.js).
-     Les finitions s'appliquent quel que soit le mode de cadre (plein cadre, PNG, dessiné). */
+     Les finitions s'appliquent quel que soit le mode de cadre (plein cadre ou dessiné). */
   function decorate(root, card, size, opts){
     var r = decorateFrame(root, card, size, opts);
     try{ if(window.SCFinish) window.SCFinish.apply(root, card, size); }catch(e){ if(window.console) console.warn('SCFinish', e); }

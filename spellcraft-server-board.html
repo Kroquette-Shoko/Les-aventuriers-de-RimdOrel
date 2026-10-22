@@ -571,8 +571,6 @@ body.targeting *{cursor:crosshair !important;}
    telles quelles du deckbuilder/éditeur.
    ============================================================ */
 .ncard{position:relative;flex-shrink:0;user-select:none;}
-.ncard img.nframe-layer{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:5;}
-.ncard img.nframe-half-layer{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:6;}
 .ncard .nart-layer{position:absolute;background-size:cover;background-repeat:no-repeat;background-color:hsl(calc(var(--th, 252) + 0.9) calc(var(--ts-n, 1) * 21.2%) 25.9%);z-index:1;overflow:hidden;}
 .ncard .nstat-wrap{position:absolute;aspect-ratio:1/1;z-index:8;}
 .ncard .nstat-wrap img{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
@@ -3148,40 +3146,6 @@ function maybeAutoFinishBlocking(){
 // NOUVEAU TEMPLATE — frames illustrées (big / small), repris tel
 // quel du deckbuilder/éditeur.
 // ============================================================
-const NCLASS_TO_SLUG_NOACCENT = {
-  'Aube':'aube', 'Crépuscule':'crepuscule', 'Volonté':'volonte', 'Prima':'prima', 'Arcane':'arcane', 'Neutre':'neutre'
-};
-const CARD_TYPE_TO_TEMPLATE_SLUG = {
-  'Créature':'creature', 'Artefact':'artefact', 'Sortilège':'spell', 'Piège':'trap', 'Région':'region', 'Héros':'heros'
-};
-function ncardRealPath(size, slug, cardClass, cardType, useHeroFrame){
-  if(size==='big' && CARD_TYPE_TO_TEMPLATE_SLUG[cardType] && NCLASS_TO_SLUG_NOACCENT[cardClass] && (cardType!=='Héros' || useHeroFrame)){
-    return `images/card/big%20frame/${NCLASS_TO_SLUG_NOACCENT[cardClass]}-${CARD_TYPE_TO_TEMPLATE_SLUG[cardType]}-bigframe.png`;
-  }
-  // Format small : nouveau schéma disponible uniquement pour Créature et
-  // Artefact pour l'instant — les autres types restent sur l'ancien
-  // système en attendant leurs propres illustrations.
-  if(size==='small' && (cardType==='Créature' || cardType==='Artefact') && NCLASS_TO_SLUG_NOACCENT[cardClass]){
-    return `images/card/small%20frame/${NCLASS_TO_SLUG_NOACCENT[cardClass]}-${CARD_TYPE_TO_TEMPLATE_SLUG[cardType]}-smallframe.png`;
-  }
-  const folder = size==='big' ? 'big%20frame' : 'small%20frame';
-  return `images/card/${folder}/${size}-${slug}.png`;
-}
-// Reprend les noms de fichiers exacts fournis (dont la coquille "creouscule"
-// pour Crépuscule) — volontairement distincte de NCLASS_TO_SLUG ci-dessous,
-// qui elle utilise l'orthographe correcte pour les cadres de base.
-const HALF_FRAME_SLUG = {
-  'Aube':'aube', 'Crépuscule':'crepuscule', 'Volonté':'volonté', 'Prima':'prima', 'Arcane':'arcane'
-};
-function ncardHalfFramePath(size, classSecondary, cardType, useHeroFrame){
-  if(size==='big' && CARD_TYPE_TO_TEMPLATE_SLUG[cardType] && NCLASS_TO_SLUG_NOACCENT[classSecondary] && (cardType!=='Héros' || useHeroFrame)){
-    return `images/card/big%20frame/${NCLASS_TO_SLUG_NOACCENT[classSecondary]}-${CARD_TYPE_TO_TEMPLATE_SLUG[cardType]}-bighalfframe.png`;
-  }
-  const slug = HALF_FRAME_SLUG[classSecondary];
-  if(!slug) return null;
-  const folder = size==='big' ? 'big%20frame' : 'small%20frame';
-  return `images/card/${folder}/${size}-half-${slug}.png`;
-}
 const NCLASS_TO_SLUG = {
   'Aube':'aube', 'Crépuscule':'crepuscule', 'Volonté':'volonté',
   'Prima':'prima', 'Arcane':'arcane', 'Neutre':'neutre'
@@ -3234,11 +3198,6 @@ function buildNewCardEl(card, size, effectiveCostOverride, opts={}){
     art.style.backgroundSize = zoom>100 ? zoom+'%' : 'cover';
   }
   root.appendChild(art);
-  root.appendChild(nImg(ncardRealPath(size, slug, card.class, card.type, opts.heroCardFrame), 'nframe-layer'));
-  if(card.classSecondary){
-    const halfPath = ncardHalfFramePath(size, card.classSecondary, card.type, opts.heroCardFrame);
-    if(halfPath) root.appendChild(nImg(halfPath, 'nframe-half-layer'));
-  }
 
   if(hasMana){
     const w = nEl('div','nstat-wrap n-mana');

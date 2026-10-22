@@ -351,3 +351,9 @@ Linéasthasia : mêmes éclairs que Rascal, mais lus sur `p.cardsPlayedThisTurnB
 
 ## Cible « La créature attaquante » (octobre 2026)
 - Nouveau `targetOwner: 'combat_attacker'` (éditeur : étape Cibles, « La créature attaquante (en combat) », suggérée avec les déclencheurs `onBlocked` / `onDamaged`). Le moteur mémorise `blocker._combatAttackerId = attacker.instId` dans `doAssignBlock` (effacé dans `doEndTurn`) ; `resolveNewTargetEntry` retrouve l'attaquant s'il est encore en jeu et déclaré attaquant. Sans attaquant connu (blessure par un sort, attaquant mort) : aucune cible. Script : `cible_attaquante_20261022.sql`.
+
+## Cadres de cartes : rendu dessiné uniquement (22/10/2026)
+
+Les cadres PNG (`images/card/big frame/`, `images/card/small frame/`) sont supprimés. Toutes les cartes sont dessinées en SVG/CSS par `spellcraft-card-render.js` (généré par `python3 tools/build_module.py spellcraft-card-render.js` à partir de `tools/gen.py` + `tools/module_tpl.js` — ne pas éditer le .js à la main). L'option « Style des cartes » a disparu des réglages et l'ancienne clé `sc-card-style` est effacée du navigateur. `ncardRealPath` / `ncardHalfFramePath` n'existent plus dans les pages. Les icônes (mana, stats, rareté, bandeau du nom) restent des images dans `images/card/icon/`.
+
+Note : `tools/build_tutorial.py` échouait déjà avant ce changement (« démarrage » introuvable dans le plateau) ; `spellcraft-tutorial.html` a donc été modifié directement, de la même façon que le plateau.
