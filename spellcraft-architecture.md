@@ -363,3 +363,8 @@ Note : `tools/build_tutorial.py` échouait déjà avant ce changement (« démar
 
 ## Ciblage et pièges : effets non listés (23 oct. 2026)
 - `applySpellEffect` ne reconnaissait comme « ciblant » que les effets de `TARGETED_EFFECTS` (dégâts, soin, étourdissement, gel, renvoi, destruction, silence, affaiblissement, bonus, mot-clé). `applyNewAbilityEffects` marque maintenant `mapped.__designated` quand la cible est **désignée** (`selectionMode:'chosen'`, camp `enemy`/`ally`/`any`) : ces effets (fight, copyCard, stealStat, swapStats…) réveillent aussi `fireTrap('onOpponentTargetsAlly')`, `watchTargeted` et `onTargeted`. Script : `ciblage_piege_20261023.sql`.
+
+## « Réduit le coût » déclenché : Portée respectée (23 oct.)
+- L'éditeur propose la Portée (En main / Dans le deck / Les deux) pour l'effet `reduceCost`, mais le moteur l'ignorait : il posait toujours une réduction permanente (`activeCostReductions`) sur toutes les cartes concernées du joueur.
+- Correctif (script `reduce_cost_portee_20261023.sql`, morceaux 2 et 5 de `game-action`) : `mapEffect` transmet `scope`; `case "reduceCostAura"` applique, si `scope` ∈ hand/deck/both, un `_instanceCostReduction` unique sur chaque carte concernée de la zone choisie (type `any`/vide = tous, sous-type vide = tous).
+- Sans `scope` : ancien comportement. Les auras continues (`recalculateContinuousEffects`, morceau 6) ne sont pas modifiées.
