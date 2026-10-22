@@ -360,3 +360,6 @@ Note : `tools/build_tutorial.py` échouait déjà avant ce changement (« démar
 
 ## Initiative permanente (22 oct. 2026)
 - Retour à l'Initiative de base : elle ne s'épuise plus (`initiativeUsed` n'est plus jamais mis à `true` : `applyDamage` et le coup au héros dans `resolveCombat…` ne le font plus). Les textes (éditeur, bulles, grimoire, règles §7.5/7.7) sont à jour. Script : `initiative_permanente_20261022.sql`. Le test `!initiativeUsed` reste dans le moteur mais est toujours vrai.
+
+## Ciblage et pièges : effets non listés (23 oct. 2026)
+- `applySpellEffect` ne reconnaissait comme « ciblant » que les effets de `TARGETED_EFFECTS` (dégâts, soin, étourdissement, gel, renvoi, destruction, silence, affaiblissement, bonus, mot-clé). `applyNewAbilityEffects` marque maintenant `mapped.__designated` quand la cible est **désignée** (`selectionMode:'chosen'`, camp `enemy`/`ally`/`any`) : ces effets (fight, copyCard, stealStat, swapStats…) réveillent aussi `fireTrap('onOpponentTargetsAlly')`, `watchTargeted` et `onTargeted`. Script : `ciblage_piege_20261023.sql`.
