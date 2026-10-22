@@ -2834,11 +2834,45 @@ function detectAndPlayManaGainSfx(oldS, newS){
     }
   });
 }
+// Préchargement des images : chaque illustration (main, plateau, défausse, héros, région, reliques, dos
+// de cartes, et celles du paquet du joueur envoyées par le serveur) est téléchargée en tâche de fond
+// DÈS qu'on la connaît, pour qu'elle soit déjà prête quand la carte est piochée ou posée.
+const __preloadedImages = new Set();
+const __preloadQueue = [];
+let __preloadTimer = null;
+function __preloadNext(){
+  __preloadTimer = null;
+  // 3 images à la fois, pour ne pas concurrencer l'affichage de la partie
+  for(let i=0; i<3 && __preloadQueue.length; i++){
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = __preloadQueue.shift();
+  }
+  if(__preloadQueue.length) __preloadTimer = setTimeout(__preloadNext, 120);
+}
+function preloadStateImages(state){
+  try{
+    const urls = [];
+    const add = u => { if(typeof u === 'string' && /^https?:\/\//.test(u) && !__preloadedImages.has(u)){ __preloadedImages.add(u); urls.push(u); } };
+    ['p1','p2'].forEach(k=>{
+      const p = state[k]; if(!p) return;
+      add(p.cardBackUrl);
+      [p.hero, p.region].forEach(c=>{ if(c) add(c.image); });
+      ['hand','board','discard','relics'].forEach(z=>{ (p[z]||[]).forEach(c=>{ if(c && !c.hidden) add(c.image); }); });
+      (p.deckImages||[]).forEach(add);
+    });
+    if(!urls.length) return;
+    // Les cartes visibles tout de suite d'abord (elles sont déjà en tête de liste), le paquet ensuite
+    __preloadQueue.push(...urls);
+    if(!__preloadTimer) __preloadTimer = setTimeout(__preloadNext, 0);
+  }catch(e){}
+}
 function onStateUpdate(state){
   if(!state || !state.p1){
     debugLog("En attente d'un adversaire pour démarrer la partie...", 'log-ok');
     return;
   }
+  preloadStateImages(state);
   // Anti-« retour en arrière » : l'état arrive par trois chemins (réponse de
   // l'action, signal temps réel, resynchro toutes les 6 s) et une réponse
   // lancée plus tôt peut arriver APRÈS une plus récente. Le serveur numérote
