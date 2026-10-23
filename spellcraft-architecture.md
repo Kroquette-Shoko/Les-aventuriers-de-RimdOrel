@@ -368,3 +368,7 @@ Note : `tools/build_tutorial.py` échouait déjà avant ce changement (« démar
 - L'éditeur propose la Portée (En main / Dans le deck / Les deux) pour l'effet `reduceCost`, mais le moteur l'ignorait : il posait toujours une réduction permanente (`activeCostReductions`) sur toutes les cartes concernées du joueur.
 - Correctif (script `reduce_cost_portee_20261023.sql`, morceaux 2 et 5 de `game-action`) : `mapEffect` transmet `scope`; `case "reduceCostAura"` applique, si `scope` ∈ hand/deck/both, un `_instanceCostReduction` unique sur chaque carte concernée de la zone choisie (type `any`/vide = tous, sous-type vide = tous).
 - Sans `scope` : ancien comportement. Les auras continues (`recalculateContinuousEffects`, morceau 6) ne sont pas modifiées.
+
+## Quêtes de progression cumulatives (23 oct.)
+- Avant : chaque quête de progression avait son propre `progress_count`, qui démarrait à 0 à son apparition (« Vétéran » ne comptait que les victoires postérieures à son apparition).
+- Maintenant (script `quete_progression_cumulative_20261023.sql`, fonction `get_active_quests`) : à chaque lecture, les quêtes de progression non réclamées (`play_games_total`, `win_games_total`) prennent `profiles.total_games_played` / `profiles.total_wins`, plafonné à l'objectif. Les quêtes réclamées ne sont pas modifiées.
