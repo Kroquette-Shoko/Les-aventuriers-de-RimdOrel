@@ -936,6 +936,7 @@ const CONDITION_TYPES = [
   {key:'playedCardType', label:'Le type de la carte jouée est [type] (si créature : sous-type)', hasValue:false, isPlayedCardType:true},
   {key:'hpLostLastTurn', label:'Vous avez perdu [comparaison] X PV au tour précédent', hasValue:true, isHpLostLastTurn:true},
   {key:'targetHasKeyword', label:'La cible/carte concernée a le mot-clé [X]', hasValue:false, isTargetHasKeyword:true},
+  {key:'singleAttacker', label:'Une seule créature adverse attaque', hasValue:false},
   {key:'whileInHand', label:'Tant que cette carte est dans votre main', hasValue:false},
   {key:'whileYourTurn', label:"Tant que c'est votre tour", hasValue:false},
   {key:'playerCompare', label:'Comparer vous et l\'adversaire (PV, créatures, cartes…)', hasValue:false, isPlayerCompare:true},
@@ -4901,6 +4902,7 @@ function conditionClauseBase(cond, ab){
       const kwLabel = (KEYWORDS.find(k=>k.key===cond.targetKeyword)||{}).label || cond.targetKeyword || '?';
       return `${who} a le mot-clé ${kwLabel}`;
     }
+    case 'singleAttacker': return "une seule créature adverse attaque";
     case 'whileInHand': return 'cette carte est dans votre main';
     case 'whileYourTurn': return "c'est votre tour";
     case 'custom': return cond.value || 'condition personnalisée';
