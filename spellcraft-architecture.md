@@ -391,3 +391,9 @@ Note : `tools/build_tutorial.py` échouait déjà avant ce changement (« démar
 
 ## Classeur : « poss. xN » sous la carte (27 oct.)
 - `.card-owned-badge` (deckbuilder) était posé sur le bas de la carte ; il est maintenant centré sous la carte (`top:calc(100% + 5px)`), dans l'espace entre deux rangées (gap 32 px, 22 px sur téléphone).
+
+## Isolation des parties : verrou global sur `S` (27 oct., urgent)
+- Symptômes : tours qui ne passent plus, cartes qui repartent en main, joueur qui arrive dans la partie d'un autre. Preuve en base : deux sessions IA créées à 8 s d'intervalle avaient leurs `state.p1.userId` échangés (`game_sessions.player1_id` ≠ `state.p1.userId`).
+- Cause : l'état de partie `S` (et les files `QUEST_PROGRESS_QUEUE`, `ACHIEVEMENT_*`) sont des variables globales du module ; `withSave` fait plusieurs `await` (quêtes, récompenses, historique) avant d'écrire `state: S`. Pendant ces attentes, une action d'une autre session (même isolate) exécute `S = session.state` et la sauvegarde écrit alors l'état de l'autre partie. Le verrou par session (`acquireLock`) ne protège pas entre sessions différentes.
+- Correctif (script `urgent_isolation_parties_20261027.sql`, morceaux 9 et 10) : `__withS(fn)` met `dispatchAction` en file (une action à la fois par isolate, attente max 25 s).
+- Piste durable : supprimer l'état global (passer `S` et les files par requête, ex. `AsyncLocalStorage`) pour retrouver le parallélisme.
