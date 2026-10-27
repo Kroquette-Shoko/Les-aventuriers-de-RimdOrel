@@ -4015,16 +4015,24 @@ async function uiActivateHeroPower(targetInfo, chosenTargets){
   LAST_SACRIFICEABLE_ACTION = { action:'useHeroPower', targetInfo, chosenTargets };
   await runAction('Pouvoir de héros', ()=>gsUseHeroPower(targetInfo, chosenTargets));
 }
-async function uiActivatePermanent(permanentType, permanentInstId, targetInfo, chosenTargets){
+async function uiActivatePermanent(permanentType, permanentInstId, targetInfo, chosenTargets, choiceKey){
   if(!targetInfo && !chosenTargets){
     let permanent = null;
     const p = S[MY_KEY];
     if(permanentType==='creature') permanent = p.board.find(c=>c.instId===permanentInstId);
     else if(permanentType==='artifact') permanent = p.relics.find(r=>r.instId===permanentInstId);
     else if(permanentType==='region') permanent = p.region;
-    const chosenDefs = permanent ? findNewFormatChosenTargets(permanent, 'activated') : [];
+    // Capacité activée « Choisissez : A ou B » : on demande d'abord le choix (comme pour une carte jouée)
+    if(permanent && !choiceKey && permanent.abilities){
+      const choiceAb = permanent.abilities.find(ab=>ab.kind==='triggered' && ab.useChoice && ab.choiceA && ab.choiceB && (ab.triggers||[]).some(te=>te.trigger==='activated'));
+      if(choiceAb){
+        showCardChoiceModal(permanent, choiceAb, (pickedKey)=>{ uiActivatePermanent(permanentType, permanentInstId, null, null, pickedKey); });
+        return;
+      }
+    }
+    const chosenDefs = permanent ? findNewFormatChosenTargets(permanent, 'activated', choiceKey) : [];
     if(chosenDefs.length){
-      startNewFormatTargeting('permanent', chosenDefs, { permanentType, permanentInstId });
+      startNewFormatTargeting('permanent', chosenDefs, { permanentType, permanentInstId, choiceKey });
       return;
     }
     const eff = permanent && permanent.triggeredEffects && permanent.triggeredEffects.activated;
@@ -4034,8 +4042,8 @@ async function uiActivatePermanent(permanentType, permanentInstId, targetInfo, c
       return;
     }
   }
-  LAST_SACRIFICEABLE_ACTION = { action:'activatePermanent', permanentType, permanentInstId, targetInfo, chosenTargets };
-  const res = await runAction('Capacité activée', ()=>gsActivatePermanent(permanentType, permanentInstId, targetInfo, chosenTargets));
+  LAST_SACRIFICEABLE_ACTION = { action:'activatePermanent', permanentType, permanentInstId, targetInfo, chosenTargets, choiceKey };
+  const res = await runAction('Capacité activée', ()=>gsActivatePermanent(permanentType, permanentInstId, targetInfo, chosenTargets, undefined, choiceKey));
   if(permanentType==='artifact' && res && !res.error){
     // Le nouveau rendu (qui grise l'artefact désormais utilisé) vient de
     // reconstruire l'élément — on attend une frame pour cibler le NOUVEL
@@ -4398,6 +4406,8 @@ function findNewFormatChosenTargets(source, triggerName, choiceKey, opts){
         if(!view.effects.some(e=>!SPELL_TARGETLESS_EFFECTS_CLIENT.includes(e.effectType) && effectTargetRefsClient(e).includes(tgt.id))) continue;
       } else if(tgt.targetOwner==='self' || tgt.targetOwner==='trigger'){
         continue;
+      } else if(ab.useChoice && !view.effects.some(e=>effectTargetRefsClient(e).includes(tgt.id))){
+        continue; // capacité à choix : une cible propre à l'autre choix ne se demande pas
       }
       seen.add(tgt.id);
       out.push({ ability: ab, target: tgt });
@@ -4560,7 +4570,7 @@ function advanceNewFormatTargeting(){
   }
   if(kind==='card') uiPlayCard(extra.index, null, chosenTargets, extra.choiceKey); // choiceKey conservé
   else if(kind==='hero') uiActivateHeroPower(null, chosenTargets);
-  else if(kind==='permanent') uiActivatePermanent(extra.permanentType, extra.permanentInstId, null, chosenTargets);
+  else if(kind==='permanent') uiActivatePermanent(extra.permanentType, extra.permanentInstId, null, chosenTargets, extra.choiceKey);
 }
 // Ajoute une cible choisie ; auto-validation au nombre maximal (ou s'il ne
 // reste plus de candidat), sinon le joueur peut valider dès 1 cible.
@@ -4656,7 +4666,7 @@ async function resolvePendingSacrifice(instId){
   } else if(kind==='useHeroPower'){
     res = await runAction('Pouvoir de héros', ()=>gsUseHeroPower(src.targetInfo, src.chosenTargets, instId));
   } else if(kind==='activatePermanent'){
-    res = await runAction('Capacité activée', ()=>gsActivatePermanent(src.permanentType, src.permanentInstId, src.targetInfo, src.chosenTargets, instId));
+    res = await runAction('Capacité activée', ()=>gsActivatePermanent(src.permanentType, src.permanentInstId, src.targetInfo, src.chosenTargets, instId, src.choiceKey));
   } else if(kind==='playCardSimple'){
     res = await runAction('Jouer la carte', ()=>gsPlayCardSimple(src.handIndex, src.targetInfo, src.chosenTargets, src.choiceKey, instId, src.placeAfter));
   } else {

@@ -378,3 +378,7 @@ Note : `tools/build_tutorial.py` échouait déjà avant ce changement (« démar
 
 ## Amplification continue (aura) corrigée (27 oct.)
 - `recalculateContinuousEffects` (morceau 6) lisait `eff.category` / `eff.amount` sur la capacité brute alors que l'éditeur écrit `amplifyCategory` / `valueFixed` : l'amplificateur posé valait +undefined (Licorne du bosquet n'augmentait pas les soins). Lecture corrigée (script `amplification_continue_20261027.sql`). La version ponctuelle (`mapEffect` → `case "amplifyEffect"`) était déjà correcte.
+
+## Capacités activées « Choisissez » (Reseph-Kaamen) (27 oct.)
+- Avant : `activatePermanent` n'avait pas de `choiceKey` : le client n'affichait aucune fenêtre de choix et le moteur appliquait toujours le choix A.
+- Maintenant : `uiActivatePermanent` affiche `showCardChoiceModal` pour une capacité `activated` à `useChoice`, puis le ciblage du choix retenu (`findNewFormatChosenTargets(..., choiceKey)`, qui ignore les cibles non utilisées par le choix) ; `gsActivatePermanent` envoie `choiceKey` ; `doActivatePermanent` (morceau 8) le transmet à `applyNewAbilityEffects` et à `abilityMissingChosenTarget` (morceau 6), et le conserve dans `pendingSacrifice`. Script `choix_capacite_activee_20261027.sql` (morceaux 6, 8, 11). Le tutoriel n'est pas modifié (aucune carte à choix activé).

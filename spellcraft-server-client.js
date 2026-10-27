@@ -368,7 +368,7 @@ async function gsUseHeroPower(targetInfo, chosenTargets, sacrificeInstId) {
   if (sacrificeInstId) body.sacrificeInstId = sacrificeInstId;
   return gsCallAction('useHeroPower', body);
 }
-async function gsActivatePermanent(permanentType, permanentInstId, targetInfo, chosenTargets, sacrificeInstId) {
+async function gsActivatePermanent(permanentType, permanentInstId, targetInfo, chosenTargets, sacrificeInstId, choiceKey) {
   const body = { permanentType, permanentInstId };
   if (targetInfo) {
     if (targetInfo.isHeroTarget) { body.targetIsHero = true; body.targetPlayerKey = targetInfo.playerKey; }
@@ -376,6 +376,7 @@ async function gsActivatePermanent(permanentType, permanentInstId, targetInfo, c
   }
   if (chosenTargets) body.chosenTargets = chosenTargets;
   if (sacrificeInstId) body.sacrificeInstId = sacrificeInstId;
+  if (choiceKey) body.choiceKey = choiceKey;
   return gsCallAction('activatePermanent', body);
 }
 async function gsPlayCardSimple(handIndex, targetInfo, chosenTargets, choiceKey, sacrificeInstId, placeAfterInstId) {
