@@ -397,3 +397,9 @@ Note : `tools/build_tutorial.py` échouait déjà avant ce changement (« démar
 - Cause : l'état de partie `S` (et les files `QUEST_PROGRESS_QUEUE`, `ACHIEVEMENT_*`) sont des variables globales du module ; `withSave` fait plusieurs `await` (quêtes, récompenses, historique) avant d'écrire `state: S`. Pendant ces attentes, une action d'une autre session (même isolate) exécute `S = session.state` et la sauvegarde écrit alors l'état de l'autre partie. Le verrou par session (`acquireLock`) ne protège pas entre sessions différentes.
 - Correctif (script `urgent_isolation_parties_20261027.sql`, morceaux 9 et 10) : `__withS(fn)` met `dispatchAction` en file (une action à la fois par isolate, attente max 25 s).
 - Piste durable : supprimer l'état global (passer `S` et les files par requête, ex. `AsyncLocalStorage`) pour retrouver le parallélisme.
+
+## Agent de Sandroska : doublement « ce tour-ci » limité au tour (27 oct.)
+Symptôme : « double les effets de votre héros ce tour-ci » restait actif plus longtemps que le tour de l'attaque.
+Moteur (`game-action`, morceaux 4 et 7) : chaque entrée de `_doubledTriggersThisTurn` porte maintenant `turn: S.turn`.
+`hasActiveDoublerOnBoard` ignore toute entrée dont `turn` ≠ `S.turn`, et `doubleEffectsTrigger` retire les entrées périmées avant d'en poser une nouvelle.
+Le nettoyage de `doEndTurn` est conservé (ceinture + bretelles). Script : `agent_sandroska_ce_tour_20261027.sql`.
