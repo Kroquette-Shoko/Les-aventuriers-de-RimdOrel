@@ -388,3 +388,6 @@ Note : `tools/build_tutorial.py` échouait déjà avant ce changement (« démar
 
 ## Premier joueur aléatoire contre l'IA (27 oct.)
 - `buildInitialState` (morceau 11) : `active = vsAI ? "p1" : hasard` → `active = hasard` (50/50 dans tous les cas). Le client relance déjà le tour de l'IA quand elle est active en phase `main` (`scheduleAiTurn`). Script `premier_joueur_aleatoire_20261027.sql`.
+
+## Classeur : « poss. xN » sous la carte (27 oct.)
+- `.card-owned-badge` (deckbuilder) était posé sur le bas de la carte ; il est maintenant centré sous la carte (`top:calc(100% + 5px)`), dans l'espace entre deux rangées (gap 32 px, 22 px sur téléphone).
