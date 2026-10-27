@@ -1252,7 +1252,7 @@ function blankEffect(){
     setStatTarget:'force', setStatScope:'board', setStatOwner:'ally', setStatValue:2,
     setCostScope:'deck', setCostOwner:'ally', setCostValue:1,
     manaType:'normal', silenceMode:'both',
-    reduceCostScope:'hand', reduceCostOwner:'ally', reduceCostType:'any', reduceCostSubtype:'', reduceCostAmount:1,
+    reduceCostScope:'hand', reduceCostOwner:'ally', reduceCostType:'any', reduceCostSubtype:'', reduceCostAmount:1, reduceCostNotInBaseDeck:false,
     nextDiscountType:'Sortilège',
     grantKeywordKey:'charge', grantKeywordDuration:'permanent',
     copyKeywordDonorOwner:'ally', copyKeywordMode:'random', copyKeywordDuration:'permanent',
@@ -3622,6 +3622,10 @@ function buildEffectRow(ab, eff, choiceKey){
     const stF = document.createElement('div'); stF.className='field'; stF.innerHTML=`<label class="mini-field">Sous-type (optionnel)</label>`;
     const stI = document.createElement('input'); stI.type='text'; stI.value=eff.reduceCostSubtype||''; stI.placeholder='Ex : Elfe';
     stI.oninput=()=>{ eff.reduceCostSubtype=stI.value; onFormChange(); }; stF.appendChild(stI); row.appendChild(stF);
+    const nbF = document.createElement('div'); nbF.className='field';
+    nbF.innerHTML=`<label class="mini-field"><input type="checkbox" ${eff.reduceCostNotInBaseDeck?'checked':''}> Seulement les cartes hors de votre deck de base (générées en cours de partie)</label>`;
+    nbF.querySelector('input').onchange=(e)=>{ eff.reduceCostNotInBaseDeck=e.target.checked; onFormChange(); };
+    row.appendChild(nbF);
     const amF = document.createElement('div'); amF.className='field'; amF.innerHTML=`<label class="mini-field">Réduction</label>`;
     const amI = document.createElement('input'); amI.type='number'; amI.min=1; amI.max=15; amI.value=eff.reduceCostAmount||1;
     amI.oninput=()=>{ eff.reduceCostAmount=parseInt(amI.value)||1; onFormChange(); }; amF.appendChild(amI); row.appendChild(amF);
@@ -4445,7 +4449,8 @@ function buildEffectClause(eff, ab){
       const whose = eff.reduceCostOwner==='enemy' ? "de l'adversaire" : 'vos';
       const typeLabel = eff.reduceCostType && eff.reduceCostType!=='any' ? `de type ${eff.reduceCostType}` : 'de tout type';
       const subLabel = eff.reduceCostSubtype ? ` du sous-type ${eff.reduceCostSubtype}` : '';
-      return `réduisez de ${eff.reduceCostAmount} le coût des cartes ${typeLabel}${subLabel} ${whose} ${scopeLabel} (minimum 0)`;
+      const nbLabel = eff.reduceCostNotInBaseDeck ? ' qui ne viennent pas de votre deck de base' : '';
+      return `réduisez de ${eff.reduceCostAmount} le coût des cartes ${typeLabel}${subLabel}${nbLabel} ${whose} ${scopeLabel} (minimum 0)`;
     }
     case 'reduceAbilityCost': {
       const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic');

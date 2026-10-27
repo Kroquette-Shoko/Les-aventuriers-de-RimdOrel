@@ -403,3 +403,9 @@ Symptôme : « double les effets de votre héros ce tour-ci » restait actif plu
 Moteur (`game-action`, morceaux 4 et 7) : chaque entrée de `_doubledTriggersThisTurn` porte maintenant `turn: S.turn`.
 `hasActiveDoublerOnBoard` ignore toute entrée dont `turn` ≠ `S.turn`, et `doubleEffectsTrigger` retire les entrées périmées avant d'en poser une nouvelle.
 Le nettoyage de `doEndTurn` est conservé (ceinture + bretelles). Script : `agent_sandroska_ce_tour_20261027.sql`.
+
+## « Réduit le coût » : « Tous types », Portée et filtre hors deck de base (27 oct.)
+Symptôme : Cauchemare envahissant (« réduit de 1 le coût de toutes les cartes qui ne viennent pas de votre deck de base ») ne réduisait rien.
+Causes : (1) l'ancien chemin posait une réduction permanente dont le type valait `"any"`, comparé au vrai type de la carte (`getEffectiveCost`) → jamais vrai → aucune carte réduite ; (2) `scope` ignoré (le script du 23 oct. n'était pas en base) ; (3) pas de filtre « hors deck de base » sur l'effet.
+Correctif (`reduction_cout_hors_deck_20261027.sql`, morceaux 2 et 5) : `mapEffect` transmet `scope`, `notInBaseDeck` (`reduceCostNotInBaseDeck`) et lit le montant en nombre ; `reduceCostAura` pose `_instanceCostReduction` sur chaque carte de la zone (main/deck/les deux) qui respecte type (« tous » accepté), sous-type et `!_isBaseDeckCard`. Sans portée : ancien chemin, avec `"any"` converti en « tous ».
+Éditeur : case « Seulement les cartes hors de votre deck de base » sur l'effet `reduceCost` (+ texte généré). Données : Cauchemare envahissant reçoit `reduceCostNotInBaseDeck: true`. Ce script remplace aussi `reduce_cost_portee_20261023.sql` (Familier de Jaäne) : ne pas exécuter les deux.
