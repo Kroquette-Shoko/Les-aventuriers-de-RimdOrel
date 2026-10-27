@@ -385,3 +385,6 @@ Note : `tools/build_tutorial.py` échouait déjà avant ce changement (« démar
 
 ## Régions : pouvoir qui remplace le gain de mana = +1 mana vide (27 oct.)
 - `tryReplaceManaGain` (morceau 9) : avant, aucun nouveau cristal (mana max inchangé, mana rechargé à l'ancien max). Maintenant `manaNormalMax + 1` (cristal vide) sauf si la capacité contient déjà un `grantMana` de type `empty` (Village kobold) ; déclenche `onManaGained`. Script `region_mana_vide_20261027.sql`. Les textes des cartes ne sont pas modifiés.
+
+## Premier joueur aléatoire contre l'IA (27 oct.)
+- `buildInitialState` (morceau 11) : `active = vsAI ? "p1" : hasard` → `active = hasard` (50/50 dans tous les cas). Le client relance déjà le tour de l'IA quand elle est active en phase `main` (`scheduleAiTurn`). Script `premier_joueur_aleatoire_20261027.sql`.
