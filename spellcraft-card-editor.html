@@ -856,7 +856,7 @@ const TRIGGER_TEXT = {
   onKill: 'Quand cette carte élimine une créature',
   onRevive: 'Quand cette carte revient du cimetière',
   onReturnFromGraveyard: 'Quand vous ramenez une créature de la défausse',
-  manaAlternative: 'Remplace le gain de mana ce tour-ci (au lieu du mana normal, si les conditions sont remplies)',
+  manaAlternative: 'Remplace le gain de mana ce tour-ci (au lieu du mana plein normal, si les conditions sont remplies ; vous gagnez alors 1 mana vide, utilisable à partir du tour suivant)',
   onUse: 'À chaque utilisation',
   startOfTurn: 'Au début de votre tour',
   startOfTurnX: 'Au début de votre tour X',
@@ -2551,7 +2551,7 @@ function buildTriggerEntryBox(te, tIdx, totalCount, availableTriggers, onRemove)
   if(currentType==='Région' && (te.trigger==='startOfTurn' || te.trigger==='startOfTurnX')){
     const mrToggle = document.createElement('label');
     mrToggle.className='evolve-toggle';
-    mrToggle.innerHTML = `<input type="checkbox" ${te.replacesManaGain?'checked':''}> Remplace le gain de mana normal (si la capacité se déclenche, pas de mana ce tour-ci)`;
+    mrToggle.innerHTML = `<input type="checkbox" ${te.replacesManaGain?'checked':''}> Remplace le gain de mana normal (si la capacité se déclenche : 1 mana vide au lieu du mana plein, utilisable dès le tour suivant)`;
     mrToggle.querySelector('input').onchange=(e)=>{ te.replacesManaGain=e.target.checked; onFormChange(); };
     tBox.appendChild(mrToggle);
   }
