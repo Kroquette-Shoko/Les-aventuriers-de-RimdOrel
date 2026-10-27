@@ -375,3 +375,6 @@ Note : `tools/build_tutorial.py` échouait déjà avant ce changement (« démar
 
 ## Sélection de deck (lobby) : tuiles de taille fixe (27 oct.)
 - La grille `#deck-grid` utilisait `repeat(3, 1fr)` : un nom de deck long (texte `nowrap`) élargissait sa colonne et donc sa tuile. Passage à `repeat(3, minmax(0, 1fr))` + `min-width:0` sur `.deck-tile-wrap`; nom et région sont tronqués avec « … ».
+
+## Amplification continue (aura) corrigée (27 oct.)
+- `recalculateContinuousEffects` (morceau 6) lisait `eff.category` / `eff.amount` sur la capacité brute alors que l'éditeur écrit `amplifyCategory` / `valueFixed` : l'amplificateur posé valait +undefined (Licorne du bosquet n'augmentait pas les soins). Lecture corrigée (script `amplification_continue_20261027.sql`). La version ponctuelle (`mapEffect` → `case "amplifyEffect"`) était déjà correcte.
