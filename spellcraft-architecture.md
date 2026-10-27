@@ -372,3 +372,6 @@ Note : `tools/build_tutorial.py` échouait déjà avant ce changement (« démar
 ## Quêtes de progression cumulatives (23 oct.)
 - Avant : chaque quête de progression avait son propre `progress_count`, qui démarrait à 0 à son apparition (« Vétéran » ne comptait que les victoires postérieures à son apparition).
 - Maintenant (script `quete_progression_cumulative_20261023.sql`, fonction `get_active_quests`) : à chaque lecture, les quêtes de progression non réclamées (`play_games_total`, `win_games_total`) prennent `profiles.total_games_played` / `profiles.total_wins`, plafonné à l'objectif. Les quêtes réclamées ne sont pas modifiées.
+
+## Sélection de deck (lobby) : tuiles de taille fixe (27 oct.)
+- La grille `#deck-grid` utilisait `repeat(3, 1fr)` : un nom de deck long (texte `nowrap`) élargissait sa colonne et donc sa tuile. Passage à `repeat(3, minmax(0, 1fr))` + `min-width:0` sur `.deck-tile-wrap`; nom et région sont tronqués avec « … ».

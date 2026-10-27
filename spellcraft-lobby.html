@@ -52,13 +52,14 @@
 #deck-grid-wrap{flex:1;display:flex;flex-direction:column;}
 #deck-grid{
   display:grid;
-  grid-template-columns:repeat(3, 1fr);
+  grid-template-columns:repeat(3, minmax(0, 1fr)); /* minmax(0,…) : un titre long ne doit jamais élargir sa colonne */
   grid-template-rows:repeat(2, auto);
   gap:12px 14px;
   margin:0 auto 12px;
   max-width:84%;
 }
-.deck-tile-wrap{cursor:pointer;}
+.deck-tile-wrap{cursor:pointer;min-width:0;}
+.deck-tile-wrap .db-region-below{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .deck-tile{
   position:relative;
   border-radius:12px;
