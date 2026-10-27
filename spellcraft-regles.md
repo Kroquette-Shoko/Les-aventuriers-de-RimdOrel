@@ -96,6 +96,7 @@ Aucun sort, effet, piège ou capacité ne peut détruire une Région, ni la pren
 - **Conjurer une carte** : elle va en main. Si votre main est pleine (8 cartes), la carte conjurée est **perdue** (envoyée au cimetière), exactement comme une pioche. La carte conjurée n'a **aucune restriction de classe** liée à votre deck.
 - **Conjurer une créature directement en jeu** : si votre plateau est plein (8 créatures), la créature est **perdue** ; elle ne passe pas par la main. C'est la même règle que pour les Sortilèges (voir 3.5).
 - **Gain de mana vide** : suit la règle générale du mana vide (section 4) : il augmente votre maximum, mais ne peut **pas** être utilisé le tour même.
+- **Pouvoir qui remplace le gain de mana** : quand le pouvoir d'une Région (hors Côte de Rimd'Orël) se déclenche à la place du gain de mana, vous gagnez **1 mana vide** (votre maximum augmente de 1, ce cristal n'est utilisable qu'à partir du tour suivant) ; vos autres cristaux sont rechargés. Si la capacité donne déjà elle-même un mana vide (Village kobold), il n'y en a pas un second.
 - Le texte de l'effet affiché dans le jeu est toujours celui de la carte.
 
 #### Les 10 Régions
