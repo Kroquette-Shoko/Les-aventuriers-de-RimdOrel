@@ -959,8 +959,8 @@ const EFFECT_GROUPS = [
   ['Cartes (pioche, main, deck)', ['draw','drawTempCard','drawTyped','discard','explore','retrieve','discover','conjure','stealCard','copyCard']],
   ['Mana et coûts', ['grantMana','refillMana','burnMana','manaTheft','reduceCost','reduceAbilityCost','increaseCost']],
   ['Stats et mots-clés', ['buff','weaken','setStat','swapStats','stealStat','grantKeyword','copyKeyword','removeKeyword','silence','evolveTarget']],
-  ['Créatures et plateau', ['destroy','stun','bounce','sacrificeEffect','summonCopy','transformCard','stealCreature','fight','destroyDealAtk','reviveDestroyedLastTurn','redirectTarget']],
-  ['Artefacts et pièges', ['removeArtifactCharges','addCharges','exhaustArtifact','disarmTraps','counterCard']],
+  ['Créatures et plateau', ['destroy','stun','bounce','sacrificeEffect','removeFromCombat','summonCopy','transformCard','stealCreature','fight','destroyDealAtk','reviveDestroyedLastTurn','redirectTarget']],
+  ['Artefacts et pièges', ['removeArtifactCharges','destroySelf','addCharges','exhaustArtifact','disarmTraps','counterCard']],
   ['Spécial', ['coinFlip','doubleTrigger','doubleEffectsTrigger','custom']]
 ];
 
@@ -1014,6 +1014,8 @@ const EFFECT_TYPES = [
   {key:'addCharges', label:"Ajoute des charges à un artefact ciblé", needsTarget:true, needsValue:true},
   {key:'preventHealing', label:"Empêche un joueur de gagner des PV jusqu'à votre prochain tour", needsTarget:false, needsValue:false, isPreventHealing:true},
   {key:'destroyDealAtk', label:"Détruit la cible, puis inflige sa Force à une seconde cible", needsTarget:true, needsValue:false, isDestroyDealAtk:true},
+  {key:'removeFromCombat', label:"Retire une créature attaquante du combat (elle n'attaque plus)", needsTarget:true, needsValue:false},
+  {key:'destroySelf', label:"Se détruit (l'artefact ou la créature source)", needsTarget:false, needsValue:false},
   {key:'doubleEffectsTrigger', label:'Double les effets déclenchés par (capacité continue)', needsTarget:false, needsValue:false, isDoubleTrigger:true},
   {key:'evolveTarget', label:'Fait évoluer la cible (bonus permanent et/ou nouveau mot-clé et/ou transformation)', needsTarget:true, needsValue:false, isEvolveTarget:true},
   {key:'doubleTrigger', label:'Double les déclencheurs de [X] (pour le reste de la partie)', needsTarget:false, needsValue:false, isDoubleTrigger:true},
@@ -4521,6 +4523,10 @@ function buildEffectClause(eff, ab){
       const modeLabel = {abilities:'les capacités', buffs:'les bonus de stats', both:'les capacités et les bonus de stats'}[eff.silenceMode||'both'];
       return `retirez ${modeLabel} de ${targetPhrase(resolvedTarget)}`;
     }
+    case 'removeFromCombat':
+      return `retirez ${targetPhrase(resolvedTarget)} du combat`;
+    case 'destroySelf':
+      return `détruisez cette carte`;
     case 'sacrificeEffect':
       return `sacrifiez ${targetPhrase(resolvedTarget)}`;
     case 'counterCard':
