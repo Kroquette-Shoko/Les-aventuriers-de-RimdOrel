@@ -416,3 +416,6 @@ Correctif (`reduction_cout_hors_deck_20261027.sql`, morceaux 2 et 5) : `mapEffec
 - Données (script `veilleurs_texte_fidele_20261028.sql`) : A bout de bras (removeFromCombat), Tract (destroySelf), Acolyte (le +1/+1 « je gagne » cible la source), Fan (plus « une fois par tour »), Compagnon zélé / Cultiste solitaire (triggerOwner « any »), Déstructeur (cible choisie), Nécromancienne (zone `discard`), Un groupe soudé (durée fin de tour), Géant à deux têtes (cible pour chaque choix).
 - Points ambigus laissés tels quels : Talent de l'ingénieur (révèle 3 artefacts du deck), Nouveau contrat (« artefacts en jeu » = les deux camps ou le sien).
 - Condition `singleAttacker` (chunk 0, `evalConditionBase`) : vraie si l'adversaire attaque avec exactement 1 créature. Utilisée par À bout de bras (script `a_bout_de_bras_un_seul_attaquant_20261028.sql`) ; ajoutée à l'éditeur.
+
+## 2026-10-28 — Collection : filtre « Nouvelles cartes »
+- `spellcraft-deckbuilder.html` : nouveau filtre `filters.newOnly` (bouton 🆕 dans la barre rapide, à côté de 🙈). Il ne garde que les cartes présentes dans `newCardIds` (cartes obtenues depuis la dernière ouverture, qui ont encore la mention « Nouveau »). Une carte survolée perd sa mention, donc sort du filtre au prochain affichage. Réinitialisé par « Réinitialiser ».

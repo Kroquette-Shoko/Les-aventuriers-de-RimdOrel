@@ -834,7 +834,7 @@ let deckBuildStep = null; // null | 'hero' | 'region' | 'cards'
 let filters = {
   search:'', setId:'', classes:new Set(), classMode:'any', types:new Set(), rarities:new Set(), keywords:new Set(),
   costMode:'eq', costValue:'', powerMode:'eq', powerValue:'', toughnessMode:'eq', toughnessValue:'',
-  showFoils:true, showUnowned:false, hideOwned:false, craftableOnly:false, multiOnly:false, foilOnly:false
+  showFoils:true, showUnowned:false, hideOwned:false, craftableOnly:false, multiOnly:false, foilOnly:false, newOnly:false
 };
 let sortMode = 'class-cost-name';
 
@@ -1231,7 +1231,7 @@ function resetFilterPanel(){
   filters = {
     search:'', setId:'', classes:new Set(), classMode:'any', types:new Set(), rarities:new Set(), keywords:new Set(),
     costMode:'eq', costValue:'', powerMode:'eq', powerValue:'', toughnessMode:'eq', toughnessValue:'',
-    showFoils:true, showUnowned:false, hideOwned:false, craftableOnly:false, multiOnly:false, foilOnly:false
+    showFoils:true, showUnowned:false, hideOwned:false, craftableOnly:false, multiOnly:false, foilOnly:false, newOnly:false
   };
   currentPage = 0;
   renderFilterPanel();
@@ -1328,6 +1328,7 @@ function getFilteredSortedCollection(){
     }
 
     if(filters.hideOwned && (ownedCollection[c.id]||0) > 0) return false;
+    if(filters.newOnly && !newCardIds.has(c.id)) return false;
     if(filters.multiOnly && !c.classSecondary) return false;
     if(filters.foilOnly){
       const d = ownedDetail[c.id];
@@ -2059,7 +2060,7 @@ function buildQuickBar(){
   tabs.innerHTML = `<button type="button" class="qtab" data-k="">Toutes</button>` +
     QUICK_CLASSES.map(k=>`<button type="button" class="qtab" data-k="${escapeHtml(k)}" style="--qc:${getClassColor(k)}">${escapeHtml(k)}</button>`).join('');
   tabs.querySelectorAll('.qtab').forEach(b=>b.onclick = ()=>quickTab(b.dataset.k));
-  const TOG = [['multiOnly','Multi-source','Affiche seulement les cartes de 2 sources'],['foilOnly','✨','Foils : affiche seulement les cartes que tu possèdes en foil'],['showUnowned','👁','Non possédées : affiche aussi les cartes que tu ne possèdes pas'],['hideOwned','🙈','Cacher les possédées : retire les cartes que tu as déjà']];
+  const TOG = [['multiOnly','Multi-source','Affiche seulement les cartes de 2 sources'],['foilOnly','✨','Foils : affiche seulement les cartes que tu possèdes en foil'],['showUnowned','👁','Non possédées : affiche aussi les cartes que tu ne possèdes pas'],['hideOwned','🙈','Cacher les possédées : retire les cartes que tu as déjà'],['newOnly','🆕','Nouvelles : affiche seulement les cartes obtenues récemment (qui ont encore la mention Nouveau)']];
   TOG.forEach(([k,label,tip],i)=>{
     const b = document.createElement('button');
     b.type='button'; b.className='qtab qtog'; b.dataset.tog=k; b.textContent=label; b.title=tip; b.setAttribute('aria-label',tip); if(k!=='multiOnly') b.classList.add('qico');
