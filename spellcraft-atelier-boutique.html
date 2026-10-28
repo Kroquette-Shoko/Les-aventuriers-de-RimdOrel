@@ -49,6 +49,15 @@ input[type=text],input[type=number],select{box-sizing:border-box;width:100%;back
 .modal.show{display:flex;}
 .modal .box{background:hsl(calc(var(--th, 252) + 1.3) calc(var(--ts-n, 1) * 32.1%) 11%);border:1px solid hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%);border-radius:12px;padding:20px;width:620px;max-width:92vw;max-height:84vh;overflow:auto;}
 .modal textarea{width:100%;box-sizing:border-box;min-height:90px;background:hsl(calc(var(--th, 252) + 0.9) calc(var(--ts-n, 1) * 36.8%) 7.5%);color:#efe6c8;border:1px solid hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%);border-radius:8px;padding:10px;font-family:monospace;}
+.sc-chosen{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;min-height:30px;}
+.sc-chip{display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:14px;background:rgba(212,175,55,.14);border:1px solid #d4af37;color:#efe6c8;font-size:12px;cursor:pointer;}
+.sc-chip:hover{background:rgba(228,106,106,.2);border-color:#e46a6a;}
+.sc-list{max-height:210px;overflow:auto;margin-top:6px;border:1px solid hsl(calc(var(--th, 252) + 2.5) calc(var(--ts-n, 1) * 22.1%) 25.7%);border-radius:8px;}
+.sc-row{display:flex;justify-content:space-between;gap:8px;padding:6px 10px;font-size:12.5px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05);}
+.sc-row:hover{background:rgba(255,255,255,.05);}
+.sc-row.on{background:rgba(212,175,55,.16);}
+.sc-row small{color:#a89f86;}
+#b-desc{box-sizing:border-box;width:100%;min-height:80px;background:hsl(calc(var(--th, 252) + 0.9) calc(var(--ts-n, 1) * 36.8%) 7.5%);color:#efe6c8;border:1px solid hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%);border-radius:8px;padding:8px 10px;font:inherit;font-size:13px;resize:vertical;}
 .pgrid{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;}
 .pgrid div{width:84px;text-align:center;cursor:pointer;font-size:10px;color:#a89f86;}
 .pgrid img{width:84px;height:84px;object-fit:cover;border-radius:8px;border:2px solid hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%);display:block;}
@@ -138,6 +147,12 @@ function renderBoosters(){
     <div class="row2"><div class="field"><label id="b-set-label">${isMs?'Set contenu (toutes ses cartes)':'Set source'}</label><select id="b-set">${SETS.map(s=>`<option value="${esc(s.id)}" ${s.id===b.set_id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div>
     <div class="field"><label>Prix (or)</label><input type="number" id="b-price" min="1" value="${esc(b.price)}"></div></div>
     ${imageField('b',b.image_url)}
+    <div class="field"><label>Description (affichée en boutique)</label><textarea id="b-desc" maxlength="400" placeholder="Ex : Le set des Veilleurs : des créatures qui gagnent des mots-clés, et des artefacts à activer.">${esc(b.description||'')}</textarea></div>
+    <div class="field"><label>Cartes mises en avant (5 à 6 conseillées, 6 maximum) — <b id="b-sc-count">0</b>/6</label>
+      <div id="b-sc-chosen" class="sc-chosen"></div>
+      <input type="text" id="b-sc-search" placeholder="Rechercher une carte du set…" autocomplete="off">
+      <div id="b-sc-list" class="sc-list"></div>
+      <p class="hint">Clique sur une carte pour l'ajouter ou la retirer. Elles seront montrées aux joueurs dans la boutique (bouton « Voir le contenu »). Si tu changes le set source, la sélection est vidée.</p></div>
     <div class="field"><label style="display:flex;gap:8px;align-items:center;text-transform:none;font-size:13px;color:#efe6c8;cursor:pointer;"><input type="checkbox" id="b-shop" ${b.in_shop!==false?'checked':''} style="width:auto;"> Vendu dans la boutique (décoché : le booster reste utilisable comme récompense, mais n'apparaît pas en boutique)</label></div>
     <div id="b-box-booster" style="${isMs?'display:none':''}">
       <div class="field"><label>Contenu du booster</label><select id="b-mode"><option value="slots" ${allMode?'':'selected'}>Cartes tirées au hasard (tu règles les raretés)</option><option value="all" ${allMode?'selected':''}>Toutes les cartes du set (le booster donne le set complet)</option></select></div>
@@ -162,6 +177,7 @@ function renderBoosters(){
   }
   $('v-boosters').innerHTML=`<div class="split"><div class="panel"><h2>Boosters et mini-sets (${BOOSTERS.length})</h2>${list}<button class="btn sm" data-act="new-b">+ Nouveau booster</button> <button class="btn sm" data-act="new-ms">+ Nouveau mini-set</button></div><div class="panel"><h2>${b?(b.id?(b.kind==='miniset'?'Modifier le mini-set':'Modifier le booster'):(b.kind==='miniset'?'Nouveau mini-set':'Nouveau booster')):'Booster / mini-set'}</h2>${form}</div></div>`;
   updTotal(); updMsCount();
+  if(b) initShowcase(b);
 }
 async function updMsCount(){
   const e=$('b-count'), st=$('b-set'); if(!e||!st) return;
@@ -171,6 +187,35 @@ async function updMsCount(){
   e.style.color=(count<30||count>50)?'#e4b86a':'';
 }
 function onKindChange(){ onBoosterModeChange(); }
+/* ---------- Cartes mises en avant (boutique) ---------- */
+let SC=[], SC_CARDS=[];
+async function initShowcase(b){
+  SC=Array.isArray(b.showcase_cards)?b.showcase_cards.slice(0,6):[];
+  await loadScCards();
+}
+async function loadScCards(){
+  const st=$('b-set'); if(!st) return;
+  const {data,error}=await sb.from('cards').select('id,name:data->>name,rarity:data->>rarity,type:data->>type').eq('set_id',st.value);
+  SC_CARDS=error?[]:(data||[]).sort((x,y)=>String(x.name).localeCompare(String(y.name),'fr'));
+  if(error) say('b-status','Impossible de charger les cartes du set : '+error.message,false);
+  renderShowcase();
+}
+function renderShowcase(){
+  const ch=$('b-sc-chosen'), ls=$('b-sc-list'); if(!ch||!ls) return;
+  const byId=Object.fromEntries(SC_CARDS.map(c=>[c.id,c]));
+  ch.innerHTML=SC.map(id=>`<span class="sc-chip" data-act="sc-toggle" data-id="${esc(id)}" title="Retirer">${esc((byId[id]||{}).name||id)} ✕</span>`).join('')||'<span class="hint">Aucune carte choisie.</span>';
+  $('b-sc-count').textContent=SC.length;
+  const q=($('b-sc-search').value||'').trim().toLowerCase();
+  const rows=SC_CARDS.filter(c=>!q||String(c.name).toLowerCase().includes(q));
+  ls.innerHTML=rows.map(c=>`<div class="sc-row ${SC.includes(c.id)?'on':''}" data-act="sc-toggle" data-id="${esc(c.id)}"><span>${SC.includes(c.id)?'✓ ':''}${esc(c.name)}</span><small>${esc(c.type||'')} · ${esc(c.rarity||'')}</small></div>`).join('')||'<div class="empty">Aucune carte.</div>';
+}
+function toggleShowcase(id){
+  const i=SC.indexOf(id);
+  if(i>=0) SC.splice(i,1);
+  else if(SC.length>=6){ say('b-status','6 cartes maximum : retire-en une d\'abord.',false); return; }
+  else SC.push(id);
+  renderShowcase();
+}
 let SLOTS=[];
 function slotsHtml(){
   return SLOTS.map((sl,i)=>`<div class="slotrow"><div class="slotname">Slot ${i+1} <span class="hint" id="b-slpct-${i}">${slotPctText(sl)}</span></div><div class="rar">${RARS.map(r=>`<div><label>${r}</label><input type="number" min="0" class="b-sl" data-i="${i}" data-r="${r}" value="${esc(sl[r]!=null?sl[r]:0)}"></div>`).join('')}</div></div>`).join('')||'<div class="empty">Aucun slot.</div>';
@@ -227,6 +272,9 @@ async function saveBooster(){
   const hasSlots=BOOSTERS.some(x=>'slots' in x);
   if(hasSlots){ row.slots=custom?SLOTS.map(sl=>{const o={}; RARS.forEach(r=>{const v=parseFloat(sl[r])||0; if(v>0) o[r]=v;}); return o;}):null; row.content_mode=mode; }
   else if(custom||mode==='all') return say('b-status',"Les slots et le mode « tout le set » n'existent pas encore dans la base : exécute d'abord le fichier SQL boosters_slots_20261012.sql dans Supabase (SQL Editor).",false);
+  const desc=($('b-desc').value||'').trim();
+  if(BOOSTERS.some(x=>'description' in x)){ row.description=desc||null; row.showcase_cards=SC.length?SC.slice(0,6):null; }
+  else if(desc||SC.length) return say('b-status',"La description et les cartes mises en avant n'existent pas encore dans la base : exécute d'abord le fichier SQL boosters_description_cartes_20261028.sql dans Supabase (SQL Editor).",false);
   const hasCol=BOOSTERS.some(x=>'in_shop' in x);
   if(hasCol) row.in_shop=$('b-shop').checked;
   else if(!$('b-shop').checked) return say('b-status',"La colonne « in_shop » n'existe pas encore : exécute d'abord le fichier SQL de la livraison (boutique_recompenses_rarete).",false);
@@ -436,6 +484,7 @@ document.addEventListener('click',async e=>{
   else if(a==='new-b'){SEL.boosters='new';renderBoosters();}
   else if(a==='new-ms'){SEL.boosters='new-miniset';renderBoosters();}
   else if(a==='slots-copy'){ if(SLOTS.length){ const f=SLOTS[0]; SLOTS=SLOTS.map(()=>({...f})); $('b-slotlist').innerHTML=slotsHtml(); } }
+  else if(a==='sc-toggle') toggleShowcase(t.dataset.id);
   else if(a==='save-b') saveBooster(); else if(a==='del-b') delBooster();
   else if(a==='sel-c'){SEL.backs=t.dataset.id;renderBacks();}
   else if(a==='new-c'){SEL.backs='new';renderBacks();}
@@ -453,9 +502,10 @@ document.addEventListener('change',e=>{
   if(e.target.id==='b-mode') onBoosterModeChange();
   if(e.target.id==='b-custom'){ if(e.target.checked && !SLOTS.length){ seedSlotsFromLegacy(); $('b-slotlist').innerHTML=slotsHtml(); $('b-nslots').value=SLOTS.length; } onBoosterModeChange(); }
   if(e.target.id==='b-nslots') resizeSlots(e.target.value);
-  if(e.target.id==='b-set') updMsCount();
+  if(e.target.id==='b-set'){ updMsCount(); SC=[]; loadScCards(); }
 });
 document.addEventListener('input',e=>{
+  if(e.target.id==='b-sc-search') renderShowcase();
   if(e.target.classList.contains('b-rar')) updTotal();
   if(e.target.classList.contains('b-sl')){ const i=+e.target.dataset.i; SLOTS[i][e.target.dataset.r]=parseFloat(e.target.value)||0; const el=$('b-slpct-'+i); if(el) el.textContent=slotPctText(SLOTS[i]); }
   if(e.target.id==='picker-list'){try{localStorage.setItem(STORE,e.target.value);}catch(x){} pickerGrid();}

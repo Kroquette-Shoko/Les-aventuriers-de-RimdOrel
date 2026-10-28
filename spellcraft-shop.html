@@ -89,6 +89,8 @@
 .shop-item:hover{transform:translateY(-4px);border-color:var(--gold);}
 .shop-item-art{width:100%;height:150px;border-radius:8px;background:linear-gradient(135deg,hsl(calc(var(--th, 252) + 0.9) calc(var(--ts-n, 1) * 28%) 19.6%),hsl(calc(var(--th, 252) + 0) calc(var(--ts-n, 1) * 32.3%) 12.2%));display:flex;align-items:center;justify-content:center;font-size:32px;background-size:contain !important;background-repeat:no-repeat;background-position:center;}
 .shop-item-name{font-family:'Cinzel',serif;font-size:12.5px;font-weight:700;}
+.shop-item-more{background:none;border:1px solid var(--gold);color:var(--gold);border-radius:6px;padding:4px 8px;font-size:11px;font-family:'Cinzel',serif;cursor:pointer;}
+.shop-item-more:hover{background:rgba(212,175,55,.12);}
 .shop-item-desc{font-size:10.5px;color:var(--parchment-dim);line-height:1.4;}
 .shop-item-price{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:700;color:var(--gold);}
 .booster-qty-row{display:flex;align-items:center;gap:10px;font-family:'Cinzel',serif;font-weight:700;}
@@ -506,6 +508,17 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="pack-preview-modal">
+  <div class="modal-box" style="max-width:820px;">
+    <h2 id="pack-preview-title"></h2>
+    <p id="pack-preview-desc" style="font-size:13.5px;line-height:1.55;color:var(--parchment);white-space:pre-line;margin:0 0 14px;"></p>
+    <div id="pack-preview-cards" style="display:flex;flex-wrap:wrap;gap:14px;justify-content:center;"></div>
+    <div class="modal-actions">
+      <button onclick="closeModal('pack-preview-modal')">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="my-boosters-modal">
   <div class="modal-box">
     <h2>📦 Mes boosters</h2>
@@ -748,6 +761,39 @@ async function refreshCurrency(){
   if(curOpale) curOpale.textContent = profile.fragments_opale ?? 0;
 }
 
+// Description + cartes mises en avant d'un booster / mini-set (réglées dans l'atelier boutique)
+const PACKS_BY_ID = {};
+function packDescHtml(b, fallback){
+  return b.description ? escapeHtmlShop(b.description).replace(/\n/g,'<br>') : fallback;
+}
+function packMoreBtn(b){
+  const has = !!b.description || (Array.isArray(b.showcase_cards) && b.showcase_cards.length);
+  return has ? `<button class="shop-item-more" onclick="showPackPreview('${b.id}')">🔍 Voir le contenu</button>` : '';
+}
+async function showPackPreview(id){
+  const b = PACKS_BY_ID[id]; if(!b) return;
+  document.getElementById('pack-preview-title').textContent = b.name || '';
+  document.getElementById('pack-preview-desc').textContent = b.description || '';
+  const grid = document.getElementById('pack-preview-cards');
+  const ids = Array.isArray(b.showcase_cards) ? b.showcase_cards.slice(0,6) : [];
+  grid.innerHTML = ids.length ? '<div class="empty-shelf">Chargement…</div>' : '';
+  openModal('pack-preview-modal');
+  if(!ids.length) return;
+  const full = await fetchFullCards(ids);
+  grid.innerHTML = '';
+  ids.forEach(cid => {
+    const card = full[cid]; if(!card) return;
+    const holder = document.createElement('div');
+    holder.style.cssText = 'position:relative;width:210px;height:296px;overflow:hidden;';
+    try{
+      const el = buildBoosterCardEl(card);
+      el.style.transform = 'scale(0.7)'; el.style.transformOrigin = 'top left';
+      attachShopHoverPreview(el, card);
+      holder.appendChild(el);
+    }catch(e){ console.error('Erreur carte vitrine :', e); return; }
+    grid.appendChild(holder);
+  });
+}
 async function renderBoosterShelf(){
   const el = document.getElementById('shelf-boosters');
   const res = await sb.from('boosters').select('*').order('price');
@@ -765,11 +811,13 @@ async function renderBoosterShelf(){
     el.innerHTML = `<div class="empty-shelf">Aucun booster disponible pour l'instant — reviens plus tard !</div>`;
     return;
   }
+  data.forEach(b => { PACKS_BY_ID[b.id] = b; });
   el.innerHTML = data.map(b=>`
     <div class="shop-item">
       <div class="shop-item-art" style="${b.image_url?`background-image:url('${b.image_url}');background-size:cover;`:''}">${b.image_url?'':'📦'}</div>
       <div class="shop-item-name">${escapeHtmlShop(b.name)}</div>
-      <div class="shop-item-desc">${b.content_mode==='all' ? 'Toutes les cartes du set correspondant.' : ((Array.isArray(b.slots)&&b.slots.length ? b.slots.length : 6)+' cartes du set correspondant.')} Rejoint ton inventaire — s'ouvre séparément.</div>
+      <div class="shop-item-desc">${packDescHtml(b, '')}${b.description?'<br>':''}${b.content_mode==='all' ? 'Toutes les cartes du set correspondant.' : ((Array.isArray(b.slots)&&b.slots.length ? b.slots.length : 6)+' cartes du set correspondant.')} Rejoint ton inventaire — s'ouvre séparément.</div>
+      ${packMoreBtn(b)}
       <div class="shop-item-price"><span class="money-icon"></span> ${b.price} <span style="font-size:10px;color:var(--parchment-dim);">/ unité</span></div>
       <div class="booster-qty-row">
         <button class="qty-btn" onclick="adjustBoosterQty('${b.id}', -1)">−</button>
@@ -806,6 +854,7 @@ async function renderMinisetShelf(){
     }catch(e){ counts[b.id] = null; }
   }));
   wrap.style.display = '';
+  list.forEach(b => { PACKS_BY_ID[b.id] = b; });
   el.innerHTML = list.map(b => {
     const n = counts[b.id];
     const has = owned.has(b.id);
@@ -814,7 +863,8 @@ async function renderMinisetShelf(){
     <div class="shop-item">
       <div class="shop-item-art" style="${b.image_url?`background-image:url('${b.image_url}');background-size:cover;`:''}">${b.image_url?'':'🗂️'}</div>
       <div class="shop-item-name">${escapeHtmlShop(b.name)}</div>
-      <div class="shop-item-desc">Toutes les cartes du set${n!=null?` (${n} cartes)`:''} d'un seul coup : ${copies}. Achat unique.</div>
+      <div class="shop-item-desc">${packDescHtml(b, '')}${b.description?'<br>':''}Toutes les cartes du set${n!=null?` (${n} cartes)`:''} d'un seul coup : ${copies}. Achat unique.</div>
+      ${packMoreBtn(b)}
       <div class="shop-item-price"><span class="money-icon"></span> ${b.price}</div>
       ${has
         ? `<button class="buy-btn" disabled style="opacity:.6;cursor:default;" title="Achat unique : tu as déjà acheté ce mini-set, il ne peut pas être racheté.">✓ Déjà acheté (achat unique)</button>`
