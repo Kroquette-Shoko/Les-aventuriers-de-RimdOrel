@@ -437,3 +437,8 @@ Correctif (`reduction_cout_hors_deck_20261027.sql`, morceaux 2 et 5) : `mapEffec
 ## 2026-10-28 — Cartes rognées sur les bords (boutique, quêtes, deckbuilder)
 - Cause : les cadres dessinés (`n-drawn`) ont des éléments qui dépassent légèrement de la carte (gemme de coût en haut à gauche, emblèmes de stats en bas). Les boîtes qui entouraient les cartes réduites avaient `overflow:hidden` et les coupaient.
 - Correction : `overflow:visible` sur les holders de `spellcraft-shop.html` (aperçu de pack, étagères, offres du jour, révélation de booster), `.craft-linked-card .ncard` et `.hp-linked-slot` (deckbuilder), `.reward-card-mini` (quêtes). Espacement des cartes de l'aperçu de pack augmenté (22px/24px).
+
+## 2026-10-28 — Ouverture de booster carte par carte + récapitulatif
+- `dealBoosterCards` (spellcraft-shop.html) refait : une grande carte face cachée au centre (taille adaptée à la hauteur d'écran), compteur « n / total », 1er clic/Espace/Entrée = retourne, 2e = carte suivante. Les cartes vues s'alignent en miniatures (liseré selon rareté). Bouton « Tout révéler » = saute au récapitulatif. Plus de barre de défilement.
+- Fin d'ouverture (`finishBoosterOpening`) : ferme l'écran de révélation, affiche le toast de fragments puis le même récapitulatif (tableau) que l'ouverture automatique (`showAutoSummary`), titre au singulier/pluriel (`lastBoosterQty`). « Fermer » ramène à la liste des boosters (`closeAutoSummary`).
+- `closeBoosterOpening` conservé mais n'est plus appelé par le flux normal.
