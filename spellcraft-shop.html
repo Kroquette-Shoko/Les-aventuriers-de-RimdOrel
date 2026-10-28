@@ -513,6 +513,7 @@
     <h2 id="pack-preview-title"></h2>
     <p id="pack-preview-desc" style="font-size:13.5px;line-height:1.55;color:var(--parchment);white-space:pre-line;margin:0 0 14px;"></p>
     <div id="pack-preview-cards" style="display:flex;flex-wrap:wrap;gap:14px;justify-content:center;"></div>
+    <div id="pack-preview-list" style="margin-top:18px;"></div>
     <div class="modal-actions">
       <button onclick="closeModal('pack-preview-modal')">Fermer</button>
     </div>
@@ -767,7 +768,7 @@ function packDescHtml(b, fallback){
   return b.description ? escapeHtmlShop(b.description).replace(/\n/g,'<br>') : fallback;
 }
 function packMoreBtn(b){
-  const has = !!b.description || (Array.isArray(b.showcase_cards) && b.showcase_cards.length);
+  const has = b.kind === 'miniset' || !!b.description || (Array.isArray(b.showcase_cards) && b.showcase_cards.length);
   return has ? `<button class="shop-item-more" onclick="showPackPreview('${b.id}')">🔍 Voir le contenu</button>` : '';
 }
 async function showPackPreview(id){
@@ -777,7 +778,10 @@ async function showPackPreview(id){
   const grid = document.getElementById('pack-preview-cards');
   const ids = Array.isArray(b.showcase_cards) ? b.showcase_cards.slice(0,6) : [];
   grid.innerHTML = ids.length ? '<div class="empty-shelf">Chargement…</div>' : '';
+  const listEl = document.getElementById('pack-preview-list');
+  listEl.innerHTML = '';
   openModal('pack-preview-modal');
+  if(b.kind === 'miniset') loadPackCardList(b, listEl);
   if(!ids.length) return;
   const full = await fetchFullCards(ids);
   grid.innerHTML = '';
@@ -793,6 +797,22 @@ async function showPackPreview(id){
     }catch(e){ console.error('Erreur carte vitrine :', e); return; }
     grid.appendChild(holder);
   });
+}
+// Mini-set : liste complète des cartes du set (nom / classe / rareté)
+async function loadPackCardList(b, listEl){
+  listEl.innerHTML = '<div class="empty-shelf">Chargement de la liste…</div>';
+  const r = await sb.from('cards').select('id,name:data->>name,cls:data->>class,rarity:data->>rarity,type:data->>type').eq('set_id', b.set_id);
+  if(r.error || !r.data){ listEl.innerHTML = ''; return; }
+  const ORDER = ['Basique','Commune','Rare','Épique','Mythique','Légendaire'];
+  const rows = r.data.slice().sort((x,y)=> (ORDER.indexOf(x.rarity)-ORDER.indexOf(y.rarity)) || String(x.name).localeCompare(String(y.name),'fr'));
+  listEl.innerHTML = `<div style="font-family:'Cinzel',serif;font-size:13px;color:var(--gold);margin-bottom:8px;">Les ${rows.length} cartes du set</div>
+    <div style="display:flex;flex-direction:column;gap:3px;">` + rows.map(c => `
+      <div style="display:flex;align-items:center;gap:10px;padding:5px 10px;border-radius:6px;background:var(--bg-panel-2);font-size:12.5px;">
+        <span style="width:10px;height:10px;border-radius:50%;flex-shrink:0;background:${getClassColor(c.cls)};"></span>
+        <span style="flex:1;min-width:0;">${escapeHtmlShop(c.name||'?')}</span>
+        <span style="color:var(--parchment-dim);font-size:11.5px;">${escapeHtmlShop(c.cls||'Neutre')}</span>
+        <span style="color:var(--gold);font-size:11.5px;min-width:70px;text-align:right;">${escapeHtmlShop(c.rarity||'')}</span>
+      </div>`).join('') + '</div>';
 }
 async function renderBoosterShelf(){
   const el = document.getElementById('shelf-boosters');
@@ -816,7 +836,7 @@ async function renderBoosterShelf(){
     <div class="shop-item">
       <div class="shop-item-art" style="${b.image_url?`background-image:url('${b.image_url}');background-size:cover;`:''}">${b.image_url?'':'📦'}</div>
       <div class="shop-item-name">${escapeHtmlShop(b.name)}</div>
-      <div class="shop-item-desc">${packDescHtml(b, '')}${b.description?'<br>':''}${b.content_mode==='all' ? 'Toutes les cartes du set correspondant.' : ((Array.isArray(b.slots)&&b.slots.length ? b.slots.length : 6)+' cartes du set correspondant.')} Rejoint ton inventaire — s'ouvre séparément.</div>
+      <div class="shop-item-desc">${b.description ? packDescHtml(b, '') : `${b.content_mode==='all' ? 'Toutes les cartes du set correspondant.' : ((Array.isArray(b.slots)&&b.slots.length ? b.slots.length : 6)+' cartes du set correspondant.')} Rejoint ton inventaire — s'ouvre séparément.`}</div>
       ${packMoreBtn(b)}
       <div class="shop-item-price"><span class="money-icon"></span> ${b.price} <span style="font-size:10px;color:var(--parchment-dim);">/ unité</span></div>
       <div class="booster-qty-row">
@@ -863,7 +883,7 @@ async function renderMinisetShelf(){
     <div class="shop-item">
       <div class="shop-item-art" style="${b.image_url?`background-image:url('${b.image_url}');background-size:cover;`:''}">${b.image_url?'':'🗂️'}</div>
       <div class="shop-item-name">${escapeHtmlShop(b.name)}</div>
-      <div class="shop-item-desc">${packDescHtml(b, '')}${b.description?'<br>':''}Toutes les cartes du set${n!=null?` (${n} cartes)`:''} d'un seul coup : ${copies}. Achat unique.</div>
+      <div class="shop-item-desc">${b.description ? packDescHtml(b, '') : `Toutes les cartes du set${n!=null?` (${n} cartes)`:''} d'un seul coup : ${copies}. Achat unique.`}</div>
       ${packMoreBtn(b)}
       <div class="shop-item-price"><span class="money-icon"></span> ${b.price}</div>
       ${has
