@@ -4015,7 +4015,7 @@ function buildEffectRow(ab, eff, choiceKey){
     }
   }
   if(def.isDoubleTrigger){
-    const trigOptions = Object.keys(TRIGGER_TEXT).map(k=>({key:k, label: TRIGGER_SHORT_NAME[k] ? `${TRIGGER_SHORT_NAME[k]} — ${TRIGGER_TEXT[k]}` : TRIGGER_TEXT[k]}));
+    const trigOptions = [{key:'__hero', label:'Tous les effets de votre héros (capacités et pouvoir de héros)'}].concat(Object.keys(TRIGGER_TEXT).map(k=>({key:k, label: TRIGGER_SHORT_NAME[k] ? `${TRIGGER_SHORT_NAME[k]} — ${TRIGGER_TEXT[k]}` : TRIGGER_TEXT[k]})));
     row.appendChild(makeSelectField('Déclencheur doublé', trigOptions, eff.doubleTriggerName||trigOptions[0]?.key, v=>{ eff.doubleTriggerName=v; rebuildAbilitiesUI(); onFormChange(); }));
     // Le filtre allié/adverse n'a de sens que pour les déclencheurs de la
     // famille "watch" (ceux qui, ailleurs dans l'éditeur, proposent déjà ce
@@ -4596,6 +4596,7 @@ function buildEffectClause(eff, ab){
     case 'destroyDealAtk':
       return `détruisez ${targetPhrase(resolvedTarget)}, puis infligez sa Force à la carte visée par une autre cible de cette capacité`;
     case 'doubleEffectsTrigger': {
+      if(eff.doubleTriggerName==='__hero') return `double les effets de votre héros (capacités et pouvoir de héros) ce tour-ci`;
       const trigLabel = TRIGGER_SHORT_NAME[eff.doubleTriggerName] ? `${TRIGGER_SHORT_NAME[eff.doubleTriggerName]} — ${TRIGGER_TEXT[eff.doubleTriggerName]}` : (TRIGGER_TEXT[eff.doubleTriggerName] || '?');
       return `double les effets déclenchés par « ${trigLabel} » sur cette carte`;
     }
