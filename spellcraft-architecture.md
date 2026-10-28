@@ -494,3 +494,7 @@ Correctif (`reduction_cout_hors_deck_20261027.sql`, morceaux 2 et 5) : `mapEffec
 - `aiPickSpellPair` et `aiPlanSpellAbility` : valeur des paires en `aiWorth` (score/3).
 - Script `ia_cibles_et_zero_attaque_20261028.sql` (morceau 13 ; sauvegarde `_backup_game_action_chunks_20261028_ia2`).
 - Correctif `ia_cibles_correctif_nom_20261028.sql` : le script IA v3 renommait aussi la nouvelle `aiPickSpellTargets` en `…Legacy` (le `replace` SQL touche toutes les occurrences, même celles qu'il vient d'insérer) → erreur « aiPickSpellTargets is not defined ». Leçon : renommer l'ancienne fonction AVANT d'insérer la nouvelle, ou garder des noms de remplacement distincts de l'ancre.
+
+## 2026-10-28 — Lance divine : cible « créature attaquante » sans bloqueur
+- `resolveNewTargetEntry`, cible `combat_attacker` (morceau 5) : l'id de l'attaquant n'était lu que sur le bloqueur (`_combatAttackerId`). Au déclenchement d'un piège `onOpponentAttack` (déclaration d'attaque), il n'y a pas de bloqueur → cible vide → piège consommé sans effet. Maintenant, sans bloqueur : les créatures attaquantes du camp adverse (hors Imparable s'il en reste d'autres), tirage au hasard si `selectionMode: "random"`.
+- Script `lance_divine_cible_attaquant_20261028.sql` (sauvegarde `_backup_game_action_chunks_20261028_lance`).
