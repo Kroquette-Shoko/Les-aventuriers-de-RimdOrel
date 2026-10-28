@@ -302,6 +302,7 @@
 .rv-focus::after{transform:translate(7px,4px) rotate(1.5deg);z-index:0;}
 .rv-focus.rv-more2::before{opacity:1;}
 .rv-focus.rv-more1::after{opacity:1;}
+.rv-focus .flip-front .ncard{transform:none !important;}
 .rv-focus .flip-card{z-index:1;transition:opacity .35s ease, transform .35s ease;}
 .rv-hint{color:var(--parchment-dim);font-family:'Cinzel',serif;font-size:13px;letter-spacing:.5px;min-height:18px;}
 .rv-thumbs{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;max-width:90vw;min-height:80px;align-items:flex-start;}
@@ -1801,7 +1802,6 @@ function dealBoosterCards(cardsStage, cardsResult, fullCards, backUrl, actions){
     const tierClass = cardRarityTierClass(full);
     if(tierClass) flip.classList.add(tierClass);
     const frontCardEl = buildBoosterCardEl(full, res.result==='card' && res.is_new===true);
-    attachShopHoverPreview(frontCardEl, full);
     front.appendChild(frontCardEl);
     let banner = null;
     if(res.result==='fragments'){
@@ -1841,7 +1841,6 @@ function dealBoosterCards(cardsStage, cardsResult, fullCards, backUrl, actions){
     el.style.transform = `scale(${w/300})`;
     el.style.transformOrigin = 'top left';
     holder.appendChild(el);
-    attachShopHoverPreview(el, full);
     return holder;
   }
 

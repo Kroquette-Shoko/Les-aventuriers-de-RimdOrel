@@ -445,3 +445,6 @@ Correctif (`reduction_cout_hors_deck_20261027.sql`, morceaux 2 et 5) : `mapEffec
 
 ## 2026-10-28 — Transition « on change de carte » à l'ouverture de booster
 - Dans `dealBoosterCards` : la carte vue s'envole vers la gauche (rotation + fondu, 0,3 s) pendant que la suivante arrive depuis la droite ; une pioche de 1–2 dos de carte (dos équipé, variable CSS `--rv-back`) reste visible derrière tant qu'il reste des cartes. Verrou `busy` contre les doubles clics.
+
+## 2026-10-28 — Ouverture de booster : carte à la taille du dos, sans aperçu au survol
+- Révélation : plus d'aperçu agrandi au survol (grande carte et miniatures). La face de la carte remplit tout le cadre (`.rv-focus .flip-front .ncard{transform:none}`), donc même taille que le dos et la pioche derrière.
