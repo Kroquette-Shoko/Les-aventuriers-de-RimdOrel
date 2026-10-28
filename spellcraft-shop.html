@@ -1852,7 +1852,7 @@ function dealBoosterCards(cardsStage, cardsResult, fullCards, backUrl, actions){
     focus.innerHTML = '';
     current = makeFlip(cardsResult[idx]);
     const f = current.flip;
-    if(fromSide){ f.style.opacity = '0'; f.style.transform = 'translateX(130%) rotate(12deg)'; }
+    if(fromSide){ f.style.opacity = '1'; f.style.transform = 'translate(7px,4px) rotate(1.5deg)'; }
     focus.appendChild(f);
     // Pioche visible derrière la carte : 1 ou 2 « cartes » de dos s'il en reste.
     const left = total - idx - 1;
@@ -1860,7 +1860,7 @@ function dealBoosterCards(cardsStage, cardsResult, fullCards, backUrl, actions){
     focus.classList.toggle('rv-more2', left >= 2);
     requestAnimationFrame(()=>requestAnimationFrame(()=>{
       f.classList.add('dealt');
-      if(fromSide){ f.style.opacity = ''; f.style.transform = ''; }
+      if(fromSide){ f.style.transform = ''; }
     }));
     hintEl.textContent = 'Clique sur la carte pour la retourner';
     updateCounter();
@@ -1890,7 +1890,7 @@ function dealBoosterCards(cardsStage, cardsResult, fullCards, backUrl, actions){
     seen.push({ res:current.res, full:current.full });
     addThumb(current.res, current.full);
     idx++;
-    // La carte vue s'envole vers la gauche, la suivante arrive de la pioche.
+    // La carte vue s'envole vers la gauche ; la suivante est celle de la pioche derrière, qui se met en place.
     const out = current.flip;
     out.style.transition = 'transform .3s ease-in, opacity .3s ease-in';
     out.style.transform = 'translate(-130%,-12%) rotate(-14deg)';

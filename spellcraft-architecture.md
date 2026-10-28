@@ -448,3 +448,6 @@ Correctif (`reduction_cout_hors_deck_20261027.sql`, morceaux 2 et 5) : `mapEffec
 
 ## 2026-10-28 — Ouverture de booster : carte à la taille du dos, sans aperçu au survol
 - Révélation : plus d'aperçu agrandi au survol (grande carte et miniatures). La face de la carte remplit tout le cadre (`.rv-focus .flip-front .ncard{transform:none}`), donc même taille que le dos et la pioche derrière.
+
+## 2026-10-28 — Booster : la carte suivante vient de la pioche
+- La carte suivante n'arrive plus par la droite : elle part de la position de la pioche (décalage 7px/4px, rotation 1,5°) et se met en place, opaque dès le départ.
