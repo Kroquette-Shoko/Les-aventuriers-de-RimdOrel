@@ -473,3 +473,12 @@ Correctif (`reduction_cout_hors_deck_20261027.sql`, morceaux 2 et 5) : `mapEffec
 ## 2026-10-28 — Cartes cadeaux dans un booster (`boosters.gift_cards`)
 - Nouvelle colonne `boosters.gift_cards` (jsonb, tableau d'ids de cartes, null = aucun). `open_booster` et `open_boosters_bulk` (mode « slots ») ajoutent ces cartes à la collection après le tirage (via `grant_card_finish`, sans plafond d'exemplaires) et les renvoient dans `cards` avec `gift: true`, donc elles apparaissent dans la révélation et le récapitulatif. Le mode « tout le set » n'est pas concerné.
 - Script `cadeau_pack_veilleurs_20261028.sql` : colonne + patch des 2 fonctions (sauvegarde `_backup_fn_cadeau_20261028`) + cadeau « Boom, barbare danseur » (`card_1785799680674_400`) sur `booster_1792599564249` (pack des Veilleurs). Pas encore d'interface d'édition : se règle en SQL.
+
+## 2026-10-28 — IA v2 : mulligan, lecture des attaques et des défenses
+- Niveau « normal » uniquement (`aiLevel() !== "easy"`) ; le niveau facile utilise `aiChooseAttackersLegacy` / `doAiBlockingLegacy` (anciennes fonctions renommées).
+- `aiMulliganDo(p2)` (appelée dans `buildInitialState`) : rend les cartes à 5+, garde au plus 1 carte à 4 et 2 à 3 (meilleures selon `aiWorth`), au moins 2 cartes en main, pioche les remplaçantes AVANT de remettre les cartes rendues dans le deck (3 passes max).
+- `aiPlanBlocks(attackers, blockers, defHp, canBlock)` : plan de blocage commun (paires rentables d'abord, puis blocages de sacrifice si PV ≤ `AI2.dangerHp`). Utilisé par la défense (`doAiBlocking`) et par l'attaque (simulation de la défense adverse).
+- `aiChooseAttackers` v2 : létal garanti = tous attaquent ; sinon ajout glouton des attaquants avec évaluation (dégâts au héros pondérés par ses PV, créatures tuées/perdues, Increvable via `aiDuel2`, Brutalité via `aiLeak`), pénalité −1000 si contre-attaque létale, seuil selon l'avance de PV + 1,5 par piège armé adverse (plafond 3).
+- Constantes de réglage : `AI2` (`pairMin`, `dangerHp`, `chumpExtra`, `dmgBase`, `dmgHp`, `trapPenalty`).
+- Script `ia_mulligan_attaque_defense_20261028.sql` (morceaux 11, 12, 13 ; sauvegarde `_backup_game_action_chunks_20261028_ia1`).
+- À faire ensuite : ciblage des cartes de gestion (sorts de suppression gaspillés sur des cibles aléatoires).
