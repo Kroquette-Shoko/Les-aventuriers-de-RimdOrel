@@ -482,3 +482,7 @@ Correctif (`reduction_cout_hors_deck_20261027.sql`, morceaux 2 et 5) : `mapEffec
 - Constantes de réglage : `AI2` (`pairMin`, `dangerHp`, `chumpExtra`, `dmgBase`, `dmgHp`, `trapPenalty`).
 - Script `ia_mulligan_attaque_defense_20261028.sql` (morceaux 11, 12, 13 ; sauvegarde `_backup_game_action_chunks_20261028_ia1`).
 - À faire ensuite : ciblage des cartes de gestion (sorts de suppression gaspillés sur des cibles aléatoires).
+
+## 2026-10-28 — Coût supplémentaire d'une capacité « utiliser » payé à la pose (bug)
+- `getExtraCostSource(card)` (morceau 7) ignore désormais les capacités dont tous les déclencheurs sont `activated` : leur coût (ex. « perdez 1 PV » de Verre de sang) n'est payé qu'au clic, plus à la pose. Les appels à l'activation passent l'entrée de déclencheur (`te`) et ne sont pas touchés.
+- Script `cout_capacite_pas_a_la_pose_20261028.sql` (sauvegarde `_backup_game_action_chunks_20261028_cout_pose`). Seule carte concernée : Verre de sang.
