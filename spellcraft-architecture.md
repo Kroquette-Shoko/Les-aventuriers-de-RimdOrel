@@ -442,3 +442,6 @@ Correctif (`reduction_cout_hors_deck_20261027.sql`, morceaux 2 et 5) : `mapEffec
 - `dealBoosterCards` (spellcraft-shop.html) refait : une grande carte face cachée au centre (taille adaptée à la hauteur d'écran), compteur « n / total », 1er clic/Espace/Entrée = retourne, 2e = carte suivante. Les cartes vues s'alignent en miniatures (liseré selon rareté). Bouton « Tout révéler » = saute au récapitulatif. Plus de barre de défilement.
 - Fin d'ouverture (`finishBoosterOpening`) : ferme l'écran de révélation, affiche le toast de fragments puis le même récapitulatif (tableau) que l'ouverture automatique (`showAutoSummary`), titre au singulier/pluriel (`lastBoosterQty`). « Fermer » ramène à la liste des boosters (`closeAutoSummary`).
 - `closeBoosterOpening` conservé mais n'est plus appelé par le flux normal.
+
+## 2026-10-28 — Transition « on change de carte » à l'ouverture de booster
+- Dans `dealBoosterCards` : la carte vue s'envole vers la gauche (rotation + fondu, 0,3 s) pendant que la suivante arrive depuis la droite ; une pioche de 1–2 dos de carte (dos équipé, variable CSS `--rv-back`) reste visible derrière tant qu'il reste des cartes. Verrou `busy` contre les doubles clics.

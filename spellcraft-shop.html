@@ -297,7 +297,12 @@
 #cards-stage.rv-summary{flex-direction:column;align-items:center;flex-wrap:nowrap;max-width:1000px;max-height:none;overflow:visible;gap:12px;}
 .rv-counter{font-family:'Cinzel',serif;color:var(--gold);font-size:18px;letter-spacing:1px;}
 .rv-focus{position:relative;cursor:pointer;}
-.rv-focus .flip-card{transition:opacity .35s ease, transform .35s ease;}
+.rv-focus::before,.rv-focus::after{content:'';position:absolute;inset:0;border-radius:10px;border:3px solid var(--gold);box-shadow:0 6px 16px rgba(0,0,0,.6);background:var(--rv-back, linear-gradient(160deg,#2a2150,#14102a)) center/cover;opacity:0;transition:opacity .25s;z-index:0;}
+.rv-focus::before{transform:translate(14px,8px) rotate(3deg);}
+.rv-focus::after{transform:translate(7px,4px) rotate(1.5deg);z-index:0;}
+.rv-focus.rv-more2::before{opacity:1;}
+.rv-focus.rv-more1::after{opacity:1;}
+.rv-focus .flip-card{z-index:1;transition:opacity .35s ease, transform .35s ease;}
 .rv-hint{color:var(--parchment-dim);font-family:'Cinzel',serif;font-size:13px;letter-spacing:.5px;min-height:18px;}
 .rv-thumbs{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;max-width:90vw;min-height:80px;align-items:flex-start;}
 .rv-thumb{border-radius:5px;}
@@ -1752,6 +1757,7 @@ let __rvKeyHandler = null;
 function dealBoosterCards(cardsStage, cardsResult, fullCards, backUrl, actions){
   const total = cardsResult.length;
   let idx = 0;
+  let busy = false;
   let current = null;   // { flip, banner, full, res, flipped }
   const seen = [];      // { res, full }
 
@@ -1776,6 +1782,7 @@ function dealBoosterCards(cardsStage, cardsResult, fullCards, backUrl, actions){
   const focusW = Math.round(focusH * 300 / 423.2);
   focus.style.width = focusW + 'px';
   focus.style.height = focusH + 'px';
+  if(backUrl) focus.style.setProperty('--rv-back', `url('${backUrl}')`);
 
   function makeFlip(res){
     const flip = document.createElement('div');
@@ -1842,11 +1849,20 @@ function dealBoosterCards(cardsStage, cardsResult, fullCards, backUrl, actions){
     counter.textContent = `${Math.min(idx+1, total)} / ${total}`;
   }
 
-  function showCurrent(){
+  function showCurrent(fromSide){
     focus.innerHTML = '';
     current = makeFlip(cardsResult[idx]);
-    focus.appendChild(current.flip);
-    requestAnimationFrame(()=>requestAnimationFrame(()=>current.flip.classList.add('dealt')));
+    const f = current.flip;
+    if(fromSide){ f.style.opacity = '0'; f.style.transform = 'translateX(130%) rotate(12deg)'; }
+    focus.appendChild(f);
+    // Pioche visible derrière la carte : 1 ou 2 « cartes » de dos s'il en reste.
+    const left = total - idx - 1;
+    focus.classList.toggle('rv-more1', left >= 1);
+    focus.classList.toggle('rv-more2', left >= 2);
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{
+      f.classList.add('dealt');
+      if(fromSide){ f.style.opacity = ''; f.style.transform = ''; }
+    }));
     hintEl.textContent = 'Clique sur la carte pour la retourner';
     updateCounter();
   }
@@ -1870,11 +1886,21 @@ function dealBoosterCards(cardsStage, cardsResult, fullCards, backUrl, actions){
       hintEl.textContent = idx+1 < total ? 'Clique pour passer à la carte suivante' : 'Clique pour voir le récapitulatif';
       return;
     }
+    if(busy) return;
+    busy = true;
     seen.push({ res:current.res, full:current.full });
     addThumb(current.res, current.full);
     idx++;
-    if(idx >= total){ showSummary(); return; }
-    showCurrent();
+    // La carte vue s'envole vers la gauche, la suivante arrive de la pioche.
+    const out = current.flip;
+    out.style.transition = 'transform .3s ease-in, opacity .3s ease-in';
+    out.style.transform = 'translate(-130%,-12%) rotate(-14deg)';
+    out.style.opacity = '0';
+    setTimeout(()=>{
+      busy = false;
+      if(idx >= total){ showSummary(); return; }
+      showCurrent(true);
+    }, 300);
   }
 
   // Fin de l'ouverture : on ferme l'écran de révélation puis on affiche le
