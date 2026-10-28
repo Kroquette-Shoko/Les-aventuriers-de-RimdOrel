@@ -451,3 +451,8 @@ Correctif (`reduction_cout_hors_deck_20261027.sql`, morceaux 2 et 5) : `mapEffec
 
 ## 2026-10-28 — Booster : la carte suivante vient de la pioche
 - La carte suivante n'arrive plus par la droite : elle part de la position de la pioche (décalage 7px/4px, rotation 1,5°) et se met en place, opaque dès le départ.
+
+## 2026-10-28 — Succès : booster/fabrication/désenchantement jamais comptés + achat unitaire compté comme fabrication
+- Cause 1 : `craft_card`, `craft_card_finish`, `disenchant_card`, `disenchant_cards_bulk(_v2)`, `open_booster`, `open_boosters_bulk` appelaient `progress_achievement('x', 1, null, v_user_id)`. La signature est `(type, amount, card_type, card_class, user_id, hero)` : l'uuid tombait sur `card_class` -> fonction introuvable -> erreur avalée par `exception when others then null`. Aucun succès d'ouverture (2/3 Mythiques, Légendaire, Épiques, total), de fabrication (par rareté, total) ni de désenchantement n'était donné. Script `succes_booster_craft_repare_20261028.sql` : ajoute le `null` manquant dans les 7 fonctions (sauvegarde `_backup_fn_succes_20261028`) et attribue à Kroquette « WTF ! » + « INCROYABLE ! ».
+- Cause 2 : `confirmSingleChoice` (spellcraft-shop.html) appelait `progress_achievement('cards_crafted_total')` après un achat à l'unité -> retirée. (Les récompenses de quête `claim_quest_reward` ne touchent pas ce succès dans le code vu.)
+- Conséquence : les compteurs passés de ces succès ne sont pas reconstituables ; ils comptent à partir du correctif. Des joueurs ont `ach_craft_1` obtenu via des achats à l'unité (non retiré).

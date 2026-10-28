@@ -1976,7 +1976,7 @@ async function confirmSingleChoice(cardId){
   showRevealModal('Carte obtenue !', [{ name: data.name, foil: data.foil, rarity: '', card_id: data.card_id }]);
   refreshCurrency();
   renderSingleShelf();
-  Promise.resolve(sb.rpc('progress_achievement', { p_condition_type: 'cards_crafted_total', p_amount: 1 })).catch(()=>{});
+  // (acheter une carte en boutique n'est PAS une fabrication : plus de progression « cartes fabriquées » ici)
   Promise.resolve(sb.rpc('progress_collection_achievements')).catch(()=>{});
 }
 
