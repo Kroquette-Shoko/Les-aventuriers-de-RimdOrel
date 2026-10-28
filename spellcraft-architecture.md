@@ -498,3 +498,8 @@ Correctif (`reduction_cout_hors_deck_20261027.sql`, morceaux 2 et 5) : `mapEffec
 ## 2026-10-28 — Lance divine : cible « créature attaquante » sans bloqueur
 - `resolveNewTargetEntry`, cible `combat_attacker` (morceau 5) : l'id de l'attaquant n'était lu que sur le bloqueur (`_combatAttackerId`). Au déclenchement d'un piège `onOpponentAttack` (déclaration d'attaque), il n'y a pas de bloqueur → cible vide → piège consommé sans effet. Maintenant, sans bloqueur : les créatures attaquantes du camp adverse (hors Imparable s'il en reste d'autres), tirage au hasard si `selectionMode: "random"`.
 - Script `lance_divine_cible_attaquant_20261028.sql` (sauvegarde `_backup_game_action_chunks_20261028_lance`).
+
+## 2026-10-28 — watchHealed / watchDamaged : transmettre la créature soignée / blessée
+- Les déclencheurs « quand une carte est soignée / subit des dégâts » étaient lancés sans `eventCreature` ; avec un filtre `watchCardType` / `watchSubtype` (ex. Compagnon zélé, type « Créature »), `runNewFormatAbilities` refusait (`if (!eventCreature) return false`) → jamais déclenchés. Les 5 appels (soin créature, pièce soigne, dégâts d'effet, dégâts « destroyDealAtk », dégâts de combat) passent maintenant la créature.
+- Script `watch_soin_degats_creature_20261028.sql` (morceaux 1, 3, 4, 9 ; sauvegarde `_backup_game_action_chunks_20261028_watch`).
+- Non traité : `watchHeroHealed` (soin du héros) et les soins qui ne passent pas par ces 5 appels (vol de vie, etc.).
