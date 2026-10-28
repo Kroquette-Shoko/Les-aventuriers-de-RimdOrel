@@ -423,3 +423,4 @@ Correctif (`reduction_cout_hors_deck_20261027.sql`, morceaux 2 et 5) : `mapEffec
 ## 2026-10-28 — Icônes de rareté par set
 - Dossiers d'icônes (nom de fichier = slug de rareté, repli automatique sur `images/card/icon/rare/` si absent) : `images/card/icon/rare/oeil/` (commun, rare, epique, mythique ; pas de basique/legendaire) pour La quête des Veilleurs, `images/card/icon/rare/lord/` (rare seulement) pour le set Lord.
 - Script `icones_rarete_veilleurs_lord_20261028.sql` : `card_sets.rarity_icon_dir` + `rarityIconDir` sur les cartes du set (le rendu lit le dossier dans la carte), création du set « Lord » (masqué : hors boutique, récompenses et collection).
+- Gemmes de rareté : `object-fit:contain` ajouté sur `.nrarity-gem` / `.nlegendary-gem` (6 pages). La boîte garde le ratio 231/297 des icônes d'origine ; une icône carrée (ex. œil 1024×1024) y était étirée.
