@@ -464,3 +464,8 @@ Correctif (`reduction_cout_hors_deck_20261027.sql`, morceaux 2 et 5) : `mapEffec
 ## 2026-10-28 — Choix de mot-clef en plusieurs exemplaires (Terrible destinée)
 - Cause : l'effet `keywordChoice` écrivait dans l'unique `S.pendingKeywordChoice` ; deux effets dans la même capacité se faisaient écraser -> un seul choix proposé.
 - Correctif moteur (`choix_mot_clef_multiples_20261028.sql`, morceaux 2, 6, 7) : `__setKwChoice` met les choix en file `S.kwChoiceQueue` ; `doResolveKeywordChoice` devient un wrapper qui appelle `__promoteKwChoice` après chaque réponse (options retirées au moment de l'affichage, en excluant les mots-clefs déjà possédés ; entrée ignorée si la créature a disparu). L'IA enchaîne déjà via sa boucle `while (pending)`.
+
+## 2026-10-28 — Kalan : « une seule fois par partie » + conjuration « cartes toutes différentes »
+- Nouveau champ de déclencheur `oncePerGame` (case « Une seule fois par partie » dans l'éditeur) : `runNewFormatAbilities` mémorise `source.__oncePerGame[ability.id]` une fois les conditions réunies et ignore les déclenchements suivants. Limite : la voie « cibles choisies » (`__tryDeferAbility`) ne gère pas encore cette option (comme `oncePerTurn`).
+- Nouveau champ d'effet `conjureDistinct` (case « Cartes toutes différentes ») : la conjuration filtrée tire chaque exemplaire séparément sans doublon (par nom) ; sans l'option, une seule carte est tirée puis copiée `qty` fois (comportement historique).
+- Script `kalan_une_fois_et_distinct_20261028.sql` (morceaux 3, 5, 7 + carte Kalan : 3 déclencheurs en `oncePerGame`, palier 20 mana en `conjureDistinct`).

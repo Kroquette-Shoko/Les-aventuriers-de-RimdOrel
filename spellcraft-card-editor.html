@@ -2445,6 +2445,11 @@ function buildTriggerEntryBox(te, tIdx, totalCount, availableTriggers, onRemove)
     orow2.innerHTML = `<div class="field"><label class="mini-field" style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="trigopt-${te.id}" style="width:auto;" ${te.oncePerTurn?'checked':''}> Une seule fois par tour (ignore les déclenchements suivants du même tour)</label></div>`;
     orow2.querySelector(`#trigopt-${te.id}`).onchange = (e)=>{ te.oncePerTurn=e.target.checked; onFormChange(); };
     tBox.appendChild(orow2);
+    const orow3 = document.createElement('div');
+    orow3.className='ability-row';
+    orow3.innerHTML = `<div class="field"><label class="mini-field" style="display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="trigopt-og-${te.id}" style="width:auto;" ${te.oncePerGame?'checked':''}> Une seule fois par partie (ne se déclenche plus jamais après la première fois)</label></div>`;
+    orow3.querySelector(`#trigopt-og-${te.id}`).onchange = (e)=>{ te.oncePerGame=e.target.checked; onFormChange(); };
+    tBox.appendChild(orow3);
   }
 
   if(te.trigger==='startOfTurnX' || te.trigger==='endOfTurnX'){
@@ -3574,6 +3579,15 @@ function buildEffectRow(ab, eff, choiceKey){
       legToggle.querySelector('input').onchange = (e)=>{ eff.conjureLegendaryOnly=e.target.checked; onFormChange(); };
       legField.appendChild(legToggle);
       row.appendChild(legField);
+
+      const distField = document.createElement('div');
+      distField.className='field';
+      const distToggle = document.createElement('label');
+      distToggle.style.cssText='display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;margin-top:18px;';
+      distToggle.innerHTML = `<input type="checkbox" ${eff.conjureDistinct?'checked':''} style="width:auto;"> Cartes toutes différentes (chaque exemplaire tiré séparément, sans doublon)`;
+      distToggle.querySelector('input').onchange = (e)=>{ eff.conjureDistinct=e.target.checked; onFormChange(); };
+      distField.appendChild(distToggle);
+      row.appendChild(distField);
 
       const exField = document.createElement('div');
       exField.className='field'; exField.style.flexBasis='100%';
@@ -4782,6 +4796,7 @@ function conjureClause(eff){
   const rarityPhrase = (eff.conjureRarity && eff.conjureRarity!=='any') ? ` de rareté ${eff.conjureRarity}` : '';
   const keywordPhrase = eff.conjureKeyword ? ` avec ${(KEYWORDS.find(k=>k.key===eff.conjureKeyword)||{}).label||eff.conjureKeyword}` : '';
   const legendaryPhrase = eff.conjureLegendaryOnly ? ' de super-type Légendaire' : '';
+  const distinctPhrase = (eff.conjureDistinct && qty>1) ? ' (toutes différentes)' : '';
   const excludePhrase = (eff.conjureExcludeNames && eff.conjureExcludeNames.length) ? ` (hors ${eff.conjureExcludeNames.map(n=>'"'+n+'"').join(', ')})` : '';
   const filters = [
     numericFilterPhrase(eff, 'conjureCostMode', 'conjureCostValue', 'coût'),
@@ -4790,7 +4805,7 @@ function conjureClause(eff){
   ].filter(Boolean);
   const filterPhrase = filters.length ? ` (${filters.join(', ')})` : '';
   const article = qty>1 ? `${qty} ` : 'un(e) ';
-  return `${ownerVerb} ${article}${typesPhrase}${classPhrase}${subtypePhrase}${setPhrase}${rarityPhrase}${keywordPhrase}${legendaryPhrase}${filterPhrase}${excludePhrase}${destPhrase}${followUpClause(eff)}`;
+  return `${ownerVerb} ${article}${typesPhrase}${classPhrase}${subtypePhrase}${setPhrase}${rarityPhrase}${keywordPhrase}${legendaryPhrase}${filterPhrase}${excludePhrase}${distinctPhrase}${destPhrase}${followUpClause(eff)}`;
 }
 
 function condValueText(cond){
@@ -5015,6 +5030,7 @@ function buildAbilitySentence(cardType, ab){
         if(currentType!=='Artefact' && te.activationCooldown>0) prefix += ` (rechargement : ${te.activationCooldown} tour${te.activationCooldown>1?'s':''})`;
       }
       if(te.oncePerTurn && te.trigger!=='activated') prefix += ' (une fois par tour)';
+      if(te.oncePerGame && te.trigger!=='activated') prefix += ' (une seule fois par partie)';
       return prefix;
     };
     const triggerEntries = ab.triggers && ab.triggers.length ? ab.triggers : [{trigger:null}];
