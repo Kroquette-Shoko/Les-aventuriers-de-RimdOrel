@@ -1026,8 +1026,8 @@ function applyNCardArtFree(art, card, sfx){
 function rarityGemImg(card, slug, cls, mk){
   const def = 'images/card/icon/rare/' + slug + '.png';
   const dir = card && card.rarityIconDir ? String(card.rarityIconDir).replace(/\/+$/, '') : '';
-  const img = mk(dir ? (dir + '/' + slug + '.png') : def, cls);
-  if(dir) img.onerror = function(){ this.onerror = null; this.src = def; };
+  const img = mk(dir ? (dir + '/' + slug + '.png') : def, dir ? (cls + ' gem-custom') : cls);
+  if(dir) img.onerror = function(){ this.onerror = null; this.classList.remove('gem-custom'); this.src = def; };
   return img;
 }
 
