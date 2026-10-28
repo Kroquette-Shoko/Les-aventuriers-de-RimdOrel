@@ -486,3 +486,10 @@ Correctif (`reduction_cout_hors_deck_20261027.sql`, morceaux 2 et 5) : `mapEffec
 ## 2026-10-28 — Coût supplémentaire d'une capacité « utiliser » payé à la pose (bug)
 - `getExtraCostSource(card)` (morceau 7) ignore désormais les capacités dont tous les déclencheurs sont `activated` : leur coût (ex. « perdez 1 PV » de Verre de sang) n'est payé qu'au clic, plus à la pose. Les appels à l'activation passent l'entrée de déclencheur (`te`) et ne sont pas touchés.
 - Script `cout_capacite_pas_a_la_pose_20261028.sql` (sauvegarde `_backup_game_action_chunks_20261028_cout_pose`). Seule carte concernée : Verre de sang.
+
+## 2026-10-28 — IA v3 : pas d'attaque à 0 d'ATK + choix des cibles
+- `aiWantsToAttack(p, c)` : une créature à 0 d'ATK n'attaque pas, sauf capacité « onAttack » ou piège armé payable pouvant la renforcer (`aiTrapCanBuff`). Filtre ajouté à la liste `eligible` de `doProcessAiTurn`.
+- `aiTargetValue(effs, c)` : valeur d'un effet nuisible sur une cible (dégâts qui tuent = valeur de la créature via `aiWorth`, sinon `d*0.3` ; Armure absorbe ; gel/étourdissement bornés par l'ATK ; silence = mots-clés positifs ; renvoi en main ; vol ×1,8 ; héros = dégâts pondérés par ses PV, létal = 1000).
+- `aiPickSpellTargets` / `aiPickChosenMarker` réécrits (anciens gardés en `…Legacy`) : score de sort = somme(valeur/3), donc sous `AI_TUNE.spellMin` si rien n'en vaut la peine → l'IA garde son sort (sauf main ≥ 7). Sacrifice d'allié = la moins précieuse. Artefacts : comparaison créatures / héros adverse.
+- `aiPickSpellPair` et `aiPlanSpellAbility` : valeur des paires en `aiWorth` (score/3).
+- Script `ia_cibles_et_zero_attaque_20261028.sql` (morceau 13 ; sauvegarde `_backup_game_action_chunks_20261028_ia2`).
