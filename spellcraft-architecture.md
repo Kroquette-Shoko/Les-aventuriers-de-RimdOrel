@@ -433,3 +433,7 @@ Correctif (`reduction_cout_hors_deck_20261027.sql`, morceaux 2 et 5) : `mapEffec
 - `spellcraft-atelier-boutique.html` : champ description + sélecteur de cartes (cartes du set source, recherche, 6 max ; changer de set vide la sélection). Sans les colonnes, l'enregistrement refuse avec un message qui renvoie au script SQL.
 - `spellcraft-shop.html` : la description remplace/complète le texte générique de l'étagère (boosters et mini-sets) ; bouton « 🔍 Voir le contenu » → modale `pack-preview-modal` avec description et cartes (rendu `buildBoosterCardEl`, aperçu au survol).
 - Boutique : si un booster/mini-set a une description, l'étagère n'affiche QUE cette description (plus le texte générique). Mini-sets : le bouton « Voir le contenu » est toujours présent et la fenêtre ajoute la liste complète des cartes du set (pastille de classe, nom, classe, rareté ; triée par rareté puis nom) sous les cartes mises en avant.
+
+## 2026-10-28 — Cartes rognées sur les bords (boutique, quêtes, deckbuilder)
+- Cause : les cadres dessinés (`n-drawn`) ont des éléments qui dépassent légèrement de la carte (gemme de coût en haut à gauche, emblèmes de stats en bas). Les boîtes qui entouraient les cartes réduites avaient `overflow:hidden` et les coupaient.
+- Correction : `overflow:visible` sur les holders de `spellcraft-shop.html` (aperçu de pack, étagères, offres du jour, révélation de booster), `.craft-linked-card .ncard` et `.hp-linked-slot` (deckbuilder), `.reward-card-mini` (quêtes). Espacement des cartes de l'aperçu de pack augmenté (22px/24px).

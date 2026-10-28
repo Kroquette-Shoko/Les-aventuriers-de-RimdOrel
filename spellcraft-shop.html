@@ -512,7 +512,7 @@
   <div class="modal-box" style="max-width:820px;">
     <h2 id="pack-preview-title"></h2>
     <p id="pack-preview-desc" style="font-size:13.5px;line-height:1.55;color:var(--parchment);white-space:pre-line;margin:0 0 14px;"></p>
-    <div id="pack-preview-cards" style="display:flex;flex-wrap:wrap;gap:14px;justify-content:center;"></div>
+    <div id="pack-preview-cards" style="display:flex;flex-wrap:wrap;gap:22px 24px;justify-content:center;"></div>
     <div id="pack-preview-list" style="margin-top:18px;"></div>
     <div class="modal-actions">
       <button onclick="closeModal('pack-preview-modal')">Fermer</button>
@@ -788,7 +788,7 @@ async function showPackPreview(id){
   ids.forEach(cid => {
     const card = full[cid]; if(!card) return;
     const holder = document.createElement('div');
-    holder.style.cssText = 'position:relative;width:210px;height:296px;overflow:hidden;';
+    holder.style.cssText = 'position:relative;width:210px;height:296px;overflow:visible;';
     try{
       const el = buildBoosterCardEl(card);
       el.style.transform = 'scale(0.7)'; el.style.transformOrigin = 'top left';
@@ -936,7 +936,7 @@ async function renderSingleShelf(){
     wrap.className = 'shop-item';
     wrap.style.width = '240px';
     const cardHolder = document.createElement('div');
-    cardHolder.style.cssText = 'position:relative;width:210px;height:296px;overflow:hidden;';
+    cardHolder.style.cssText = 'position:relative;width:210px;height:296px;overflow:visible;';
     try {
       const cardEl = buildBoosterCardEl(full);
       cardEl.style.transform = 'scale(0.7)';
@@ -1056,7 +1056,7 @@ async function renderHeroShelf(){
     wrap.className = 'shop-item';
     wrap.style.width = '240px';
     const cardHolder = document.createElement('div');
-    cardHolder.style.cssText = 'position:relative;width:210px;height:296px;overflow:hidden;';
+    cardHolder.style.cssText = 'position:relative;width:210px;height:296px;overflow:visible;';
     try {
       const cardEl = buildBoosterCardEl(full);
       cardEl.style.transform = 'scale(0.7)';
@@ -1907,7 +1907,7 @@ async function showRevealModal(title, items){
       slot.className = 'reveal-card';
       slot.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:4px;';
       const revealHolder = document.createElement('div');
-      revealHolder.style.cssText = 'position:relative;width:110px;height:155px;overflow:hidden;';
+      revealHolder.style.cssText = 'position:relative;width:110px;height:155px;overflow:visible;';
       const revealCardEl = buildBoosterCardEl(full);
       revealCardEl.style.transform = 'scale(0.3667)';
       revealCardEl.style.transformOrigin = 'top left';
