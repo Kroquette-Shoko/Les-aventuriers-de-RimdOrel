@@ -6508,12 +6508,26 @@ function toggleJournal(){
     if(log) log.scrollTop = log.scrollHeight;
   }
 }
-// Quitter proprement : si la partie est déjà terminée, aucun risque, on
-// part directement. Sinon, on prévient que partir compte comme un abandon
-// (l'adversaire gagnera par forfait après le délai de déconnexion habituel).
+// Quitter proprement : si la partie est déjà terminée (ou si on la regarde seulement), on part
+// directement. Sinon, partir = CONCÉDER : le serveur donne la victoire à l'adversaire tout de suite
+// (même action que le forfait automatique, mais pour soi-même) et on quitte ensuite.
+let __leaving = false;
 async function uiLeaveGame(){
-  const ongoing = S && !S.gameOver;
-  if(ongoing && !await scConfirm("Quitter maintenant compte comme un abandon — ton adversaire gagnera la partie. Confirmer ?")) return;
+  if(__leaving) return;
+  const isPlayer = (GS_ROLE === 'p1' || GS_ROLE === 'p2');
+  const ongoing = S && !S.gameOver && isPlayer;
+  if(ongoing){
+    if(!await scConfirm("Quitter maintenant compte comme un abandon — ton adversaire gagnera la partie immédiatement. Confirmer ?")) return;
+    __leaving = true;
+    try{
+      // On attend la réponse du serveur (5 s maximum) pour que l'abandon soit bien enregistré avant de quitter.
+      const res = await Promise.race([
+        gsCallAction('claimForfeit', { disconnectedPlayer: GS_ROLE }),
+        new Promise((r)=>setTimeout(()=>r({ error: 'timeout' }), 5000))
+      ]);
+      if(res && res.error && res.error !== 'game-already-over') console.error('Abandon → ' + res.error);
+    }catch(e){ console.error('Abandon →', e); }
+  }
   gsDisconnect();
   window.location.href = 'spellcraft-lobby.html';
 }

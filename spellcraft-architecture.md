@@ -507,3 +507,7 @@ Correctif (`reduction_cout_hors_deck_20261027.sql`, morceaux 2 et 5) : `mapEffec
 ## 2026-10-29 — « Fixer l'Endurance » fixe aussi l'endurance max
 - `setStat` (hpEnabled) et `setStats` (zone plateau) mettaient seulement `curHp` : `hp` (max) restait inchangé → créature « blessée » et soignable (Déstabiliser). Maintenant `hp` et `curHp` sont fixés. La Force reste sur `curAtk` seul.
 - Script `fixer_endurance_max_20261029.sql` (morceau 2 ; sauvegarde `_backup_game_action_chunks_20261029_endurance`).
+
+## 2026-10-29 — « Menu principal » en pleine partie = abandon immédiat
+- `uiLeaveGame()` (spellcraft-server-board.html) : pour un joueur dont la partie est en cours, après confirmation, appelle `claimForfeit` avec son propre camp (`disconnectedPlayer: GS_ROLE`, déjà autorisé par `handleClaimForfeit`) puis quitte. Le serveur donne la victoire à l'adversaire, enregistre l'historique et les récompenses comme pour une défaite normale. Délai max 5 s ; garde anti double-clic (`__leaving`). Les spectateurs et les parties terminées quittent sans confirmation ni abandon.
+- Non couvert : fermer l'onglet / bouton retour du navigateur / coupure de connexion (le minuteur de déconnexion automatique est désactivé volontairement, voir `gsStartDisconnectWatch`).
