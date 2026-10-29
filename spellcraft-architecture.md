@@ -514,3 +514,9 @@ Correctif (`reduction_cout_hors_deck_20261027.sql`, morceaux 2 et 5) : `mapEffec
 
 ## 2026-10-29 — Jeune anaconda : Toxique dès l'arrivée
 - La capacité (`startOfTurn` → `grantKeyword toxic`) ne se déclenchait pas le tour de la pose. Script `jeune_anaconda_arrivee_20261029.sql` : ajoute un 2e déclencheur `onPlay` à la même capacité (carte `card_1785531866191_323`, sauvegarde `_backup_cards_20261029_anaconda`). Aucun changement de moteur ; le mot-clé n'est pas dupliqué.
+
+## 2026-10-29 — Effets continus recalculés après chaque action (Chasseur de Kaelross)
+- `recalculateContinuousEffects()` n'était appelé qu'à des moments précis (pose d'une carte, début/fin de tour, combat). Un mot-clé donné par un artefact, un pouvoir de héros, une capacité activée, un choix de mot-clé… laissait l'aura `thisKeywordCount` périmée (test : 3 mots-clés mais 7/7 au lieu de 8/8).
+- `withSave` (morceau 11) : après toute action réussie et avant la sauvegarde, `recalculateContinuousEffects(); cleanupDeaths();` si la partie n'est pas finie.
+- Script `effets_continus_apres_action_20261029.sql` (sauvegarde `_backup_game_action_chunks_20261029_continus`). Le tour de l'IA qui ne passerait pas par `withSave` n'est pas couvert (à surveiller).
+- Peut aussi expliquer l'ancien point « effets continus depuis le deck » (à revérifier avec un exemple).
