@@ -503,3 +503,7 @@ Correctif (`reduction_cout_hors_deck_20261027.sql`, morceaux 2 et 5) : `mapEffec
 - Les déclencheurs « quand une carte est soignée / subit des dégâts » étaient lancés sans `eventCreature` ; avec un filtre `watchCardType` / `watchSubtype` (ex. Compagnon zélé, type « Créature »), `runNewFormatAbilities` refusait (`if (!eventCreature) return false`) → jamais déclenchés. Les 5 appels (soin créature, pièce soigne, dégâts d'effet, dégâts « destroyDealAtk », dégâts de combat) passent maintenant la créature.
 - Script `watch_soin_degats_creature_20261028.sql` (morceaux 1, 3, 4, 9 ; sauvegarde `_backup_game_action_chunks_20261028_watch`).
 - Non traité : `watchHeroHealed` (soin du héros) et les soins qui ne passent pas par ces 5 appels (vol de vie, etc.).
+
+## 2026-10-29 — « Fixer l'Endurance » fixe aussi l'endurance max
+- `setStat` (hpEnabled) et `setStats` (zone plateau) mettaient seulement `curHp` : `hp` (max) restait inchangé → créature « blessée » et soignable (Déstabiliser). Maintenant `hp` et `curHp` sont fixés. La Force reste sur `curAtk` seul.
+- Script `fixer_endurance_max_20261029.sql` (morceau 2 ; sauvegarde `_backup_game_action_chunks_20261029_endurance`).
