@@ -511,3 +511,6 @@ Correctif (`reduction_cout_hors_deck_20261027.sql`, morceaux 2 et 5) : `mapEffec
 ## 2026-10-29 — « Menu principal » en pleine partie = abandon immédiat
 - `uiLeaveGame()` (spellcraft-server-board.html) : pour un joueur dont la partie est en cours, après confirmation, appelle `claimForfeit` avec son propre camp (`disconnectedPlayer: GS_ROLE`, déjà autorisé par `handleClaimForfeit`) puis quitte. Le serveur donne la victoire à l'adversaire, enregistre l'historique et les récompenses comme pour une défaite normale. Délai max 5 s ; garde anti double-clic (`__leaving`). Les spectateurs et les parties terminées quittent sans confirmation ni abandon.
 - Non couvert : fermer l'onglet / bouton retour du navigateur / coupure de connexion (le minuteur de déconnexion automatique est désactivé volontairement, voir `gsStartDisconnectWatch`).
+
+## 2026-10-29 — Jeune anaconda : Toxique dès l'arrivée
+- La capacité (`startOfTurn` → `grantKeyword toxic`) ne se déclenchait pas le tour de la pose. Script `jeune_anaconda_arrivee_20261029.sql` : ajoute un 2e déclencheur `onPlay` à la même capacité (carte `card_1785531866191_323`, sauvegarde `_backup_cards_20261029_anaconda`). Aucun changement de moteur ; le mot-clé n'est pas dupliqué.
