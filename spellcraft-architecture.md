@@ -520,3 +520,8 @@ Correctif (`reduction_cout_hors_deck_20261027.sql`, morceaux 2 et 5) : `mapEffec
 - `withSave` (morceau 11) : après toute action réussie et avant la sauvegarde, `recalculateContinuousEffects(); cleanupDeaths();` si la partie n'est pas finie.
 - Script `effets_continus_apres_action_20261029.sql` (sauvegarde `_backup_game_action_chunks_20261029_continus`). Le tour de l'IA qui ne passerait pas par `withSave` n'est pas couvert (à surveiller).
 - Peut aussi expliquer l'ancien point « effets continus depuis le deck » (à revérifier avec un exemple).
+
+## 2026-10-30 — Agent de Sandroska : le doublement du héros tient jusqu'à la fin du tour
+- `doubleEffectsTrigger` (morceau 4) mémorisait le doublement sur la créature source (`_doubledTriggersThisTurn`) : si l'Agent mourait au combat avant l'utilisation du pouvoir de héros, `hasActiveDoublerOnBoard` ne le trouvait plus. Pour le sentinel `"__hero"`, la source est maintenant `caster.hero` (nettoyé en fin de tour par `doEndTurn`).
+- Script `agent_sandroska_fin_du_tour_20261030.sql` (sauvegarde `_backup_game_action_chunks_20261030_agent`).
+- Les autres doublements de déclencheurs restent attachés à la créature source (le silence peut donc encore les annuler).
