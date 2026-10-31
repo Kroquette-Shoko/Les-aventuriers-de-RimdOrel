@@ -186,7 +186,7 @@
         <div id="deck-grid-wrap">
           <div id="deck-grid"></div>
           <div id="no-decks-msg" style="display:none;">Aucun deck valide trouvé — <a href="spellcraft-deckbuilder.html">construis-en un dans le classeur</a> d'abord.</div>
-          <a id="tavern-build-link" href="spellcraft-deckbuilder.html?mode=taverne" style="display:none;text-align:center;color:var(--gold);font-size:13px;margin-top:8px;">➕ Construire / modifier un deck de taverne</a>
+          <a id="tavern-build-link" href="spellcraft-deckbuilder.html?mode=taverne" style="display:none;text-align:center;color:var(--gold);font-size:13px;margin-top:8px;">➕ Construire / modifier un deck Tri-color</a>
           <div id="deck-pagination"></div>
         </div>
         <div id="chosen-deck-label">Sélectionne un deck ci-dessus</div>
@@ -201,7 +201,7 @@
         </button>
 
         <button id="btn-tavern" class="sc-btn sc-btn-gold">
-          🍺 Baston de taverne
+          🎨 Tri-color
           <span class="btn-sub" id="btn-tavern-sub">Week-end : deck sans héros, héros tiré au hasard</span>
         </button>
 
@@ -312,21 +312,21 @@ async function setupTavernEntryButton(){
 }
 
 async function setupTavernMode(){
-  document.getElementById('lobby-title').textContent = '🍺 Baston de taverne';
+  document.getElementById('lobby-title').textContent = '🎨 Tri-color';
   document.getElementById('lobby-sub').textContent = 'Un deck sans héros : le héros est tiré au hasard à chaque partie.';
   document.getElementById('tavern-build-link').style.display = 'block';
   // Seule la recherche d'adversaire existe dans ce mode.
   ['btn-tavern','btn-create-private','btn-vs-ai','btn-join','btn-spectate-list'].forEach(id=>{ const el = document.getElementById(id); if(el) el.style.display = 'none'; });
   document.querySelector('#btn-matchmaking .btn-sub').textContent = 'Adversaire au hasard, héros tiré au sort';
-  document.getElementById('no-decks-msg').innerHTML = 'Aucun deck de taverne — <a href="spellcraft-deckbuilder.html?mode=taverne">construis-en un</a> d\'abord (sans héros, 3 couleurs maximum).';
+  document.getElementById('no-decks-msg').innerHTML = 'Aucun deck Tri-color — <a href="spellcraft-deckbuilder.html?mode=taverne">construis-en un</a> d\'abord (sans héros, 3 couleurs maximum).';
   let isTester = false;
   try{ const u = await scGetCurrentUser(); if(u){ const { data } = await sb.from('profiles').select('username').eq('id', u.id).single(); isTester = !!data && data.username==='Kroquette'; } }catch(e){}
   const open = await scTavernAvailable();
   TAVERN_LOCKED = !open && !isTester;
   const b = document.getElementById('tavern-banner');
   b.style.display = 'block';
-  b.innerHTML = open ? '🍻 La taverne est <b>ouverte</b> ! ' + SC_TAVERN_HOURS_LABEL + '.'
-    : (isTester ? '🔒 Taverne fermée (' + SC_TAVERN_HOURS_LABEL + '), mais tu peux la tester.' : '🔒 La taverne est <b>fermée</b>. ' + SC_TAVERN_HOURS_LABEL + '.<br>Tu peux déjà construire ton deck !');
+  b.innerHTML = open ? '🎨 Le mode Tri-color est <b>ouvert</b> ! ' + SC_TAVERN_HOURS_LABEL + '.'
+    : (isTester ? '🔒 Tri-color fermé (' + SC_TAVERN_HOURS_LABEL + '), mais tu peux la tester.' : '🔒 Le mode Tri-color est <b>fermé</b>. ' + SC_TAVERN_HOURS_LABEL + '.<br>Tu peux déjà construire ton deck !');
   updateActionButtons();
 }
 
@@ -377,10 +377,10 @@ function renderDeckGrid(){
     wrap.innerHTML = `
       <div class="deck-tile">
         <div class="db-back" style="${backUrl?`background-image:url('${backUrl.replace(/'/g,"")}')`:''}"></div>
-        <div class="db-hero" style="${heroImg?`background-image:url('${heroImg.replace(/'/g,"")}')`:''}">${d.taverne ? '<span style="display:flex;align-items:center;justify-content:center;height:100%;font-size:44px;">🍺</span>' : ''}</div>
+        <div class="db-hero" style="${heroImg?`background-image:url('${heroImg.replace(/'/g,"")}')`:''}">${d.taverne ? '<span style="display:flex;align-items:center;justify-content:center;height:100%;font-size:44px;">🎨</span>' : ''}</div>
       </div>
       <div class="db-name-below">${escapeHtmlLobby(d.name||'Deck sans nom')}</div>
-      <div class="db-region-below" style="font-size:11px;opacity:.75;text-align:center;">${d.taverne ? '🍺 Héros au hasard' : escapeHtmlLobby((sum.region && sum.region.name) || "Côte de Rimd'Orël") + (sum.regionIsDefault ? ' (défaut)' : '')}</div>
+      <div class="db-region-below" style="font-size:11px;opacity:.75;text-align:center;">${d.taverne ? '🎨 Héros au hasard' : escapeHtmlLobby((sum.region && sum.region.name) || "Côte de Rimd'Orël") + (sum.regionIsDefault ? ' (défaut)' : '')}</div>
     `;
     wrap.onclick = ()=>{ CHOSEN_DECK_ID = d.id; renderDeckGrid(); updateActionButtons(); };
     grid.appendChild(wrap);
@@ -451,7 +451,7 @@ function wireActionButtons(){
     showLobbyError(''); closeInlinePanels();
     rememberLastDeck(CHOSEN_DECK_ID);
     const res = await gsJoinMatchmaking(CHOSEN_DECK_ID, TAVERN ? 'taverne' : 'normal');
-    if(res.error==='taverne-fermee') return showLobbyError('La taverne est fermée : ' + SC_TAVERN_HOURS_LABEL + '.');
+    if(res.error==='taverne-fermee') return showLobbyError('Le mode Tri-color est fermé : ' + SC_TAVERN_HOURS_LABEL + '.');
     if(res.error) return showLobbyError('Erreur : ' + res.error);
     if(!res.waiting){
       // Un adversaire attendait déjà — la partie est prête immédiatement.

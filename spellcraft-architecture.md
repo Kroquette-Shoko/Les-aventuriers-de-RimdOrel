@@ -534,3 +534,7 @@ Correctif (`reduction_cout_hors_deck_20261027.sql`, morceaux 2 et 5) : `mapEffec
 - **Récompense** : inchangée (clé `evening` = date de la partie − 2 h) → 1 booster par jour : vendredi, samedi, dimanche (la nuit jusqu'à 2h compte pour la veille).
 - **Pour ajouter un mode** : ligne dans `weekend_modes` + règles de jeu dans le moteur (`mode` de l'état de partie, file d'attente `matchmaking_queue.mode`, bouton du lobby). Non fait : aucun deuxième mode n'existe encore.
 - Script `modes_weekend_socle_20261031.sql` (sauvegarde `_backup_game_action_chunks_20261031_modes`).
+
+## 2026-10-31 — Taverne renommée « Tri-color » + liste des modes prévus
+- Textes visibles renommés (lobby, deckbuilder) : « Baston de taverne » → « Tri-color » (icône 🎨). Identifiants internes inchangés (`taverne`, `?mode=taverne`, `tavern_rewards`…).
+- Script `modes_weekend_liste_20261031.sql` : renomme le mode et enregistre Draft / Chaos / Swap désactivés dans `weekend_modes`. Plan complet : doc de projet `claude/plan-modes-weekend.md`.
