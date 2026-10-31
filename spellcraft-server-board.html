@@ -3857,7 +3857,7 @@ function renderGameOverOverlay(){
     ${__tavernRewardGiven ? `<div class="summary-coins">🎁 Premier match de la soirée : 1 « Booster + classique » offert (dans « Mes boosters »)</div>` : ''}
   `;
   overlay.classList.add('show');
-  if(S.mode==='taverne' && !__tavernRewardChecked){
+  if(['taverne','swap','draft','chaos'].includes(S.mode) && !__tavernRewardChecked){
     __tavernRewardChecked = true;
     (async()=>{
       for(let essai=0; essai<3 && !__tavernRewardGiven; essai++){

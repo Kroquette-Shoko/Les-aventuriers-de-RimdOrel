@@ -205,6 +205,11 @@
           <span class="btn-sub" id="btn-tavern-sub">Week-end : deck sans héros, héros tiré au hasard</span>
         </button>
 
+        <button id="btn-swap" class="sc-btn sc-btn-gold" style="display:none">
+          🔀 Swap
+          <span class="btn-sub" id="btn-swap-sub">Week-end : les nombres de ton deck sont mélangés</span>
+        </button>
+
         <button id="btn-vs-ai" class="sc-btn" disabled>Affronter l'IA</button>
 
         <button id="btn-create-private" class="sc-btn sc-btn-ghost" disabled>
@@ -261,6 +266,7 @@ let DECK_PAGE = 0;
 const DECKS_PER_PAGE = 6; // grille 3 colonnes x 2 lignes
 
 const TAVERN = new URLSearchParams(location.search).get('mode')==='taverne';
+const SWAP = new URLSearchParams(location.search).get('mode')==='swap';
 let TAVERN_LOCKED = false; // Baston de taverne fermée (hors week-end, ou autre mode ce week-end) et joueur non autorisé à tester
 const LAST_DECK_STORAGE_KEY = TAVERN ? 'spellcraft-last-used-tavern-deck-id' : 'spellcraft-last-used-deck-id';
 
@@ -286,7 +292,8 @@ async function initLobby(){
   LOADED_COLLECTION = await loadAllCardsAcrossSets();
   LOADED_DECKS = (await loadUserDecks()).filter(d => TAVERN ? d.taverne : !d.taverne);
   if(TAVERN) await setupTavernMode();
-  else setupTavernEntryButton();
+  else if(SWAP) await setupSwapMode();
+  else { setupTavernEntryButton(); setupSwapEntryButton(); }
 
   try{
     const { data: backs } = await sb.from('card_backs').select('id, image_url');
@@ -309,6 +316,39 @@ async function setupTavernEntryButton(){
   }
   document.getElementById('btn-tavern-sub').textContent = sub;
   document.getElementById('btn-tavern').onclick = ()=>{ window.location.href = 'spellcraft-lobby.html?mode=taverne'; };
+}
+
+async function isLobbyTester(){
+  try{ const u = await scGetCurrentUser(); if(u){ const { data } = await sb.from('profiles').select('username').eq('id', u.id).single(); return !!data && data.username==='Kroquette'; } }catch(e){}
+  return false;
+}
+
+// Bouton « Swap » : visible seulement quand le mode du week-end en cours est Swap (ou pour le testeur).
+async function setupSwapEntryButton(){
+  try{
+    const live = scWeekendWindowOpenNow() && (await scWeekendModeId()) === 'swap';
+    const tester = live ? false : await isLobbyTester();
+    if(!live && !tester) return;
+    const b = document.getElementById('btn-swap');
+    b.style.display = '';
+    document.getElementById('btn-swap-sub').textContent = live ? 'Ouvert ! Les nombres de ton deck sont mélangés' : 'Hors week-end : visible pour test';
+    b.onclick = ()=>{ window.location.href = 'spellcraft-lobby.html?mode=swap'; };
+  }catch(e){}
+}
+
+async function setupSwapMode(){
+  document.getElementById('lobby-title').textContent = '🔀 Swap';
+  document.getElementById('lobby-sub').textContent = 'Choisis un deck : au début de la partie, tous ses nombres sont mélangés entre les cartes.';
+  ['btn-tavern','btn-swap','btn-create-private','btn-vs-ai','btn-join','btn-spectate-list'].forEach(id=>{ const el = document.getElementById(id); if(el) el.style.display = 'none'; });
+  document.querySelector('#btn-matchmaking .btn-sub').textContent = 'Adversaire au hasard, valeurs mélangées';
+  const tester = await isLobbyTester();
+  const live = scWeekendWindowOpenNow() && (await scWeekendModeId()) === 'swap';
+  TAVERN_LOCKED = !live && !tester;
+  const b = document.getElementById('tavern-banner');
+  b.style.display = 'block';
+  b.innerHTML = live ? '🔀 Le mode Swap est <b>ouvert</b> ! ' + SC_TAVERN_HOURS_LABEL + '.'
+    : (tester ? '🔒 Swap n\'est pas le mode du week-end, mais tu peux le tester.' : '🔒 Le mode Swap n\'est pas ouvert.');
+  updateActionButtons();
 }
 
 async function setupTavernMode(){
@@ -450,7 +490,8 @@ function wireActionButtons(){
   document.getElementById('btn-matchmaking').onclick = async ()=>{
     showLobbyError(''); closeInlinePanels();
     rememberLastDeck(CHOSEN_DECK_ID);
-    const res = await gsJoinMatchmaking(CHOSEN_DECK_ID, TAVERN ? 'taverne' : 'normal');
+    const res = await gsJoinMatchmaking(CHOSEN_DECK_ID, TAVERN ? 'taverne' : SWAP ? 'swap' : 'normal');
+    if(res.error==='mode-ferme') return showLobbyError('Le mode Swap n\'est pas ouvert.');
     if(res.error==='taverne-fermee') return showLobbyError('Le mode Tri-color est fermé : ' + SC_TAVERN_HOURS_LABEL + '.');
     if(res.error) return showLobbyError('Erreur : ' + res.error);
     if(!res.waiting){

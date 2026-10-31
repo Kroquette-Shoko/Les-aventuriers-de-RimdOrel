@@ -538,3 +538,10 @@ Correctif (`reduction_cout_hors_deck_20261027.sql`, morceaux 2 et 5) : `mapEffec
 ## 2026-10-31 — Taverne renommée « Tri-color » + liste des modes prévus
 - Textes visibles renommés (lobby, deckbuilder) : « Baston de taverne » → « Tri-color » (icône 🎨). Identifiants internes inchangés (`taverne`, `?mode=taverne`, `tavern_rewards`…).
 - Script `modes_weekend_liste_20261031.sql` : renomme le mode et enregistre Draft / Chaos / Swap désactivés dans `weekend_modes`. Plan complet : doc de projet `claude/plan-modes-weekend.md`.
+
+## Mode Swap (week-end) — 31/10/2026
+- Moteur (morceaux 10 et 11 de `game-action`) : `handleJoinMatchmaking` accepte `mode: "swap"` (decks normaux ; refusé avec `mode-ferme` si le mode du week-end n'est pas Swap, sauf testeur Kroquette — fonction `swapAllowed`). `buildInitialState({..., gameMode})` appelle `swapDeckValues` pour chaque joueur : copie des cartes du deck, UN tas de nombres par joueur (coût 0..10, force ≥0, endurance ≥1 des créatures ; `valueFixed`/`valueFixed2` des effets damage/heal/draw(≥1)/buff/weaken/grantMana en mode « fixe » ; `countFixed` des cibles choisies/au hasard), mélangé puis redistribué. Valeurs dynamiques non touchées. `state.mode = 'swap'`, cartes marquées `__swapped`.
+- Texte : 88 % des cartes ont un texte manuel, donc non régénérable : une ligne « 🔀 Valeurs : … » est ajoutée au `text` des cartes mélangées.
+- BDD : `ranked_apply_match` ignore les modes taverne/swap/draft/chaos ; `taverne_first_match_reward` récompense tous ces modes (1 booster par jour de week-end).
+- Client : lobby `?mode=swap` + bouton « 🔀 Swap » visible seulement si le mode courant est Swap (ou testeur) ; carte de fin de partie : message booster pour tous les modes de week-end.
+- Script : `swap_mode_20261031.sql` (après socle + liste). Mode à activer : `update weekend_modes set enabled = true where id = 'swap'`.
