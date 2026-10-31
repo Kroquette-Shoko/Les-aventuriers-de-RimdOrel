@@ -202,7 +202,7 @@
 
         <button id="btn-tavern" class="sc-btn sc-btn-gold">
           🍺 Baston de taverne
-          <span class="btn-sub" id="btn-tavern-sub">Vendredi 18h–2h : deck sans héros, héros tiré au hasard</span>
+          <span class="btn-sub" id="btn-tavern-sub">Week-end : deck sans héros, héros tiré au hasard</span>
         </button>
 
         <button id="btn-vs-ai" class="sc-btn" disabled>Affronter l'IA</button>
@@ -261,7 +261,7 @@ let DECK_PAGE = 0;
 const DECKS_PER_PAGE = 6; // grille 3 colonnes x 2 lignes
 
 const TAVERN = new URLSearchParams(location.search).get('mode')==='taverne';
-let TAVERN_LOCKED = false; // Baston de taverne fermée (hors vendredi 18h-2h) et joueur non autorisé à tester
+let TAVERN_LOCKED = false; // Baston de taverne fermée (hors week-end, ou autre mode ce week-end) et joueur non autorisé à tester
 const LAST_DECK_STORAGE_KEY = TAVERN ? 'spellcraft-last-used-tavern-deck-id' : 'spellcraft-last-used-deck-id';
 
 function deckSummaryLobby(d, collection){
@@ -300,10 +300,14 @@ async function initLobby(){
 }
 
 async function setupTavernEntryButton(){
-  const open = scTavernOpenNow() || await scTavernForcedOpen();
-  document.getElementById('btn-tavern-sub').textContent = open
-    ? 'Ouverte ! Deck sans héros, héros tiré au hasard'
-    : '🔒 ' + SC_TAVERN_HOURS_LABEL + ' — construis déjà ton deck';
+  const open = await scTavernAvailable();
+  let sub = '🔒 ' + SC_TAVERN_HOURS_LABEL + ' — construis déjà ton deck';
+  if(open) sub = 'Ouverte ! Deck sans héros, héros tiré au hasard';
+  else if(scWeekendWindowOpenNow()){
+    const wm = await scWeekendModeInfo(await scWeekendModeId());
+    if(wm) sub = '🔒 Ce week-end : ' + (wm.icon ? wm.icon + ' ' : '') + wm.name;
+  }
+  document.getElementById('btn-tavern-sub').textContent = sub;
   document.getElementById('btn-tavern').onclick = ()=>{ window.location.href = 'spellcraft-lobby.html?mode=taverne'; };
 }
 
@@ -317,7 +321,7 @@ async function setupTavernMode(){
   document.getElementById('no-decks-msg').innerHTML = 'Aucun deck de taverne — <a href="spellcraft-deckbuilder.html?mode=taverne">construis-en un</a> d\'abord (sans héros, 3 couleurs maximum).';
   let isTester = false;
   try{ const u = await scGetCurrentUser(); if(u){ const { data } = await sb.from('profiles').select('username').eq('id', u.id).single(); isTester = !!data && data.username==='Kroquette'; } }catch(e){}
-  const open = scTavernOpenNow() || await scTavernForcedOpen();
+  const open = await scTavernAvailable();
   TAVERN_LOCKED = !open && !isTester;
   const b = document.getElementById('tavern-banner');
   b.style.display = 'block';

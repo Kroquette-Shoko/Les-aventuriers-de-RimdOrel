@@ -1032,19 +1032,44 @@ function rarityGemImg(card, slug, cls, mk){
 }
 
 
-/* ---------- Baston de taverne (mode du vendredi soir) ----------
-   Ouvert du vendredi 18h00 au samedi 02h00, heure de Paris. Le serveur applique la même règle
-   (fonction tavernIsOpenNow du moteur) : ceci ne sert qu'à l'affichage. */
+/* ---------- Modes du week-end (Baston de taverne, ...) ----------
+   Ouverts du vendredi 18h00 au lundi 02h00, heure de Paris. Chaque week-end, UN mode est tiré parmi ceux de la table
+   weekend_modes (fonction SQL weekend_current_mode, sans répéter le mode du week-end précédent quand il y en a
+   plusieurs). Le serveur applique la même règle (tavernIsOpenNow + tavernAllowed du moteur) : ceci sert à l'affichage. */
 const SC_TAVERN_MAX_COLORS = 3;
-function scTavernOpenNow(date){
+function scWeekendWindowOpenNow(date){
   try{
     const parts = new Intl.DateTimeFormat('en-GB', { timeZone:'Europe/Paris', weekday:'short', hour:'numeric', hour12:false }).formatToParts(date || new Date());
     const wd = parts.find(p=>p.type==='weekday').value;
     const h = parseInt(parts.find(p=>p.type==='hour').value, 10) % 24;
-    return (wd==='Fri' && h>=18) || (wd==='Sat' && h<2);
+    return (wd==='Fri' && h>=18) || wd==='Sat' || wd==='Sun' || (wd==='Mon' && h<2);
   }catch(e){ return false; }
 }
-const SC_TAVERN_HOURS_LABEL = 'Ouvert le vendredi de 18h à 2h (heure de Paris)';
+function scTavernOpenNow(date){ return scWeekendWindowOpenNow(date); } // fenêtre seulement (voir scWeekendModeId pour le mode du week-end)
+const SC_TAVERN_HOURS_LABEL = 'Ouvert du vendredi 18h au lundi 2h (heure de Paris)';
+let __scWeekendModeCache = null;
+/* Id du mode du week-end en cours ('taverne', ...) ; null hors week-end ou si la lecture échoue. */
+async function scWeekendModeId(){
+  if(!scWeekendWindowOpenNow()) return null;
+  if(__scWeekendModeCache && Date.now() - __scWeekendModeCache.at < 60000) return __scWeekendModeCache.id;
+  let id = null;
+  try{ const { data } = await sb.rpc('weekend_current_mode'); id = data || null; }catch(e){ id = null; }
+  __scWeekendModeCache = { id, at: Date.now() };
+  return id;
+}
+/* Fiche d'un mode (nom, icône, description) lue dans weekend_modes. */
+async function scWeekendModeInfo(id){
+  if(!id) return null;
+  try{ const { data } = await sb.from('weekend_modes').select('id,name,icon,description').eq('id', id).maybeSingle(); return data || null; }catch(e){ return null; }
+}
+/* La Baston de taverne est-elle jouable maintenant ? (fenêtre du week-end ET mode du week-end = taverne, ou ouverture exceptionnelle) */
+async function scTavernAvailable(){
+  if(scWeekendWindowOpenNow()){
+    const id = await scWeekendModeId();
+    if(!id || id === 'taverne') return true;
+  }
+  return await scTavernForcedOpen();
+}
 
 /* Ouverture exceptionnelle : la ligne app_flags « tavern_force_open » (valeur vraie) ouvre la taverne pendant 2 h
    à partir de sa dernière mise à jour. Le serveur applique la même règle (tavernAllowed). */

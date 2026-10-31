@@ -525,3 +525,12 @@ Correctif (`reduction_cout_hors_deck_20261027.sql`, morceaux 2 et 5) : `mapEffec
 - `doubleEffectsTrigger` (morceau 4) mémorisait le doublement sur la créature source (`_doubledTriggersThisTurn`) : si l'Agent mourait au combat avant l'utilisation du pouvoir de héros, `hasActiveDoublerOnBoard` ne le trouvait plus. Pour le sentinel `"__hero"`, la source est maintenant `caster.hero` (nettoyé en fin de tour par `doEndTurn`).
 - Script `agent_sandroska_fin_du_tour_20261030.sql` (sauvegarde `_backup_game_action_chunks_20261030_agent`).
 - Les autres doublements de déclencheurs restent attachés à la créature source (le silence peut donc encore les annuler).
+
+## 2026-10-31 — Modes du week-end (socle) + Baston de taverne étendue
+- **Fenêtre** : vendredi 18h → lundi 2h (heure de Paris). Client : `scWeekendWindowOpenNow()` (`scTavernOpenNow()` en est un alias), moteur : `tavernIsOpenNow()` (morceau 9).
+- **Rotation** : tables `weekend_modes` (id, name, icon, description, enabled, sort_order ; seul « taverne » pour l'instant) et `weekend_schedule` (`weekend` = vendredi du week-end, `mode_id`, `chosen_by` auto|admin). RPC `weekend_current_mode()` : null hors fenêtre ; sinon renvoie le mode du week-end, le tirant au sort au premier appel parmi les modes `enabled`, sans répéter celui du week-end précédent (s'il y en a plusieurs). Lisible par tous (RLS select), écrit uniquement par SQL.
+- **Moteur** : `tavernAllowed` → ouverte si fenêtre ET (`weekend_current_mode` vide ou `taverne`) ; ouverture exceptionnelle (`app_flags.tavern_force_open`) et compte Kroquette inchangés.
+- **Client** : `scWeekendModeId()` (cache 60 s), `scWeekendModeInfo(id)`, `scTavernAvailable()` ; le sous-titre du bouton « Baston de taverne » du lobby affiche « 🔒 Ce week-end : <mode> » quand un autre mode est actif.
+- **Récompense** : inchangée (clé `evening` = date de la partie − 2 h) → 1 booster par jour : vendredi, samedi, dimanche (la nuit jusqu'à 2h compte pour la veille).
+- **Pour ajouter un mode** : ligne dans `weekend_modes` + règles de jeu dans le moteur (`mode` de l'état de partie, file d'attente `matchmaking_queue.mode`, bouton du lobby). Non fait : aucun deuxième mode n'existe encore.
+- Script `modes_weekend_socle_20261031.sql` (sauvegarde `_backup_game_action_chunks_20261031_modes`).
