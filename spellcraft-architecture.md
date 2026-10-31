@@ -545,3 +545,6 @@ Correctif (`reduction_cout_hors_deck_20261027.sql`, morceaux 2 et 5) : `mapEffec
 - BDD : `ranked_apply_match` ignore les modes taverne/swap/draft/chaos ; `taverne_first_match_reward` récompense tous ces modes (1 booster par jour de week-end).
 - Client : lobby `?mode=swap` + bouton « 🔀 Swap » visible seulement si le mode courant est Swap (ou testeur) ; carte de fin de partie : message booster pour tous les modes de week-end.
 - Script : `swap_mode_20261031.sql` (après socle + liste). Mode à activer : `update weekend_modes set enabled = true where id = 'swap'`.
+
+## Hub : bouton « Rayer le texte » dans l'éditeur des notes de version / feuille de route — 31/10/2026
+- Barre d'outils de `#patchnote-toolbar` : ajout du bouton « S » (barré, `execCommand('strikeThrough')`) ; le bouton souligné est renommé « U ». Le contenu étant stocké en HTML brut, le barré est conservé tel quel ; rendu atténué (opacité .6) via `.pn-rich s/strike/del`.
