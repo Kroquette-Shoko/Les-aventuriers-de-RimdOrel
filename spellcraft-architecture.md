@@ -634,3 +634,11 @@ Sauvegarde avant modification : `_backup_game_action_chunks_20261101_guerre3`.
 - IA : ne bloque pas avec ses Édifices, ne les cible pas, n'utilise pas Offrande.
 - Tutoriel non mis à jour.
 - Fidèle : uniquement quand la carte est jouée depuis la main.
+
+## Cible « Une carte précise, peu importe où elle est » (game-action v188)
+
+Sauvegarde : `_backup_game_action_chunks_20261101_anywhere`.
+- `targetCategory: "card_anywhere"`, champs `anywhereCardName` (nom exact, insensible à la casse et aux espaces autour) et `anywhereZones` (sous-ensemble de `hand`, `deck`, `board`, `discard` ; absent = toutes).
+- Camp selon `targetOwner` (ally / enemy / any / random). `board` couvre créatures **et** artefacts ; les créatures protégées (Camouflage adverse, Insensible pendant un sort) sont ignorées.
+- Façons de choisir limitées à « Toutes les copies » / « Aléatoire » (une carte peut être cachée : pas de désignation manuelle).
+- Les cartes en main/deck/défausse sont des cibles de zone (`isZoneTarget`), traitées comme `card_in_*`.

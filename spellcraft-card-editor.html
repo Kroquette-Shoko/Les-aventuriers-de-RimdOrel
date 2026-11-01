@@ -1194,7 +1194,14 @@ const TARGET_CATEGORIES = [
   {key:'destroyed_last_turn', label:'Créature détruite au tour précédent'},
   {key:'next_played_card', label:'La prochaine carte que vous jouerez (effet différé)'},
   {key:'conjuration_by_name', label:'Une carte de conjuration précise, par son nom (améliore toutes ses copies : main, jeu, futures conjurations)'},
-  {key:'card_in_deck', label:'Carte dans le deck'}
+  {key:'card_in_deck', label:'Carte dans le deck'},
+  {key:'card_anywhere', label:"Une carte précise, peu importe où elle est (main, deck, jeu, défausse)"}
+];
+const ANYWHERE_ZONES = [
+  {key:'hand', label:'Main'},
+  {key:'deck', label:'Deck'},
+  {key:'board', label:'En jeu (créatures et artefacts)'},
+  {key:'discard', label:'Défausse'}
 ];
 const TARGET_OWNERS = [
   {key:'self', label:'Cette carte'},
@@ -2102,7 +2109,13 @@ function buildTargetsSectionUI(ab, targetsArray, choiceKey, heading){
       trow.appendChild(makeSelectField(isRefTarget ? 'Type de carte visée' : '2. Catégorie', TARGET_CATEGORIES, tgt.targetCategory, v=>{ tgt.targetCategory=v; rebuildAbilitiesUI(); onFormChange(); }));
     }
     if(!isRefTarget){
-      trow.appendChild(tbSelect('2. Façon de choisir', SELECTION_MODES.map(m=>({value:m.key, text:m.label})), tgt.selectionMode, v=>{ tgt.selectionMode=v; rebuildAbilitiesUI(); onFormChange(); }));
+      if(tgt.targetCategory==='card_anywhere'){
+        // Une carte peut être cachée (main adverse, deck) : pas de désignation manuelle possible
+        if(tgt.selectionMode!=='all' && tgt.selectionMode!=='random') tgt.selectionMode='all';
+        trow.appendChild(tbSelect('2. Façon de choisir', [{value:'all', text:'Toutes les copies'},{value:'random', text:'Aléatoire parmi les copies'}], tgt.selectionMode, v=>{ tgt.selectionMode=v; rebuildAbilitiesUI(); onFormChange(); }));
+      } else {
+        trow.appendChild(tbSelect('2. Façon de choisir', SELECTION_MODES.map(m=>({value:m.key, text:m.label})), tgt.selectionMode, v=>{ tgt.selectionMode=v; rebuildAbilitiesUI(); onFormChange(); }));
+      }
     }
 
     if(tgt.selectionMode!=='all' && !REF_OWNERS.includes(tgt.targetOwner)){
@@ -2255,6 +2268,38 @@ function buildTargetsSectionUI(ab, targetsArray, choiceKey, heading){
       note.style.cssText = 'font-size:10.5px;color:var(--parchment-dim);margin-top:2px;';
       note.textContent = "L'effet reste en attente jusqu'à ce que vous jouiez une carte de ce type — même après la fin du tour, tant que la partie continue.";
       trow.appendChild(note);
+    }
+
+    if(tgt.targetCategory==='card_anywhere'){
+      const anField = document.createElement('div');
+      anField.className='field';
+      anField.innerHTML = `<label class="mini-field">Nom exact de la carte</label>`;
+      const anInp = document.createElement('input');
+      anInp.type='text'; anInp.value=tgt.anywhereCardName||''; anInp.placeholder='Ex : Golem de Pierre';
+      anInp.setAttribute('list','card-name-suggestions');
+      anInp.oninput=()=>{ tgt.anywhereCardName=anInp.value; onFormChange(); };
+      anField.appendChild(anInp); trow.appendChild(anField);
+      const zHead = document.createElement('div');
+      zHead.className='mini-field'; zHead.style.cssText='flex-basis:100%;margin-top:4px;';
+      zHead.textContent='Zones où chercher :';
+      trow.appendChild(zHead);
+      const curZones = Array.isArray(tgt.anywhereZones) ? tgt.anywhereZones : ANYWHERE_ZONES.map(z=>z.key);
+      ANYWHERE_ZONES.forEach(z=>{
+        const zt = document.createElement('label');
+        zt.className='evolve-toggle';
+        zt.innerHTML = `<input type="checkbox" ${curZones.includes(z.key)?'checked':''}> ${z.label}`;
+        zt.querySelector('input').onchange=(e)=>{
+          const set = new Set(Array.isArray(tgt.anywhereZones) ? tgt.anywhereZones : ANYWHERE_ZONES.map(x=>x.key));
+          if(e.target.checked) set.add(z.key); else set.delete(z.key);
+          tgt.anywhereZones = ANYWHERE_ZONES.map(x=>x.key).filter(k=>set.has(k));
+          onFormChange();
+        };
+        trow.appendChild(zt);
+      });
+      const anNote = document.createElement('div');
+      anNote.style.cssText = 'font-size:10.5px;color:var(--parchment-dim);margin-top:2px;flex-basis:100%;';
+      anNote.textContent = "Touche les copies de cette carte dans les zones cochées, du camp choisi en « 1 » (Alliée, Ennemie ou Peu importe). Les créatures en jeu protégées (Camouflage adverse, Insensible face à un sort) sont ignorées.";
+      trow.appendChild(anNote);
     }
 
     if(tgt.targetCategory==='conjuration_by_name'){
@@ -4596,6 +4641,18 @@ function targetPhrase(t){
   if(t.targetCategory==='player'){
     if(t.targetOwner==='random') return 'un joueur tiré au hasard';
     return t.targetOwner==='enemy' ? 'votre adversaire' : 'vous';
+  }
+  if(t.targetCategory==='card_anywhere'){
+    const __nm = `« ${(t.anywhereCardName||'').trim() || '?'} »`;
+    const __zl = {hand:'main', deck:'deck', board:'jeu', discard:'défausse'};
+    const __zs = Array.isArray(t.anywhereZones) ? t.anywhereZones : ['hand','deck','board','discard'];
+    const __where = __zs.length===4 ? "où qu'elle soit" : (__zs.length ? `(${__zs.map(z=>__zl[z]).join(', ')})` : '(aucune zone)');
+    const __own = t.targetOwner==='ally' ? ' de votre camp' : t.targetOwner==='enemy' ? " de l'adversaire" : t.targetOwner==='random' ? " d'un camp tiré au hasard" : '';
+    if(t.selectionMode==='random'){
+      const __n = t.countMode==='dynamic' ? 'X' : (t.countFixed||1);
+      return `${__n==1 ? 'une copie' : __n+' copies'} au hasard de ${__nm}${__own} ${__where}`;
+    }
+    return `toutes les copies de ${__nm}${__own} ${__where==="où qu'elle soit" ? "où qu'elles soient" : __where}`;
   }
   const nounSing = {creature:'créature', hero_creature:'héros ou créature', artifact:'artefact', card_in_hand:'carte en main', card_in_discard:'carte en défausse', card_in_deck:'carte du deck', destroyed_last_turn:'créature détruite au tour précédent', next_played_card:'prochaine carte jouée', conjuration_by_name:'carte de conjuration'}[t.targetCategory] || 'cible';
   const nounPlur = {creature:'créatures', hero_creature:'héros ou créatures', artifact:'artefacts', card_in_hand:'cartes en main', card_in_discard:'cartes en défausse', card_in_deck:'cartes du deck', destroyed_last_turn:'créatures détruites au tour précédent', next_played_card:'prochaines cartes jouées', conjuration_by_name:'cartes de conjuration'}[t.targetCategory] || 'cibles';
