@@ -5279,12 +5279,28 @@ function arrowThenLunge(attEl, targetEl, opts){
 // fait disparaître d'un coup). Refait à chaque mise à jour d'état — peu
 // coûteux (quelques cartes tout au plus).
 let __lastBoardSnapshot = {};
+// Disposition « table en perspective » (html.bd-persp, voir spellcraft-board-persp.css) :
+// getBoundingClientRect d'une carte inclinée renvoie la boîte englobante du quadrilatère
+// projeté, plus large que la carte réellement vue (effet de biais). Les clones d'animation
+// (mort, charge, pose) sont des rectangles droits : on leur donne la hauteur projetée et la
+// largeur qui garde les proportions de la carte vue (largeur/hauteur naturelles ÷ cos de
+// l'inclinaison), centrés sur le même point. Sans la classe, renvoie le rect tel quel.
+const PERSP_TILT_COS = Math.cos(18*Math.PI/180); // = inclinaison de spellcraft-board-persp.css
+function persRect(el, r){
+  r = r || el.getBoundingClientRect();
+  if(!document.documentElement.classList.contains('bd-persp') || !el.closest('#board-scroll-area')) return r; // hors table (main, clone déjà posé) : rien à corriger
+  const oh = el.offsetHeight, ow = el.offsetWidth;
+  if(!oh || !ow) return r;
+  const h = r.height, w = h * ow / (oh * PERSP_TILT_COS);
+  const cx = r.left + r.width/2, cy = r.top + r.height/2;
+  return { left:cx-w/2, top:cy-h/2, width:w, height:h, right:cx+w/2, bottom:cy+h/2 };
+}
 function snapshotBoardForDeathAnim(){
   const snap = {};
   document.querySelectorAll('[data-instid]').forEach(el=>{
     const id = el.getAttribute('data-instid');
     if(!id || snap[id]) return;
-    snap[id] = { rect: el.getBoundingClientRect(), clone: stripPostureFromGhost(el.cloneNode(true)) };
+    snap[id] = { rect: persRect(el), clone: stripPostureFromGhost(el.cloneNode(true)) };
   });
   return snap;
 }
@@ -5480,6 +5496,7 @@ function playKeywordBadgeChanges(plan){
 // est masqué le temps de l'animation ; la fonction renvoyée retire le clone et
 // le rend visible (idempotente, enregistrée pour une interruption de la file).
 function makeCombatGhost(el, rect){
+  rect = persRect(el, rect);
   const ghost = stripPostureFromGhost(el.cloneNode(true));
   ghost.style.position = 'fixed';
   ghost.style.left = rect.left+'px';
@@ -5795,7 +5812,7 @@ function planCreatureLanding(entry, card, opts){
     }
     if(!slot){ releaseCreatureLanding(id); return; }
     const W = 260, H = 366;
-    const sr = slot.getBoundingClientRect();
+    const sr = persRect(slot);
     const cx = sr.left+sr.width/2, cy = sr.top+sr.height/2;
     let sx, sy;
     const drop = mine && window.BFX && BFX.getDrop();
