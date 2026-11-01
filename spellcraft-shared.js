@@ -222,6 +222,8 @@ function migrateCard(c){
   if(c.voraceRatio===undefined) c.voraceRatio = 1;
   // Fidèle : quand la carte entre en jeu, +fideleAmount Dévotion au dieu nommé fideleGod
   if(c.fideleEnabled===undefined) c.fideleEnabled = false;
+  // Mots-clés normalement consommés (Cycle, Tenace, Parade, Armure) gardés pour toute la partie
+  if(!Array.isArray(c.persistentKeywords)) c.persistentKeywords = [];
   if(c.fideleGod===undefined) c.fideleGod = '';
   if(c.fideleAmount===undefined) c.fideleAmount = 1;
   if(c.voraceCap===undefined) c.voraceCap = 0;

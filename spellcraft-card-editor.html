@@ -862,7 +862,7 @@ header .spacer{flex:1;}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="spellcraft-shared.js?v=20261101d"></script>
+<script src="spellcraft-shared.js?v=20261101e"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>
 <script src="spellcraft-atelier-nav.js"></script>
@@ -875,7 +875,19 @@ header .spacer{flex:1;}
 
 const WATCH_TRIGGERS = ['watchPlay','watchArrival','watchDeath','watchAttack','watchDamaged','watchHealed','watchHeroHealed','watchSpell','watchTrap','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchAfterReveal','watchReveal','watchExplore','watchRetrieveDiscard','watchRetrieveDeck','watchTargeted','watchDiscovered','watchDrawFromOpponentDeck','watchHeroPowerActivated','watchArtifactActivated','onTargeted',
   // Set « La guerre élémentaire »
-  'watchFaille','watchCycle','watchSacrifice','watchDevotion','watchRitualMana','watchRitualComplete','watchEdificeAttacked'];
+  'watchFaille','watchFaillePlayed','watchCycle','watchSacrifice','watchOffering','watchDevotion','watchRitualMana','watchRitualComplete','watchEdificeAttacked'];
+// Textes « de qui ? » des déclencheurs du set (vous / votre adversaire / les deux)
+const SET_WATCH_TEXT = {
+  watchFaille: {ally:'Quand une de vos Failles se déclenche', enemy:'Quand votre adversaire déclenche une Faille', both:'Quand une Faille se déclenche'},
+  watchFaillePlayed: {ally:'Quand vous jouez une carte avec Faille', enemy:'Quand votre adversaire joue une carte avec Faille', both:'Quand une carte avec Faille est jouée'},
+  watchCycle: {ally:'Quand une carte avec Cycle retourne dans votre deck', enemy:'Quand une carte avec Cycle retourne dans le deck adverse', both:'Quand une carte avec Cycle retourne dans un deck'},
+  watchSacrifice: {ally:'Quand vous sacrifiez une créature', enemy:'Quand votre adversaire sacrifie une créature', both:'Quand une créature est sacrifiée'},
+  watchOffering: {ally:'Quand vous faites une Offrande', enemy:'Quand votre adversaire fait une Offrande', both:'Quand une Offrande est faite'},
+  watchDevotion: {ally:'Quand votre Dévotion augmente', enemy:'Quand la Dévotion adverse augmente', both:'Quand une Dévotion augmente'},
+  watchRitualMana: {ally:'Quand vous versez du mana dans votre Rituel', enemy:'Quand votre adversaire verse du mana dans son Rituel', both:'Quand du mana est versé dans un Rituel'},
+  watchRitualComplete: {ally:'Quand votre Rituel est accompli', enemy:'Quand le Rituel adverse est accompli', both:'Quand un Rituel est accompli'},
+  watchEdificeAttacked: {ally:'Quand un de vos Édifices est attaqué', enemy:'Quand un Édifice adverse est attaqué', both:'Quand un Édifice est attaqué'}
+};
 
 const TRIGGERS_BY_TYPE = {
   'Créature': ['onPlay','offering','inDeckStartOfTurn','onCycle','onSacrificed','onOpponentSpendMana','onAttack','onBlocked','onWasBlocked','onDealtHeroDamage','onDamaged','onHealed','onBuffed','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
@@ -970,12 +982,14 @@ const TRIGGER_TEXT = {
   inDeckStartOfTurn: 'Faille',
   offering: 'Offrande',
   ritualComplete: 'Quand le Rituel est accompli',
-  onCycle: 'Quand cette carte retourne dans le deck (Cycle)',
+  onCycle: 'Quand cette carte retourne dans votre deck (Cycle)',
   onSacrificed: 'Quand cette créature est sacrifiée',
   onEdificeAttacked: 'Quand cet Édifice est attaqué',
-  onOpponentSpendMana: "Chaque fois que l'adversaire dépense du mana",
+  onOpponentSpendMana: "Quand votre adversaire dépense du mana",
   watchFaille: 'Quand une Faille se déclenche',
-  watchCycle: 'Quand une carte retourne dans le deck (Cycle)',
+  watchFaillePlayed: 'Quand une carte avec Faille est jouée',
+  watchOffering: 'Quand une Offrande est faite',
+  watchCycle: 'Quand une carte avec Cycle retourne dans un deck',
   watchSacrifice: 'Quand une créature est sacrifiée',
   watchDevotion: 'Quand un dieu gagne de la Dévotion',
   watchRitualMana: 'Quand du mana est versé dans un Rituel',
@@ -1022,10 +1036,13 @@ const CONDITION_TYPES = [
   {key:'creatureState', label:'Une créature est blessée / a déjà attaqué', hasValue:false, isCreatureState:true},
   {key:'devotionAtLeast', label:"La Dévotion d'un dieu est au moins X (vide = ce dieu)", hasValue:true, valueType:'number'},
   {key:'failleInDeck', label:'Vous avez au moins X cartes avec Faille dans votre deck', hasValue:true, valueType:'number'},
-  {key:'enemyManaSpent', label:"Le mana dévoré (Vorace) est au moins X", hasValue:true, valueType:'number'},
+  {key:'enemyManaSpent', label:"Votre adversaire a dépensé au moins X mana ce tour-ci (Voracité)", hasValue:true, valueType:'number'},
   {key:'ritualManaAtLeast', label:'Votre Rituel contient au moins X mana', hasValue:true, valueType:'number'},
   {key:'cycledThisTurn', label:'Une carte est retournée dans votre deck par Cycle ce tour-ci', hasValue:false},
   {key:'sacrificedThisTurn', label:'Vous avez sacrifié une créature ce tour-ci', hasValue:false},
+  {key:'allyOfferingThisTurn', label:'Vous avez fait une Offrande ce tour-ci', hasValue:false},
+  {key:'enemyOfferingLastTurn', label:'Votre adversaire a fait une Offrande pendant son dernier tour', hasValue:false},
+  {key:'enemyFailleLastTurn', label:'Votre adversaire a déclenché au moins X Failles à son dernier tour', hasValue:true, valueType:'number'},
   {key:'edificeInPlay', label:'Vous contrôlez au moins X Édifices', hasValue:true, valueType:'number'},
   {key:'custom', label:'⚠ Condition personnalisée (texte libre)', hasValue:true, valueType:'text'}
 ];
@@ -1035,7 +1052,7 @@ const COND_GROUPS = [
   ['Ce tour-ci', ['healthChange','drawnThisTurn','countThisTurn','selfDrawnThisTurn','hpLostLastTurn','manaNotFromRegion']],
   ['Cartes et créatures', ['statCompare','targetHasKeyword','creatureState','deadCreatureCause','deadCreatureSubtype','playedCardCost','playedCardType']],
   ['Timing et hasard', ['turnAtLeast','turnParity','chance','whileInHand','whileYourTurn']],
-  ['La guerre élémentaire', ['devotionAtLeast','failleInDeck','enemyManaSpent','ritualManaAtLeast','cycledThisTurn','sacrificedThisTurn','edificeInPlay']],
+  ['La guerre élémentaire', ['devotionAtLeast','failleInDeck','enemyManaSpent','ritualManaAtLeast','cycledThisTurn','sacrificedThisTurn','allyOfferingThisTurn','enemyOfferingLastTurn','enemyFailleLastTurn','edificeInPlay']],
   ['Avancé', ['custom']]
 ];
 
@@ -1048,7 +1065,7 @@ const EFFECT_GROUPS = [
   ['Créatures et plateau', ['destroy','stun','bounce','sacrificeEffect','removeFromCombat','summonCopy','transformCard','stealCreature','fight','destroyDealAtk','reviveDestroyedLastTurn','redirectTarget']],
   ['Artefacts et pièges', ['removeArtifactCharges','destroySelf','addCharges','exhaustArtifact','disarmTraps','counterCard']],
   ['Spécial', ['coinFlip','doubleTrigger','doubleEffectsTrigger','custom']],
-  ['La guerre élémentaire', ['addDevotion','triggerFailles','shuffleIntoDeck','addRitualMana','removeRitualMana','destroyRitual','repairEdifice']]
+  ['La guerre élémentaire', ['doubleVorace','discoverCycle','failleExtraZone','doubleFaille','triggerFailles','addDevotion','shuffleIntoDeck','addRitualMana','removeRitualMana','destroyRitual','repairEdifice']]
 ];
 
 const EFFECT_TYPES = [
@@ -1110,6 +1127,10 @@ const EFFECT_TYPES = [
   {key:'custom', label:'⚠ Effet personnalisé (texte libre)', needsTarget:false, needsValue:false},
   // Fidèle (set « La guerre élémentaire ») : ajoute de la Dévotion à un dieu précis, lue par le dieu quand il entre en jeu
   {key:'addDevotion', label:'Fidèle : +X Dévotion à un dieu', needsTarget:false, needsValue:true, isAddDevotion:true},
+  {key:'doubleVorace', label:'Voracité : doublez les effets de Voracité (capacité continue)', needsTarget:false, needsValue:false},
+  {key:'discoverCycle', label:'Cycle : révélez une carte avec Cycle (choisissez-en 1 parmi 3)', needsTarget:false, needsValue:false, isDiscoverCycle:true},
+  {key:'failleExtraZone', label:'Faille : vos Failles se déclenchent aussi depuis une autre zone (capacité continue)', needsTarget:false, needsValue:false, isFailleZone:true},
+  {key:'doubleFaille', label:'Faille : vos Failles se déclenchent deux fois (capacité continue)', needsTarget:false, needsValue:false},
   {key:'triggerFailles', label:'Faille : déclenche une fois les Failles des cartes de votre deck', needsTarget:false, needsValue:false},
   {key:'shuffleIntoDeck', label:'Mélange la cible dans le deck de son propriétaire (créature, artefact ou carte en main)', needsTarget:true, needsValue:false},
   {key:'addRitualMana', label:'Rituel : ajoute X mana à votre Rituel', needsTarget:false, needsValue:true},
@@ -1178,6 +1199,7 @@ const TARGET_CATEGORIES = [
 const TARGET_OWNERS = [
   {key:'self', label:'Cette carte'},
   {key:'trigger', label:'La carte qui déclenche (source du trigger)'},
+  {key:'sacrificed', label:'La créature sacrifiée (Offrande, ou « Quand une créature est sacrifiée »)'},
   {key:'fight_opponent', label:"La créature qu'elle va affronter (avec le déclencheur \"Avant qu'une créature alliée ne combatte\")"},
   {key:'combat_attacker', label:"La créature attaquante (avec les déclencheurs « a bloqué » ou « est blessée » pendant un combat)"},
   {key:'last_drawn_by_ability', label:"La dernière carte piochée par cette capacité (avec un effet \"pioche\" précédent)"},
@@ -1231,14 +1253,23 @@ const DYNAMIC_VALUES = [
   {key:'hpLostThisTurn', label:'= nombre de PV perdus ce tour-ci'},
   {key:'hpLostThisTurnEnemy', label:"= nombre de PV perdus par l'adversaire ce tour-ci"},
   {key:'hpGainedThisTurn', label:'= nombre de PV gagnés ce tour-ci'},
+  {key:'devotionTotal', label:'= votre Dévotion (tous vos dieux)'},
+  {key:'enemyDevotionTotal', label:'= la Dévotion de votre adversaire (tous ses dieux)'},
   {key:'devotion', label:'= Dévotion de ce dieu'},
   {key:'devotionOf', label:"= Dévotion d'un dieu précis [nom]", parametric:'cardName'},
-  {key:'enemyManaSpentLastTurn', label:"= mana dévoré (Vorace) : mana dépensé par l'adversaire, compté en direct pendant son tour et gardé jusqu'au début de son tour suivant"},
+  {key:'enemyManaSpentLastTurn', label:"= mana dépensé par votre adversaire ce tour-ci (Voracité : compté en direct pendant son tour, gardé jusqu'à son tour suivant)"},
   {key:'opponentManaJustSpent', label:"= mana que l'adversaire vient de dépenser (avec « Chaque fois que l'adversaire dépense du mana »)"},
   {key:'allyManaSpentThisTurn', label:'= mana que vous avez dépensé ce tour-ci'},
   {key:'failleInDeck', label:'= nombre de cartes avec Faille dans votre deck'},
+  {key:'failleTriggeredAllyTurn', label:'= nombre de vos Failles déclenchées ce tour-ci'},
+  {key:'failleTriggeredEnemyTurn', label:'= nombre de Failles adverses déclenchées à son dernier tour'},
+  {key:'failleTriggeredAllyGame', label:'= nombre de vos Failles déclenchées cette partie'},
+  {key:'failleTriggeredEnemyGame', label:'= nombre de Failles adverses déclenchées cette partie'},
   {key:'cycledThisGame', label:'= nombre de cartes retournées dans votre deck par Cycle cette partie'},
   {key:'sacrificedThisGame', label:'= nombre de créatures que vous avez sacrifiées cette partie'},
+  {key:'offeringsThisGame', label:"= nombre d'Offrandes que vous avez faites cette partie"},
+  {key:'sacrificedAtk', label:'= Force de la créature sacrifiée (Offrande)'},
+  {key:'sacrificedHp', label:'= Endurance de la créature sacrifiée (Offrande)'},
   {key:'ritualMana', label:'= mana versé dans votre Rituel'},
   {key:'edificesInPlay', label:"= nombre d'Édifices que vous contrôlez"}
 ];
@@ -1388,6 +1419,9 @@ function blankCondition(){
 
 let abilities = [];
 let keywords = [];
+// Mots-clés qui normalement se consomment, gardés pour toute la partie sur cette carte
+const PERSISTABLE_KW = ['cycle','relentless','stealth','armor'];
+let persistentKeywords = [];
 
 /* ============================================================
    PERSISTANCE
@@ -1953,10 +1987,23 @@ function buildKeywordGrid(){
     item.innerHTML = `<input type="checkbox" ${keywords.includes(kw.key)?'checked':''}>
       <span><span class="kw-label">${kw.label}</span><span class="kw-desc">${kw.desc}</span></span>`;
     item.querySelector('input').onchange = (e)=>{
-      if(e.target.checked) keywords.push(kw.key); else keywords = keywords.filter(k=>k!==kw.key);
+      if(e.target.checked) keywords.push(kw.key); else { keywords = keywords.filter(k=>k!==kw.key); persistentKeywords = persistentKeywords.filter(k=>k!==kw.key); }
       buildKeywordGrid();
       onFormChange();
     };
+    if(PERSISTABLE_KW.includes(kw.key) && keywords.includes(kw.key)){
+      const pl = document.createElement('label');
+      pl.style.cssText = 'display:flex;align-items:center;gap:5px;font-size:10.5px;margin-top:4px;cursor:pointer;text-transform:none;letter-spacing:0;';
+      pl.innerHTML = `<input type="checkbox" style="width:auto;" ${persistentKeywords.includes(kw.key)?'checked':''}> Pour toute la partie (ne se consomme pas)`;
+      pl.onclick = (ev)=>ev.stopPropagation();
+      pl.querySelector('input').onchange = (ev)=>{
+        ev.stopPropagation();
+        if(ev.target.checked){ if(!persistentKeywords.includes(kw.key)) persistentKeywords.push(kw.key); }
+        else persistentKeywords = persistentKeywords.filter(k=>k!==kw.key);
+        buildKeywordGrid(); onFormChange();
+      };
+      item.querySelector('span').appendChild(pl);
+    }
     grid.appendChild(item);
   });
 }
@@ -2378,7 +2425,7 @@ const TB_BUFF_KINDS = [
   {key:'keywordLoss', label:'Perd ses mots-clés (réduite au silence)', text:'perd ses mots-clés'},
   {key:'any',         label:"N'importe lequel de ces changements", text:'reçoit un bonus ou un malus'}
 ];
-const TB_FILTERABLE = ['watchPlay','watchArrival','watchDeath','watchAttack','watchDamaged','watchHealed','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchTargeted','watchFaille','watchCycle','watchSacrifice'];
+const TB_FILTERABLE = ['watchPlay','watchArrival','watchDeath','watchAttack','watchDamaged','watchHealed','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchTargeted','watchFaille','watchFaillePlayed','watchCycle','watchSacrifice'];
 const TB_MOMENTS = [
   {k:'arrival', label:'Arrivée', leaves:[{key:'onPlay'}]},
   {k:'final', label:'Final', leaves:[{key:'onDeath'}]},
@@ -2415,9 +2462,7 @@ const TB_MOMENTS = [
       {key:'onDamaged', label:'subit des dégâts'}, {key:'onHealed', label:'est soignée'},
       {key:'onDestroyed', label:'est détruite'}, {key:'onRevive', label:'revient du cimetière'},
       {key:'onBuffed', label:'reçoit un bonus ou un malus'}, {key:'onDrawn', label:'est piochée'}, {key:'onTargeted', label:'est désignée (ciblée par un effet)'},
-      {key:'onUse', label:'est utilisée (artefact)'},
-      {key:'onCycle', label:'retourne dans le deck (Cycle)'}, {key:'onSacrificed', label:'est sacrifiée'},
-      {key:'onEdificeAttacked', label:'est attaquée (Édifice)'}
+      {key:'onUse', label:'est utilisée (artefact)'}
     ]},
     {k:'card', label:'une carte', leaves:[
       {key:'watchPlay', label:'est jouée (créature, depuis la main)'}, {key:'watchArrival', label:'arrive en jeu'},
@@ -2440,12 +2485,32 @@ const TB_MOMENTS = [
       {key:'watchDiscovered', label:'vous découvrez une carte'}, {key:'watchRetrieveDiscard', label:'une carte est récupérée depuis la défausse'},
       {key:'watchRetrieveDeck', label:'une carte est récupérée depuis le deck'}, {key:'watchDrawFromOpponentDeck', label:'vous piochez dans le deck adverse'}
     ]},
-    {k:'guerre', label:'une mécanique du set (Faille, Cycle, Offrande, Dévotion, Rituel, Édifice)', leaves:[
-      {key:'onOpponentSpendMana', label:"l'adversaire dépense du mana (Vorace : à chaque dépense, pendant son tour)"},
-      {key:'watchFaille', label:'une Faille se déclenche'}, {key:'watchCycle', label:'une carte retourne dans le deck (Cycle)'},
-      {key:'watchSacrifice', label:'une créature est sacrifiée (Offrande ou autre)'}, {key:'watchDevotion', label:'un dieu gagne de la Dévotion (Fidèle)'},
-      {key:'watchRitualMana', label:'du mana est versé dans un Rituel'}, {key:'watchRitualComplete', label:'un Rituel est accompli'},
-      {key:'watchEdificeAttacked', label:'un Édifice est attaqué'}
+    {k:'g_vorace', label:'Voracité', leaves:[
+      {key:'onOpponentSpendMana', label:'votre adversaire dépense du mana (à chaque dépense, pendant son tour)'}
+    ]},
+    {k:'g_cycle', label:'Cycle', leaves:[
+      {key:'onCycle', label:'cette carte retourne dans votre deck'},
+      {key:'watchCycle', label:'une carte avec Cycle retourne dans un deck (voir « De qui ? »)'}
+    ]},
+    {k:'g_faille', label:'Faille', leaves:[
+      {key:'watchFaille', label:'une Faille se déclenche (voir « De qui ? »)'},
+      {key:'watchFaillePlayed', label:'une carte avec Faille est jouée (voir « De qui ? »)'}
+    ]},
+    {k:'g_offrande', label:'Offrande', leaves:[
+      {key:'watchOffering', label:'une Offrande est faite (voir « De qui ? »)'},
+      {key:'watchSacrifice', label:'une créature est sacrifiée (voir « De qui ? »)'},
+      {key:'onSacrificed', label:'cette créature est sacrifiée'}
+    ]},
+    {k:'g_fidele', label:'Fidèle / Dévotion', leaves:[
+      {key:'watchDevotion', label:'la Dévotion augmente (voir « De qui ? »)'}
+    ]},
+    {k:'g_rituel', label:'Rituel', leaves:[
+      {key:'watchRitualMana', label:'du mana est versé dans un Rituel'},
+      {key:'watchRitualComplete', label:'un Rituel est accompli'}
+    ]},
+    {k:'g_edifice', label:'Édifice', leaves:[
+      {key:'onEdificeAttacked', label:'cet Édifice est attaqué'},
+      {key:'watchEdificeAttacked', label:'un Édifice est attaqué (voir « De qui ? »)'}
     ]},
     {k:'opponent', label:"l'adversaire", leaves:[
       {key:'onOpponentAttack', label:'attaque avec une créature'}, {key:'onOpponentSpell', label:'lance un sortilège'},
@@ -2459,7 +2524,6 @@ const TB_MOMENTS = [
   ]},
   {k:'replace', label:'Remplace le gain de mana', leaves:[{key:'manaAlternative'}]},
   {k:'faille', label:'Faille (au début de votre tour, si cette carte est dans votre deck)', leaves:[{key:'inDeckStartOfTurn'}]},
-  {k:'cycle', label:'Cycle (quand cette carte retourne dans le deck)', leaves:[{key:'onCycle'}]},
   {k:'offrande', label:'Offrande (en la jouant, si vous sacrifiez une créature alliée)', leaves:[{key:'offering'}]},
   {k:'ritual', label:'Rituel accompli (total de mana atteint)', leaves:[{key:'ritualComplete'}]}
 ];
@@ -2548,9 +2612,10 @@ function buildTriggerEntryBox(te, tIdx, totalCount, availableTriggers, onRemove)
   if(WATCH_TRIGGERS.includes(te.trigger)){
     const orow = document.createElement('div');
     orow.className='ability-row';
-    orow.innerHTML = `<div class="field"><label class="mini-field">Concerne les cartes</label></div>`;
+    const __setW = !!SET_WATCH_TEXT[te.trigger];
+    orow.innerHTML = `<div class="field"><label class="mini-field">${__setW ? 'De qui ?' : 'Concerne les cartes'}</label></div>`;
     const osel = document.createElement('select');
-    sortTuples([['ally','Alliées'],['enemy','Ennemies'],['both','Les deux']]).forEach(([k,l])=>{
+    (__setW ? [['ally','Vous'],['enemy','Votre adversaire'],['both','Les deux']] : sortTuples([['ally','Alliées'],['enemy','Ennemies'],['both','Les deux']])).forEach(([k,l])=>{
       const opt = document.createElement('option'); opt.value=k; opt.textContent=l;
       if((te.triggerOwner||'ally')===k) opt.selected=true;
       osel.appendChild(opt);
@@ -2574,7 +2639,7 @@ function buildTriggerEntryBox(te, tIdx, totalCount, availableTriggers, onRemove)
   if(te.trigger==='watchDevotion'){
     const drow = document.createElement('div'); drow.className='ability-row';
     const f = document.createElement('div'); f.className='field';
-    f.innerHTML = `<label class="mini-field">Dieu (optionnel : vide = n'importe lequel)</label>`;
+    f.innerHTML = `<label class="mini-field">Dieu précis (optionnel : vide = tous vos dieux)</label>`;
     const i = document.createElement('input'); i.type='text'; i.value=te.devotionGodFilter||''; i.placeholder='Ex : Uhaina';
     i.setAttribute('list','card-name-suggestions');
     i.oninput=()=>{ te.devotionGodFilter=i.value; onFormChange(); };
@@ -3843,7 +3908,7 @@ function buildEffectRow(ab, eff, choiceKey){
 
   if(def.isGrantKeyword){
     row.appendChild(makeSelectField('Mot-clé', KEYWORDS.map(k=>({key:k.key,label:k.label})), eff.grantKeywordKey, v=>{ eff.grantKeywordKey=v; onFormChange(); }));
-    row.appendChild(makeSelectField('Durée', [{key:'permanent',label:'Permanent'},{key:'thisTurn',label:'Ce tour-ci seulement'}], eff.grantKeywordDuration, v=>{ eff.grantKeywordDuration=v; onFormChange(); }));
+    row.appendChild(makeSelectField('Durée', [{key:'permanent',label:'Permanent'},{key:'thisTurn',label:'Ce tour-ci seulement'},{key:'game',label:'Pour le reste de la partie (ne se consomme jamais : Cycle, Tenace, Parade, Armure…)'}], eff.grantKeywordDuration, v=>{ eff.grantKeywordDuration=v; onFormChange(); }));
   }
 
   if(def.isCopyKeyword){
@@ -4132,6 +4197,12 @@ function buildEffectRow(ab, eff, choiceKey){
       const si = document.createElement('input'); si.type='text'; si.value=eff.transformSubtype||''; si.placeholder='Vide = peu importe';
       si.oninput=()=>{ eff.transformSubtype=si.value; onFormChange(); }; sf.appendChild(si); row.appendChild(sf);
     }
+  }
+  if(def.isFailleZone){
+    row.appendChild(makeSelectField('Zone en plus du deck', [{key:'hand',label:'Votre main'},{key:'board',label:'En jeu'},{key:'discard',label:'Votre défausse'},{key:'exile',label:'Votre exil'}], eff.failleZone||'hand', v=>{ eff.failleZone=v; onFormChange(); }));
+  }
+  if(def.isDiscoverCycle){
+    row.appendChild(makeSelectField('Parmi', [{key:'deck',label:'Votre deck'},{key:'discard',label:'Votre défausse'},{key:'all',label:'Toutes les cartes du jeu (copie)'}], eff.discoverCycleSource||'deck', v=>{ eff.discoverCycleSource=v; onFormChange(); }));
   }
   if(def.isAddDevotion){
     const gf = document.createElement('div'); gf.className='field';
@@ -4488,8 +4559,8 @@ function valuePhrase(eff, mode, fixedVal, dynFieldName){
 
 function dynamicValueLabel(obj, dynFieldName, dv){
   // Libellés courts sur la carte (le menu garde l'explication complète)
-  if(dv.key==='enemyManaSpentLastTurn') return 'mana dévoré';
-  if(dv.key==='opponentManaJustSpent') return "mana que l'adversaire vient de dépenser";
+  if(dv.key==='enemyManaSpentLastTurn') return 'mana dépensé par votre adversaire ce tour-ci';
+  if(dv.key==='opponentManaJustSpent') return 'mana que votre adversaire vient de dépenser';
   let label = dv.label.replace('= ','');
   if(dv.parametric==='typeZone'){
     const typeVal = obj[dynFieldName+'Type']||'any';
@@ -4517,6 +4588,7 @@ function targetPhrase(t){
   if(t.targetOwner==='self') return 'cette carte';
   if(t.targetOwner==='trigger') return 'la carte qui a déclenché cet effet';
   if(t.targetOwner==='combat_attacker') return 'la créature attaquante';
+  if(t.targetOwner==='sacrificed') return 'la créature sacrifiée';
   if(t.targetCategory==='hero'){
     if(t.targetOwner==='random') return 'un héros tiré au hasard (allié ou ennemi)';
     return t.targetOwner==='enemy' ? 'le héros ennemi' : 'votre héros';
@@ -4660,7 +4732,7 @@ function buildEffectClause(eff, ab){
     }
     case 'grantKeyword': {
       const kw = KEYWORDS.find(k=>k.key===eff.grantKeywordKey);
-      const durLabel = eff.grantKeywordDuration==='thisTurn' ? ' ce tour-ci' : '';
+      const durLabel = eff.grantKeywordDuration==='thisTurn' ? ' ce tour-ci' : eff.grantKeywordDuration==='game' ? ' pour le reste de la partie' : '';
       return `${targetPhrase(resolvedTarget)} obtient ${kw?kw.label:'?'}${durLabel}`;
     }
     case 'copyKeyword': {
@@ -4752,6 +4824,16 @@ function buildEffectClause(eff, ab){
         : `une carte ${eff.transformCardType||'Créature'}${eff.transformSubtype?` du sous-type ${eff.transformSubtype}`:''} aléatoire`;
       return `transformez ${targetPhrase(resolvedTarget)} en ${into}`;
     }
+    case 'doubleVorace': return 'les effets de Voracité sont doublés';
+    case 'discoverCycle': {
+      const from = {deck:'de votre deck', discard:'de votre défausse', all:'parmi toutes les cartes'}[eff.discoverCycleSource||'deck'];
+      return `révélez 3 cartes avec Cycle ${from} et ajoutez-en une à votre main`;
+    }
+    case 'failleExtraZone': {
+      const z = {hand:'votre main', board:'le jeu', discard:'votre défausse', exile:'votre exil'}[eff.failleZone||'hand'];
+      return `vos Failles se déclenchent aussi depuis ${z}`;
+    }
+    case 'doubleFaille': return 'vos Failles se déclenchent deux fois';
     case 'triggerFailles': return 'déclenchez une fois les Failles des cartes de votre deck';
     case 'shuffleIntoDeck': return `mélangez ${targetPhrase(resolvedTarget)} dans le deck de son propriétaire`;
     case 'addRitualMana': return `ajoutez ${valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic')} mana à votre Rituel`;
@@ -5074,10 +5156,13 @@ function conditionClauseBase(cond, ab){
     case 'turnAtLeast': return `on est au tour ${condValueText(cond)} ou plus`;
     case 'devotionAtLeast': return (cond.devotionGod||'').trim() ? `la Dévotion de ${cond.devotionGod.trim()} est d'au moins ${condValueText(cond)}` : `la Dévotion est d'au moins ${condValueText(cond)}`;
     case 'failleInDeck': return `vous avez au moins ${condValueText(cond)} cartes avec Faille dans votre deck`;
-    case 'enemyManaSpent': return `le mana dévoré est d'au moins ${condValueText(cond)}`;
+    case 'enemyManaSpent': return `votre adversaire a dépensé au moins ${condValueText(cond)} mana ce tour-ci`;
     case 'ritualManaAtLeast': return `votre Rituel contient au moins ${condValueText(cond)} mana`;
     case 'cycledThisTurn': return 'une carte est retournée dans votre deck par Cycle ce tour-ci';
     case 'sacrificedThisTurn': return 'vous avez sacrifié une créature ce tour-ci';
+    case 'allyOfferingThisTurn': return 'vous avez fait une Offrande ce tour-ci';
+    case 'enemyOfferingLastTurn': return 'votre adversaire a fait une Offrande pendant son dernier tour';
+    case 'enemyFailleLastTurn': return `votre adversaire a déclenché au moins ${condValueText(cond)} Faille(s) à son dernier tour`;
     case 'edificeInPlay': return `vous contrôlez au moins ${condValueText(cond)} Édifice(s)`;
     case 'chance': return `vous avez ${condValueText(cond)}% de chance`;
     case 'deckComposition': {
@@ -5170,7 +5255,16 @@ function buildAbilitySentence(cardType, ab){
     const buildPrefixFor = (te)=>{
       let prefix = TRIGGER_TEXT[te.trigger] || '';
       if(te.trigger==='onSummonSubtype') prefix = `Quand vous invoquez une créature du sous-type ${te.triggerSubtype || '?'}`;
-      if(WATCH_TRIGGERS.includes(te.trigger)){
+      if(SET_WATCH_TEXT[te.trigger]){
+        prefix = SET_WATCH_TEXT[te.trigger][te.triggerOwner||'ally'];
+        const fparts = [];
+        if(TB_FILTERABLE.includes(te.trigger)){
+          if(te.watchCardType && te.watchCardType!=='any') fparts.push(te.watchCardType.toLowerCase());
+          if(te.watchSubtype && te.watchSubtype.trim()) fparts.push(te.watchSubtypeExclude ? `pas du sous-type ${te.watchSubtype.trim()}` : `sous-type ${te.watchSubtype.trim()}`);
+        }
+        if(te.trigger==='watchDevotion' && (te.devotionGodFilter||'').trim()) fparts.push(te.devotionGodFilter.trim());
+        if(fparts.length) prefix += ` (${fparts.join(', ')})`;
+      } else if(WATCH_TRIGGERS.includes(te.trigger)){
         const ownerSuffix = {ally:' alliée', enemy:' ennemie', both:''}[te.triggerOwner||'ally'];
         if(te.trigger==='watchArtifactActivated'){
           const art = {ally:' allié', enemy:' ennemi', both:''}[te.triggerOwner||'ally'];
@@ -5190,7 +5284,6 @@ function buildAbilitySentence(cardType, ab){
         const kwTxt = (bk.key==='keywordGain' && te.buffKeyword && te.buffKeyword!=='any') ? ` « ${(KEYWORDS.find(k=>k.key===te.buffKeyword)||{}).label || te.buffKeyword} »` : '';
         prefix = prefix.replace('reçoit un bonus ou un malus', bk.text + kwTxt);
       }
-      if(te.trigger==='watchDevotion' && (te.devotionGodFilter||'').trim()) prefix = prefix.replace('un dieu gagne', (te.devotionGodFilter||'').trim()+' gagne');
       if(te.trigger==='startOfTurnX') prefix = `Au début de votre tour ${te.triggerTurn||1}`;
       if(te.trigger==='endOfTurnX') prefix = `À la fin de votre tour ${te.triggerTurn||1}`;
       if(te.trigger==='playedCardTypeCountThisTurn'){
@@ -5342,6 +5435,7 @@ function buildCardText(){
         if(cap>0) bits.push(`max +${cap}`);
         return bits.length ? `${kw.label} (${bits.join(', ')})` : kw.label;
       }
+      if(persistentKeywords.includes(k)) return `${kw.label} (pour toute la partie)`;
       return kw.label;
     }).filter(Boolean).join(', '));
   }
@@ -5412,6 +5506,7 @@ function readForm(){
     extraCostCustom: document.getElementById('f-extracost-custom').value.trim(),
     abilities: JSON.parse(JSON.stringify(abilities)),
     keywords: [...keywords],
+    persistentKeywords: persistentKeywords.filter(k=>keywords.includes(k)),
     fideleEnabled: document.getElementById('f-fidele-enabled').checked,
     fideleGod: document.getElementById('f-fidele-god').value.trim(),
     fideleAmount: parseInt(document.getElementById('f-fidele-amount').value) || 1,
@@ -5454,6 +5549,7 @@ function loadCardIntoForm(card){
   subtypes = [...card.subtypes];
   abilities = card.abilities.length ? JSON.parse(JSON.stringify(card.abilities)) : [];
   keywords = [...card.keywords];
+  persistentKeywords = [...(card.persistentKeywords||[])];
   mcAllowedClasses = [...(card.heroMultiClass?.allowedClasses || [])];
   manualMode = !!card.manualText;
 
@@ -5540,6 +5636,7 @@ function newCard(){
   subtypes = [];
   abilities = [];
   keywords = [];
+  persistentKeywords = [];
   mcAllowedClasses = [];
   manualMode = false;
 
