@@ -583,3 +583,4 @@ Sauvegarde des morceaux avant modification : `_backup_game_action_chunks_2026110
 - Rechargement : redéploiement de `game-action` (version 184) pour relire les morceaux.
 
 - Correctif 01/11 : la règle `.board-row.enemy .artifact-stack{left:...}` d'origine (2e bloc `<style>`) l'emportait sur mon décalage ; elle passe de 265 à 345 px (pioche élargie par la grille 2×2) et la pioche est plus compacte en perspective (105×147, pastilles 62×70, artefacts adverses à 285 px). Le séparateur `.board-divider` reçoit `z-index:20` (+ `translateZ(3px)` en perspective) pour rester cliquable au-dessus des zones voisines.
+- Habillage par thème (01/11) : `spellcraft-board-themes.js` injecte aussi `#board-theme-skin` (table de la perspective, couloirs, rail, séparateur, bouton d'action, et variables `--gold`, `--line`, `--bg-panel*`) aux couleurs de chaque décor (objet `SKIN`, palettes des maquettes). Sans décor actif, le style est vidé.
