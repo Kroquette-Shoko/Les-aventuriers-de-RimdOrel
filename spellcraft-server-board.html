@@ -913,6 +913,24 @@ body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out 
   .deck-counts{display:grid;grid-template-columns:repeat(2,76px);gap:8px;}
   .badge.exile .badge-icon{color:#9fd8ff;}
   .badge.devotion .badge-icon{color:#ffd98a;}
+  /* Rituel (set La guerre élémentaire) : emplacement à côté du portrait du héros */
+  .ritual-slot{position:absolute;width:118px;display:flex;flex-direction:column;align-items:center;gap:4px;z-index:4;font-family:'Cinzel',serif;}
+  #hero-frame-p1 .ritual-slot{left:calc(100% + 14px);bottom:0;}
+  #hero-frame-p2 .ritual-slot{right:calc(100% + 14px);top:0;}
+  .ritual-ring{width:84px;height:84px;border-radius:50%;padding:6px;background:conic-gradient(var(--rit-c,#c98bff) calc(var(--rit-p,0)*1%), rgba(255,255,255,.08) 0);box-shadow:0 0 14px rgba(0,0,0,.6);cursor:pointer;border:none;}
+  .ritual-ring-inner{width:100%;height:100%;border-radius:50%;background:radial-gradient(circle at 40% 35%,#2b1d3d,#0e0816);border:2px solid #3a2a4e;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#f2ead2;}
+  .ritual-ring-inner .rit-num{font-weight:700;font-size:19px;line-height:1;}
+  .ritual-ring-inner .rit-lbl{font-size:9px;letter-spacing:.08em;text-transform:uppercase;opacity:.7;margin-top:2px;}
+  .ritual-name{font-size:11px;color:#e9d9a8;text-align:center;max-width:118px;line-height:1.15;text-shadow:0 1px 2px rgba(0,0,0,.9);}
+  .ritual-slot .phase-btn{font-size:11px;padding:4px 10px;min-width:0;}
+  .ritual-ring.can-pour{animation:rit-glow 1.6s ease-in-out infinite;}
+  @keyframes rit-glow{0%,100%{box-shadow:0 0 10px rgba(201,139,255,.35)}50%{box-shadow:0 0 22px rgba(201,139,255,.9)}}
+  /* Édifice : Endurance et cible d'attaque */
+  .edifice-hp{position:absolute;right:4px;bottom:4px;min-width:30px;height:30px;padding:0 6px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#5d7ea8,#1f3550);border:2px solid #0e1a2a;color:#fff;font-family:'Cinzel',serif;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;z-index:6;pointer-events:none;}
+  .edifice-target-badge{position:absolute;right:4px;top:4px;padding:2px 7px;border-radius:9px;background:#8b1d1d;color:#fff;font-size:11px;font-weight:700;z-index:6;pointer-events:none;box-shadow:0 2px 5px rgba(0,0,0,.6);}
+  .relic-slot.edifice-clickable{cursor:crosshair;}
+  .relic-slot.edifice-clickable::after,.relic-slot.edifice-selected::after{content:'';position:absolute;inset:0;border:3px solid var(--gold);border-radius:8px;z-index:7;pointer-events:none;box-shadow:inset 0 0 12px rgba(212,175,55,.6);}
+  .relic-slot.edifice-selected::after{border-color:#ff5d5d;box-shadow:inset 0 0 12px rgba(255,93,93,.7);}
   .badge.deckbuffs .badge-icon{color:#c9a8ff;}
   .badge.exile:not(.has-cards),.badge.deckbuffs:not(.has-cards){opacity:.4;cursor:default;}
   .zone-list-line{font-size:13px;color:#f2ead2;padding:6px 10px;border-radius:6px;background:rgba(255,255,255,.05);}
@@ -1165,7 +1183,7 @@ body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out 
 <script src="spellcraft-chrono.js"></script>
 <script src="spellcraft-board-fx.js"></script>
 <script src="spellcraft-board-themes.js"></script>
-<script src="spellcraft-server-client.js?v=20261101a"></script>
+<script src="spellcraft-server-client.js?v=20261101b"></script>
 <script>
 // Journal, chat et signalement sont en position:fixed : dans la table inclinée (ou le séparateur
 // surélevé), un ancêtre transformé les piégeait et les déformait. On les rattache à #app-outer
@@ -4024,6 +4042,93 @@ function renderHeroFrame(key, slot){
   } else if(canActivate){
     btn.onclick = uiActivateHeroPower;
   }
+  renderRitualSlot(key, slot, el);
+}
+
+// ---------------- Rituel (set La guerre élémentaire) ----------------
+// p.ritual = { card, mana, pouredTurn } (moteur : doPourRitual / doRitualOffering).
+function ritualTotalClient(r){ return Math.max(0, parseInt(r && r.card && r.card.cost) || 0); }
+function canPourRitualClient(){
+  const me = S[MY_KEY];
+  if(!me || !me.ritual || S.gameOver || S.active!==MY_KEY || S.phase!=='main') return false;
+  if(me.ritual.pouredTurn===S.turn || me.attackPhaseDone) return false;
+  const played = Object.values(me.cardsPlayedThisTurnByType||{}).reduce((a,b)=>a+(b||0),0);
+  return played===0 && ((me.manaNormal||0)+(me.manaFragile||0))>0;
+}
+function renderRitualSlot(key, slot, frameEl){
+  const r = S[key] && S[key].ritual;
+  if(!r || !r.card) return;
+  const tot = ritualTotalClient(r), mana = Math.min(r.mana||0, tot);
+  const pct = tot>0 ? Math.round(mana*100/tot) : 0;
+  const color = (typeof getClassColor==='function' ? getClassColor(r.card.class) : null) || '#c98bff';
+  const mine = key===MY_KEY;
+  const canPour = mine && canPourRitualClient();
+  const canOffer = mine && !!r.card.ritualOfferingEnabled && S.active===MY_KEY && S.phase==='main' && (S[MY_KEY].board||[]).length>0;
+  const wrap = document.createElement('div');
+  wrap.className = 'ritual-slot';
+  wrap.innerHTML = `
+    <button class="ritual-ring ${canPour?'can-pour':''}" style="--rit-p:${pct};--rit-c:${color};" title="Rituel : ${escapeHtml(r.card.name||'')} — ${mana}/${tot} mana (clic : voir la carte)">
+      <div class="ritual-ring-inner"><span class="rit-num">${mana}/${tot}</span><span class="rit-lbl">Rituel</span></div>
+    </button>
+    <div class="ritual-name">${escapeHtml(r.card.name||'Rituel')}</div>`;
+  wrap.querySelector('.ritual-ring').onclick = ()=>openRitualCardModal(key);
+  if(canPour){
+    const b = document.createElement('button'); b.className='phase-btn'; b.textContent='Verser du mana';
+    b.onclick = uiPourRitual; wrap.appendChild(b);
+  }
+  if(canOffer){
+    const b = document.createElement('button'); b.className='phase-btn secondary'; b.textContent=`Offrande (+${r.card.ritualOfferingMana||2})`;
+    b.onclick = uiRitualOffering; wrap.appendChild(b);
+  }
+  frameEl.appendChild(wrap);
+}
+function openRitualCardModal(key){
+  const r = S[key] && S[key].ritual; if(!r) return;
+  document.getElementById('discard-modal-title').textContent = `Rituel — ${ritualTotalClient(r) ? Math.min(r.mana||0, ritualTotalClient(r)) + '/' + ritualTotalClient(r) + ' mana' : ''}`;
+  const box = document.getElementById('discard-modal-list');
+  box.innerHTML = '';
+  box.appendChild(cardEl(r.card));
+  document.getElementById('discard-modal').classList.add('show');
+}
+// Petite fenêtre de choix (boutons) réutilisée par le Rituel.
+function showChoiceButtonsModal(titleText, subText, choices, onPick){
+  const old = document.getElementById('offering-overlay'); if(old) old.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'offering-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(5,4,10,.78);z-index:99998;display:flex;align-items:center;justify-content:center;padding:16px;';
+  const box = document.createElement('div');
+  box.style.cssText = "max-width:560px;width:100%;background:hsl(calc(var(--th, 252) + 1.3) calc(var(--ts-n, 1) * 32.1%) 11% / .97);border:2px solid var(--gold);border-radius:12px;padding:18px 20px;color:#f2ead2;font-family:'Cinzel',serif;";
+  box.innerHTML = `<div style="font-weight:700;font-size:17px;color:var(--gold);margin-bottom:6px;">${escapeHtml(titleText)}</div><div style="font-size:13px;opacity:.85;margin-bottom:12px;">${escapeHtml(subText)}</div>`;
+  const list = document.createElement('div');
+  list.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;';
+  choices.forEach(ch=>{
+    const b = document.createElement('button'); b.className='phase-btn'; b.style.cssText='font-size:13px;padding:8px 12px;';
+    b.textContent = ch.label; b.onclick = ()=>{ overlay.remove(); onPick(ch.value); };
+    list.appendChild(b);
+  });
+  box.appendChild(list);
+  const row = document.createElement('div'); row.style.cssText='display:flex;justify-content:flex-end;';
+  const cancel = document.createElement('button'); cancel.className='phase-btn'; cancel.textContent='Annuler'; cancel.onclick = ()=>overlay.remove();
+  row.appendChild(cancel); box.appendChild(row);
+  overlay.appendChild(box);
+  overlay.onclick = (e)=>{ if(e.target===overlay) overlay.remove(); };
+  document.body.appendChild(overlay);
+}
+function uiPourRitual(){
+  const me = S[MY_KEY]; const r = me && me.ritual; if(!r) return;
+  const need = ritualTotalClient(r) - (r.mana||0);
+  const max = Math.min(need, (me.manaNormal||0)+(me.manaFragile||0));
+  if(max<=0) return;
+  const choices = [];
+  for(let n=1; n<=max; n++) choices.push({ label: n===need ? `${n} (accomplir)` : String(n), value:n });
+  showChoiceButtonsModal(`Rituel — ${r.card.name}`, `Combien de mana verser ? (une fois par tour, avant de jouer une carte ou d'attaquer) — ${r.mana||0}/${ritualTotalClient(r)}`, choices,
+    (n)=>runAction('Verser dans le Rituel', ()=>gsPourRitual(n)));
+}
+function uiRitualOffering(){
+  const me = S[MY_KEY]; const r = me && me.ritual; if(!r) return;
+  showChoiceButtonsModal(`Offrande au Rituel — ${r.card.name}`, `Sacrifier une créature ajoute ${r.card.ritualOfferingMana||2} mana au Rituel.`,
+    (me.board||[]).map(c=>({ label:`${c.name} (${c.curAtk ?? c.atk ?? 0}/${c.curHp ?? c.hp ?? 0})`, value:c.instId })),
+    (id)=>runAction('Offrande au Rituel', ()=>gsRitualOffering(id)));
 }
 
 async function uiActivateHeroPower(targetInfo, chosenTargets){
@@ -4118,6 +4223,16 @@ function renderDeckZone(key, slot){
   document.getElementById(`deckbuffs-badge-${slot}`).onclick = ()=>openDeckBuffsModal(key);
 }
 
+function isEdificeClient(c){
+  return !!c && c.type==='Artefact' && (c.subtypes||[]).some(s=>String(s).trim().toLowerCase()==='édifice');
+}
+function toggleAttackTargetEdifice(edId){
+  if(!UI.attackTargets) UI.attackTargets = {};
+  const last = UI.lastSelectedAttacker && UI.selectedAttackers.includes(UI.lastSelectedAttacker) ? UI.lastSelectedAttacker : UI.selectedAttackers[UI.selectedAttackers.length-1];
+  if(!last) return;
+  if(UI.attackTargets[last]===edId) delete UI.attackTargets[last]; else UI.attackTargets[last] = edId;
+  render();
+}
 function renderArtifactStack(key, slot){
   const el = document.getElementById(`artifacts-${slot}`);
   el.innerHTML = '';
@@ -4139,7 +4254,27 @@ function renderArtifactStack(key, slot){
       const isTargetable = UI.pendingNewTarget && isValidNewFormatTarget(key, r);
       const cardElNode = cardEl(r, {inPlay:true, targetable: isTargetable});
       wrap.appendChild(cardElNode);
-      if(isTargetable){
+      const isEdi = isEdificeClient(r);
+      if(isEdi){
+        const hp = document.createElement('div'); hp.className='edifice-hp'; hp.title='Endurance de l\'Édifice';
+        hp.textContent = r.curHp ?? r.hp ?? 0; wrap.appendChild(hp);
+        // Attaquants qui visent cet Édifice (sélection en cours, ou attaque adverse déclarée)
+        const tgtMap = key===OPP_KEY && UI.selectingAttackers ? (UI.attackTargets||{}) : (S[key===MY_KEY?OPP_KEY:MY_KEY].__attackTargets||{});
+        const liveAtk = key===OPP_KEY && UI.selectingAttackers ? UI.selectedAttackers : (S[key===MY_KEY?OPP_KEY:MY_KEY].attackers||[]);
+        const nAtk = Object.entries(tgtMap).filter(([a,t])=>t===r.instId && liveAtk.includes(a)).length;
+        if(nAtk>0){ const b=document.createElement('div'); b.className='edifice-target-badge'; b.textContent=`⚔ ${nAtk}`; wrap.appendChild(b); }
+      }
+      if(isEdi && key===OPP_KEY && UI.selectingAttackers && UI.selectedAttackers.length){
+        // Clic : le dernier attaquant choisi attaque cet Édifice (re-clic : il revient sur le héros)
+        wrap.classList.add('edifice-clickable');
+        wrap.title = "Envoyer le dernier attaquant choisi sur cet Édifice (re-cliquer : retour sur le héros)";
+        wrap.onclick = ()=>toggleAttackTargetEdifice(r.instId);
+      } else if(isEdi && key===MY_KEY && S.phase==='declareBlockersMe' && S.active===OPP_KEY && !r.hasBlockedThisTurn){
+        // Blocage : l'Édifice peut bloquer comme une créature
+        wrap.classList.add(UI.pendingBlocker===r.instId ? 'edifice-selected' : 'edifice-clickable');
+        wrap.title = 'Bloquer avec cet Édifice : clique-le, puis clique l\'attaquant';
+        wrap.onclick = ()=>{ UI.pendingBlocker = (UI.pendingBlocker===r.instId ? null : r.instId); render(); };
+      } else if(isTargetable){
         cardElNode.style.cursor = 'pointer';
         cardElNode.onclick = ()=>pickNewFormatTarget(r.instId);
       } else if(slot==='p1' && S.active===MY_KEY && S.phase==='main' && !UI.selectingAttackers){
@@ -4743,7 +4878,8 @@ function onBoardCreatureClick(key, c){
     const why = reasonCannotAttack(c); // mêmes règles que le serveur
     if(why){ explainCannot(c, why); return; }
     const idx = UI.selectedAttackers.indexOf(c.instId);
-    if(idx>=0) UI.selectedAttackers.splice(idx,1); else UI.selectedAttackers.push(c.instId);
+    if(idx>=0){ UI.selectedAttackers.splice(idx,1); if(UI.attackTargets) delete UI.attackTargets[c.instId]; }
+    else { UI.selectedAttackers.push(c.instId); UI.lastSelectedAttacker = c.instId; }
     render();
     return;
   }
@@ -6487,7 +6623,7 @@ function renderPhaseBar(){
     const cancel = document.createElement('button');
     cancel.className = 'phase-btn secondary small';
     cancel.textContent = 'Annuler';
-    cancel.onclick = ()=>{ UI.selectingAttackers = false; UI.selectedAttackers = []; render(); };
+    cancel.onclick = ()=>{ UI.selectingAttackers = false; UI.selectedAttackers = []; UI.attackTargets = {}; render(); };
     const subRow = document.createElement('div');
     subRow.className = 'phase-bar-subrow';
     subRow.appendChild(selectAll);
@@ -6496,12 +6632,18 @@ function renderPhaseBar(){
     stack.className = 'phase-bar-stack';
     stack.appendChild(btn);
     stack.appendChild(subRow);
+    if((S[OPP_KEY].relics||[]).some(isEdificeClient) && UI.selectedAttackers.length){
+      const hint = document.createElement('div');
+      hint.style.cssText = 'font-size:11px;color:#e9d9a8;max-width:220px;text-align:center;';
+      hint.textContent = 'Clique un Édifice adverse pour y envoyer le dernier attaquant choisi.';
+      stack.appendChild(hint);
+    }
     bar.appendChild(stack);
   } else if(S.phase==='main' && !me.attackPhaseDone && shouldOfferCombat(S, MY_KEY)){
     // Au moins une créature peut attaquer : « Combat », et « Fin de tour »
     // reste utilisable directement (sans passer par le combat).
     btn.textContent = '⚔ Combat';
-    btn.onclick = ()=>{ UI.selectingAttackers = true; UI.selectedAttackers = []; render(); };
+    btn.onclick = ()=>{ UI.selectingAttackers = true; UI.selectedAttackers = []; UI.attackTargets = {}; UI.lastSelectedAttacker = null; render(); };
     phaseKey = 'to-combat';
     const endNow = document.createElement('button');
     endNow.className = 'phase-btn secondary small';
@@ -6821,6 +6963,9 @@ const ACTION_ERROR_LABELS = {
   'attacker-gone': 'cet attaquant n\'est plus en jeu.',
   // 'no-valid-target' : message adapté à l'action, voir describeActionError()
   'target-required': 'il faut désigner une cible.',
+  'ritual-not-now': "Le Rituel se nourrit une fois par tour, au début du tour : avant de jouer une carte ou d'attaquer.",
+  'no-ritual': "Vous n'avez pas de Rituel en cours.",
+  'ritual-no-offering': "Ce Rituel n'accepte pas d'Offrande.",
   'invalid-offering': "Offrande impossible : la créature choisie n'est plus en jeu ou la carte n'a pas d'Offrande. Rien n'est dépensé.",
   'invalid-target': 'cible invalide (hors critères, mauvais camp, créature protégée par Parade ou cible en double) : rien n\'est dépensé.',
   'invalid-choice': 'choix invalide : cette option n\'existe pas sur la carte.',
@@ -7036,11 +7181,14 @@ function uiSelectAllAttackers(){
     .filter(c=>canAttackClient(c))
     .map(c=>c.instId);
   UI.selectedAttackers = eligibleIds;
+  UI.attackTargets = {};   // « Tout sélectionner » : tout le monde sur le héros adverse
   render();
 }
 async function uiConfirmAttackers(){
-  await runAction('Attaquer', ()=>gsDeclareAttackers(UI.selectedAttackers));
-  UI.selectingAttackers = false; UI.selectedAttackers = [];
+  const targets = {};
+  Object.entries(UI.attackTargets||{}).forEach(([a,t])=>{ if(UI.selectedAttackers.includes(a)) targets[a] = t; });
+  await runAction('Attaquer', ()=>gsDeclareAttackers(UI.selectedAttackers, targets));
+  UI.selectingAttackers = false; UI.selectedAttackers = []; UI.attackTargets = {}; UI.lastSelectedAttacker = null;
   render();
 }
 async function uiAssignBlock(attackerId){

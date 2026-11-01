@@ -346,7 +346,10 @@ async function gsSendChat(name, text) {
 // ------------------------------------------------------------
 async function gsMulligan(cardIndexesToReturn) { return gsCallAction('mulligan', { cardIndexesToReturn }); }
 async function gsEndTurn() { return gsCallAction('endTurn'); }
-async function gsDeclareAttackers(attackerIds) { return gsCallAction('declareAttackers', { attackerIds }); }
+async function gsDeclareAttackers(attackerIds, attackTargets) { return gsCallAction('declareAttackers', attackTargets && Object.keys(attackTargets).length ? { attackerIds, attackTargets } : { attackerIds }); }
+// Rituel (set La guerre élémentaire)
+async function gsPourRitual(amount) { return gsCallAction('pourRitual', { amount }); }
+async function gsRitualOffering(sacrificeInstId) { return gsCallAction('ritualOffering', { sacrificeInstId }); }
 async function gsAssignBlock(blockerId, attackerId) { return gsCallAction('assignBlock', { blockerId, attackerId }); }
 async function gsFinishBlocking() { return gsCallAction('finishBlocking'); }
 async function gsSetTrap(handIndex, sacrificeInstId) {

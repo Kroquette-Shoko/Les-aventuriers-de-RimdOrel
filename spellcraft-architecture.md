@@ -606,3 +606,31 @@ Sauvegarde avant modification : `_backup_game_action_chunks_20261101_guerre2`. B
 - **Fidèle / Dévotion** : `card.fideleEnabled / fideleGod / fideleAmount` → `__addDevotion` quand la carte est jouée ; effet `addDevotion` ; `watchDevotion` (filtre `te.devotionGodFilter`). Plateau : badge « Dévotion » dans la zone du deck.
 - **Effets** `shuffleIntoDeck`, `discoverCycle` (= Révéler, critère mot-clé Cycle), et valeurs / conditions du groupe « La guerre élémentaire » de l'éditeur.
 - Non géré : Fidèle sur une créature arrivée autrement que jouée depuis la main (conjuration, retour du cimetière).
+
+## Moteur — set « La guerre élémentaire », lot 3 : Rituel + Édifice (game-action v187)
+
+Sauvegarde avant modification : `_backup_game_action_chunks_20261101_guerre3`.
+
+### Rituel (type de carte)
+- Retiré du deck au début de la partie → `p.ritual = { card, poured }` (champ ajouté dans `newServerPlayer` / `buildInitialState`). Compte dans la limite 30–45, max 1 par deck (deckbuilder).
+- `__ritualTotal(card)` = coût variable (mana total à verser). `__ritualCanPour(p)` : début de tour (après pioche + gain de mana), avant toute autre action, une fois par tour.
+- Action routeur `pourRitual { amount }` → `doPourRitual` ; le mana versé passe par `__onManaSpent` (compte pour Vorace, visible adverse).
+- Action routeur `ritualOffering { sacrificeInstId }` → `doRitualOffering` (uniquement si `ritualOfferingEnabled`, ajoute `ritualOfferingMana`).
+- `__ritualComplete` : déclenche `ritualComplete` + `watchRitualComplete`, puis la carte quitte le jeu.
+- IA : verse uniquement si elle peut compléter le rituel ce tour.
+
+### Édifice (sous-type d'Artefact)
+- Occupe un slot d'artefact, a une Endurance (`curHp`), pas d'usure, ne se soigne pas (sauf `repairEdifice`), non ciblable par les sorts de dégâts.
+- Attaque ciblée : `declareAttackers { attackerIds, attackTargets: { instId: edificeInstId | "hero" } }` → `p.__attackTargets`. Dégâts appliqués dans `doFinishBlocking`.
+- Peut bloquer (`doAssignBlock`, `defenderHasLegalBlock`, `resolveOneCombat`, `__finishBlockCombat`) ; détruit via `destroyArtifact`.
+- Déclencheurs : `onEdificeAttacked`, `watchEdificeAttacked`.
+
+### Client (spellcraft-server-board.html / spellcraft-server-client.js)
+- Slot Rituel à côté du cadre joueur (`renderRitualSlot`), boutons « Verser du mana » / « Offrande (+X) » → `gsPourRitual`, `gsRitualOffering`.
+- Sélection des attaquants : cliquer un attaquant puis un Édifice adverse = cible (badge ⚔ + cadre). « Tout sélectionner » = tous sur le héros. `UI.attackTargets` envoyé par `gsDeclareAttackers`.
+- Blocage avec un Édifice : sélection via `UI.pendingBlocker`.
+
+### Limites connues
+- IA : ne bloque pas avec ses Édifices, ne les cible pas, n'utilise pas Offrande.
+- Tutoriel non mis à jour.
+- Fidèle : uniquement quand la carte est jouée depuis la main.
