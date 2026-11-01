@@ -878,14 +878,14 @@ const WATCH_TRIGGERS = ['watchPlay','watchArrival','watchDeath','watchAttack','w
   'watchFaille','watchCycle','watchSacrifice','watchDevotion','watchRitualMana','watchRitualComplete','watchEdificeAttacked'];
 
 const TRIGGERS_BY_TYPE = {
-  'Créature': ['onPlay','offering','inDeckStartOfTurn','onCycle','onSacrificed','enemyManaSpentThreshold','onAttack','onBlocked','onWasBlocked','onDealtHeroDamage','onDamaged','onHealed','onBuffed','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
-  'Héros':    ['gameStart','onPlay','enemyManaSpentThreshold','onDamaged','onHealed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
+  'Créature': ['onPlay','offering','inDeckStartOfTurn','onCycle','onSacrificed','onOpponentSpendMana','onAttack','onBlocked','onWasBlocked','onDealtHeroDamage','onDamaged','onHealed','onBuffed','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
+  'Héros':    ['gameStart','onPlay','onOpponentSpendMana','onDamaged','onHealed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
   // Une Région n'est jamais jouée, détruite, ni ramenée du cimetière, et n'a
   // pas de capacité activée : ces déclencheurs ne sont pas proposés ici.
-  'Région':   ['gameStart','manaAlternative','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS],
-  'Artefact': ['onPlay','offering','inDeckStartOfTurn','onCycle','onEdificeAttacked','enemyManaSpentThreshold','onUse','onDestroyed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
+  'Région':   ['gameStart','manaAlternative','onOpponentSpendMana','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS],
+  'Artefact': ['onPlay','offering','inDeckStartOfTurn','onCycle','onEdificeAttacked','onOpponentSpendMana','onUse','onDestroyed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
   'Sortilège':['onPlay','onDrawn','offering','inDeckStartOfTurn','onCycle'],
-  'Piège':    ['onOpponentAttack','inDeckStartOfTurn','onOpponentSpell','onOpponentPlayCreature','onOpponentPlayArtifact','onOpponentPlayCard','onOpponentEndTurn','onOpponentTargetsAlly','onAllySurvivesCombat','onEnemySurvivesCombat','beforeAllyFights','onAllyBlocked','onDestroyed','gameStart','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS],
+  'Piège':    ['onOpponentAttack','inDeckStartOfTurn','onOpponentSpendMana','onOpponentSpell','onOpponentPlayCreature','onOpponentPlayArtifact','onOpponentPlayCard','onOpponentEndTurn','onOpponentTargetsAlly','onAllySurvivesCombat','onEnemySurvivesCombat','beforeAllyFights','onAllyBlocked','onDestroyed','gameStart','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS],
   // Rituel (set « La guerre élémentaire ») : son effet se déclenche quand le total de mana est atteint
   'Rituel':   ['ritualComplete']
 };
@@ -973,7 +973,7 @@ const TRIGGER_TEXT = {
   onCycle: 'Quand cette carte retourne dans le deck (Cycle)',
   onSacrificed: 'Quand cette créature est sacrifiée',
   onEdificeAttacked: 'Quand cet Édifice est attaqué',
-  enemyManaSpentThreshold: "Au début de votre tour, si l'adversaire a dépensé au moins X mana pendant son dernier tour",
+  onOpponentSpendMana: "Chaque fois que l'adversaire dépense du mana",
   watchFaille: 'Quand une Faille se déclenche',
   watchCycle: 'Quand une carte retourne dans le deck (Cycle)',
   watchSacrifice: 'Quand une créature est sacrifiée',
@@ -1022,7 +1022,7 @@ const CONDITION_TYPES = [
   {key:'creatureState', label:'Une créature est blessée / a déjà attaqué', hasValue:false, isCreatureState:true},
   {key:'devotionAtLeast', label:"La Dévotion d'un dieu est au moins X (vide = ce dieu)", hasValue:true, valueType:'number'},
   {key:'failleInDeck', label:'Vous avez au moins X cartes avec Faille dans votre deck', hasValue:true, valueType:'number'},
-  {key:'enemyManaSpent', label:"L'adversaire a dépensé au moins X mana pendant son dernier tour (Vorace)", hasValue:true, valueType:'number'},
+  {key:'enemyManaSpent', label:"Le mana dévoré (Vorace) est au moins X", hasValue:true, valueType:'number'},
   {key:'ritualManaAtLeast', label:'Votre Rituel contient au moins X mana', hasValue:true, valueType:'number'},
   {key:'cycledThisTurn', label:'Une carte est retournée dans votre deck par Cycle ce tour-ci', hasValue:false},
   {key:'sacrificedThisTurn', label:'Vous avez sacrifié une créature ce tour-ci', hasValue:false},
@@ -1233,7 +1233,8 @@ const DYNAMIC_VALUES = [
   {key:'hpGainedThisTurn', label:'= nombre de PV gagnés ce tour-ci'},
   {key:'devotion', label:'= Dévotion de ce dieu'},
   {key:'devotionOf', label:"= Dévotion d'un dieu précis [nom]", parametric:'cardName'},
-  {key:'enemyManaSpentLastTurn', label:"= mana dépensé par l'adversaire pendant son dernier tour"},
+  {key:'enemyManaSpentLastTurn', label:"= mana dévoré (Vorace) : mana dépensé par l'adversaire, compté en direct pendant son tour et gardé jusqu'au début de son tour suivant"},
+  {key:'opponentManaJustSpent', label:"= mana que l'adversaire vient de dépenser (avec « Chaque fois que l'adversaire dépense du mana »)"},
   {key:'allyManaSpentThisTurn', label:'= mana que vous avez dépensé ce tour-ci'},
   {key:'failleInDeck', label:'= nombre de cartes avec Faille dans votre deck'},
   {key:'cycledThisGame', label:'= nombre de cartes retournées dans votre deck par Cycle cette partie'},
@@ -2389,8 +2390,7 @@ const TB_MOMENTS = [
     {key:'startOfCombat', label:"du combat (s'il y a au moins un attaquant)"},
     {key:'startOfMainPhase1', label:'de la 1re phase principale'},
     {key:null, label:'de la 2e phase principale', off:"cette phase n'existe pas dans le jeu"},
-    {key:'startOfBlockPhase', label:'de la phase de blocage'},
-    {key:'enemyManaSpentThreshold', label:"de votre tour, si l'adversaire a dépensé au moins X mana à son dernier tour (Vorace)"}
+    {key:'startOfBlockPhase', label:'de la phase de blocage'}
   ]},
   {k:'end', label:'À la fin', leaves:[
     {key:'endOfTurn', label:'de votre tour'},
@@ -2441,6 +2441,7 @@ const TB_MOMENTS = [
       {key:'watchRetrieveDeck', label:'une carte est récupérée depuis le deck'}, {key:'watchDrawFromOpponentDeck', label:'vous piochez dans le deck adverse'}
     ]},
     {k:'guerre', label:'une mécanique du set (Faille, Cycle, Offrande, Dévotion, Rituel, Édifice)', leaves:[
+      {key:'onOpponentSpendMana', label:"l'adversaire dépense du mana (Vorace : à chaque dépense, pendant son tour)"},
       {key:'watchFaille', label:'une Faille se déclenche'}, {key:'watchCycle', label:'une carte retourne dans le deck (Cycle)'},
       {key:'watchSacrifice', label:'une créature est sacrifiée (Offrande ou autre)'}, {key:'watchDevotion', label:'un dieu gagne de la Dévotion (Fidèle)'},
       {key:'watchRitualMana', label:'du mana est versé dans un Rituel'}, {key:'watchRitualComplete', label:'un Rituel est accompli'},
@@ -2570,14 +2571,6 @@ function buildTriggerEntryBox(te, tIdx, totalCount, availableTriggers, onRemove)
     tBox.appendChild(orow);
   }
 
-  if(te.trigger==='enemyManaSpentThreshold'){
-    const mrow = document.createElement('div'); mrow.className='ability-row';
-    const f = document.createElement('div'); f.className='field';
-    f.innerHTML = `<label class="mini-field">Mana dépensé par l'adversaire (au moins)</label>`;
-    const i = document.createElement('input'); i.type='number'; i.min=1; i.max=20; i.value=te.manaSpentThreshold??5;
-    i.oninput=()=>{ te.manaSpentThreshold=parseInt(i.value)||1; onFormChange(); };
-    f.appendChild(i); mrow.appendChild(f); tBox.appendChild(mrow);
-  }
   if(te.trigger==='watchDevotion'){
     const drow = document.createElement('div'); drow.className='ability-row';
     const f = document.createElement('div'); f.className='field';
@@ -4494,6 +4487,9 @@ function valuePhrase(eff, mode, fixedVal, dynFieldName){
 }
 
 function dynamicValueLabel(obj, dynFieldName, dv){
+  // Libellés courts sur la carte (le menu garde l'explication complète)
+  if(dv.key==='enemyManaSpentLastTurn') return 'mana dévoré';
+  if(dv.key==='opponentManaJustSpent') return "mana que l'adversaire vient de dépenser";
   let label = dv.label.replace('= ','');
   if(dv.parametric==='typeZone'){
     const typeVal = obj[dynFieldName+'Type']||'any';
@@ -5078,7 +5074,7 @@ function conditionClauseBase(cond, ab){
     case 'turnAtLeast': return `on est au tour ${condValueText(cond)} ou plus`;
     case 'devotionAtLeast': return (cond.devotionGod||'').trim() ? `la Dévotion de ${cond.devotionGod.trim()} est d'au moins ${condValueText(cond)}` : `la Dévotion est d'au moins ${condValueText(cond)}`;
     case 'failleInDeck': return `vous avez au moins ${condValueText(cond)} cartes avec Faille dans votre deck`;
-    case 'enemyManaSpent': return `l'adversaire a dépensé au moins ${condValueText(cond)} mana pendant son dernier tour`;
+    case 'enemyManaSpent': return `le mana dévoré est d'au moins ${condValueText(cond)}`;
     case 'ritualManaAtLeast': return `votre Rituel contient au moins ${condValueText(cond)} mana`;
     case 'cycledThisTurn': return 'une carte est retournée dans votre deck par Cycle ce tour-ci';
     case 'sacrificedThisTurn': return 'vous avez sacrifié une créature ce tour-ci';
@@ -5194,7 +5190,6 @@ function buildAbilitySentence(cardType, ab){
         const kwTxt = (bk.key==='keywordGain' && te.buffKeyword && te.buffKeyword!=='any') ? ` « ${(KEYWORDS.find(k=>k.key===te.buffKeyword)||{}).label || te.buffKeyword} »` : '';
         prefix = prefix.replace('reçoit un bonus ou un malus', bk.text + kwTxt);
       }
-      if(te.trigger==='enemyManaSpentThreshold') prefix = `Au début de votre tour, si l'adversaire a dépensé au moins ${te.manaSpentThreshold??5} mana pendant son dernier tour`;
       if(te.trigger==='watchDevotion' && (te.devotionGodFilter||'').trim()) prefix = prefix.replace('un dieu gagne', (te.devotionGodFilter||'').trim()+' gagne');
       if(te.trigger==='startOfTurnX') prefix = `Au début de votre tour ${te.triggerTurn||1}`;
       if(te.trigger==='endOfTurnX') prefix = `À la fin de votre tour ${te.triggerTurn||1}`;
