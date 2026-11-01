@@ -642,3 +642,11 @@ Sauvegarde : `_backup_game_action_chunks_20261101_anywhere`.
 - Camp selon `targetOwner` (ally / enemy / any / random). `board` couvre créatures **et** artefacts ; les créatures protégées (Camouflage adverse, Insensible pendant un sort) sont ignorées.
 - Façons de choisir limitées à « Toutes les copies » / « Aléatoire » (une carte peut être cachée : pas de désignation manuelle).
 - Les cartes en main/deck/défausse sont des cibles de zone (`isZoneTarget`), traitées comme `card_in_*`.
+## Couleurs des valeurs modifiées (2026-11-01)
+- Coût d'une carte (bulle de mana) : comparé au coût du catalogue (`JOURNAL_CARD_LOOKUP`) — réduit = vert (`n-up`), augmenté = rouge (`n-down`), infobulle « Coût X (base Y) ».
+- Force / PV des créatures : déjà colorés (`creatureStatInfo`) ; désormais aussi pour les créatures en main (instances avec `instId`, hors aperçu).
+- Héros : PV sous le maximum en rouge (au-dessus en vert) quand `curHp` et `hp` sont fournis.
+- Mots-clés gagnés : déjà en vert dans les infobulles (`kw-added`) et le bloc « Modifications » (`pm-added`).
+
+## Kalan : compteur de mana gagné (2026-11-01)
+- Nouveau compteur par joueur `manaGainedTotal` (+1 par mana gagné : plein, vide, fragile, effets, région, vol) et nouveau `resourceType: "manaGainedTotal"` dans `resourceCompare`. Les 3 capacités de Kalan l'utilisent avec « au moins » 10/15/20 + `oncePerGame`. Script : `kalan_compteur_mana_20261101.sql`.

@@ -3249,7 +3249,14 @@ function buildNewCardEl(card, size, effectiveCostOverride, opts={}){
   if(hasMana){
     const w = nEl('div','nstat-wrap n-mana');
     w.appendChild(nImg('images/card/icon/bubble/mana.png'));
-    const t = nEl('div','nstat-txt'); t.textContent = effectiveCostOverride ?? (card.cost ?? 0);
+    const shownCost = effectiveCostOverride ?? (card.cost ?? 0);
+    const t = nEl('div','nstat-txt'); t.textContent = shownCost;
+    // Coût comparé à celui du catalogue : réduit = vert, augmenté = rouge
+    const baseCard = (typeof JOURNAL_CARD_LOOKUP!=='undefined' && card.id) ? JOURNAL_CARD_LOOKUP[card.id] : undefined;
+    if(baseCard && typeof baseCard.cost==='number' && shownCost !== baseCard.cost){
+      t.classList.add(shownCost < baseCard.cost ? 'n-up' : 'n-down');
+      w.title = `Coût ${shownCost} (base ${baseCard.cost})`;
+    }
     w.appendChild(t);
     root.appendChild(w);
   }
@@ -3283,6 +3290,7 @@ function buildNewCardEl(card, size, effectiveCostOverride, opts={}){
     w.style.cssText += 'left:-6.5%;top:auto;bottom:-6.5%;';
     w.appendChild(nImg('images/card/icon/bubble/vie.png'));
     const t = nEl('div','nstat-txt'); t.textContent = card.curHp ?? card.hp ?? 0;
+    if(typeof card.curHp==='number' && typeof card.hp==='number' && card.curHp !== card.hp) t.classList.add(card.curHp < card.hp ? 'n-down' : 'n-up'); // vie sous le maximum : rouge
     w.appendChild(t);
     root.appendChild(w);
   }
@@ -3386,7 +3394,7 @@ function cardEl(card, opts={}){
   // le coût effectif (réductions actives) n'a de sens que pour une carte pas
   // encore jouée, appartenant au joueur local (seule main visible)
   const effectiveCost = (!inPlay && !opts.isPreview && S && S[MY_KEY]) ? getEffectiveCostClient(S[MY_KEY], card) : undefined;
-  const el = buildNewCardEl(card, size, effectiveCost, {liveStats: inPlay});
+  const el = buildNewCardEl(card, size, effectiveCost, {liveStats: inPlay || (!opts.isPreview && !!card.instId)});
   if(card.instId) el.dataset.instid = card.instId;
   requestAnimationFrame(()=>fitNewCard(el));
 
