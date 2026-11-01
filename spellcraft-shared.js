@@ -730,6 +730,16 @@ function injectOptionsMenu(){
       <option value="classic">Classique</option>
       <option value="rail">Minimaliste (rails latéraux)</option>
     </select>
+    <label class="sc-opt-label" for="sc-board-theme-select">Décor animé du plateau</label>
+    <select id="sc-board-theme-select">
+      <option value="off">Aucun (sobre)</option>
+      <option value="random">Aléatoire à chaque partie</option>
+      <option value="bateau">Pont de navire</option>
+      <option value="village">Village humain</option>
+      <option value="constellation">Constellation</option>
+      <option value="cimetiere">Sinistre cimetière</option>
+      <option value="ecole">École de magie</option>
+    </select>
     <div class="sc-opt-title" style="margin-top:14px;">Cartes</div>
     <label class="sc-opt-label" for="sc-card-anim-select">Animations des fonds</label>
     <select id="sc-card-anim-select">
@@ -787,6 +797,12 @@ function injectOptionsMenu(){
   const boardLayoutSel = document.getElementById('sc-board-layout-select');
   boardLayoutSel.value = scGetBoardLayout();
   boardLayoutSel.onchange = (e)=>scApplyBoardLayout(e.target.value);
+  const boardThemeSel = document.getElementById('sc-board-theme-select');
+  try{ boardThemeSel.value = localStorage.getItem('sc-board-theme') || 'off'; }catch(e){}
+  boardThemeSel.onchange = (e)=>{
+    try{ localStorage.setItem('sc-board-theme', e.target.value); sessionStorage.removeItem('sc-board-theme-game'); }catch(err){}
+    if(window.SCBoardThemes) window.SCBoardThemes.apply();
+  };
   // Animations des fonds de cartes : même clé que spellcraft-card-render.js,
   // appliquée tout de suite (pas besoin de recharger la page).
   // Les cadres PNG ont été supprimés : l'ancien réglage « Style des cartes »
