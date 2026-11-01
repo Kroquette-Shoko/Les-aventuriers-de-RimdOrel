@@ -1166,6 +1166,13 @@ body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out 
 <script src="spellcraft-board-themes.js"></script>
 <script src="spellcraft-server-client.js"></script>
 <script>
+// Journal, chat et signalement sont en position:fixed : dans la table inclinée (ou le séparateur
+// surélevé), un ancêtre transformé les piégeait et les déformait. On les rattache à #app-outer
+// (le même repère que dans la disposition classique), hors de la table.
+['journal-panel','chat-panel','bug-report-panel'].forEach(function(id){
+  var el = document.getElementById(id), host = document.getElementById('app-outer');
+  if(el && host) host.appendChild(el);
+});
 
 const KEYWORD_ICON_FILES = {
   charge:'kw-charge.png', flying:'kw-envol.png', reach:'kw-portee.png', pierce:'kw-brutalite.png',
