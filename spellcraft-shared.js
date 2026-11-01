@@ -220,6 +220,10 @@ function migrateCard(c){
   if(c.classTertiary && (!c.classSecondary || c.classTertiary===c.class || c.classTertiary===c.classSecondary)) c.classTertiary = '';
   // Vorace : +1 Force par tranche de voraceRatio mana dépensé par l'adversaire, plafond voraceCap (0 = aucun)
   if(c.voraceRatio===undefined) c.voraceRatio = 1;
+  // Fidèle : quand la carte entre en jeu, +fideleAmount Dévotion au dieu nommé fideleGod
+  if(c.fideleEnabled===undefined) c.fideleEnabled = false;
+  if(c.fideleGod===undefined) c.fideleGod = '';
+  if(c.fideleAmount===undefined) c.fideleAmount = 1;
   if(c.voraceCap===undefined) c.voraceCap = 0;
   // Rituel : Offrande optionnelle (sacrifier une créature ajoute ritualOfferingMana au Rituel)
   if(c.ritualOfferingEnabled===undefined) c.ritualOfferingEnabled = false;

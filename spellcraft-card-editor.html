@@ -708,6 +708,21 @@ header .spacer{flex:1;}
 <div class="field" id="f-keywords-wrap" style="display:none">
           <label>Mots-clés</label>
           <div class="keyword-grid" id="keyword-grid"></div>
+          <div style="margin-top:10px;">
+            <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;cursor:pointer;">
+              <input type="checkbox" id="f-fidele-enabled" onchange="refreshFormVisibility(); onFormChange();" style="width:auto;"> Fidèle d'un dieu (donne de la Dévotion quand la carte entre en jeu)
+            </label>
+            <div id="f-fidele-wrap" class="grid2" style="display:none;margin-top:6px;">
+              <div class="field">
+                <label class="mini-field">Dieu (nom exact de la carte)</label>
+                <input type="text" id="f-fidele-god" list="card-name-suggestions" placeholder="Ex : Uhaina" oninput="onFormChange()">
+              </div>
+              <div class="field">
+                <label class="mini-field">Dévotion donnée</label>
+                <input type="number" id="f-fidele-amount" min="1" max="10" value="1" oninput="onFormChange()">
+              </div>
+            </div>
+          </div>
           <div id="f-vorace-wrap" style="display:none;margin-top:8px;">
             <div class="grid2">
               <div class="field">
@@ -847,7 +862,7 @@ header .spacer{flex:1;}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="spellcraft-shared.js?v=20261101c"></script>
+<script src="spellcraft-shared.js?v=20261101d"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>
 <script src="spellcraft-atelier-nav.js"></script>
@@ -858,16 +873,18 @@ header .spacer{flex:1;}
 /* CLASSES, CLASS_COLORS, RARITIES, CARD_TYPES, KEYWORDS, escapeHtml et migrateCard
    viennent maintenant de spellcraft-shared.js (chargé juste avant ce script). */
 
-const WATCH_TRIGGERS = ['watchPlay','watchArrival','watchDeath','watchAttack','watchDamaged','watchHealed','watchHeroHealed','watchSpell','watchTrap','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchAfterReveal','watchReveal','watchExplore','watchRetrieveDiscard','watchRetrieveDeck','watchTargeted','watchDiscovered','watchDrawFromOpponentDeck','watchHeroPowerActivated','watchArtifactActivated','onTargeted'];
+const WATCH_TRIGGERS = ['watchPlay','watchArrival','watchDeath','watchAttack','watchDamaged','watchHealed','watchHeroHealed','watchSpell','watchTrap','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchAfterReveal','watchReveal','watchExplore','watchRetrieveDiscard','watchRetrieveDeck','watchTargeted','watchDiscovered','watchDrawFromOpponentDeck','watchHeroPowerActivated','watchArtifactActivated','onTargeted',
+  // Set « La guerre élémentaire »
+  'watchFaille','watchCycle','watchSacrifice','watchDevotion','watchRitualMana','watchRitualComplete','watchEdificeAttacked'];
 
 const TRIGGERS_BY_TYPE = {
-  'Créature': ['onPlay','offering','inDeckStartOfTurn','onAttack','onBlocked','onWasBlocked','onDealtHeroDamage','onDamaged','onHealed','onBuffed','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
-  'Héros':    ['gameStart','onPlay','onDamaged','onHealed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
+  'Créature': ['onPlay','offering','inDeckStartOfTurn','onCycle','onSacrificed','enemyManaSpentThreshold','onAttack','onBlocked','onWasBlocked','onDealtHeroDamage','onDamaged','onHealed','onBuffed','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
+  'Héros':    ['gameStart','onPlay','enemyManaSpentThreshold','onDamaged','onHealed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
   // Une Région n'est jamais jouée, détruite, ni ramenée du cimetière, et n'a
   // pas de capacité activée : ces déclencheurs ne sont pas proposés ici.
   'Région':   ['gameStart','manaAlternative','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS],
-  'Artefact': ['onPlay','offering','inDeckStartOfTurn','onUse','onDestroyed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
-  'Sortilège':['onPlay','onDrawn','offering','inDeckStartOfTurn'],
+  'Artefact': ['onPlay','offering','inDeckStartOfTurn','onCycle','onEdificeAttacked','enemyManaSpentThreshold','onUse','onDestroyed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
+  'Sortilège':['onPlay','onDrawn','offering','inDeckStartOfTurn','onCycle'],
   'Piège':    ['onOpponentAttack','inDeckStartOfTurn','onOpponentSpell','onOpponentPlayCreature','onOpponentPlayArtifact','onOpponentPlayCard','onOpponentEndTurn','onOpponentTargetsAlly','onAllySurvivesCombat','onEnemySurvivesCombat','beforeAllyFights','onAllyBlocked','onDestroyed','gameStart','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS],
   // Rituel (set « La guerre élémentaire ») : son effet se déclenche quand le total de mana est atteint
   'Rituel':   ['ritualComplete']
@@ -952,7 +969,18 @@ const TRIGGER_TEXT = {
   // Set « La guerre élémentaire »
   inDeckStartOfTurn: 'Faille',
   offering: 'Offrande',
-  ritualComplete: 'Quand le Rituel est accompli'
+  ritualComplete: 'Quand le Rituel est accompli',
+  onCycle: 'Quand cette carte retourne dans le deck (Cycle)',
+  onSacrificed: 'Quand cette créature est sacrifiée',
+  onEdificeAttacked: 'Quand cet Édifice est attaqué',
+  enemyManaSpentThreshold: "Au début de votre tour, si l'adversaire a dépensé au moins X mana pendant son dernier tour",
+  watchFaille: 'Quand une Faille se déclenche',
+  watchCycle: 'Quand une carte retourne dans le deck (Cycle)',
+  watchSacrifice: 'Quand une créature est sacrifiée',
+  watchDevotion: 'Quand un dieu gagne de la Dévotion',
+  watchRitualMana: 'Quand du mana est versé dans un Rituel',
+  watchRitualComplete: 'Quand un Rituel est accompli',
+  watchEdificeAttacked: 'Quand un Édifice est attaqué'
 };
 // Déclencheurs écrits comme une étiquette (« Faille : … », « Offrande : … ») sur le texte de la carte
 const LABEL_TRIGGERS = ['inDeckStartOfTurn','offering'];
@@ -961,7 +989,10 @@ const LABEL_TRIGGERS = ['inDeckStartOfTurn','offering'];
 const TRIGGER_SHORT_NAME = {
   onPlay: 'Arrivée',
   onDeath: 'Finale',
-  onAttack: 'Assaut'
+  onAttack: 'Assaut',
+  inDeckStartOfTurn: 'Faille',
+  offering: 'Offrande',
+  onCycle: 'Cycle'
 };
 
 const CONDITION_TYPES = [
@@ -989,7 +1020,13 @@ const CONDITION_TYPES = [
   {key:'turnParity', label:'Votre numéro de tour est pair / impair', hasValue:false, isTurnParity:true},
   {key:'cardNameInPlay', label:'Un artefact / une carte précise est en jeu', hasValue:false, isCardNameInPlay:true},
   {key:'creatureState', label:'Une créature est blessée / a déjà attaqué', hasValue:false, isCreatureState:true},
-  {key:'devotionAtLeast', label:'La Dévotion de cette carte (dieu) est au moins X', hasValue:true, valueType:'number'},
+  {key:'devotionAtLeast', label:"La Dévotion d'un dieu est au moins X (vide = ce dieu)", hasValue:true, valueType:'number'},
+  {key:'failleInDeck', label:'Vous avez au moins X cartes avec Faille dans votre deck', hasValue:true, valueType:'number'},
+  {key:'enemyManaSpent', label:"L'adversaire a dépensé au moins X mana pendant son dernier tour (Vorace)", hasValue:true, valueType:'number'},
+  {key:'ritualManaAtLeast', label:'Votre Rituel contient au moins X mana', hasValue:true, valueType:'number'},
+  {key:'cycledThisTurn', label:'Une carte est retournée dans votre deck par Cycle ce tour-ci', hasValue:false},
+  {key:'sacrificedThisTurn', label:'Vous avez sacrifié une créature ce tour-ci', hasValue:false},
+  {key:'edificeInPlay', label:'Vous contrôlez au moins X Édifices', hasValue:true, valueType:'number'},
   {key:'custom', label:'⚠ Condition personnalisée (texte libre)', hasValue:true, valueType:'text'}
 ];
 /* Groupes d'affichage du menu « Condition » (l'ordre des clés = ordre dans le groupe) */
@@ -998,7 +1035,7 @@ const COND_GROUPS = [
   ['Ce tour-ci', ['healthChange','drawnThisTurn','countThisTurn','selfDrawnThisTurn','hpLostLastTurn','manaNotFromRegion']],
   ['Cartes et créatures', ['statCompare','targetHasKeyword','creatureState','deadCreatureCause','deadCreatureSubtype','playedCardCost','playedCardType']],
   ['Timing et hasard', ['turnAtLeast','turnParity','chance','whileInHand','whileYourTurn']],
-  ['La guerre élémentaire', ['devotionAtLeast']],
+  ['La guerre élémentaire', ['devotionAtLeast','failleInDeck','enemyManaSpent','ritualManaAtLeast','cycledThisTurn','sacrificedThisTurn','edificeInPlay']],
   ['Avancé', ['custom']]
 ];
 
@@ -1011,7 +1048,7 @@ const EFFECT_GROUPS = [
   ['Créatures et plateau', ['destroy','stun','bounce','sacrificeEffect','removeFromCombat','summonCopy','transformCard','stealCreature','fight','destroyDealAtk','reviveDestroyedLastTurn','redirectTarget']],
   ['Artefacts et pièges', ['removeArtifactCharges','destroySelf','addCharges','exhaustArtifact','disarmTraps','counterCard']],
   ['Spécial', ['coinFlip','doubleTrigger','doubleEffectsTrigger','custom']],
-  ['La guerre élémentaire', ['addDevotion']]
+  ['La guerre élémentaire', ['addDevotion','triggerFailles','shuffleIntoDeck','addRitualMana','removeRitualMana','destroyRitual','repairEdifice']]
 ];
 
 const EFFECT_TYPES = [
@@ -1072,7 +1109,13 @@ const EFFECT_TYPES = [
   {key:'halveLife', label:'Divise la vie du joueur en deux', needsTarget:false, needsValue:false, isHalveLife:true},
   {key:'custom', label:'⚠ Effet personnalisé (texte libre)', needsTarget:false, needsValue:false},
   // Fidèle (set « La guerre élémentaire ») : ajoute de la Dévotion à un dieu précis, lue par le dieu quand il entre en jeu
-  {key:'addDevotion', label:'Fidèle : +X Dévotion à un dieu', needsTarget:false, needsValue:true, isAddDevotion:true}
+  {key:'addDevotion', label:'Fidèle : +X Dévotion à un dieu', needsTarget:false, needsValue:true, isAddDevotion:true},
+  {key:'triggerFailles', label:'Faille : déclenche une fois les Failles des cartes de votre deck', needsTarget:false, needsValue:false},
+  {key:'shuffleIntoDeck', label:'Mélange la cible dans le deck de son propriétaire (créature, artefact ou carte en main)', needsTarget:true, needsValue:false},
+  {key:'addRitualMana', label:'Rituel : ajoute X mana à votre Rituel', needsTarget:false, needsValue:true},
+  {key:'removeRitualMana', label:'Rituel : retire X mana du Rituel adverse', needsTarget:false, needsValue:true},
+  {key:'destroyRitual', label:'Rituel : détruit le Rituel adverse', needsTarget:false, needsValue:false},
+  {key:'repairEdifice', label:'Édifice : restaure X Endurance à un Édifice', needsTarget:true, needsValue:true}
 ];
 
 const EXPLORE_OWNERS = [
@@ -1189,7 +1232,14 @@ const DYNAMIC_VALUES = [
   {key:'hpLostThisTurnEnemy', label:"= nombre de PV perdus par l'adversaire ce tour-ci"},
   {key:'hpGainedThisTurn', label:'= nombre de PV gagnés ce tour-ci'},
   {key:'devotion', label:'= Dévotion de ce dieu'},
-  {key:'enemyManaSpentLastTurn', label:"= mana dépensé par l'adversaire pendant son dernier tour"}
+  {key:'devotionOf', label:"= Dévotion d'un dieu précis [nom]", parametric:'cardName'},
+  {key:'enemyManaSpentLastTurn', label:"= mana dépensé par l'adversaire pendant son dernier tour"},
+  {key:'allyManaSpentThisTurn', label:'= mana que vous avez dépensé ce tour-ci'},
+  {key:'failleInDeck', label:'= nombre de cartes avec Faille dans votre deck'},
+  {key:'cycledThisGame', label:'= nombre de cartes retournées dans votre deck par Cycle cette partie'},
+  {key:'sacrificedThisGame', label:'= nombre de créatures que vous avez sacrifiées cette partie'},
+  {key:'ritualMana', label:'= mana versé dans votre Rituel'},
+  {key:'edificesInPlay', label:"= nombre d'Édifices que vous contrôlez"}
 ];
 
 const DYNAMIC_VALUE_ZONES = [['playedThisTurn','Jouée(s) ce tour-ci'],['board','En jeu'],['hand','En main'],['discard','En défausse']];
@@ -1813,6 +1863,7 @@ function refreshFormVisibility(){
   document.getElementById('f-ritual-wrap').style.display = isRitual ? 'block':'none';
   document.getElementById('f-ritual-offering-mana-wrap').style.display = (isRitual && document.getElementById('f-ritual-offering').checked) ? 'block':'none';
   document.getElementById('f-class3-wrap').style.display = document.getElementById('f-class2').value ? 'block':'none';
+  document.getElementById('f-fidele-wrap').style.display = document.getElementById('f-fidele-enabled').checked ? 'grid':'none';
   document.getElementById('f-stats-wrap').style.display = showAtk ? 'block':'none';
   document.getElementById('f-hp-wrap').style.display = showHp ? 'block':'none';
   const hpLabel = document.querySelector('#f-hp-wrap label');
@@ -2326,7 +2377,7 @@ const TB_BUFF_KINDS = [
   {key:'keywordLoss', label:'Perd ses mots-clés (réduite au silence)', text:'perd ses mots-clés'},
   {key:'any',         label:"N'importe lequel de ces changements", text:'reçoit un bonus ou un malus'}
 ];
-const TB_FILTERABLE = ['watchPlay','watchArrival','watchDeath','watchAttack','watchDamaged','watchHealed','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchTargeted'];
+const TB_FILTERABLE = ['watchPlay','watchArrival','watchDeath','watchAttack','watchDamaged','watchHealed','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchTargeted','watchFaille','watchCycle','watchSacrifice'];
 const TB_MOMENTS = [
   {k:'arrival', label:'Arrivée', leaves:[{key:'onPlay'}]},
   {k:'final', label:'Final', leaves:[{key:'onDeath'}]},
@@ -2338,7 +2389,8 @@ const TB_MOMENTS = [
     {key:'startOfCombat', label:"du combat (s'il y a au moins un attaquant)"},
     {key:'startOfMainPhase1', label:'de la 1re phase principale'},
     {key:null, label:'de la 2e phase principale', off:"cette phase n'existe pas dans le jeu"},
-    {key:'startOfBlockPhase', label:'de la phase de blocage'}
+    {key:'startOfBlockPhase', label:'de la phase de blocage'},
+    {key:'enemyManaSpentThreshold', label:"de votre tour, si l'adversaire a dépensé au moins X mana à son dernier tour (Vorace)"}
   ]},
   {k:'end', label:'À la fin', leaves:[
     {key:'endOfTurn', label:'de votre tour'},
@@ -2363,7 +2415,9 @@ const TB_MOMENTS = [
       {key:'onDamaged', label:'subit des dégâts'}, {key:'onHealed', label:'est soignée'},
       {key:'onDestroyed', label:'est détruite'}, {key:'onRevive', label:'revient du cimetière'},
       {key:'onBuffed', label:'reçoit un bonus ou un malus'}, {key:'onDrawn', label:'est piochée'}, {key:'onTargeted', label:'est désignée (ciblée par un effet)'},
-      {key:'onUse', label:'est utilisée (artefact)'}
+      {key:'onUse', label:'est utilisée (artefact)'},
+      {key:'onCycle', label:'retourne dans le deck (Cycle)'}, {key:'onSacrificed', label:'est sacrifiée'},
+      {key:'onEdificeAttacked', label:'est attaquée (Édifice)'}
     ]},
     {k:'card', label:'une carte', leaves:[
       {key:'watchPlay', label:'est jouée (créature, depuis la main)'}, {key:'watchArrival', label:'arrive en jeu'},
@@ -2386,6 +2440,12 @@ const TB_MOMENTS = [
       {key:'watchDiscovered', label:'vous découvrez une carte'}, {key:'watchRetrieveDiscard', label:'une carte est récupérée depuis la défausse'},
       {key:'watchRetrieveDeck', label:'une carte est récupérée depuis le deck'}, {key:'watchDrawFromOpponentDeck', label:'vous piochez dans le deck adverse'}
     ]},
+    {k:'guerre', label:'une mécanique du set (Faille, Cycle, Offrande, Dévotion, Rituel, Édifice)', leaves:[
+      {key:'watchFaille', label:'une Faille se déclenche'}, {key:'watchCycle', label:'une carte retourne dans le deck (Cycle)'},
+      {key:'watchSacrifice', label:'une créature est sacrifiée (Offrande ou autre)'}, {key:'watchDevotion', label:'un dieu gagne de la Dévotion (Fidèle)'},
+      {key:'watchRitualMana', label:'du mana est versé dans un Rituel'}, {key:'watchRitualComplete', label:'un Rituel est accompli'},
+      {key:'watchEdificeAttacked', label:'un Édifice est attaqué'}
+    ]},
     {k:'opponent', label:"l'adversaire", leaves:[
       {key:'onOpponentAttack', label:'attaque avec une créature'}, {key:'onOpponentSpell', label:'lance un sortilège'},
       {key:'onOpponentPlayCreature', label:'invoque une créature'}, {key:'onOpponentPlayArtifact', label:'joue un artefact'},
@@ -2398,6 +2458,7 @@ const TB_MOMENTS = [
   ]},
   {k:'replace', label:'Remplace le gain de mana', leaves:[{key:'manaAlternative'}]},
   {k:'faille', label:'Faille (au début de votre tour, si cette carte est dans votre deck)', leaves:[{key:'inDeckStartOfTurn'}]},
+  {k:'cycle', label:'Cycle (quand cette carte retourne dans le deck)', leaves:[{key:'onCycle'}]},
   {k:'offrande', label:'Offrande (en la jouant, si vous sacrifiez une créature alliée)', leaves:[{key:'offering'}]},
   {k:'ritual', label:'Rituel accompli (total de mana atteint)', leaves:[{key:'ritualComplete'}]}
 ];
@@ -2509,6 +2570,23 @@ function buildTriggerEntryBox(te, tIdx, totalCount, availableTriggers, onRemove)
     tBox.appendChild(orow);
   }
 
+  if(te.trigger==='enemyManaSpentThreshold'){
+    const mrow = document.createElement('div'); mrow.className='ability-row';
+    const f = document.createElement('div'); f.className='field';
+    f.innerHTML = `<label class="mini-field">Mana dépensé par l'adversaire (au moins)</label>`;
+    const i = document.createElement('input'); i.type='number'; i.min=1; i.max=20; i.value=te.manaSpentThreshold??5;
+    i.oninput=()=>{ te.manaSpentThreshold=parseInt(i.value)||1; onFormChange(); };
+    f.appendChild(i); mrow.appendChild(f); tBox.appendChild(mrow);
+  }
+  if(te.trigger==='watchDevotion'){
+    const drow = document.createElement('div'); drow.className='ability-row';
+    const f = document.createElement('div'); f.className='field';
+    f.innerHTML = `<label class="mini-field">Dieu (optionnel : vide = n'importe lequel)</label>`;
+    const i = document.createElement('input'); i.type='text'; i.value=te.devotionGodFilter||''; i.placeholder='Ex : Uhaina';
+    i.setAttribute('list','card-name-suggestions');
+    i.oninput=()=>{ te.devotionGodFilter=i.value; onFormChange(); };
+    f.appendChild(i); drow.appendChild(f); tBox.appendChild(drow);
+  }
   if(te.trigger==='watchBuffed' || te.trigger==='onBuffed'){
     // Précision du bonus / malus : quel changement déclenche la capacité ?
     const brow = document.createElement('div');
@@ -3003,6 +3081,14 @@ function rebuildAbilitiesUI(){
       }
       if(ctDef && ctDef.isTurnParity){
         row.appendChild(makeCondSelectField(cond, 'turnParityKind', [['even','Pair (2, 4, 6…)'],['odd','Impair (1, 3, 5…)']], 'even', 'Votre numéro de tour est…'));
+      }
+      if(cond.conditionType==='devotionAtLeast'){
+        const gf=document.createElement('div'); gf.className='field';
+        gf.innerHTML='<label class="mini-field">Dieu (vide = cette carte)</label>';
+        const gi=document.createElement('input'); gi.type='text'; gi.value=cond.devotionGod||''; gi.placeholder='Ex : Uhaina';
+        gi.setAttribute('list','card-name-suggestions');
+        gi.oninput=()=>{ cond.devotionGod=gi.value; onFormChange(); };
+        gf.appendChild(gi); row.appendChild(gf);
       }
       if(ctDef && ctDef.isCardNameInPlay){
         row.appendChild(makeCondSelectField(cond, 'cardNameOwner', [['self','Chez vous'],['enemy','Chez l\'adversaire']], 'self', 'Où'));
@@ -4424,6 +4510,7 @@ function dynamicValueLabel(obj, dynFieldName, dv){
   }
   if(dv.parametric==='cardName'){
     const nameVal = obj[dynFieldName+'CardName']||'?';
+    if(dv.key==='devotionOf') return `Dévotion ${/^[aeiouyhâàéèêëîïôöûüAEIOUYHÂÀÉÈÊËÎÏÔÖÛÜ]/.test(nameVal) ? "d'" : 'de '}${nameVal}`;
     return `nombre de cartes "${nameVal}"`;
   }
   return label;
@@ -4669,6 +4756,12 @@ function buildEffectClause(eff, ab){
         : `une carte ${eff.transformCardType||'Créature'}${eff.transformSubtype?` du sous-type ${eff.transformSubtype}`:''} aléatoire`;
       return `transformez ${targetPhrase(resolvedTarget)} en ${into}`;
     }
+    case 'triggerFailles': return 'déclenchez une fois les Failles des cartes de votre deck';
+    case 'shuffleIntoDeck': return `mélangez ${targetPhrase(resolvedTarget)} dans le deck de son propriétaire`;
+    case 'addRitualMana': return `ajoutez ${valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic')} mana à votre Rituel`;
+    case 'removeRitualMana': return `retirez ${valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic')} mana du Rituel adverse`;
+    case 'destroyRitual': return 'détruisez le Rituel adverse';
+    case 'repairEdifice': return `restaurez ${valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic')} Endurance à ${targetPhrase(resolvedTarget)}`;
     case 'addDevotion': {
       const n = valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic');
       return `+${n} Dévotion à ${(eff.devotionGod||'').trim() || '?'}`;
@@ -4983,7 +5076,13 @@ function conditionClauseBase(cond, ab){
       return `la ${statLabel} ${scopeLabel} est ${compLabel} à ${condValueText(cond)}`;
     }
     case 'turnAtLeast': return `on est au tour ${condValueText(cond)} ou plus`;
-    case 'devotionAtLeast': return `la Dévotion est d'au moins ${condValueText(cond)}`;
+    case 'devotionAtLeast': return (cond.devotionGod||'').trim() ? `la Dévotion de ${cond.devotionGod.trim()} est d'au moins ${condValueText(cond)}` : `la Dévotion est d'au moins ${condValueText(cond)}`;
+    case 'failleInDeck': return `vous avez au moins ${condValueText(cond)} cartes avec Faille dans votre deck`;
+    case 'enemyManaSpent': return `l'adversaire a dépensé au moins ${condValueText(cond)} mana pendant son dernier tour`;
+    case 'ritualManaAtLeast': return `votre Rituel contient au moins ${condValueText(cond)} mana`;
+    case 'cycledThisTurn': return 'une carte est retournée dans votre deck par Cycle ce tour-ci';
+    case 'sacrificedThisTurn': return 'vous avez sacrifié une créature ce tour-ci';
+    case 'edificeInPlay': return `vous contrôlez au moins ${condValueText(cond)} Édifice(s)`;
     case 'chance': return `vous avez ${condValueText(cond)}% de chance`;
     case 'deckComposition': {
       switch(cond.deckCompMode){
@@ -5095,6 +5194,8 @@ function buildAbilitySentence(cardType, ab){
         const kwTxt = (bk.key==='keywordGain' && te.buffKeyword && te.buffKeyword!=='any') ? ` « ${(KEYWORDS.find(k=>k.key===te.buffKeyword)||{}).label || te.buffKeyword} »` : '';
         prefix = prefix.replace('reçoit un bonus ou un malus', bk.text + kwTxt);
       }
+      if(te.trigger==='enemyManaSpentThreshold') prefix = `Au début de votre tour, si l'adversaire a dépensé au moins ${te.manaSpentThreshold??5} mana pendant son dernier tour`;
+      if(te.trigger==='watchDevotion' && (te.devotionGodFilter||'').trim()) prefix = prefix.replace('un dieu gagne', (te.devotionGodFilter||'').trim()+' gagne');
       if(te.trigger==='startOfTurnX') prefix = `Au début de votre tour ${te.triggerTurn||1}`;
       if(te.trigger==='endOfTurnX') prefix = `À la fin de votre tour ${te.triggerTurn||1}`;
       if(te.trigger==='playedCardTypeCountThisTurn'){
@@ -5226,6 +5327,12 @@ function buildCardText(){
       parts.push(`Règle de deck : votre deck peut avoir une seconde source au choix${typeTxt ? ' pour les cartes'+typeTxt : ''}. Dès qu'une carte de cette seconde source est ajoutée, le deck ne peut contenir que celle-là en plus de la source du héros.`);
     }
   }
+  if(document.getElementById('f-fidele-enabled').checked){
+    const god = document.getElementById('f-fidele-god').value.trim() || '?';
+    const n = parseInt(document.getElementById('f-fidele-amount').value)||1;
+    const de = /^[aeiouyhâàéèêëîïôöûüAEIOUYHÂÀÉÈÊËÎÏÔÖÛÜ]/.test(god) ? "d'" : 'de ';
+    parts.push(`Fidèle ${de}${god}${n>1 ? ` (+${n})` : ''}`);
+  }
   if(keywords.length){
     // Texte de la carte : seulement le nom des mots-clés (l'explication s'affiche au survol / dans le grimoire)
     parts.push(keywords.map(k=>{
@@ -5310,6 +5417,9 @@ function readForm(){
     extraCostCustom: document.getElementById('f-extracost-custom').value.trim(),
     abilities: JSON.parse(JSON.stringify(abilities)),
     keywords: [...keywords],
+    fideleEnabled: document.getElementById('f-fidele-enabled').checked,
+    fideleGod: document.getElementById('f-fidele-god').value.trim(),
+    fideleAmount: parseInt(document.getElementById('f-fidele-amount').value) || 1,
     voraceRatio: parseInt(document.getElementById('f-vorace-ratio').value) || 1,
     voraceCap: parseInt(document.getElementById('f-vorace-cap').value) || 0,
     ritualOfferingEnabled: currentType==='Rituel' ? document.getElementById('f-ritual-offering').checked : false,
@@ -5354,6 +5464,9 @@ function loadCardIntoForm(card){
 
   document.getElementById('f-class2').value = card.classSecondary || '';
   document.getElementById('f-class3').value = card.classTertiary || '';
+  document.getElementById('f-fidele-enabled').checked = !!card.fideleEnabled;
+  document.getElementById('f-fidele-god').value = card.fideleGod || '';
+  document.getElementById('f-fidele-amount').value = card.fideleAmount ?? 1;
   document.getElementById('f-vorace-ratio').value = String(card.voraceRatio || 1);
   document.getElementById('f-vorace-cap').value = card.voraceCap ?? 0;
   document.getElementById('f-ritual-offering').checked = !!card.ritualOfferingEnabled;
@@ -5437,6 +5550,9 @@ function newCard(){
 
   document.getElementById('f-class2').value = '';
   document.getElementById('f-class3').value = '';
+  document.getElementById('f-fidele-enabled').checked = false;
+  document.getElementById('f-fidele-god').value = '';
+  document.getElementById('f-fidele-amount').value = 1;
   document.getElementById('f-vorace-ratio').value = '1';
   document.getElementById('f-vorace-cap').value = 0;
   document.getElementById('f-ritual-offering').checked = false;
