@@ -45,7 +45,7 @@ const KEYWORDS = [
   // Set « La guerre élémentaire »
   {key:'vorace', label:'Vorace', desc:"Gagne de la Force selon le mana dépensé par l'adversaire pendant son dernier tour (remis à 0 au début du tour adverse suivant)."},
   {key:'insensible', label:'Insensible', desc:'Ne peut pas être ciblée par les sortilèges, y compris les vôtres. Les effets de zone la touchent.'},
-  {key:'cycle', label:'Cycle', desc:"Au lieu d'aller au cimetière, est remélangée dans votre deck (après résolution pour un sort, à la mort pour une créature)."},
+  {key:'cycle', label:'Cycle', desc:"Au lieu d'aller au cimetière, est remélangée dans votre deck (après résolution pour un sort, à la mort pour une créature). Une seule fois : elle revient sans Cycle."},
   {key:'assault', label:'Assault', desc:"Étiquette de suivi sans effet de jeu — sert à filtrer/traquer la carte (ex: à la conjuration)."},
   {key:'debut', label:'Arrivée', desc:"Étiquette de suivi sans effet de jeu — sert à filtrer/traquer la carte (ex: à la conjuration)."},
   {key:'final', label:'Final', desc:"Étiquette de suivi sans effet de jeu — sert à filtrer/traquer la carte (ex: à la conjuration)."}
