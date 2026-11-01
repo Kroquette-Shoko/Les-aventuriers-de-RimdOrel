@@ -1,0 +1,16 @@
+/* Plateau — disposition « table en perspective » (maquette C, 01/11/2026).
+   Activée par html.bd-persp (option Plateau > Disposition). Le plateau (#board-scroll-area) est
+   incliné comme une table vue de trois quarts ; la main, les aperçus et les flèches restent à plat.
+   Aucune modification du HTML/JS du plateau. Les pioches sont empilées (ombres portées en escalier). */
+html.bd-persp #board{perspective:2600px;perspective-origin:50% -4%;}
+html.bd-persp #board-scroll-area{
+  transform:rotateX(18deg);align-self:center;width:calc(100% - 230px);transform-origin:50% 0;transform-style:preserve-3d;
+  overflow:visible !important;
+  background:linear-gradient(rgba(34,26,60,.9),rgba(14,11,28,.94));
+  border:6px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));
+  border-radius:18px;box-sizing:border-box;padding:6px 20px;
+  box-shadow:0 30px 60px rgba(0,0,0,.6);
+}
+html.bd-persp .deck-back-visual{
+  box-shadow:1px 1px 0 var(--gold),2px 2px 0 #3b2f6b,3px 3px 0 var(--gold),4px 4px 0 #3b2f6b,5px 5px 0 var(--gold),6px 6px 0 #3b2f6b,8px 10px 14px rgba(0,0,0,.6);
+}

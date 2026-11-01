@@ -634,14 +634,16 @@ scApplyTheme(scGetTheme(), {silent:true});
 /* ---------- Disposition du plateau : « classic » (actuelle) ou « rail » (minimaliste,
    rails latéraux — voir spellcraft-board-rail.css). Préférence partagée (localStorage). ---------- */
 function scGetBoardLayout(){
-  try{ return localStorage.getItem('sc-board-layout')==='rail' ? 'rail' : 'classic'; }catch(e){ return 'classic'; }
+  try{ const v = localStorage.getItem('sc-board-layout'); return (v==='rail' || v==='persp') ? v : 'classic'; }catch(e){ return 'classic'; }
 }
 function scApplyBoardLayout(id){
-  id = id==='rail' ? 'rail' : 'classic';
+  id = (id==='rail' || id==='persp') ? id : 'classic';
   document.documentElement.classList.toggle('bd-rail', id==='rail');
+  document.documentElement.classList.toggle('bd-persp', id==='persp');
   try{ localStorage.setItem('sc-board-layout', id); }catch(e){}
 }
 document.documentElement.classList.toggle('bd-rail', scGetBoardLayout()==='rail');
+document.documentElement.classList.toggle('bd-persp', scGetBoardLayout()==='persp');
 
 /* ---------- Menu d'options (icône engrenage) — flottant par défaut, ou
    ancré dans #sc-options-slot si une page fournit cet emplacement (barre
@@ -729,6 +731,7 @@ function injectOptionsMenu(){
     <select id="sc-board-layout-select">
       <option value="classic">Classique</option>
       <option value="rail">Minimaliste (rails latéraux)</option>
+      <option value="persp">Table en perspective</option>
     </select>
     <label class="sc-opt-label" for="sc-board-theme-select">Décor animé du plateau</label>
     <select id="sc-board-theme-select">
