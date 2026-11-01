@@ -795,7 +795,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>window.APP_TOPBAR_DISABLED = true;</script>
-<script src="spellcraft-shared.js?v=20261101a"></script>
+<script src="spellcraft-shared.js?v=20261101b"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>
 <script>
@@ -818,7 +818,7 @@ async function loadScopedDecks(){
 }
 function tavernDeckColors(deck){
   const set = new Set();
-  (deck.cards||[]).forEach(e=>{ const c = cardById(e.cardId); if(c) [c.class,c.classSecondary].filter(k=>k && k!=='Neutre').forEach(k=>set.add(k)); });
+  (deck.cards||[]).forEach(e=>{ const c = cardById(e.cardId); if(c) cardSources(c).filter(k=>k!=='Neutre').forEach(k=>set.add(k)); });
   return set;
 }
 let ownedCollection = {}; // { cardId: quantité possédée }
@@ -1359,7 +1359,7 @@ function getFilteredSortedCollection(){
     if(filters.classes.size){
       const realClasses = [...filters.classes].filter(k=>k!=='Multi-source');
       const wantsMulti = filters.classes.has('Multi-source');
-      const cardClasses = c.classSecondary ? [c.class, c.classSecondary] : [c.class];
+      const cardClasses = cardSources(c);
       let matches;
       if(filters.classMode==='all'){
         matches = realClasses.every(k=>cardClasses.includes(k)) && (!wantsMulti || !!c.classSecondary);
@@ -1788,7 +1788,7 @@ function fillHeroProfileContent(box, card){
     <div class="hp-portrait" style="${portraitStyle}"></div>
     <div>
       <div class="hp-name-row"><span class="hp-class-dot"></span><span class="hp-name">${escapeHtml(card.name||'')}</span></div>
-      <div class="hp-class-label">${escapeHtml([card.class, card.classSecondary].filter(Boolean).join(' / '))}</div>
+      <div class="hp-class-label">${escapeHtml(cardSources(card).join(' / '))}</div>
     </div>
   `;
   box.appendChild(header);
@@ -2375,7 +2375,7 @@ function changePage(dir){
 }
 
 function maxCopiesFor(card){
-  const ruleMax = card.isLegendary ? 1 : MAX_COPIES;
+  const ruleMax = (card.isLegendary || card.type==='Rituel') ? 1 : MAX_COPIES;
   if(currentDeck && currentDeck.isExempt) return ruleMax; // deck spécial (ex: "Appel") — pas plafonné par la possession réelle
   const owned = ownedCollection[card.id] ?? ruleMax; // repli permissif si l'info n'a pas pu être chargée
   return Math.min(ruleMax, owned);
@@ -2383,6 +2383,44 @@ function maxCopiesFor(card){
 
 function deckHeroCard(){
   return currentDeck && currentDeck.heroId ? cardById(currentDeck.heroId) : null;
+}
+
+/* ============================================================
+   SET « LA GUERRE ÉLÉMENTAIRE » — tri-source et Rituel
+   ============================================================ */
+// Toutes les sources d'une carte (1, 2 ou 3)
+function cardSources(c){ return [c.class, c.classSecondary, c.classTertiary].filter(Boolean); }
+function isTriSource(c){ return !!(c && c.classSecondary && c.classTertiary); }
+// Sources du deck = sources du héros + sources de TOUTES les cartes du deck (+ la carte qu'on veut ajouter). Neutre ne compte pas.
+function deckAllSources(deck, hero, extraCard){
+  const set = new Set();
+  if(hero) [hero.class, hero.classSecondary].filter(k=>k && k!=='Neutre').forEach(k=>set.add(k));
+  (deck.cards||[]).forEach(e=>{ const c = cardById(e.cardId); if(c) cardSources(c).filter(k=>k!=='Neutre').forEach(k=>set.add(k)); });
+  if(extraCard) cardSources(extraCard).filter(k=>k!=='Neutre').forEach(k=>set.add(k));
+  return set;
+}
+// Règle tri-source : une carte tri-source ne peut pas être dans un deck qui contient une source absente de la carte.
+// Renvoie null si tout va bien, sinon {tri: la carte tri-source qui bloque, missing: la source en trop}.
+function triSourceConflict(deck, hero, card){
+  const all = deckAllSources(deck, hero, card);
+  const tris = (deck.cards||[]).map(e=>cardById(e.cardId)).filter(isTriSource);
+  if(isTriSource(card) && !tris.some(t=>t.id===card.id)) tris.push(card);
+  for(const t of tris){
+    const own = cardSources(t);
+    for(const s of all){ if(!own.includes(s)) return {tri:t, missing:s}; }
+  }
+  return null;
+}
+function triSourceMessage(card, conflict){
+  const t = conflict.tri;
+  const label = cardSources(t).join('/');
+  if(t.id===card.id) return `${card.name} (tri-source ${label}) refusée : ton deck contient la source ${conflict.missing}, absente de cette carte.`;
+  return `${card.name} refusée : ${t.name} (tri-source ${label}) est dans ton deck et n'accepte pas la source ${conflict.missing}.`;
+}
+// Un seul Rituel par deck (toutes cartes Rituel confondues)
+function deckRitualCard(deck){
+  const e = (deck.cards||[]).find(e=>{ const c = cardById(e.cardId); return c && c.type==='Rituel'; });
+  return e ? cardById(e.cardId) : null;
 }
 
 // Règle des couleurs : une carte est jouable avec un héros si TOUTES ses couleurs sont des couleurs
@@ -2400,7 +2438,7 @@ function multiClassCount(deck, hero){
   let count = 0;
   (deck.cards||[]).forEach(entry=>{
     const c = collection.find(x=>x.id===entry.cardId);
-    if(!c) return;
+    if(!c || isTriSource(c)) return;
     if(!heroCoversCardClasses(c, hero)) count += entry.count;
   });
   return count;
@@ -2412,7 +2450,7 @@ function deckForeignSources(deck, hero){
   const set = new Set();
   (deck.cards||[]).forEach(entry=>{
     const c = collection.find(x=>x.id===entry.cardId);
-    if(!c) return;
+    if(!c || isTriSource(c)) return;
     [c.class, c.classSecondary].filter(Boolean).forEach(k=>{ if(k!=='Neutre' && !own.includes(k)) set.add(k); });
   });
   return set;
@@ -2429,14 +2467,20 @@ function classAllowedByDeck(card){
     // Baston de taverne : pas de héros, donc aucune carte réservée à un héros ; 3 couleurs maximum (Neutre ne compte pas).
     if(card.hero && String(card.hero).trim()) return false;
     const cols = tavernDeckColors(currentDeck);
-    [card.class, card.classSecondary].filter(k=>k && k!=='Neutre').forEach(k=>cols.add(k));
-    return cols.size <= SC_TAVERN_MAX_COLORS;
+    cardSources(card).filter(k=>k!=='Neutre').forEach(k=>cols.add(k));
+    if(cols.size > SC_TAVERN_MAX_COLORS) return false;
+    return !triSourceConflict(currentDeck, null, card);
   }
   const hero = deckHeroCard();
   if(!hero) return true; // pas encore de héros choisi, pas de restriction pour l'instant
   // Une carte liée à un héros précis (champ "hero") n'apparaît que si ce
   // héros est celui actuellement sélectionné pour ce deck.
   if(card.hero && card.hero.trim().toLowerCase() !== (hero.name||'').trim().toLowerCase()) return false;
+  // Une carte tri-source n'a pas besoin que le héros couvre ses 3 sources : il faut seulement
+  // qu'aucune source du deck (héros compris) ne lui manque.
+  if(isTriSource(card)) return !triSourceConflict(currentDeck, hero, card);
+  // Toute autre carte : ses règles habituelles, puis elle ne doit pas ajouter une source refusée par une tri-source du deck.
+  if(triSourceConflict(currentDeck, hero, card)) return false;
   const heroClasses = [hero.class, hero.classSecondary].filter(Boolean);
   const cardClasses = [card.class, card.classSecondary].filter(Boolean);
   // Toutes les sources de la carte doivent être couvertes par celles du
@@ -2519,6 +2563,14 @@ function onCardClick(card){
     return;
   }
   if(card.type==='Héros' || card.type==='Région') return;
+  if(card.type==='Rituel'){
+    const rit = deckRitualCard(currentDeck);
+    if(rit && rit.id!==card.id){ flashError(`${card.name} refusée : un deck ne peut contenir qu'un seul Rituel (${rit.name} y est déjà).`); return; }
+  }
+  {
+    const conflict = triSourceConflict(currentDeck, currentDeck.taverne ? null : deckHeroCard(), card);
+    if(conflict && !(card.hero && String(card.hero).trim() && currentDeck.taverne)){ flashError(triSourceMessage(card, conflict)); return; }
+  }
   if(!classAllowedByDeck(card)){
     if(currentDeck.taverne){
       flashError(card.hero && String(card.hero).trim()
@@ -3021,6 +3073,10 @@ function totalDeckCount(){
 }
 function addCardToDeck(card){
   if(totalDeckCount() >= DECK_MAX){ flashError(`Le deck est déjà à ${DECK_MAX} cartes (maximum).`); return; }
+  if(card.type==='Rituel'){
+    const rit = deckRitualCard(currentDeck);
+    if(rit && rit.id!==card.id){ flashError(`Un deck ne peut contenir qu'un seul Rituel (${rit.name} y est déjà).`); return; }
+  }
   const max = maxCopiesFor(card);
   const entry = currentDeck.cards.find(c=>c.cardId===card.id);
   if(entry){
@@ -3223,10 +3279,12 @@ function renderDeckPanel(){
     if(!c) return;
     const row = document.createElement('div');
     row.className='deck-row';
-    const cols = [c.class, c.classSecondary].filter(Boolean).map(getClassColor);
+    const cols = cardSources(c).map(getClassColor);
     if(!cols.length) cols.push(getClassColor('Neutre'));
     row.style.setProperty('--rowc', cols[0]);
-    row.style.setProperty('--rowbg', cols.length>1
+    row.style.setProperty('--rowbg', cols.length>2
+      ? `linear-gradient(90deg, ${cols[0]}55, ${cols[1]}55, ${cols[2]}55)`
+      : cols.length>1
       ? `linear-gradient(90deg, ${cols[0]}55, ${cols[1]}55)`
       : `linear-gradient(90deg, ${cols[0]}55, ${cols[0]}18)`);
     row.innerHTML = `
@@ -3274,7 +3332,7 @@ function renderDeckDetails(){
   currentDeck.cards.forEach(e=>{
     const c = cardById(e.cardId); if(!c) return;
     byType[c.type] = (byType[c.type]||0) + e.count;
-    const src = [c.class, c.classSecondary].filter(Boolean);
+    const src = cardSources(c);
     (src.length?src:['Neutre']).forEach(k=>{ bySource[k] = (bySource[k]||0) + e.count; });
     (c.subtypes||[]).forEach(t=>{ const k=String(t).trim(); if(k) bySub[k] = (bySub[k]||0) + e.count; });
     if(typeof c.cost==='number'){ costSum += c.cost*e.count; costN += e.count; }
