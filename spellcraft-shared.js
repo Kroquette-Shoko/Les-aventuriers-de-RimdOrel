@@ -24,7 +24,7 @@ const CLASS_COLORS = {
 function getClassColor(className){ return CLASS_COLORS[className] || CLASS_COLORS.Neutre; }
 
 const RARITIES = ['Basique','Commune','Rare','Épique','Mythique'];
-const CARD_TYPES = ['Héros','Région','Créature','Artefact','Sortilège','Piège'];
+const CARD_TYPES = ['Héros','Région','Créature','Artefact','Sortilège','Piège','Rituel'];
 
 const KEYWORDS = [
   {key:'charge', label:'Charge', desc:'Peut attaquer au tour où elle arrive.'},
@@ -42,6 +42,10 @@ const KEYWORDS = [
   {key:'discret', label:'Discret', desc:'Ne peut pas être bloquée.'},
   {key:'imparable', label:'Imparable', desc:"Ne peut pas être la cible d'un piège."},
   {key:'fugace', label:'Fugace', desc:'Meurt à la fin de ce tour.'},
+  // Set « La guerre élémentaire »
+  {key:'vorace', label:'Vorace', desc:"Gagne de la Force selon le mana dépensé par l'adversaire pendant son dernier tour (remis à 0 au début du tour adverse suivant)."},
+  {key:'insensible', label:'Insensible', desc:'Ne peut pas être ciblée par les sortilèges, y compris les vôtres. Les effets de zone la touchent.'},
+  {key:'cycle', label:'Cycle', desc:"Au lieu d'aller au cimetière, est remélangée dans votre deck (après résolution pour un sort, à la mort pour une créature)."},
   {key:'assault', label:'Assault', desc:"Étiquette de suivi sans effet de jeu — sert à filtrer/traquer la carte (ex: à la conjuration)."},
   {key:'debut', label:'Arrivée', desc:"Étiquette de suivi sans effet de jeu — sert à filtrer/traquer la carte (ex: à la conjuration)."},
   {key:'final', label:'Final', desc:"Étiquette de suivi sans effet de jeu — sert à filtrer/traquer la carte (ex: à la conjuration)."}
@@ -211,6 +215,15 @@ function migrateCard(c){
   if(c.imageMirrorAnnounceRight===undefined) c.imageMirrorAnnounceRight = true;
   if(c.classSecondary===undefined) c.classSecondary = '';
   if(c.classSecondary && c.classSecondary===c.class) c.classSecondary = '';   // 2e source identique à la 1re = pas une carte multi-source
+  // 3e source (carte tri-source, set « La guerre élémentaire ») : n'existe que si la 2e source existe
+  if(c.classTertiary===undefined) c.classTertiary = '';
+  if(c.classTertiary && (!c.classSecondary || c.classTertiary===c.class || c.classTertiary===c.classSecondary)) c.classTertiary = '';
+  // Vorace : +1 Force par tranche de voraceRatio mana dépensé par l'adversaire, plafond voraceCap (0 = aucun)
+  if(c.voraceRatio===undefined) c.voraceRatio = 1;
+  if(c.voraceCap===undefined) c.voraceCap = 0;
+  // Rituel : Offrande optionnelle (sacrifier une créature ajoute ritualOfferingMana au Rituel)
+  if(c.ritualOfferingEnabled===undefined) c.ritualOfferingEnabled = false;
+  if(c.ritualOfferingMana===undefined) c.ritualOfferingMana = 2;
   if(!c.heroMultiClass) c.heroMultiClass = {enabled:false, mode:'allowed', anySource:'', allowedClasses:[], maxCount:6, scope:'Toutes'};
   if(!c.class) c.class = 'Neutre';
   if(!c.rarity) c.rarity = 'Commune';

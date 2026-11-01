@@ -11,8 +11,10 @@
   var LEG = /*@LEG*/;
   var ART_DEFS = /*@ARTDEFS*/;
   var CSS = /*@CSS*/;
-  var TYPE = {'Créature':'creature','Sortilège':'spell','Piège':'trap','Artefact':'artefact','Région':'region','Héros':'hero'};
+  var TYPE = {'Créature':'creature','Sortilège':'spell','Piège':'trap','Artefact':'artefact','Région':'region','Héros':'hero','Rituel':'spell'};
   var SPLIT = {big:'M190,0 H300 V423 H110 Z', small:'M150,0 H240 V240 H100 Z'};
+  /* Carte tri-source : 3 bandes obliques (2e source au milieu, 3e à droite) */
+  var SPLIT3 = {big:['M130,0 H300 V423 H50 Z','M230,0 H300 V423 H150 Z'], small:['M110,0 H240 V240 H50 Z','M190,0 H240 V240 H130 Z']};
   var DIMS = {big:[300,423], small:[240,240]};
   var counter = 0, installed = false;
 
@@ -43,15 +45,26 @@
   }
   function sub(s, u){ return s.split('@U@').join(u); }
 
-  function bgSvg(size, type, src, src2, u){
+  function band(size, W, H, srcX, clipId, u){
+    var c = PAL[srcX];
+    return '<g clip-path="url(#' + clipId + ')" style="--c1:' + c[0] + ';--c2:' + c[1] + ';--c3:' + c[2] + ';--gem:' + c[3] + '">'
+      + '<linearGradient id="' + clipId + 'G" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--c2)"/><stop offset="1" style="stop-color:var(--c1)"/></linearGradient>'
+      + '<rect width="' + W + '" height="' + H + '" fill="url(#' + clipId + 'G)"/>' + sub(FX[srcX][size], clipId + 'z') + '</g>';
+  }
+  function bgSvg(size, type, src, src2, u, src3){
     var d = DIMS[size], W = d[0], H = d[1];
     var s = '<svg class="nd-bg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">'
       + '<defs><linearGradient id="' + u + 'BB" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--c2)"/><stop offset="1" style="stop-color:var(--c1)"/></linearGradient>'
       + '<clipPath id="' + u + 'CPB"><path d="' + CLIP[size][type][0] + '"/></clipPath>'
       + '<clipPath id="' + u + 'CPW"><path d="M-300,-300 H700 V800 H-300 Z ' + CLIP[size][type][1] + '" clip-rule="evenodd"/></clipPath>';
-    if(src2) s += '<clipPath id="' + u + 'CPS"><path d="' + SPLIT[size] + '"/></clipPath>';
+    if(src2 && src3){
+      s += '<clipPath id="' + u + 'CPS"><path d="' + SPLIT3[size][0] + '"/></clipPath>'
+        + '<clipPath id="' + u + 'CPT"><path d="' + SPLIT3[size][1] + '"/></clipPath>';
+    } else if(src2) s += '<clipPath id="' + u + 'CPS"><path d="' + SPLIT[size] + '"/></clipPath>';
     s += '</defs><g clip-path="url(#' + u + 'CPB)"><g clip-path="url(#' + u + 'CPW)"><rect width="' + W + '" height="' + H + '" fill="url(#' + u + 'BB)"/>' + sub(FX[src][size], u);
-    if(src2){
+    if(src2 && src3){
+      s += band(size, W, H, src2, u + 'CPS', u) + band(size, W, H, src3, u + 'CPT', u);
+    } else if(src2){
       var c = PAL[src2];
       s += '<g clip-path="url(#' + u + 'CPS)" style="--c1:' + c[0] + ';--c2:' + c[1] + ';--c3:' + c[2] + ';--gem:' + c[3] + '">'
         + '<linearGradient id="' + u + 'BB2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--c2)"/><stop offset="1" style="stop-color:var(--c1)"/></linearGradient>'
@@ -94,6 +107,7 @@
       var src = PAL[card.class] ? card.class : 'Neutre';
       if(card.fullArt && type !== 'hero' && type !== 'region'){ fullArt(root, card, size, type, src); return root; }
       var src2 = (card.classSecondary && PAL[card.classSecondary] && card.classSecondary !== src) ? card.classSecondary : null;
+      var src3 = (src2 && card.classTertiary && PAL[card.classTertiary] && card.classTertiary !== src && card.classTertiary !== src2) ? card.classTertiary : null;
       var c = PAL[src], u = 'nd' + (++counter) + '-';
       root.classList.add('n-drawn', 'nd-' + type);
       root.style.setProperty('--c1', c[0]); root.style.setProperty('--c2', c[1]);
@@ -102,7 +116,7 @@
       for(var i = 0; i < old.length; i++) old[i].parentNode.removeChild(old[i]);
       var art = root.querySelector('.nart-layer');
       var tmp = document.createElement('div');
-      tmp.innerHTML = bgSvg(size, type, src, src2, u + 'b') + sub(FR[size][type], u + 'f');
+      tmp.innerHTML = bgSvg(size, type, src, src2, u + 'b', src3) + sub(FR[size][type], u + 'f');
       var bg = tmp.firstChild, fr = tmp.lastChild;
       if(art && art.nextSibling){ root.insertBefore(bg, art.nextSibling); } else { root.appendChild(bg); }
       root.insertBefore(fr, bg.nextSibling);

@@ -359,7 +359,7 @@ header .spacer{flex:1;}
 .kw-badge-stack img{width:36px;height:36px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.8));}
 @media(max-width:1100px){#ed-grid{flex-direction:column;}#preview-panel{width:100%;position:static;}}
 </style>
-<script src="spellcraft-card-render.js?v=20261020a"></script>
+<script src="spellcraft-card-render.js?v=20261101a"></script>
 <script src="spellcraft-dialogs.js?v=20261020a"></script>
 </head>
 <body>
@@ -446,10 +446,18 @@ header .spacer{flex:1;}
         </div>
 <div class="field">
           <label>Seconde source (optionnel) <span class="hint" style="text-transform:none;letter-spacing:0;">— rend la carte bicolore</span></label>
-          <select id="f-class2" onchange="onFormChange()">
+          <select id="f-class2" onchange="onClass2Change()">
             <option value="">Aucune</option>
             <option>Aube</option><option>Crépuscule</option><option>Volonté</option><option>Prima</option><option>Arcane</option><option>Neutre</option>
           </select>
+        </div>
+<div class="field" id="f-class3-wrap" style="display:none">
+          <label>Troisième source (optionnel) <span class="hint" style="text-transform:none;letter-spacing:0;">— rend la carte tri-source</span></label>
+          <select id="f-class3" onchange="onFormChange()">
+            <option value="">Aucune</option>
+            <option>Aube</option><option>Crépuscule</option><option>Volonté</option><option>Prima</option><option>Arcane</option>
+          </select>
+          <div class="hint" style="margin-top:4px;">Tri-source : interdite dans un deck qui contient une source absente de la carte.</div>
         </div>
 <div class="field">
           <label>Sous-types</label>
@@ -463,6 +471,8 @@ header .spacer{flex:1;}
             <span class="chip-suggest" onclick="addSubtype('Mort-vivant')">+ Mort-vivant</span>
             <span class="chip-suggest" onclick="addSubtype('Golem')">+ Golem</span>
             <span class="chip-suggest" onclick="addSubtype('Esprit')">+ Esprit</span>
+            <span class="chip-suggest" onclick="addSubtype('Peulon')">+ Peulon</span>
+            <span class="chip-suggest" onclick="addSubtype('Édifice')">+ Édifice (artefact)</span>
           </div>
         </div>
 <div class="grid3">
@@ -481,6 +491,16 @@ header .spacer{flex:1;}
           <div class="field" id="f-charges-wrap" style="display:none">
             <label>Usure (utilisations)</label>
             <input type="number" id="f-charges" min="1" max="10" value="3" oninput="onFormChange()">
+          </div>
+        </div>
+<div class="field" id="f-ritual-wrap" style="display:none">
+          <div class="hint" style="margin-bottom:8px;">Rituel : retiré du deck au début de la partie et placé dans son emplacement. Le coût ci-dessus = total de mana à verser. Une fois lancé, il quitte le jeu.</div>
+          <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;cursor:pointer;">
+            <input type="checkbox" id="f-ritual-offering" onchange="refreshFormVisibility(); onFormChange();"> Offrande : sacrifier une créature alliée ajoute du mana à ce Rituel
+          </label>
+          <div class="field" id="f-ritual-offering-mana-wrap" style="display:none;margin-top:8px;">
+            <label class="mini-field">Mana ajouté par créature sacrifiée</label>
+            <input type="number" id="f-ritual-offering-mana" min="1" max="10" value="2" oninput="onFormChange()">
           </div>
         </div>
 <div class="field" id="f-extracost-wrap">
@@ -688,6 +708,22 @@ header .spacer{flex:1;}
 <div class="field" id="f-keywords-wrap" style="display:none">
           <label>Mots-clés</label>
           <div class="keyword-grid" id="keyword-grid"></div>
+          <div id="f-vorace-wrap" style="display:none;margin-top:8px;">
+            <div class="grid2">
+              <div class="field">
+                <label class="mini-field">Vorace : +1 Force pour chaque…</label>
+                <select id="f-vorace-ratio" onchange="onFormChange()">
+                  <option value="1">1 mana dépensé par l'adversaire</option>
+                  <option value="2">2 mana dépensés par l'adversaire</option>
+                  <option value="3">3 mana dépensés par l'adversaire</option>
+                </select>
+              </div>
+              <div class="field">
+                <label class="mini-field">Vorace : bonus maximum (0 = aucun)</label>
+                <input type="number" id="f-vorace-cap" min="0" max="20" value="0" oninput="onFormChange()">
+              </div>
+            </div>
+          </div>
         </div>
 <div class="field" id="f-manarule-wrap" style="display:none">
           <label>Règle de mana <span class="hint" style="text-transform:none;letter-spacing:0;">— remplace ou modifie le gain de mana normal</span></label>
@@ -811,7 +847,7 @@ header .spacer{flex:1;}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="spellcraft-shared.js?v=20261101a"></script>
+<script src="spellcraft-shared.js?v=20261101b"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>
 <script src="spellcraft-atelier-nav.js"></script>
@@ -825,14 +861,16 @@ header .spacer{flex:1;}
 const WATCH_TRIGGERS = ['watchPlay','watchArrival','watchDeath','watchAttack','watchDamaged','watchHealed','watchHeroHealed','watchSpell','watchTrap','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchAfterReveal','watchReveal','watchExplore','watchRetrieveDiscard','watchRetrieveDeck','watchTargeted','watchDiscovered','watchDrawFromOpponentDeck','watchHeroPowerActivated','watchArtifactActivated','onTargeted'];
 
 const TRIGGERS_BY_TYPE = {
-  'Créature': ['onPlay','onAttack','onBlocked','onWasBlocked','onDealtHeroDamage','onDamaged','onHealed','onBuffed','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
+  'Créature': ['onPlay','offering','inDeckStartOfTurn','onAttack','onBlocked','onWasBlocked','onDealtHeroDamage','onDamaged','onHealed','onBuffed','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
   'Héros':    ['gameStart','onPlay','onDamaged','onHealed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
   // Une Région n'est jamais jouée, détruite, ni ramenée du cimetière, et n'a
   // pas de capacité activée : ces déclencheurs ne sont pas proposés ici.
   'Région':   ['gameStart','manaAlternative','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS],
-  'Artefact': ['onPlay','onUse','onDestroyed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
-  'Sortilège':['onPlay','onDrawn'],
-  'Piège':    ['onOpponentAttack','onOpponentSpell','onOpponentPlayCreature','onOpponentPlayArtifact','onOpponentPlayCard','onOpponentEndTurn','onOpponentTargetsAlly','onAllySurvivesCombat','onEnemySurvivesCombat','beforeAllyFights','onAllyBlocked','onDestroyed','gameStart','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS]
+  'Artefact': ['onPlay','offering','inDeckStartOfTurn','onUse','onDestroyed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
+  'Sortilège':['onPlay','onDrawn','offering','inDeckStartOfTurn'],
+  'Piège':    ['onOpponentAttack','inDeckStartOfTurn','onOpponentSpell','onOpponentPlayCreature','onOpponentPlayArtifact','onOpponentPlayCard','onOpponentEndTurn','onOpponentTargetsAlly','onAllySurvivesCombat','onEnemySurvivesCombat','beforeAllyFights','onAllyBlocked','onDestroyed','gameStart','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS],
+  // Rituel (set « La guerre élémentaire ») : son effet se déclenche quand le total de mana est atteint
+  'Rituel':   ['ritualComplete']
 };
 
 // Déclencheurs que le moteur n'applique jamais à une Région (voir règles §
@@ -910,8 +948,14 @@ const TRIGGER_TEXT = {
   watchRetrieveDeck: 'Quand une carte est récupérée depuis le deck',
   watchTargeted: 'Quand une créature est désignée (ciblée par un effet)',
   onTargeted: 'Quand cette créature est désignée (ciblée par un effet)',
-  activated: 'Capacité activée (payez du mana)'
+  activated: 'Capacité activée (payez du mana)',
+  // Set « La guerre élémentaire »
+  inDeckStartOfTurn: 'Faille',
+  offering: 'Offrande',
+  ritualComplete: 'Quand le Rituel est accompli'
 };
+// Déclencheurs écrits comme une étiquette (« Faille : … », « Offrande : … ») sur le texte de la carte
+const LABEL_TRIGGERS = ['inDeckStartOfTurn','offering'];
 
 // Noms courts façon "mot-clé" pour certains déclencheurs, affichés dans le menu (n'affecte pas le texte généré)
 const TRIGGER_SHORT_NAME = {
@@ -945,6 +989,7 @@ const CONDITION_TYPES = [
   {key:'turnParity', label:'Votre numéro de tour est pair / impair', hasValue:false, isTurnParity:true},
   {key:'cardNameInPlay', label:'Un artefact / une carte précise est en jeu', hasValue:false, isCardNameInPlay:true},
   {key:'creatureState', label:'Une créature est blessée / a déjà attaqué', hasValue:false, isCreatureState:true},
+  {key:'devotionAtLeast', label:'La Dévotion de cette carte (dieu) est au moins X', hasValue:true, valueType:'number'},
   {key:'custom', label:'⚠ Condition personnalisée (texte libre)', hasValue:true, valueType:'text'}
 ];
 /* Groupes d'affichage du menu « Condition » (l'ordre des clés = ordre dans le groupe) */
@@ -953,6 +998,7 @@ const COND_GROUPS = [
   ['Ce tour-ci', ['healthChange','drawnThisTurn','countThisTurn','selfDrawnThisTurn','hpLostLastTurn','manaNotFromRegion']],
   ['Cartes et créatures', ['statCompare','targetHasKeyword','creatureState','deadCreatureCause','deadCreatureSubtype','playedCardCost','playedCardType']],
   ['Timing et hasard', ['turnAtLeast','turnParity','chance','whileInHand','whileYourTurn']],
+  ['La guerre élémentaire', ['devotionAtLeast']],
   ['Avancé', ['custom']]
 ];
 
@@ -964,7 +1010,8 @@ const EFFECT_GROUPS = [
   ['Stats et mots-clés', ['buff','weaken','setStat','swapStats','stealStat','grantKeyword','copyKeyword','removeKeyword','silence','evolveTarget']],
   ['Créatures et plateau', ['destroy','stun','bounce','sacrificeEffect','removeFromCombat','summonCopy','transformCard','stealCreature','fight','destroyDealAtk','reviveDestroyedLastTurn','redirectTarget']],
   ['Artefacts et pièges', ['removeArtifactCharges','destroySelf','addCharges','exhaustArtifact','disarmTraps','counterCard']],
-  ['Spécial', ['coinFlip','doubleTrigger','doubleEffectsTrigger','custom']]
+  ['Spécial', ['coinFlip','doubleTrigger','doubleEffectsTrigger','custom']],
+  ['La guerre élémentaire', ['addDevotion']]
 ];
 
 const EFFECT_TYPES = [
@@ -1023,7 +1070,9 @@ const EFFECT_TYPES = [
   {key:'evolveTarget', label:'Fait évoluer la cible (bonus permanent et/ou nouveau mot-clé et/ou transformation)', needsTarget:true, needsValue:false, isEvolveTarget:true},
   {key:'doubleTrigger', label:'Double les déclencheurs de [X] (pour le reste de la partie)', needsTarget:false, needsValue:false, isDoubleTrigger:true},
   {key:'halveLife', label:'Divise la vie du joueur en deux', needsTarget:false, needsValue:false, isHalveLife:true},
-  {key:'custom', label:'⚠ Effet personnalisé (texte libre)', needsTarget:false, needsValue:false}
+  {key:'custom', label:'⚠ Effet personnalisé (texte libre)', needsTarget:false, needsValue:false},
+  // Fidèle (set « La guerre élémentaire ») : ajoute de la Dévotion à un dieu précis, lue par le dieu quand il entre en jeu
+  {key:'addDevotion', label:'Fidèle : +X Dévotion à un dieu', needsTarget:false, needsValue:true, isAddDevotion:true}
 ];
 
 const EXPLORE_OWNERS = [
@@ -1138,7 +1187,9 @@ const DYNAMIC_VALUES = [
   {key:'manaGainedThisTurn', label:'= nombre de mana gagné ce tour-ci'},
   {key:'hpLostThisTurn', label:'= nombre de PV perdus ce tour-ci'},
   {key:'hpLostThisTurnEnemy', label:"= nombre de PV perdus par l'adversaire ce tour-ci"},
-  {key:'hpGainedThisTurn', label:'= nombre de PV gagnés ce tour-ci'}
+  {key:'hpGainedThisTurn', label:'= nombre de PV gagnés ce tour-ci'},
+  {key:'devotion', label:'= Dévotion de ce dieu'},
+  {key:'enemyManaSpentLastTurn', label:"= mana dépensé par l'adversaire pendant son dernier tour"}
 ];
 
 const DYNAMIC_VALUE_ZONES = [['playedThisTurn','Jouée(s) ce tour-ci'],['board','En jeu'],['hand','En main'],['discard','En défausse']];
@@ -1748,13 +1799,20 @@ function onCardExtraCostTypeChange(){
 }
 
 function refreshFormVisibility(){
+  const isRitual = currentType==='Rituel';
   const showAtk = currentType==='Créature';
-  const showHp = currentType==='Créature' || currentType==='Héros';
-  const showCharges = currentType==='Artefact';
+  const showHp = currentType==='Créature' || currentType==='Héros' || isEdificeType();
+  const showCharges = currentType==='Artefact' && !isEdificeType();   // un Édifice affiche son Endurance à la place de l'usure
   const showKeywords = true;
   const showCost = currentType!=='Héros' && currentType!=='Région';
   document.getElementById('f-cost-wrap').style.display = showCost ? 'block':'none';
-  document.getElementById('f-extracost-wrap').style.display = showCost ? 'block':'none';
+  const costLabel = document.querySelector('#f-cost-wrap label');
+  if(costLabel) costLabel.textContent = isRitual ? 'Total de mana à verser' : 'Coût de mana';
+  document.getElementById('f-cost').max = isRitual ? 40 : 15;
+  document.getElementById('f-extracost-wrap').style.display = (showCost && !isRitual) ? 'block':'none';
+  document.getElementById('f-ritual-wrap').style.display = isRitual ? 'block':'none';
+  document.getElementById('f-ritual-offering-mana-wrap').style.display = (isRitual && document.getElementById('f-ritual-offering').checked) ? 'block':'none';
+  document.getElementById('f-class3-wrap').style.display = document.getElementById('f-class2').value ? 'block':'none';
   document.getElementById('f-stats-wrap').style.display = showAtk ? 'block':'none';
   document.getElementById('f-hp-wrap').style.display = showHp ? 'block':'none';
   const hpLabel = document.querySelector('#f-hp-wrap label');
@@ -1771,6 +1829,20 @@ function refreshFormVisibility(){
 function onClassFieldChange(){
   if(currentType==='Héros' && document.getElementById('f-mc-enabled').checked) buildMcClassChips();
   onFormChange();
+}
+// La 3e source n'est proposée que si une 2e source est choisie
+function onClass2Change(){
+  if(!document.getElementById('f-class2').value) document.getElementById('f-class3').value = '';
+  refreshFormVisibility();
+  onFormChange();
+}
+// 3e source valide : différente des deux autres, et seulement si la 2e existe
+function readClassTertiary(){
+  const c1 = document.getElementById('f-class').value;
+  const c2 = document.getElementById('f-class2').value;
+  const c3 = document.getElementById('f-class3').value;
+  if(!c2 || c2===c1 || !c3 || c3===c1 || c3===c2) return '';
+  return c3;
 }
 
 function onMcEnabledChange(){
@@ -1821,6 +1893,8 @@ function buildMcClassChips(){
 function buildKeywordGrid(){
   const grid = document.getElementById('keyword-grid');
   grid.innerHTML='';
+  const vw = document.getElementById('f-vorace-wrap');
+  if(vw) vw.style.display = keywords.includes('vorace') ? 'block' : 'none';
   KEYWORDS.forEach(kw=>{
     const item = document.createElement('label');
     item.className = 'keyword-item' + (keywords.includes(kw.key) ? ' checked' : '');
@@ -1843,13 +1917,17 @@ function addSubtype(val){
   if(!val || subtypes.includes(val)) return;
   subtypes.push(val);
   renderSubtypeChips();
+  refreshFormVisibility();
   onFormChange();
 }
 function removeSubtype(val){
   subtypes = subtypes.filter(s=>s!==val);
   renderSubtypeChips();
+  refreshFormVisibility();
   onFormChange();
 }
+// Édifice = sous-type d'Artefact (set « La guerre élémentaire ») : a de l'Endurance, peut bloquer et être attaqué
+function isEdificeType(){ return currentType==='Artefact' && subtypes.includes('Édifice'); }
 function onSubtypeKeydown(e){
   if(e.key==='Enter' || e.key===','){
     e.preventDefault();
@@ -2318,7 +2396,10 @@ const TB_MOMENTS = [
       {key:'beforeAllyFights', label:'une créature alliée va combattre'}, {key:'onAllyBlocked', label:'une créature alliée est bloquée'}
     ]}
   ]},
-  {k:'replace', label:'Remplace le gain de mana', leaves:[{key:'manaAlternative'}]}
+  {k:'replace', label:'Remplace le gain de mana', leaves:[{key:'manaAlternative'}]},
+  {k:'faille', label:'Faille (au début de votre tour, si cette carte est dans votre deck)', leaves:[{key:'inDeckStartOfTurn'}]},
+  {k:'offrande', label:'Offrande (en la jouant, si vous sacrifiez une créature alliée)', leaves:[{key:'offering'}]},
+  {k:'ritual', label:'Rituel accompli (total de mana atteint)', leaves:[{key:'ritualComplete'}]}
 ];
 const TB_INDEX = {};
 TB_MOMENTS.forEach(m=>{
@@ -2781,7 +2862,7 @@ function rebuildAbilitiesUI(){
   const list = document.getElementById('abilities-list');
   list.innerHTML = '';
   const availableTriggers = TRIGGERS_BY_TYPE[currentType] || [];
-  const isSpellLike = currentType==='Sortilège';
+  const isSpellLike = currentType==='Sortilège' || currentType==='Rituel';
 
   let regionConverted = 0;
   abilities.forEach((ab, idx)=>{
@@ -3973,6 +4054,13 @@ function buildEffectRow(ab, eff, choiceKey){
       si.oninput=()=>{ eff.transformSubtype=si.value; onFormChange(); }; sf.appendChild(si); row.appendChild(sf);
     }
   }
+  if(def.isAddDevotion){
+    const gf = document.createElement('div'); gf.className='field';
+    gf.innerHTML = `<label class="mini-field">Dieu (nom exact de la carte)</label>`;
+    const gi = document.createElement('input'); gi.type='text'; gi.value=eff.devotionGod||''; gi.placeholder='Ex : Uhaina';
+    gi.setAttribute('list','card-name-suggestions');
+    gi.oninput=()=>{ eff.devotionGod=gi.value; onFormChange(); }; gf.appendChild(gi); row.appendChild(gf);
+  }
   if(def.isManaTheft){
     const df = document.createElement('div'); df.className='field';
     df.innerHTML = `<label class="mini-field">Pendant combien de tours</label>`;
@@ -4581,6 +4669,10 @@ function buildEffectClause(eff, ab){
         : `une carte ${eff.transformCardType||'Créature'}${eff.transformSubtype?` du sous-type ${eff.transformSubtype}`:''} aléatoire`;
       return `transformez ${targetPhrase(resolvedTarget)} en ${into}`;
     }
+    case 'addDevotion': {
+      const n = valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic');
+      return `+${n} Dévotion à ${(eff.devotionGod||'').trim() || '?'}`;
+    }
     case 'manaTheft':
       return `volez ${valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic')} mana à l'adversaire pendant ${eff.manaTheftDuration||1} tour${(eff.manaTheftDuration||1)>1?'s':''}`;
     case 'drawTyped':
@@ -4891,6 +4983,7 @@ function conditionClauseBase(cond, ab){
       return `la ${statLabel} ${scopeLabel} est ${compLabel} à ${condValueText(cond)}`;
     }
     case 'turnAtLeast': return `on est au tour ${condValueText(cond)} ou plus`;
+    case 'devotionAtLeast': return `la Dévotion est d'au moins ${condValueText(cond)}`;
     case 'chance': return `vous avez ${condValueText(cond)}% de chance`;
     case 'deckComposition': {
       switch(cond.deckCompMode){
@@ -4958,7 +5051,22 @@ function buildAbilitySentence(cardType, ab){
   }
 
   let sentence;
-  if(cardType==='Sortilège'){
+  const trigKeys = (ab.triggers||[]).map(te=>te.trigger);
+  const labelTrig = ab.kind!=='continuous' && trigKeys.length===1 && LABEL_TRIGGERS.includes(trigKeys[0]) ? trigKeys[0] : null;
+  // Fidèle : « Quand cette carte entre en jeu, +1 Dévotion à X » s'écrit « Fidèle de X »
+  const effs = ab.effects||[];
+  const fidele = !ab.useChoice && ab.kind!=='continuous' && trigKeys.length===1 && trigKeys[0]==='onPlay' && !condText
+    && effs.length===1 && effs[0].effectType==='addDevotion' && effs[0].valueMode!=='dynamic';
+  if(fidele){
+    const god = (effs[0].devotionGod||'').trim() || '?';
+    const n = parseInt(effs[0].valueFixed)||1;
+    const de = /^[aeiouyhâàéèêëîïôöûüAEIOUYHÂÀÉÈÊËÎÏÔÖÛÜ]/.test(god) ? "d'" : 'de ';
+    sentence = `Fidèle ${de}${god}${n>1 ? ` (+${n})` : ''}.`;
+  } else if(labelTrig){
+    // Faille / Offrande : étiquette, puis l'effet
+    const lowerClause = clause.charAt(0).toLowerCase()+clause.slice(1);
+    sentence = condText ? `${TRIGGER_TEXT[labelTrig]} : si ${condText}, ${lowerClause}.` : `${TRIGGER_TEXT[labelTrig]} : ${lowerClause}.`;
+  } else if(cardType==='Sortilège' || cardType==='Rituel'){
     sentence = condText ? `Si ${condText}, ${clause.charAt(0).toLowerCase()+clause.slice(1)}.` : `${clause}.`;
   } else if(ab.kind==='continuous'){
     const lowerClause = clause.charAt(0).toLowerCase()+clause.slice(1);
@@ -5094,6 +5202,10 @@ function buildCardText(){
     }[type];
     parts.push(`Coût additionnel : ${label}.`);
   }
+  if(currentType==='Rituel' && document.getElementById('f-ritual-offering').checked){
+    const m = parseInt(document.getElementById('f-ritual-offering-mana').value)||2;
+    parts.push(`Offrande : chaque créature alliée sacrifiée ajoute ${m} mana à ce Rituel.`);
+  }
   if(currentType==='Région'){
     const manaRuleEl = document.getElementById('f-manarule');
     const manaRuleText = manaRuleEl ? manaRuleEl.value.trim() : '';
@@ -5118,7 +5230,17 @@ function buildCardText(){
     // Texte de la carte : seulement le nom des mots-clés (l'explication s'affiche au survol / dans le grimoire)
     parts.push(keywords.map(k=>{
       const kw = KEYWORDS.find(x=>x.key===k);
-      return kw ? kw.label : '';
+      if(!kw) return '';
+      // Vorace : le rythme et le plafond font partie de la carte (comme un chiffre de mot-clé)
+      if(k==='vorace'){
+        const ratio = parseInt(document.getElementById('f-vorace-ratio').value)||1;
+        const cap = parseInt(document.getElementById('f-vorace-cap').value)||0;
+        const bits = [];
+        if(ratio>1) bits.push(`+1 par ${ratio} mana`);
+        if(cap>0) bits.push(`max +${cap}`);
+        return bits.length ? `${kw.label} (${bits.join(', ')})` : kw.label;
+      }
+      return kw.label;
     }).filter(Boolean).join(', '));
   }
   abilities.forEach(ab=>{
@@ -5154,6 +5276,7 @@ function readForm(){
     name: document.getElementById('f-name').value.trim() || 'Carte sans nom',
     class: document.getElementById('f-class').value,
     classSecondary: (document.getElementById('f-class2').value && document.getElementById('f-class2').value!==document.getElementById('f-class').value) ? document.getElementById('f-class2').value : '',
+    classTertiary: readClassTertiary(),
     type: currentType,
     subtypes: [...subtypes],
     cost: (currentType==='Héros' || currentType==='Région') ? null : (parseInt(document.getElementById('f-cost').value) || 0),
@@ -5187,6 +5310,10 @@ function readForm(){
     extraCostCustom: document.getElementById('f-extracost-custom').value.trim(),
     abilities: JSON.parse(JSON.stringify(abilities)),
     keywords: [...keywords],
+    voraceRatio: parseInt(document.getElementById('f-vorace-ratio').value) || 1,
+    voraceCap: parseInt(document.getElementById('f-vorace-cap').value) || 0,
+    ritualOfferingEnabled: currentType==='Rituel' ? document.getElementById('f-ritual-offering').checked : false,
+    ritualOfferingMana: parseInt(document.getElementById('f-ritual-offering-mana').value) || 2,
     manaRule: currentType==='Région' ? document.getElementById('f-manarule').value.trim() : '',
     heroMultiClass: {
       enabled: currentType==='Héros' ? document.getElementById('f-mc-enabled').checked : false,
@@ -5209,6 +5336,7 @@ function readForm(){
   }
   if(currentType==='Artefact'){
     card.charges = parseInt(document.getElementById('f-charges').value) || 1;
+    if(isEdificeType()){ card.hp = parseInt(document.getElementById('f-hp').value) || 1; card.charges = 0; }
   }
   return card;
 }
@@ -5224,6 +5352,12 @@ function loadCardIntoForm(card){
   mcAllowedClasses = [...(card.heroMultiClass?.allowedClasses || [])];
   manualMode = !!card.manualText;
 
+  document.getElementById('f-class2').value = card.classSecondary || '';
+  document.getElementById('f-class3').value = card.classTertiary || '';
+  document.getElementById('f-vorace-ratio').value = String(card.voraceRatio || 1);
+  document.getElementById('f-vorace-cap').value = card.voraceCap ?? 0;
+  document.getElementById('f-ritual-offering').checked = !!card.ritualOfferingEnabled;
+  document.getElementById('f-ritual-offering-mana').value = card.ritualOfferingMana ?? 2;
   buildTypeTabs();
   refreshFormVisibility();
 
@@ -5301,6 +5435,12 @@ function newCard(){
   mcAllowedClasses = [];
   manualMode = false;
 
+  document.getElementById('f-class2').value = '';
+  document.getElementById('f-class3').value = '';
+  document.getElementById('f-vorace-ratio').value = '1';
+  document.getElementById('f-vorace-cap').value = 0;
+  document.getElementById('f-ritual-offering').checked = false;
+  document.getElementById('f-ritual-offering-mana').value = 2;
   buildTypeTabs();
   refreshFormVisibility();
 
@@ -5703,8 +5843,8 @@ function buildCardEl(card){
     <div class="card-footer">
       ${isCreature ? `<div class="card-atk">⚔${card.atk ?? 0}</div>` : `<div></div>`}
       <div class="card-rarity-gem rarity-${card.rarity||'Commune'}" title="${card.rarity||'Commune'}"></div>
-      ${isCreature ? `<div class="card-hp">♥${card.hp ?? 0}</div>` : `<div></div>`}
-      ${card.type==='Artefact' ? `<div class="charges-tag">${card.charges ?? 0}x</div>` : ''}
+      ${(isCreature || (card.type==='Artefact' && (card.subtypes||[]).includes('Édifice'))) ? `<div class="card-hp">♥${card.hp ?? 0}</div>` : `<div></div>`}
+      ${(card.type==='Artefact' && !(card.subtypes||[]).includes('Édifice')) ? `<div class="charges-tag">${card.charges ?? 0}x</div>` : ''}
     </div>
     ${card.foil ? `<div class="card-foil-layer"></div>` : ''}
   `;
@@ -5839,8 +5979,16 @@ function buildNewCardEl(card, size, opts={}){
     we.appendChild(te);
     root.appendChild(we);
   }
-  // Charges (artefacts)
-  if(isArtifact){
+  // Édifice (artefact) : Endurance, dans la bulle d'endurance
+  if(isArtifact && (card.subtypes||[]).includes('Édifice')){
+    const we = nEl('div','nstat-wrap n-end');
+    we.appendChild(nImg('images/card/icon/bubble/endurance.png'));
+    const te = nEl('div','nstat-txt'); te.textContent = card.hp ?? 0;
+    we.appendChild(te);
+    root.appendChild(we);
+  }
+  // Charges (artefacts, sauf Édifice qui affiche son Endurance au même endroit)
+  if(isArtifact && !(card.subtypes||[]).includes('Édifice')){
     const wf = nEl('div','nstat-wrap n-art');
     wf.appendChild(nImg('images/card/icon/bubble/artefact.png'));
     const t = nEl('div','nstat-txt'); t.textContent = (card.charges ?? 0)+'x';
@@ -6050,7 +6198,7 @@ function renderPreview(){
     fitNewCard(smallEl);
   }
   document.getElementById('preview-meta').textContent =
-    [card.class, card.rarity, card.set].filter(Boolean).join(' · ');
+    [[card.class, card.classSecondary, card.classTertiary].filter(Boolean).join(' / '), card.rarity, card.set].filter(Boolean).join(' · ');
 }
 
 /* ============================================================
@@ -6085,7 +6233,7 @@ function renderGallery(keepFilters){
   const grid = document.getElementById('gallery-grid');
   grid.innerHTML = '';
   const filtered = cards.filter(c=>
-    (LIB.color==='all' || c.class===LIB.color || c.classSecondary===LIB.color) &&
+    (LIB.color==='all' || c.class===LIB.color || c.classSecondary===LIB.color || c.classTertiary===LIB.color) &&
     (LIB.type==='all' || c.type===LIB.type) &&
     (LIB.sub==='all' || (c.subtypes||[]).includes(LIB.sub)) &&
     (LIB.cost==='all' || String(c.cost)===LIB.cost) &&
