@@ -3915,9 +3915,9 @@ function buildEffectRow(ab, eff, choiceKey){
     nbF.innerHTML=`<label class="mini-field"><input type="checkbox" ${eff.reduceCostNotInBaseDeck?'checked':''}> Seulement les cartes hors de votre deck de base (générées en cours de partie)</label>`;
     nbF.querySelector('input').onchange=(e)=>{ eff.reduceCostNotInBaseDeck=e.target.checked; onFormChange(); };
     row.appendChild(nbF);
-    const amF = document.createElement('div'); amF.className='field'; amF.innerHTML=`<label class="mini-field">Réduction</label>`;
-    const amI = document.createElement('input'); amI.type='number'; amI.min=1; amI.max=15; amI.value=eff.reduceCostAmount||1;
-    amI.oninput=()=>{ eff.reduceCostAmount=parseInt(amI.value)||1; onFormChange(); }; amF.appendChild(amI); row.appendChild(amF);
+    // Réduction : fixe (reduceCostAmount) ou dynamique (valueMode/valueDynamic, comme les autres effets)
+    if(eff.reduceCostAmount===undefined) eff.reduceCostAmount = 1;
+    row.appendChild(buildValueField(eff, 'valueMode', 'reduceCostAmount', 'valueDynamic', 'Réduction', false));
     row.appendChild(makeSelectField('S\'applique à', [{key:'all',label:'Toutes les cartes correspondantes'},{key:'chosen',label:'Une carte désignée par le joueur'}], eff.reduceCostSelectionMode||'all', v=>{ eff.reduceCostSelectionMode=v; rebuildAbilitiesUI(); onFormChange(); }));
     if(eff.reduceCostSelectionMode==='chosen'){
       const otherTargets = (ab.targets||[]).filter(t=>t.id!==eff.usesTarget);
@@ -4587,6 +4587,9 @@ function buildValueField(eff, modeKey, fixedKey, dynKey, label, shareMode, allow
 function plural(n, sing, plur){ return n===1 ? sing : (plur || sing+'s'); }
 function capitalize(s){ return s ? s.charAt(0).toUpperCase()+s.slice(1) : s; }
 
+function reduceCostAmountPhrase(eff){
+  return eff.valueMode==='dynamic' ? valuePhrase(eff, 'dynamic', eff.reduceCostAmount, 'valueDynamic') : eff.reduceCostAmount;
+}
 function valuePhrase(eff, mode, fixedVal, dynFieldName){
   if(mode==='dynamic'){
     const dynKeyValue = eff[dynFieldName];
@@ -4762,14 +4765,14 @@ function buildEffectClause(eff, ab){
     }
     case 'reduceCost': {
       if(eff.reduceCostSelectionMode==='chosen'){
-        return `réduisez de ${eff.reduceCostAmount} le coût de la carte visée par la cible désignée (minimum 0)`;
+        return `réduisez de ${reduceCostAmountPhrase(eff)} le coût de la carte visée par la cible désignée (minimum 0)`;
       }
       const scopeLabel = {hand:'en main', deck:'dans le deck', both:'en main et dans le deck'}[eff.reduceCostScope];
       const whose = eff.reduceCostOwner==='enemy' ? "de l'adversaire" : 'vos';
       const typeLabel = eff.reduceCostType && eff.reduceCostType!=='any' ? `de type ${eff.reduceCostType}` : 'de tout type';
       const subLabel = eff.reduceCostSubtype ? ` du sous-type ${eff.reduceCostSubtype}` : '';
       const nbLabel = eff.reduceCostNotInBaseDeck ? ' qui ne viennent pas de votre deck de base' : '';
-      return `réduisez de ${eff.reduceCostAmount} le coût des cartes ${typeLabel}${subLabel}${nbLabel} ${whose} ${scopeLabel} (minimum 0)`;
+      return `réduisez de ${reduceCostAmountPhrase(eff)} le coût des cartes ${typeLabel}${subLabel}${nbLabel} ${whose} ${scopeLabel} (minimum 0)`;
     }
     case 'reduceAbilityCost': {
       const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic');

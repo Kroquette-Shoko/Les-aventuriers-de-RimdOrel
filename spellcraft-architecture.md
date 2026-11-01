@@ -650,3 +650,7 @@ Sauvegarde : `_backup_game_action_chunks_20261101_anywhere`.
 
 ## Kalan : compteur de mana gagné (2026-11-01)
 - Nouveau compteur par joueur `manaGainedTotal` (+1 par mana gagné : plein, vide, fragile, effets, région, vol) et nouveau `resourceType: "manaGainedTotal"` dans `resourceCompare`. Les 3 capacités de Kalan l'utilisent avec « au moins » 10/15/20 + `oncePerGame`. Script : `kalan_compteur_mana_20261101.sql`.
+
+## Réduction de coût : valeur dynamique (2026-11-01)
+- Éditeur : le champ « Réduction » de l'effet `reduceCost` utilise `buildValueField` (Fixe / Dynamique). Fixe → `reduceCostAmount` (inchangé) ; Dynamique → `valueMode:"dynamic"` + `valueDynamic`.
+- Moteur : morceau 5 (`reduceCostAura`, effet instantané → `v1`) et morceau 6 (aura continue → `resolveDynamicValue`). Script : `reduction_cout_dynamique_20261101.sql`.
