@@ -379,7 +379,7 @@ async function gsActivatePermanent(permanentType, permanentInstId, targetInfo, c
   if (choiceKey) body.choiceKey = choiceKey;
   return gsCallAction('activatePermanent', body);
 }
-async function gsPlayCardSimple(handIndex, targetInfo, chosenTargets, choiceKey, sacrificeInstId, placeAfterInstId) {
+async function gsPlayCardSimple(handIndex, targetInfo, chosenTargets, choiceKey, sacrificeInstId, placeAfterInstId, offeringInstId) {
   const body = { handIndex };
   if (targetInfo) {
     if (targetInfo.isHeroTarget) { body.targetIsHero = true; body.targetPlayerKey = targetInfo.playerKey; }
@@ -389,6 +389,7 @@ async function gsPlayCardSimple(handIndex, targetInfo, chosenTargets, choiceKey,
   if (choiceKey) body.choiceKey = choiceKey;
   if (sacrificeInstId) body.sacrificeInstId = sacrificeInstId;
   if (placeAfterInstId) body.placeAfterInstId = placeAfterInstId; // créature : « après telle créature » ('start' = tout à gauche)
+  if (offeringInstId) body.offeringInstId = offeringInstId; // Offrande : créature sacrifiée en plus du coût (set La guerre élémentaire)
   return gsCallAction('playCardSimple', body);
 }
 async function gsSetShowHandToSpectators(show) { return gsCallAction('setShowHandToSpectators', { show }); }

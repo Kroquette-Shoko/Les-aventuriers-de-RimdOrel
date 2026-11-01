@@ -912,6 +912,7 @@ body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out 
   .deck-back-visual{width:135px;height:189px;border-radius:12px;background:linear-gradient(135deg, var(--bg-panel-3, hsl(calc(var(--th, 252) + 0) calc(var(--ts-n, 1) * 28.7%) 17.1%)), var(--bg-panel, hsl(calc(var(--th, 252) + 1.3) calc(var(--ts-n, 1) * 32.1%) 11%)));border:3px solid var(--gold);box-shadow:0 6px 16px rgba(0,0,0,.55);flex-shrink:0;}
   .deck-counts{display:grid;grid-template-columns:repeat(2,76px);gap:8px;}
   .badge.exile .badge-icon{color:#9fd8ff;}
+  .badge.devotion .badge-icon{color:#ffd98a;}
   .badge.deckbuffs .badge-icon{color:#c9a8ff;}
   .badge.exile:not(.has-cards),.badge.deckbuffs:not(.has-cards){opacity:.4;cursor:default;}
   .zone-list-line{font-size:13px;color:#f2ead2;padding:6px 10px;border-radius:6px;background:rgba(255,255,255,.05);}
@@ -1164,7 +1165,7 @@ body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out 
 <script src="spellcraft-chrono.js"></script>
 <script src="spellcraft-board-fx.js"></script>
 <script src="spellcraft-board-themes.js"></script>
-<script src="spellcraft-server-client.js"></script>
+<script src="spellcraft-server-client.js?v=20261101a"></script>
 <script>
 // Journal, chat et signalement sont en position:fixed : dans la table inclinée (ou le séparateur
 // surélevé), un ancêtre transformé les piégeait et les déformait. On les rattache à #app-outer
@@ -1225,7 +1226,7 @@ function isKeywordActiveNow(k, card, inPlay){
   if(!inPlay) return true;
   if(k==='armor') return !card.armorUsed;
   if(k==='initiative') return !card.initiativeUsed;
-  if(k==='stealth') return !!card.summonSick || !!card._paradeRenewed;
+  if(k==='stealth') return !!card.summonSick || !!card._paradeRenewed || (card.persistentKeywords||[]).includes('stealth');
   return true;
 }
 // ---------------- Couleur des stats d'une créature en jeu ----------------
@@ -1468,7 +1469,7 @@ function clientSpellTargeting(){
   return __CLIENT_SPELL_CHECK;
 }
 function isStealthProtectedClient(c, ownerKey, viewerKey){
-  return !!c && hasKw(c, 'stealth') && (!!c.summonSick || !!c._paradeRenewed) && ownerKey !== viewerKey;
+  return !!c && hasKw(c, 'stealth') && (!!c.summonSick || !!c._paradeRenewed || (c.persistentKeywords||[]).includes('stealth')) && ownerKey !== viewerKey;
 }
 
 // Étourdissement / gel : la créature « perd son prochain tour complet ». Le
@@ -4095,6 +4096,10 @@ function renderDeckZone(key, slot){
   // Champs facultatifs : le moteur ne les envoie pas encore (nouvelles mécaniques à venir).
   const exiled = Array.isArray(p.exile) ? p.exile : [];
   const buffs = Array.isArray(p.deckBuffs) ? p.deckBuffs : [];
+  // Dévotion (set La guerre élémentaire) : compteur par dieu, p.__g.devotion = { nom en minuscules: valeur }
+  const devo = (p.__g && p.__g.devotion) || {};
+  const devoTotal = Object.values(devo).reduce((a,b)=>a+(b||0),0);
+  const devoTitle = Object.entries(devo).filter(([,v])=>v>0).map(([k,v])=>`${k.charAt(0).toUpperCase()+k.slice(1)} ${v}`).join(', ');
   const backStyle = p.cardBackUrl ? `style="background-image:url('${p.cardBackUrl.replace(/'/g,"")}');background-size:cover;background-position:center;"` : '';
   el.innerHTML = `
     <div class="deck-back-visual" ${backStyle} title="${p.deck.length} carte(s) restante(s)"></div>
@@ -4103,8 +4108,11 @@ function renderDeckZone(key, slot){
       <div class="badge discard ${p.discard.length>0?'has-cards':''}" title="Défausse" id="discard-badge-${slot}"><span class="badge-icon">🪦</span><span class="badge-count">${p.discard.length}</span><span class="badge-label">Défausse</span></div>
       <div class="badge exile ${exiled.length>0?'has-cards':''}" title="Exil : cartes retirées de la partie (définitivement ou temporairement)" id="exile-badge-${slot}"><span class="badge-icon">🌀</span><span class="badge-count">${exiled.length}</span><span class="badge-label">Exil</span></div>
       <div class="badge deckbuffs ${buffs.length>0?'has-cards':''}" title="Bonus permanents ajoutés aux cartes de la pioche" id="deckbuffs-badge-${slot}"><span class="badge-icon">✨</span><span class="badge-count">${buffs.length}</span><span class="badge-label">Bonus</span></div>
+      ${devoTotal>0 ? `<div class="badge devotion has-cards" title="Dévotion (Fidèle) : ${escapeHtml(devoTitle)}" id="devotion-badge-${slot}"><span class="badge-icon">🙏</span><span class="badge-count">${devoTotal}</span><span class="badge-label">Dévotion</span></div>` : ''}
     </div>
   `;
+  const devoEl = document.getElementById(`devotion-badge-${slot}`);
+  if(devoEl) devoEl.onclick = ()=>openDevotionModal(key);
   document.getElementById(`discard-badge-${slot}`).onclick = ()=>openDiscardModal(key);
   document.getElementById(`exile-badge-${slot}`).onclick = ()=>openExileModal(key);
   document.getElementById(`deckbuffs-badge-${slot}`).onclick = ()=>openDeckBuffsModal(key);
@@ -4705,7 +4713,7 @@ async function resolvePendingSacrifice(instId){
   } else if(kind==='activatePermanent'){
     res = await runAction('Capacité activée', ()=>gsActivatePermanent(src.permanentType, src.permanentInstId, src.targetInfo, src.chosenTargets, instId, src.choiceKey));
   } else if(kind==='playCardSimple'){
-    res = await runAction('Jouer la carte', ()=>gsPlayCardSimple(src.handIndex, src.targetInfo, src.chosenTargets, src.choiceKey, instId, src.placeAfter));
+    res = await runAction('Jouer la carte', ()=>gsPlayCardSimple(src.handIndex, src.targetInfo, src.chosenTargets, src.choiceKey, instId, src.placeAfter, src.offeringInstId || pending.offeringInstId));
   } else {
     showActionError("Impossible de terminer le sacrifice : l'action d'origine est inconnue.");
     return;
@@ -6767,6 +6775,22 @@ function openExileModal(key){
   });
   document.getElementById('discard-modal').classList.add('show');
 }
+// Dévotion (Fidèle) : une ligne par dieu.
+function openDevotionModal(key){
+  const devo = (S[key].__g && S[key].__g.devotion) || {};
+  const rows = Object.entries(devo).filter(([,v])=>v>0);
+  if(!rows.length) return;
+  document.getElementById('discard-modal-title').textContent = 'Dévotion';
+  const box = document.getElementById('discard-modal-list');
+  box.innerHTML = '';
+  rows.forEach(([k,v])=>{
+    const line = document.createElement('div');
+    line.className = 'zone-list-line';
+    line.textContent = `${k.charAt(0).toUpperCase()+k.slice(1)} : ${v}`;
+    box.appendChild(line);
+  });
+  document.getElementById('discard-modal').classList.add('show');
+}
 // Bonus permanents appliqués aux cartes de la pioche (une ligne de texte chacun).
 function openDeckBuffsModal(key){
   const p = S[key];
@@ -6797,6 +6821,7 @@ const ACTION_ERROR_LABELS = {
   'attacker-gone': 'cet attaquant n\'est plus en jeu.',
   // 'no-valid-target' : message adapté à l'action, voir describeActionError()
   'target-required': 'il faut désigner une cible.',
+  'invalid-offering': "Offrande impossible : la créature choisie n'est plus en jeu ou la carte n'a pas d'Offrande. Rien n'est dépensé.",
   'invalid-target': 'cible invalide (hors critères, mauvais camp, créature protégée par Parade ou cible en double) : rien n\'est dépensé.',
   'invalid-choice': 'choix invalide : cette option n\'existe pas sur la carte.',
   'board-full': 'votre plateau est plein (8 créatures) : impossible de jouer cette carte.',
@@ -6919,16 +6944,61 @@ function getUseChoiceAbility(card){
   if(!card || !card.abilities) return null;
   return card.abilities.find(ab=>ab.kind==='triggered' && ab.useChoice && ab.choiceA && ab.choiceB) || null;
 }
-async function uiPlayCard(i, targetInfo, chosenTargets, choiceKey){
+async function uiPlayCard(i, targetInfo, chosenTargets, choiceKey, offeringInstId){
   const card = S[MY_KEY].hand[i];
   const choiceAbility = !choiceKey ? getUseChoiceAbility(card) : null;
   if(choiceAbility){
-    showCardChoiceModal(card, choiceAbility, (pickedKey)=>{ uiPlayCard(i, targetInfo, chosenTargets, pickedKey); });
+    showCardChoiceModal(card, choiceAbility, (pickedKey)=>{ uiPlayCard(i, targetInfo, chosenTargets, pickedKey, offeringInstId); });
     return;
   }
   const placeAfter = placementFor(i);
-  LAST_SACRIFICEABLE_ACTION = { action:'playCardSimple', handIndex:i, targetInfo, chosenTargets, choiceKey, placeAfter };
-  await runAction('Jouer carte', ()=>gsPlayCardSimple(i, targetInfo, chosenTargets, choiceKey, undefined, placeAfter));
+  // Offrande (set La guerre élémentaire) : proposer de sacrifier une créature alliée en plus du coût
+  if(offeringInstId===undefined && cardHasOfferingClient(card) && (S[MY_KEY].board||[]).length>0){
+    showOfferingModal(card, (picked)=>{ uiPlayCard(i, targetInfo, chosenTargets, choiceKey, picked || null); });
+    return;
+  }
+  LAST_SACRIFICEABLE_ACTION = { action:'playCardSimple', handIndex:i, targetInfo, chosenTargets, choiceKey, placeAfter, offeringInstId: offeringInstId || undefined };
+  await runAction('Jouer carte', ()=>gsPlayCardSimple(i, targetInfo, chosenTargets, choiceKey, undefined, placeAfter, offeringInstId || undefined));
+}
+function cardHasOfferingClient(card){
+  return !!card && (card.abilities||[]).some(ab=>(ab.triggers||[]).some(t=>t.trigger==='offering'));
+}
+// Fenêtre « Offrande » : choisir la créature alliée à sacrifier, jouer sans Offrande, ou annuler.
+function showOfferingModal(card, onPick){
+  const old = document.getElementById('offering-overlay'); if(old) old.remove();
+  const overlay = document.createElement('div');
+  overlay.id = 'offering-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(5,4,10,.78);z-index:99998;display:flex;align-items:center;justify-content:center;padding:16px;';
+  const box = document.createElement('div');
+  box.style.cssText = "max-width:560px;width:100%;background:hsl(calc(var(--th, 252) + 1.3) calc(var(--ts-n, 1) * 32.1%) 11% / .97);border:2px solid var(--gold);border-radius:12px;padding:18px 20px;color:#f2ead2;font-family:'Cinzel',serif;";
+  const title = document.createElement('div');
+  title.style.cssText = 'font-weight:700;font-size:17px;color:var(--gold);margin-bottom:6px;';
+  title.textContent = `Offrande — ${card.name}`;
+  const sub = document.createElement('div');
+  sub.style.cssText = "font-family:inherit;font-size:13px;opacity:.85;margin-bottom:12px;";
+  sub.textContent = 'Sacrifier une de vos créatures en plus du coût pour obtenir le bonus d\'Offrande ?';
+  box.appendChild(title); box.appendChild(sub);
+  const list = document.createElement('div');
+  list.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;';
+  (S[MY_KEY].board||[]).forEach(c=>{
+    const b = document.createElement('button');
+    b.className = 'phase-btn';
+    b.style.cssText = 'font-size:13px;padding:8px 12px;';
+    b.textContent = `${c.name} (${c.curAtk ?? c.atk ?? 0}/${c.curHp ?? c.hp ?? 0})`;
+    b.onclick = ()=>{ overlay.remove(); onPick(c.instId); };
+    list.appendChild(b);
+  });
+  box.appendChild(list);
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;';
+  const none = document.createElement('button'); none.className='phase-btn'; none.textContent='Jouer sans Offrande';
+  none.onclick = ()=>{ overlay.remove(); onPick(null); };
+  const cancel = document.createElement('button'); cancel.className='phase-btn'; cancel.textContent='Annuler';
+  cancel.onclick = ()=>{ overlay.remove(); };
+  row.appendChild(none); row.appendChild(cancel); box.appendChild(row);
+  overlay.appendChild(box);
+  overlay.onclick = (e)=>{ if(e.target===overlay) overlay.remove(); };
+  document.body.appendChild(overlay);
 }
 function showCardChoiceModal(card, ability, onPick){
   const overlay = document.createElement('div');

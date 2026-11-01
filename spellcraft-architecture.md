@@ -591,3 +591,18 @@ Sauvegarde des morceaux avant modification : `_backup_game_action_chunks_2026110
 - Script `ia_attaque_defense_20261101.sql` (morceau 13 de `game-action`, sauvegarde `_backup_game_action_chunks_20261101_ia`) :
   - `aiChooseAttackers` : si l'IA a plus de créatures que le joueur (`p.board.length > opp.board.length`), le seuil d'hésitation `floor` est abaissé de 4 (le garde-fou « contre-attaque mortelle » à −1000 reste actif).
   - `aiPlanBlocks(…, own)` : nouveau paramètre `own` (vrai seulement pour les blocages de l'IA elle-même, via `doAiBlocking`). Avec `own`, si la même attaque au tour suivant (`__nextThreat` = somme des forces des attaquants) serait mortelle, l'IA bloque même avec une créature de grande valeur (avant : refus si la valeur du bloqueur dépassait la force de l'attaquant + 1, tant que le coup n'était pas immédiatement létal). La prévision des blocages du joueur (calcul d'attaque) est inchangée.
+
+## Set « La guerre élémentaire » — moteur, lot 2 (1er nov. 2026)
+
+Sauvegarde avant modification : `_backup_game_action_chunks_20261101_guerre2`. Banc de test temporaire : fonction `zz-engine-test` + tables `_test_engine_chunks` (copie du moteur) et `_test_script` (scénario), appelée depuis SQL avec l'extension `http`.
+
+État par joueur : `p.__g = { failleTurn, failleGame, cycledTurn, cycledGame, sacrTurn, sacrGame, offTurn, offGame, devotion: { "nom du dieu en minuscules": n } }` (`__gStats`). Les compteurs « Turn » repartent à 0 au début du tour du joueur : pendant votre tour, ceux de l'adversaire valent donc « à son dernier tour ».
+
+- **Mots-clés pour toute la partie** : `card.persistentKeywords` (éditeur : case sous Cycle, Tenace, Parade, Armure ; effet « Donner un mot-clé », durée `game`). Tenace ne s'enlève pas, Cycle ne s'enlève pas, Parade protège toujours, Armure ne se consomme pas.
+- **Cycle** : `__discardOrCycle` met en file `__cycleQueue`, jouée à la fin de `cleanupDeaths` : déclencheurs `onCycle` (la carte) et `watchCycle`.
+- **Voracité** : `__onManaSpent` (dans `spendMana` et le paiement d'une carte) met en file ; `__flushGuerreEvents` (après chaque action dans `withSave`, et au début de `doEndTurn`) lance `onOpponentSpendMana` chez l'adversaire, valeur `opponentManaJustSpent`. `doubleVorace` (capacité continue) : bonus de Vorace ×2 et déclencheur joué 2 fois.
+- **Faille** : `__fireFailles(key)` au début du tour, juste avant la pioche. Parcourt le deck (+ zones de `failleExtraZone`), joue les capacités `inDeckStartOfTurn`, 2 fois si `doubleFaille`, puis `watchFaille`. Effet `triggerFailles`. Les drapeaux des capacités continues sont lus par `__scanGuerreFlags` (début de `recalculateContinuousEffects`).
+- **Offrande** : paramètre `offeringInstId` de `doPlayCardSimple` (action `playCardSimple`). Sacrifice après le paiement, puis `watchOffering` ; les capacités `offering` de la carte se jouent après son effet d'arrivée. Tous les sacrifices (coût additionnel, effet, Offrande) passent par `__sacrifice` : `onSacrificed`, `watchSacrifice`, `p.__lastSacrificed` (cible `sacrificed`, valeurs `sacrificedAtk` / `sacrificedHp`). Plateau : fenêtre `showOfferingModal` avant l'envoi.
+- **Fidèle / Dévotion** : `card.fideleEnabled / fideleGod / fideleAmount` → `__addDevotion` quand la carte est jouée ; effet `addDevotion` ; `watchDevotion` (filtre `te.devotionGodFilter`). Plateau : badge « Dévotion » dans la zone du deck.
+- **Effets** `shuffleIntoDeck`, `discoverCycle` (= Révéler, critère mot-clé Cycle), et valeurs / conditions du groupe « La guerre élémentaire » de l'éditeur.
+- Non géré : Fidèle sur une créature arrivée autrement que jouée depuis la main (conjuration, retour du cimetière).
