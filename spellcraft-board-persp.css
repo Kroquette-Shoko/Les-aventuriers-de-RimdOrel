@@ -14,3 +14,13 @@ html.bd-persp #board-scroll-area{
 html.bd-persp .deck-back-visual{
   box-shadow:1px 1px 0 var(--gold),2px 2px 0 #3b2f6b,3px 3px 0 var(--gold),4px 4px 0 #3b2f6b,5px 5px 0 var(--gold),6px 6px 0 #3b2f6b,8px 10px 14px rgba(0,0,0,.6);
 }
+
+/* Pioche plus compacte (la grille 2×2 de pastilles élargit la zone) : évite d'écraser les artefacts adverses */
+html.bd-persp .deck-back-visual{width:105px;height:147px;}
+html.bd-persp .deck-counts{grid-template-columns:repeat(2,62px);gap:6px;}
+html.bd-persp .deck-counts .badge{width:62px;height:70px;}
+html.bd-persp .board-row.enemy .artifact-stack{left:285px;}
+
+/* Le séparateur (chrono, « Fin du tour », Journal/Chat/Émotes) passe au-dessus des zones voisines :
+   dans un contexte 3D, l'ordre de superposition de deux éléments coplanaires n'est pas fiable pour le clic. */
+html.bd-persp .board-divider{position:relative;z-index:20;transform:translateZ(3px);}

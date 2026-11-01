@@ -50,3 +50,6 @@ html.bd-rail .board-row.self .hero-frame{order:4;}
 /* Main : centrée sur la colonne centrale (le rail occupe 16 + 470 + 20 px à gauche) */
 html.bd-rail .hand-row,
 html.bd-rail .enemy-hand-row{left:506px;}
+
+/* Le séparateur (chrono, « Fin du tour », Journal/Chat/Émotes) reste au-dessus des couloirs */
+html.bd-rail .board-divider{position:relative;z-index:20;}
