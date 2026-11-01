@@ -909,7 +909,12 @@ body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out 
   .board-row.self .deck-zone{right:27px;}
   .board-row.enemy .deck-zone{left:16px;top:14px;bottom:auto;flex-direction:row-reverse;}
   .deck-back-visual{width:135px;height:189px;border-radius:12px;background:linear-gradient(135deg, var(--bg-panel-3, hsl(calc(var(--th, 252) + 0) calc(var(--ts-n, 1) * 28.7%) 17.1%)), var(--bg-panel, hsl(calc(var(--th, 252) + 1.3) calc(var(--ts-n, 1) * 32.1%) 11%)));border:3px solid var(--gold);box-shadow:0 6px 16px rgba(0,0,0,.55);flex-shrink:0;}
-  .deck-counts{display:flex;flex-direction:column;gap:8px;}
+  .deck-counts{display:grid;grid-template-columns:repeat(2,76px);gap:8px;}
+  .badge.exile .badge-icon{color:#9fd8ff;}
+  .badge.deckbuffs .badge-icon{color:#c9a8ff;}
+  .badge.exile:not(.has-cards),.badge.deckbuffs:not(.has-cards){opacity:.4;cursor:default;}
+  .zone-list-line{font-size:13px;color:#f2ead2;padding:6px 10px;border-radius:6px;background:rgba(255,255,255,.05);}
+  .board-row.enemy .artifact-stack{left:335px;}
 
   .artifact-stack{position:absolute;display:flex;gap:6px;align-items:center;}
   /* Zones d'artefact alliées : côte à côte (l'une à droite de l'autre), placées entre le bouton
@@ -1137,7 +1142,7 @@ body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out 
 
 <div class="modal-overlay" id="discard-modal" onclick="if(event.target===this) closeDiscardModal()">
   <div class="modal-box">
-    <h2>Défausse</h2>
+    <h2 id="discard-modal-title">Défausse</h2>
     <div id="discard-modal-list"></div>
     <button class="close-btn" onclick="closeDiscardModal()">Fermer</button>
   </div>
@@ -4067,15 +4072,22 @@ async function uiActivatePermanent(permanentType, permanentInstId, targetInfo, c
 function renderDeckZone(key, slot){
   const p = S[key];
   const el = document.getElementById(`deck-zone-${slot}`);
+  // Champs facultatifs : le moteur ne les envoie pas encore (nouvelles mécaniques à venir).
+  const exiled = Array.isArray(p.exile) ? p.exile : [];
+  const buffs = Array.isArray(p.deckBuffs) ? p.deckBuffs : [];
   const backStyle = p.cardBackUrl ? `style="background-image:url('${p.cardBackUrl.replace(/'/g,"")}');background-size:cover;background-position:center;"` : '';
   el.innerHTML = `
     <div class="deck-back-visual" ${backStyle} title="${p.deck.length} carte(s) restante(s)"></div>
     <div class="deck-counts">
       <div class="badge deck" title="Cartes restantes"><span class="badge-icon">🂠</span><span class="badge-count">${p.deck.length}</span><span class="badge-label">Deck</span></div>
       <div class="badge discard ${p.discard.length>0?'has-cards':''}" title="Défausse" id="discard-badge-${slot}"><span class="badge-icon">🪦</span><span class="badge-count">${p.discard.length}</span><span class="badge-label">Défausse</span></div>
+      <div class="badge exile ${exiled.length>0?'has-cards':''}" title="Exil : cartes retirées de la partie (définitivement ou temporairement)" id="exile-badge-${slot}"><span class="badge-icon">🌀</span><span class="badge-count">${exiled.length}</span><span class="badge-label">Exil</span></div>
+      <div class="badge deckbuffs ${buffs.length>0?'has-cards':''}" title="Bonus permanents ajoutés aux cartes de la pioche" id="deckbuffs-badge-${slot}"><span class="badge-icon">✨</span><span class="badge-count">${buffs.length}</span><span class="badge-label">Bonus</span></div>
     </div>
   `;
   document.getElementById(`discard-badge-${slot}`).onclick = ()=>openDiscardModal(key);
+  document.getElementById(`exile-badge-${slot}`).onclick = ()=>openExileModal(key);
+  document.getElementById(`deckbuffs-badge-${slot}`).onclick = ()=>openDeckBuffsModal(key);
 }
 
 function renderArtifactStack(key, slot){
@@ -6681,6 +6693,7 @@ function escapeHtmlBoard(s){
 // ---------------- Défausse ----------------
 
 function openDiscardModal(key){
+  document.getElementById('discard-modal-title').textContent = 'Défausse';
   const p = S[key];
   const box = document.getElementById('discard-modal-list');
   box.innerHTML = '';
@@ -6695,6 +6708,33 @@ function openDiscardModal(key){
       box.appendChild(wrap);
     });
   }
+  document.getElementById('discard-modal').classList.add('show');
+}
+// Exil : cartes hors de la partie (non ressuscitables), parfois temporairement.
+function openExileModal(key){
+  const p = S[key];
+  const list = Array.isArray(p.exile) ? p.exile : [];
+  if(list.length===0) return;
+  document.getElementById('discard-modal-title').textContent = 'Exil';
+  const box = document.getElementById('discard-modal-list');
+  box.innerHTML = '';
+  list.forEach(c=>{
+    const wrap = document.createElement('div');
+    wrap.style.display = 'inline-block';
+    wrap.style.margin = '4px';
+    wrap.appendChild(cardEl(c));
+    box.appendChild(wrap);
+  });
+  document.getElementById('discard-modal').classList.add('show');
+}
+// Bonus permanents appliqués aux cartes de la pioche (une ligne de texte chacun).
+function openDeckBuffsModal(key){
+  const p = S[key];
+  const list = Array.isArray(p.deckBuffs) ? p.deckBuffs : [];
+  if(list.length===0) return;
+  document.getElementById('discard-modal-title').textContent = 'Bonus permanents de la pioche';
+  const box = document.getElementById('discard-modal-list');
+  box.innerHTML = list.map(b=>`<div class="zone-list-line">${escapeHtmlBoard(typeof b==='string' ? b : (b.text||b.label||b.name||''))}</div>`).join('');
   document.getElementById('discard-modal').classList.add('show');
 }
 function closeDiscardModal(){

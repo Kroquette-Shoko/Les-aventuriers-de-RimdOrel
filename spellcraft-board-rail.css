@@ -9,7 +9,7 @@
    sur la colonne centrale. */
 html.bd-rail #board-scroll-area{
   display:grid;
-  grid-template-columns:440px minmax(0,1fr);
+  grid-template-columns:470px minmax(0,1fr);
   grid-template-rows:.7fr auto auto auto 1fr;
   column-gap:20px;row-gap:6px;
 }
@@ -47,6 +47,6 @@ html.bd-rail .board-row.self .artifact-stack{order:2;}
 html.bd-rail .board-row.self .mana-box{order:3;}
 html.bd-rail .board-row.self .hero-frame{order:4;}
 
-/* Main : centrée sur la colonne centrale (le rail occupe 16 + 440 + 20 px à gauche) */
+/* Main : centrée sur la colonne centrale (le rail occupe 16 + 470 + 20 px à gauche) */
 html.bd-rail .hand-row,
-html.bd-rail .enemy-hand-row{left:476px;}
+html.bd-rail .enemy-hand-row{left:506px;}
