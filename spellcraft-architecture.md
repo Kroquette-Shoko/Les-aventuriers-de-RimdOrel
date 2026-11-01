@@ -571,3 +571,13 @@ Correctif (`reduction_cout_hors_deck_20261027.sql`, morceaux 2 et 5) : `mapEffec
 ## Animations sur la table en perspective — 01/11/2026
 - `persRect(el, rect)` (spellcraft-server-board.html, avant `snapshotBoardForDeathAnim`) : en disposition `bd-persp`, remplace la boîte englobante d'une carte inclinée par un rectangle droit de même centre, de hauteur projetée et de largeur `h × largeurNaturelle / (hauteurNaturelle × cos 18°)`. Utilisée par les instantanés de mort (`snapshotBoardForDeathAnim`), les clones de charge (`makeCombatGhost`) et l'atterrissage d'une créature posée (`sr`). Sans la classe ou hors `#board-scroll-area` : rect inchangé. Le cos 18° (`PERSP_TILT_COS`) doit suivre l'inclinaison de `spellcraft-board-persp.css`.
 - Inchangé (centres de rectangles, donc corrects à quelques pixels près) : flèches de ciblage et de blocage, chiffres de dégâts, anneaux d'impact, élan des charges. Non vérifié en partie.
+
+## Set « La guerre élémentaire » — moteur, lot 1 (1er nov. 2026)
+
+Mots-clés Insensible, Cycle, Vorace (éditeur : `KEYWORDS` de `spellcraft-shared.js`, champs `voraceRatio` / `voraceCap`).
+Sauvegarde des morceaux avant modification : `_backup_game_action_chunks_20261101_guerre1`.
+
+- **Insensible** (morceaux 0, 6, 11, 12) : variable globale `__SPELL_CTX`, vraie pendant la validation d'un sort (`validateSpellPlay`), la résolution d'un sort (branche Sortilège de `doPlayCardSimple`) et `applyNewAbilityEffects` quand la source est un Sortilège (enveloppe autour de `__applyNewAbilityEffectsInner`). `isStealthProtected` renvoie vrai pour une créature `insensible` dans ce contexte, quel que soit le camp. Les effets sans ciblage (toutes les créatures) la touchent. Remise à `false` au début de chaque `withSave`. Client (`spellcraft-server-board.html`) : `clientSpellTargeting()` exclut ces créatures des cibles proposées pour un sort.
+- **Cycle** (morceaux 9, 13) : `__discardOrCycle(p, key, c)` remplace `p.discard.push` à la mort d'une créature (`cleanupDeaths`, après la Finale/Tenace) et après la résolution d'un sort. La carte est remélangée dans le deck seulement si elle vient du deck (`_isBaseDeckCard`) ; une carte conjurée va au cimetière normalement. Un sort contré va au cimetière.
+- **Vorace** (morceaux 1, 6, 11, 12) : compteur `p.manaSpentThisTurn` (augmenté par `spendMana` et le paiement d'une carte dans `doPlayCardSimple`, remis à 0 au début du tour de ce joueur). `recalculateContinuousEffects` ajoute à chaque créature `vorace` +floor(mana dépensé par l'adversaire / `voraceRatio`), plafonné à `voraceCap` si > 0, via `_auraAtk` (retiré et recalculé à chaque passage, après chaque action).
+- Rechargement : redéploiement de `game-action` (version 184) pour relire les morceaux.

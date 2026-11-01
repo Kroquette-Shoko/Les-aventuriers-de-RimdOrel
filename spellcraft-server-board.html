@@ -1182,7 +1182,8 @@ const KEYWORD_LABELS = {
   initiative:'Initiative', armor:'Armure', stealth:'Parade', relentless:'Tenace',
   fearful:'Peureux', protecteur:'Protecteur', toxic:'Toxique',
   discret:'Discret', imparable:'Imparable', fugace:'Fugace',
-  assault:'Assaut', debut:'Arrivée', final:'Final'
+  assault:'Assaut', debut:'Arrivée', final:'Final',
+  vorace:'Vorace', insensible:'Insensible', cycle:'Cycle'
 };
 // Texte complet de chaque mot-clé — utilisé par les bulles contextuelles
 // affichées à côté de l'aperçu agrandi d'une créature (survol en partie).
@@ -1195,6 +1196,9 @@ const KEYWORD_DESCRIPTIONS = {
   initiative: "Frappe la première lors d'un combat. Si ce premier coup suffit à tuer sa cible, elle ne subit aucun dégât en retour.",
   armor: "Absorbe le premier dégât subi (combat ou effet), une seule fois.",
   stealth: "Ne peut pas être ciblée par l'adversaire jusqu'au début du prochain tour de son propriétaire.",
+  vorace: "Gagne de la Force selon le mana dépensé par l'adversaire pendant son dernier tour.",
+  insensible: "Ne peut pas être ciblée par les sortilèges, y compris les vôtres. Les effets de zone la touchent.",
+  cycle: "Au lieu d'aller au cimetière, retourne mélangée dans votre deck.",
   relentless: "À sa mort, revient automatiquement en jeu une fois — sans le mot-clé Tenace la seconde fois.",
   fearful: "Ne peut jamais bloquer une créature adverse.",
   protecteur: "Ne peut jamais attaquer.",
@@ -1449,6 +1453,14 @@ function canAttackClient(c){ return reasonCannotAttack(c) === null; }
 // début du prochain tour de son propriétaire). Mes propres créatures Parade
 // restent donc ciblables par mes sorts. `ownerKey` = camp de la créature,
 // `viewerKey` = camp de celui qui cible (moi).
+// Insensible (set La guerre élémentaire) : jamais ciblable par un sortilège, même allié.
+// Vrai quand le ciblage en cours vient d'un sortilège (serveur : __SPELL_CTX).
+let __CLIENT_SPELL_CHECK = false;
+function clientSpellTargeting(){
+  const pn = UI && UI.pendingNewTarget;
+  if(pn) return !!(pn.extra && pn.extra.spell);
+  return __CLIENT_SPELL_CHECK;
+}
 function isStealthProtectedClient(c, ownerKey, viewerKey){
   return !!c && hasKw(c, 'stealth') && (!!c.summonSick || !!c._paradeRenewed) && ownerKey !== viewerKey;
 }
@@ -4494,6 +4506,7 @@ function newFormatCandidates(tgt, selected){
     if(cat==='creature' || cat==='hero_creature'){
       (pl.board||[]).forEach(c=>{
         if(isStealthProtectedClient(c, k, MY_KEY)) return; // Parade : aussi pour les sorts
+        if(clientSpellTargeting() && hasKw(c, 'insensible')) return; // Insensible : jamais ciblée par un sort
         if(newFormatMatchesFilters(tgt, c)) out.push({ key:k, marker:c.instId });
       });
     }
@@ -4554,6 +4567,7 @@ function noValidTargetMessage(kind){
 // candidat : message clair, rien n'est ouvert, rien n'est envoyé.
 function startNewFormatTargeting(kind, defs, extra){
   if(!defs.length) return false;
+  __CLIENT_SPELL_CHECK = !!(extra && extra.spell);
   if(defs.some(d=>newFormatCandidates(d.target).length===0)){
     showActionError(noValidTargetMessage(kind));
     render();
@@ -6180,6 +6194,7 @@ function continueCardDragDecision(handIndex, choiceKey){
     const card = S[MY_KEY].hand[handIndex];
     if(!card) return;
     const isSpell = card.type==='Sortilège';
+    __CLIENT_SPELL_CHECK = isSpell;
     if(isSpell && !spellIsPlayableClient(card)){
       showActionError('Ce sort se déclenche à la pioche : il ne se joue pas depuis la main.');
       return;
@@ -6199,7 +6214,7 @@ function continueCardDragDecision(handIndex, choiceKey){
       defs = defs.filter(d=>newFormatCandidates(d.target).length>0);
     }
     if(defs.length){
-      startNewFormatTargeting('card', defs, { index: handIndex, choiceKey });
+      startNewFormatTargeting('card', defs, { index: handIndex, choiceKey, spell: isSpell });
     } else if(card && needsTargetClient(card)){
       if(isSpell && !oldFormatSpellHasCandidate(card)){
         showActionError(noValidTargetMessage('card'));
