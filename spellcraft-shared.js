@@ -737,6 +737,7 @@ function injectOptionsMenu(){
     <select id="sc-board-theme-select">
       <option value="off">Aucun (sobre)</option>
       <option value="random">Aléatoire à chaque partie</option>
+      <option value="taverne">Taverne</option>
       <option value="bateau">Pont de navire</option>
       <option value="village">Village humain</option>
       <option value="constellation">Constellation</option>
