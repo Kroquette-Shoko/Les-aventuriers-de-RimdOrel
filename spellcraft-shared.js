@@ -618,6 +618,18 @@ function scApplyTheme(id, opts={}){
 // pas encore le petit script anti-flash dans son <head>).
 scApplyTheme(scGetTheme(), {silent:true});
 
+/* ---------- Disposition du plateau : « classic » (actuelle) ou « rail » (minimaliste,
+   rails latéraux — voir spellcraft-board-rail.css). Préférence partagée (localStorage). ---------- */
+function scGetBoardLayout(){
+  try{ return localStorage.getItem('sc-board-layout')==='rail' ? 'rail' : 'classic'; }catch(e){ return 'classic'; }
+}
+function scApplyBoardLayout(id){
+  id = id==='rail' ? 'rail' : 'classic';
+  document.documentElement.classList.toggle('bd-rail', id==='rail');
+  try{ localStorage.setItem('sc-board-layout', id); }catch(e){}
+}
+document.documentElement.classList.toggle('bd-rail', scGetBoardLayout()==='rail');
+
 /* ---------- Menu d'options (icône engrenage) — flottant par défaut, ou
    ancré dans #sc-options-slot si une page fournit cet emplacement (barre
    du haut unifiée). ---------- */
@@ -699,6 +711,12 @@ function injectOptionsMenu(){
     <label class="sc-opt-mute">
       <input type="checkbox" id="sc-combat-skip-checkbox"> Afficher un bouton Passer pendant les animations
     </label>
+    <div class="sc-opt-title" style="margin-top:14px;">Plateau</div>
+    <label class="sc-opt-label" for="sc-board-layout-select">Disposition (prend effet à la prochaine partie)</label>
+    <select id="sc-board-layout-select">
+      <option value="classic">Classique</option>
+      <option value="rail">Minimaliste (rails latéraux)</option>
+    </select>
     <div class="sc-opt-title" style="margin-top:14px;">Cartes</div>
     <label class="sc-opt-label" for="sc-card-anim-select">Animations des fonds</label>
     <select id="sc-card-anim-select">
@@ -753,6 +771,9 @@ function injectOptionsMenu(){
   combatSkipCheckbox.checked = scGetShowSkipButton();
   combatSpeedSelect.onchange = (e)=>scSetCombatSpeedMode(e.target.value);
   combatSkipCheckbox.onchange = (e)=>scSetShowSkipButton(e.target.checked);
+  const boardLayoutSel = document.getElementById('sc-board-layout-select');
+  boardLayoutSel.value = scGetBoardLayout();
+  boardLayoutSel.onchange = (e)=>scApplyBoardLayout(e.target.value);
   // Animations des fonds de cartes : même clé que spellcraft-card-render.js,
   // appliquée tout de suite (pas besoin de recharger la page).
   // Les cadres PNG ont été supprimés : l'ancien réglage « Style des cartes »

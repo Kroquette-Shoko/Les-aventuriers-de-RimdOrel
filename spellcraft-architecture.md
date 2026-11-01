@@ -548,3 +548,8 @@ Correctif (`reduction_cout_hors_deck_20261027.sql`, morceaux 2 et 5) : `mapEffec
 
 ## Hub : bouton « Rayer le texte » dans l'éditeur des notes de version / feuille de route — 31/10/2026
 - Barre d'outils de `#patchnote-toolbar` : ajout du bouton « S » (barré, `execCommand('strikeThrough')`) ; le bouton souligné est renommé « U ». Le contenu étant stocké en HTML brut, le barré est conservé tel quel ; rendu atténué (opacité .6) via `.pn-rich s/strike/del`.
+
+## Plateau : disposition « rails latéraux » (minimaliste) — 01/11/2026
+- Nouveau `spellcraft-board-rail.css` (lié dans `spellcraft-server-board.html`) : tout est actif sous la classe `html.bd-rail`, sans toucher au HTML/JS du plateau. `#board-scroll-area` devient une grille : colonne gauche 440 px (rail : adversaire en haut = héros, mana, artefacts, pioche ; joueur en bas = pioche, artefacts, mana, héros), colonne centrale = couloir adverse, séparateur, couloir du joueur. Main et main adverse décalées de 476 px (`left`).
+- Préférence : `localStorage['sc-board-layout']` = `classic` (défaut) ou `rail` ; fonctions `scGetBoardLayout()` / `scApplyBoardLayout()` dans `spellcraft-shared.js`, sélecteur « Plateau » dans le menu Options (effet à la prochaine partie). `spellcraft-shared.js` passe à `?v=20261101a` sur toutes les pages.
+- Vérifié uniquement sur un plateau factice (captures Playwright) ; à valider sur une vraie partie. Pas encore fait : zone Exil et liste des buffs permanents de la pioche (dépendent des nouvelles mécaniques), thèmes animés.
