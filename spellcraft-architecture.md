@@ -660,3 +660,4 @@ Sauvegarde : `_backup_game_action_chunks_20261101_anywhere`.
 - Serveur (morceau 10, `handleSendEmote`) : accepte `body.anim` parmi 6 noms autorisés et diffuse `{senderKey, anim}` ; le portrait vient de l'état de la partie, jamais du message. Même anti-spam (600 ms). Sauvegarde `_backup_game_action_chunks_20261102_emotes`.
 - Les héros sans émotes-images ont maintenant quand même les 6 émotes animées.
 - (2026-11-02) 3 émotes animées en plus (Tu joues ?, Aïe, C'est tout ?) et un bandeau de texte (onomatopée / petit message) sous chaque émote en partie. Noms autorisés côté serveur : salut, bravo, oups, colere, reflechit, gg, joues, aie, toutca.
+- (2026-11-02) Les émotes-images d'origine (`hero.emotes`) ne sont plus proposées dans le panneau : seules les 9 émotes animées restent. Le serveur sait toujours diffuser une émote-image (aucun changement serveur) ; les données `emotes` des héros ne sont pas supprimées.

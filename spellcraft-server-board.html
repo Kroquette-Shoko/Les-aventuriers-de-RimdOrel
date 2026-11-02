@@ -889,7 +889,7 @@ body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out 
   .ea-toutca .dt.d2{animation-delay:.25s}.ea-toutca .dt.d3{animation-delay:.5s}
   #emote-anim-grid .ea-mini .banner{display:none}
   /* panneau d'émotes : rangée des émotes animées (mini portraits, jouées au survol) */
-  #emote-anim-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.12);}
+  #emote-anim-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
   #emote-anim-grid .emote-anim-btn{background:none;border:2px solid transparent;border-radius:10px;padding:2px 0 4px;cursor:pointer;color:inherit;font:inherit;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:0;}
   #emote-anim-grid .emote-anim-btn:hover{border-color:var(--gold, #d4af37);}
   #emote-anim-grid .ea-mini{width:60px;height:60px;position:relative;overflow:visible;}
@@ -6819,14 +6819,9 @@ function toggleEmotePanel(){
 function renderEmoteGrid(){
   const grid = document.getElementById('emote-grid');
   const hero = S && S[MY_KEY] && S[MY_KEY].hero;
-  const emotes = (hero && hero.emotes) || [];
+  // Les émotes-images d'origine (hero.emotes) ne sont plus proposées : seules les émotes animées le sont.
   grid.innerHTML = '';
-  emotes.forEach((em, emoteIndex)=>{
-    const img = document.createElement('img');
-    img.src = em.image; img.title = em.label || '';
-    img.onclick = ()=>{ uiSendEmote(emoteIndex); document.getElementById('emote-panel').classList.remove('show'); };
-    grid.appendChild(img);
-  });
+  grid.style.display = 'none';
   // Émotes animées avec le portrait du héros (6 communes à tous les héros)
   let ag = document.getElementById('emote-anim-grid');
   if(!ag){ ag = document.createElement('div'); ag.id = 'emote-anim-grid'; grid.parentNode.appendChild(ag); }
