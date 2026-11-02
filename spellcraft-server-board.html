@@ -851,9 +851,8 @@ body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out 
   @keyframes ea-dot{0%,12%{opacity:.15;transform:translateY(0)}24%{opacity:1;transform:translateY(-3px)}38%,100%{opacity:.15;transform:translateY(0)}}
   @keyframes ea-crown{0%,6%{transform:translateY(-40px) rotate(-14deg);opacity:0}24%{transform:translateY(0) rotate(4deg);opacity:1}32%{transform:translateY(-6px) rotate(-3deg)}42%,88%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(0);opacity:0}}
   @keyframes ea-banner{0%,18%{transform:scale(0);opacity:0}34%{transform:scale(1.18);opacity:1}44%,88%{transform:scale(1);opacity:1}100%{transform:scale(1);opacity:0}}
-  .ea-salut .ea-body{animation:ea-sway 1.5s ease-in-out infinite}
-  .ea-salut .wv{animation:ea-wave 1.5s ease-out infinite;opacity:0}
-  .ea-salut .wv.w2{animation-delay:.12s}.ea-salut .wv.w3{animation-delay:.24s}
+  @keyframes ea-handwave{0%,100%{transform:rotate(-24deg)}50%{transform:rotate(24deg)}}
+  .ea-salut .hw{transform-box:fill-box;transform-origin:50% 100%;animation:ea-handwave .7s ease-in-out infinite}
   .ea-bravo .ea-body,.ea-gg .ea-body{animation:ea-bounce 1.6s ease-in-out infinite}
   .ea-gg .ea-body{animation-duration:2.6s}
   .ea-bravo .sp{animation:ea-spark 1.6s ease-in-out infinite;opacity:0}
@@ -6847,7 +6846,7 @@ function renderEmoteGrid(){
 }
 // ---- Émotes animées : portrait du héros + 6 animations ----
 const EMOTE_ANIMS = [
-  {key:'salut',label:'Salut',say:'Yo !'},{key:'bravo',label:'Bien joué',say:'Bravo !'},{key:'oups',label:'Oups',say:'Oups…'},
+  {key:'salut',label:'Salut',say:'Salut !'},{key:'bravo',label:'Bien joué',say:'Bravo !'},{key:'oups',label:'Oups',say:'Oups…'},
   {key:'colere',label:'Colère',say:'Grrr !'},{key:'reflechit',label:'Je réfléchis',say:'Hmm…'},{key:'gg',label:'GG',say:'GG !'},
   {key:'joues',label:'Tu joues ?',say:'Tu joues ?'},{key:'aie',label:'Aïe',say:'Aïe !'},{key:'toutca',label:"C'est tout ?",say:"C'est tout ?"}
 ];
@@ -6875,7 +6874,7 @@ function __eaBanner(text){
 function __eaFxSvg(hero, k){
   const gem = EMOTE_GEM[hero && hero.class] || EMOTE_GEM.Neutre;
   let o = '';
-  if(k==='salut') o = ['M96 34q7 7 0 15','M104 28q11 12 0 27','M112 22q15 17 0 39'].map((d,i)=>`<path class="wv w${i+1}" d="${d}" fill="none" stroke="${gem}" stroke-width="4" stroke-linecap="round"/>`).join('');
+  if(k==='salut') o = `<g transform="translate(101 54)"><g class="hw"><rect x="-6" y="-1" width="12" height="9" rx="2" fill="${gem}" stroke="#14101f" stroke-width="1.5"/><g fill="#ffd2a1" stroke="#7a4d2a" stroke-width="1.5" stroke-linejoin="round"><rect x="-17" y="-14" width="9" height="5.5" rx="2.7" transform="rotate(-35 -12 -11)"/><rect x="-11" y="-30" width="5" height="16" rx="2.5"/><rect x="-5.5" y="-34" width="5" height="20" rx="2.5"/><rect x="0" y="-33" width="5" height="19" rx="2.5"/><rect x="5.5" y="-29" width="5" height="15" rx="2.5"/><rect x="-11" y="-17" width="22" height="19" rx="6"/></g></g></g>`;
   else if(k==='bravo') o = [[18,24,9,'#ffe27a'],[104,30,8,'#fff3c2'],[98,100,7,'#ffe27a'],[20,92,6,'#fff3c2']].map((a,i)=>`<path class="sp s${i+1} ab" d="${__eaStar(a[0],a[1],a[2])}" fill="${a[3]}"/>`).join('');
   else if(k==='oups') o = '<path class="sweat" d="M94 30q-7 10-7 15a7 7 0 0 0 14 0q0-5-7-15Z" fill="#8fd3ff" stroke="#e8f7ff" stroke-width="1.5"/>';
   else if(k==='colere') o = '<circle class="st t1 ab" cx="22" cy="22" r="7" fill="#e9e6f5"/><circle class="st t2 ab" cx="98" cy="20" r="8" fill="#e9e6f5"/><circle class="st t3 ab" cx="60" cy="8" r="6" fill="#e9e6f5"/>';
