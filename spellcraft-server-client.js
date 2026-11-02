@@ -332,6 +332,15 @@ async function gsSendEmote(emoteIndex) {
   return gsCallAction('sendEmote', { emoteIndex });
 }
 
+// Émote animée (portrait du héros) : on n'envoie qu'un nom parmi 6 ; le serveur le valide et diffuse avec le bon camp.
+async function gsSendAnimEmote(anim) {
+  const user = await scGetCurrentUser();
+  if (!user) return { error: 'not-logged-in' };
+  if (GS_ROLE !== 'p1' && GS_ROLE !== 'p2') return { error: 'spectators-cannot-emote' };
+  if (typeof anim !== 'string') return { error: 'invalid-emote' };
+  return gsCallAction('sendEmote', { anim });
+}
+
 // Message du chat de la partie. Ouvert aux deux joueurs et aux spectateurs. Le serveur impose
 // le pseudo et le rôle (joueur 1 / joueur 2 / spectateur), nettoie le texte et limite la fréquence.
 async function gsSendChat(name, text) {

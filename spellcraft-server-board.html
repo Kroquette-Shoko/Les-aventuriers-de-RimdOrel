@@ -828,6 +828,55 @@ body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out 
   .emote-bubble img{width:92px;height:92px;border-radius:10px;display:block;}
   @keyframes emote-pop{from{transform:scale(0.4);opacity:0;}to{transform:scale(1);opacity:1;}}
   @keyframes emote-fade{to{opacity:0;}}
+  /* Émotes animées (portrait du héros) : 6 animations communes, jouées sur le portrait rond du héros */
+  .emote-bubble.emote-anim{background:none;border:0;box-shadow:none;padding:0;border-radius:0;width:132px;height:132px;overflow:visible;}
+  .ea-stage{position:relative;width:132px;height:132px;}
+  .ea-body{position:absolute;left:16px;top:16px;width:100px;height:100px;border-radius:50%;transform-origin:50% 50%;filter:drop-shadow(0 4px 8px rgba(0,0,0,.55));}
+  .ea-body .ea-pic{position:absolute;inset:0;border-radius:50%;background-color:#2a2540;background-repeat:no-repeat;display:flex;align-items:center;justify-content:center;font:700 34px 'Cinzel',serif;color:#fff8e6;}
+  .ea-body svg,.ea-fx{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none;}
+  .ea-fx *{transform-box:view-box;transform-origin:60px 60px;}
+  .ea-fx .ab,.ea-body svg .ab{transform-box:fill-box;transform-origin:center;}
+  @keyframes ea-sway{0%,100%{transform:rotate(-9deg)}50%{transform:rotate(9deg)}}
+  @keyframes ea-wave{0%,15%{opacity:0}30%,55%{opacity:1}75%,100%{opacity:0}}
+  @keyframes ea-bounce{0%,100%{transform:translateY(0) scale(1,1)}12%{transform:translateY(0) scale(1.06,.92)}35%{transform:translateY(-14px) scale(.97,1.04)}58%{transform:translateY(0) scale(1.05,.94)}72%{transform:translateY(-5px)}}
+  @keyframes ea-spark{0%,10%{transform:scale(0) rotate(0);opacity:0}30%{transform:scale(1.15) rotate(40deg);opacity:1}55%{transform:scale(.8) rotate(90deg);opacity:.9}75%,100%{transform:scale(0) rotate(120deg);opacity:0}}
+  @keyframes ea-shake{0%,100%{transform:translateX(0) rotate(0)}10%{transform:translateX(-5px) rotate(-3deg)}20%{transform:translateX(5px) rotate(3deg)}30%{transform:translateX(-4px) rotate(-2deg)}40%{transform:translateX(4px) rotate(2deg)}52%{transform:translateX(0)}}
+  @keyframes ea-drop{0%,15%{transform:translateY(-6px);opacity:0}30%{opacity:1}85%{transform:translateY(26px);opacity:.9}100%{transform:translateY(30px);opacity:0}}
+  @keyframes ea-dim{0%,100%{opacity:0}25%,60%{opacity:.4}}
+  @keyframes ea-rage{0%,100%{transform:scale(1)}18%{transform:scale(1.1)}32%{transform:scale(1.02)}46%{transform:scale(1.12)}64%{transform:scale(1)}}
+  @keyframes ea-flush{0%,100%{opacity:0}20%,60%{opacity:.5}}
+  @keyframes ea-steam{0%{transform:translateY(8px) scale(.4);opacity:0}25%{opacity:.85}100%{transform:translateY(-22px) scale(1.3);opacity:0}}
+  @keyframes ea-tilt{0%,100%{transform:rotate(-6deg) translateX(-2px)}50%{transform:rotate(7deg) translateX(2px)}}
+  @keyframes ea-dot{0%,12%{opacity:.15;transform:translateY(0)}24%{opacity:1;transform:translateY(-3px)}38%,100%{opacity:.15;transform:translateY(0)}}
+  @keyframes ea-crown{0%,6%{transform:translateY(-40px) rotate(-14deg);opacity:0}24%{transform:translateY(0) rotate(4deg);opacity:1}32%{transform:translateY(-6px) rotate(-3deg)}42%,88%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(0);opacity:0}}
+  @keyframes ea-banner{0%,18%{transform:scale(0);opacity:0}34%{transform:scale(1.18);opacity:1}44%,88%{transform:scale(1);opacity:1}100%{transform:scale(1);opacity:0}}
+  .ea-salut .ea-body{animation:ea-sway 1.5s ease-in-out infinite}
+  .ea-salut .wv{animation:ea-wave 1.5s ease-out infinite;opacity:0}
+  .ea-salut .wv.w2{animation-delay:.12s}.ea-salut .wv.w3{animation-delay:.24s}
+  .ea-bravo .ea-body,.ea-gg .ea-body{animation:ea-bounce 1.6s ease-in-out infinite}
+  .ea-gg .ea-body{animation-duration:2.6s}
+  .ea-bravo .sp{animation:ea-spark 1.6s ease-in-out infinite;opacity:0}
+  .ea-bravo .sp.s2{animation-delay:.25s}.ea-bravo .sp.s3{animation-delay:.5s}.ea-bravo .sp.s4{animation-delay:.75s}
+  .ea-oups .ea-body{animation:ea-shake 1.4s ease-in-out infinite}
+  .ea-oups .dim{animation:ea-dim 1.4s ease-in-out infinite;opacity:0}
+  .ea-oups .sweat{animation:ea-drop 1.4s ease-in infinite;opacity:0}
+  .ea-colere .ea-body{animation:ea-rage .9s ease-in-out infinite}
+  .ea-colere .flush{animation:ea-flush .9s ease-in-out infinite;opacity:0}
+  .ea-colere .st{animation:ea-steam 1.2s ease-out infinite;opacity:0}
+  .ea-colere .st.t2{animation-delay:.4s}.ea-colere .st.t3{animation-delay:.8s}
+  .ea-reflechit .ea-body{animation:ea-tilt 2.4s ease-in-out infinite}
+  .ea-reflechit .dt{animation:ea-dot 1.5s ease-in-out infinite;opacity:.15}
+  .ea-reflechit .dt.d2{animation-delay:.25s}.ea-reflechit .dt.d3{animation-delay:.5s}
+  .ea-gg .crown{animation:ea-crown 2.6s cubic-bezier(.3,1.4,.5,1) infinite;opacity:0}
+  .ea-gg .banner{animation:ea-banner 2.6s cubic-bezier(.3,1.4,.5,1) infinite;opacity:0}
+  /* panneau d'émotes : rangée des émotes animées (mini portraits, jouées au survol) */
+  #emote-anim-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.12);}
+  #emote-anim-grid .emote-anim-btn{background:none;border:2px solid transparent;border-radius:10px;padding:2px 0 4px;cursor:pointer;color:inherit;font:inherit;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:0;}
+  #emote-anim-grid .emote-anim-btn:hover{border-color:var(--gold, #d4af37);}
+  #emote-anim-grid .ea-mini{width:60px;height:60px;position:relative;overflow:visible;}
+  #emote-anim-grid .ea-mini .ea-stage{transform:scale(.4545);transform-origin:0 0;}
+  #emote-anim-grid .emote-anim-btn:not(:hover):not(:focus-visible) .ea-stage *{animation-play-state:paused !important;}
+  @media (prefers-reduced-motion: reduce){ .emote-bubble.emote-anim *{animation:none !important;} .emote-bubble.emote-anim .wv,.emote-bubble.emote-anim .sp,.emote-bubble.emote-anim .sweat,.emote-bubble.emote-anim .st,.emote-bubble.emote-anim .crown,.emote-bubble.emote-anim .banner,.emote-bubble.emote-anim .dt{opacity:1} }
   .log-error{color:var(--blood, #c23b3b);}
   .log-ok{color:var(--green, #4a9d6b);}
   .ai-debug-btn{position:fixed;top:10px;right:10px;z-index:60;}
@@ -1183,7 +1232,7 @@ body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out 
 <script src="spellcraft-chrono.js"></script>
 <script src="spellcraft-board-fx.js"></script>
 <script src="spellcraft-board-themes.js"></script>
-<script src="spellcraft-server-client.js?v=20261101b"></script>
+<script src="spellcraft-server-client.js?v=20261102a"></script>
 <script>
 // Journal, chat et signalement sont en position:fixed : dans la table inclinée (ou le séparateur
 // surélevé), un ancêtre transformé les piégeait et les déformait. On les rattache à #app-outer
@@ -6752,10 +6801,6 @@ function renderEmoteGrid(){
   const grid = document.getElementById('emote-grid');
   const hero = S && S[MY_KEY] && S[MY_KEY].hero;
   const emotes = (hero && hero.emotes) || [];
-  if(emotes.length===0){
-    grid.innerHTML = `<div class="emote-empty">Ce héros n'a pas d'émotes configurées.</div>`;
-    return;
-  }
   grid.innerHTML = '';
   emotes.forEach((em, emoteIndex)=>{
     const img = document.createElement('img');
@@ -6763,6 +6808,81 @@ function renderEmoteGrid(){
     img.onclick = ()=>{ uiSendEmote(emoteIndex); document.getElementById('emote-panel').classList.remove('show'); };
     grid.appendChild(img);
   });
+  // Émotes animées avec le portrait du héros (6 communes à tous les héros)
+  let ag = document.getElementById('emote-anim-grid');
+  if(!ag){ ag = document.createElement('div'); ag.id = 'emote-anim-grid'; grid.parentNode.appendChild(ag); }
+  ag.innerHTML = '';
+  EMOTE_ANIMS.forEach(em=>{
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'emote-anim-btn'; b.title = em.label;
+    b.innerHTML = `<div class="ea-mini">${animEmoteHtml(hero, em.key)}</div><span>${em.label}</span>`;
+    b.onclick = ()=>{ uiSendAnimEmote(em.key); document.getElementById('emote-panel').classList.remove('show'); };
+    ag.appendChild(b);
+  });
+}
+// ---- Émotes animées : portrait du héros + 6 animations ----
+const EMOTE_ANIMS = [
+  {key:'salut',label:'Salut'},{key:'bravo',label:'Bien joué'},{key:'oups',label:'Oups'},
+  {key:'colere',label:'Colère'},{key:'reflechit',label:'Je réfléchis'},{key:'gg',label:'GG'}
+];
+const EMOTE_GEM = {'Aube':'#ffd54a','Crépuscule':'#c98bff','Volonté':'#ff6a72','Prima':'#62e69f','Arcane':'#62b0ff','Neutre':'#f2b06a'};
+function __eaStar(x,y,r){ return 'M'+x+' '+(y-r)+'Q'+x+' '+y+' '+(x+r)+' '+y+'Q'+x+' '+y+' '+x+' '+(y+r)+'Q'+x+' '+y+' '+(x-r)+' '+y+'Q'+x+' '+y+' '+x+' '+(y-r)+'Z'; }
+// Éléments qui bougent AVEC le portrait (anneau de source, voile rouge, sourcils…)
+function __eaBodySvg(hero, k){
+  const g1 = EMOTE_GEM[hero && hero.class] || EMOTE_GEM.Neutre;
+  const g2 = hero && hero.classSecondary && hero.classSecondary !== hero.class ? (EMOTE_GEM[hero.classSecondary] || null) : null;
+  let o = `<circle cx="60" cy="60" r="49" fill="none" stroke="${g1}" stroke-width="5"/>`;
+  if(g2) o += `<path d="M60 11a49 49 0 0 1 0 98" fill="none" stroke="${g2}" stroke-width="5"/>`;
+  if(k==='oups') o += '<circle class="dim" cx="60" cy="60" r="47" fill="#0b0a14"/>';
+  if(k==='colere') o += '<circle class="flush" cx="60" cy="60" r="47" fill="#ff2d2d"/><path d="M33 40l22 10M87 40L65 50" stroke="#2a0606" stroke-width="7" stroke-linecap="round" fill="none"/><path d="M33 40l22 10M87 40L65 50" stroke="#ff8a8a" stroke-width="2.5" stroke-linecap="round" fill="none"/>';
+  return `<svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">${o}</svg>`;
+}
+// Éléments qui restent en place autour du portrait (vagues, étincelles, goutte, vapeur, couronne…)
+function __eaFxSvg(hero, k){
+  const gem = EMOTE_GEM[hero && hero.class] || EMOTE_GEM.Neutre;
+  let o = '';
+  if(k==='salut') o = ['M96 34q7 7 0 15','M104 28q11 12 0 27','M112 22q15 17 0 39'].map((d,i)=>`<path class="wv w${i+1}" d="${d}" fill="none" stroke="${gem}" stroke-width="4" stroke-linecap="round"/>`).join('');
+  else if(k==='bravo') o = [[18,24,9,'#ffe27a'],[104,30,8,'#fff3c2'],[98,100,7,'#ffe27a'],[20,92,6,'#fff3c2']].map((a,i)=>`<path class="sp s${i+1} ab" d="${__eaStar(a[0],a[1],a[2])}" fill="${a[3]}"/>`).join('');
+  else if(k==='oups') o = '<path class="sweat" d="M94 30q-7 10-7 15a7 7 0 0 0 14 0q0-5-7-15Z" fill="#8fd3ff" stroke="#e8f7ff" stroke-width="1.5"/>';
+  else if(k==='colere') o = '<circle class="st t1 ab" cx="22" cy="22" r="7" fill="#e9e6f5"/><circle class="st t2 ab" cx="98" cy="20" r="8" fill="#e9e6f5"/><circle class="st t3 ab" cx="60" cy="8" r="6" fill="#e9e6f5"/>';
+  else if(k==='reflechit') o = [88,100,112].map((x,i)=>`<circle class="dt d${i+1}" cx="${x}" cy="22" r="4" fill="${gem}"/>`).join('');
+  else if(k==='gg') o = '<g class="crown"><path d="M42 20 44 4 52 12 60 0 68 12 76 4 78 20Z" fill="#ffd54a" stroke="#7a4d00" stroke-width="2" stroke-linejoin="round"/><circle cx="60" cy="1" r="2.6" fill="#ff6a72"/></g><g class="banner"><rect x="30" y="92" width="60" height="24" rx="8" fill="#14101f" stroke="#ffd54a" stroke-width="2.5"/><text x="60" y="110" text-anchor="middle" font-family="Cinzel,Georgia,serif" font-weight="700" font-size="18" fill="#ffd54a">GG</text></g>';
+  return `<svg class="ea-fx" viewBox="-6 -6 132 132" xmlns="http://www.w3.org/2000/svg">${o}</svg>`;
+}
+function animEmoteHtml(hero, k){
+  hero = hero || {};
+  const pic = hero.image
+    ? `style="background-image:url('${String(hero.image).replace(/['"()\\]/g,'')}');background-position:${Number(hero.imagePosX ?? 50)}% ${Number(hero.imagePosY ?? 50)}%;background-size:${(hero.imageZoom ?? 100) > 100 ? Number(hero.imageZoom) + '%' : 'cover'}"`
+    : '';
+  const initial = hero.image ? '' : escapeHtmlBoard(((hero.name || '?')[0]) || '?');
+  return `<div class="ea-stage ea-${k}"><div class="ea-body"><div class="ea-pic" ${pic}>${initial}</div>${__eaBodySvg(hero, k)}</div>${__eaFxSvg(hero, k)}</div>`;
+}
+const EMOTE_ANIM_KEYS = EMOTE_ANIMS.map(e=>e.key);
+function showAnimEmote(senderKey, anim){
+  if(!EMOTE_ANIM_KEYS.includes(anim)) return;
+  const hero = S && S[senderKey] && S[senderKey].hero;
+  const isMine = senderKey===MY_KEY;
+  const anchor = document.getElementById(isMine ? 'hero-frame-p1' : 'hero-frame-p2');
+  const bubble = document.createElement('div');
+  bubble.className = 'emote-bubble emote-anim';
+  if(anchor){
+    const rect = anchor.getBoundingClientRect();
+    bubble.style.left = (rect.left + rect.width/2 - 66) + 'px';
+    bubble.style.top = isMine ? (rect.top - 140) + 'px' : (rect.bottom + 10) + 'px';
+  } else {
+    bubble.style.left = '50%'; bubble.style.top = '50%';
+    bubble.style.transform = 'translate(-50%,-50%)';
+  }
+  bubble.innerHTML = animEmoteHtml(hero, anim);
+  document.body.appendChild(bubble);
+  setTimeout(()=>bubble.remove(), 2700);
+}
+async function uiSendAnimEmote(anim){
+  const res = await gsSendAnimEmote(anim);
+  if(res && res.error === 'too-fast') return;
+  if(res && res.error){ console.error('Émote → ' + res.error); return; }
+  __emotesSentThisMatch++;
+  try{ await sb.rpc('progress_achievement_peak', { p_condition_type: 'emotes_single_match_max', p_value: __emotesSentThisMatch }); }catch(e){ /* un succès raté ne doit jamais gêner la partie */ }
 }
 // Succès secret "Trop expressif" — émotes envoyées sur CETTE partie, comptées
 // côté client (la partie dure le temps de cette page). Le mécanisme « pic »
@@ -6783,6 +6903,7 @@ async function uiSendEmote(emoteIndex){
 function onEmoteMessage(payload){
   if(!payload) return;
   const senderKey = payload.senderKey === 'p1' || payload.senderKey === 'p2' ? payload.senderKey : null;
+  if(senderKey && payload.anim){ showAnimEmote(senderKey, payload.anim); return; } // émote animée (portrait du héros)
   // Défense en profondeur : même si un message falsifié arrivait, on n'affiche QUE une image
   // faisant partie des émotes réelles du héros de l'émetteur (jamais une URL arbitraire).
   const senderEmotes = (senderKey && S && S[senderKey] && S[senderKey].hero && S[senderKey].hero.emotes) || [];

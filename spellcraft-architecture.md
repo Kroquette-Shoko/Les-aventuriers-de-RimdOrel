@@ -654,3 +654,8 @@ Sauvegarde : `_backup_game_action_chunks_20261101_anywhere`.
 ## Réduction de coût : valeur dynamique (2026-11-01)
 - Éditeur : le champ « Réduction » de l'effet `reduceCost` utilise `buildValueField` (Fixe / Dynamique). Fixe → `reduceCostAmount` (inchangé) ; Dynamique → `valueMode:"dynamic"` + `valueDynamic`.
 - Moteur : morceau 5 (`reduceCostAura`, effet instantané → `v1`) et morceau 6 (aura continue → `resolveDynamicValue`). Script : `reduction_cout_dynamique_20261101.sql`.
+
+## Émotes animées avec le portrait du héros (2026-11-02)
+- Panneau d'émotes : sous les émotes-images du héros, 6 émotes animées communes (Salut, Bien joué, Oups, Colère, Je réfléchis, GG) construites avec `hero.image` (+ position/zoom) et un anneau aux couleurs de la source (`hero.class` / `classSecondary`). Code : `animEmoteHtml`, `showAnimEmote`, `uiSendAnimEmote` (spellcraft-server-board.html) ; `gsSendAnimEmote` (spellcraft-server-client.js).
+- Serveur (morceau 10, `handleSendEmote`) : accepte `body.anim` parmi 6 noms autorisés et diffuse `{senderKey, anim}` ; le portrait vient de l'état de la partie, jamais du message. Même anti-spam (600 ms). Sauvegarde `_backup_game_action_chunks_20261102_emotes`.
+- Les héros sans émotes-images ont maintenant quand même les 6 émotes animées.
