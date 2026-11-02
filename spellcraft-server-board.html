@@ -4613,7 +4613,7 @@ function needsTargetClient(card){
 // serveur acceptera. Le serveur reste l'arbitre (il refuse sinon).
 const NEW_FORMAT_MANUAL_CATEGORIES = ['creature','hero_creature','artifact','player','hero'];
 // Effets de sort qui n'utilisent jamais de cible désignée (même liste que le serveur).
-const SPELL_TARGETLESS_EFFECTS_CLIENT = ['grantMana','discard','setStatsGroup','resource','emptyManaEffect','fragileManaEffect','refillMana','burnMana','draw','conjure','drawTyped','discardSelf','setStats'];
+const SPELL_TARGETLESS_EFFECTS_CLIENT = ['grantMana','discard','setStatsGroup','resource','emptyManaEffect','fragileManaEffect','refillMana','burnMana','draw','conjure','drawTyped','discardSelf','setStats','extraCombat'];
 function effectTargetRefsClient(e){
   const refs = [e.usesTarget, e.fightFirstTargetId, e.destroyDealAtkSecondTargetId];
   if(e.transformMode==='another_target') refs.push(e.transformSourceTargetId);

@@ -1064,7 +1064,7 @@ const EFFECT_GROUPS = [
   ['Stats et mots-clés', ['buff','weaken','setStat','swapStats','stealStat','grantKeyword','copyKeyword','removeKeyword','silence','evolveTarget']],
   ['Créatures et plateau', ['destroy','stun','bounce','sacrificeEffect','removeFromCombat','summonCopy','transformCard','stealCreature','fight','destroyDealAtk','reviveDestroyedLastTurn','redirectTarget']],
   ['Artefacts et pièges', ['removeArtifactCharges','destroySelf','addCharges','exhaustArtifact','disarmTraps','counterCard']],
-  ['Spécial', ['coinFlip','doubleTrigger','doubleEffectsTrigger','custom']],
+  ['Spécial', ['extraCombat','coinFlip','doubleTrigger','doubleEffectsTrigger','custom']],
   ['La guerre élémentaire', ['doubleVorace','discoverCycle','failleExtraZone','doubleFaille','triggerFailles','addDevotion','shuffleIntoDeck','addRitualMana','removeRitualMana','destroyRitual','repairEdifice']]
 ];
 
@@ -1093,6 +1093,7 @@ const EFFECT_TYPES = [
   {key:'copyKeyword', label:"Copie un mot-clé d'une autre créature sur la cible", needsTarget:true, needsValue:false, isCopyKeyword:true},
   {key:'keywordChoice', label:'Choix parmi 3 mots-clés', needsTarget:true, needsValue:false},
   {key:'summonCopy', label:'Invoquer des copies de cette carte', needsTarget:false, needsValue:true},
+  {key:'extraCombat', label:'Phase de combat supplémentaire', needsTarget:false, needsValue:true},
   {key:'fight', label:'Combat forcé (première cible contre seconde cible)', needsTarget:true, needsValue:false, isFight:true},
   {key:'coinFlip', label:'Jet de pièce (pile ou face)', needsTarget:true, needsValue:false, isCoinFlip:true},
   {key:'retrieve', label:'Récupération (deck ou défausse)', needsTarget:false, needsValue:false, isRetrieve:true},
@@ -4803,6 +4804,11 @@ function buildEffectClause(eff, ab){
     }
     case 'keywordChoice':
       return `révélez 3 mots-clés au hasard : ${targetPhrase(resolvedTarget)} obtient celui que vous choisissez`;
+    case 'extraCombat': {
+      const valX = valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic');
+      const isNumX = eff.valueMode==='fixed';
+      return `vous avez ${valX} ${isNumX ? plural(eff.valueFixed,'phase de combat supplémentaire','phases de combat supplémentaires') : 'phases de combat supplémentaires'} ce tour-ci`;
+    }
     case 'summonCopy': {
       const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic');
       const isNum = eff.valueMode==='fixed';
