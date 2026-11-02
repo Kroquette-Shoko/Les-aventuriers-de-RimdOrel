@@ -7352,6 +7352,8 @@ function uiSelectAllAttackers(){
   render();
 }
 async function uiConfirmAttackers(){
+  // Aucun attaquant : passer le combat termine le tour. On demande confirmation pour éviter les erreurs.
+  if(!UI.selectedAttackers.length && !confirm('Passer le combat ?\nSans attaque, votre tour se termine.')) return;
   const targets = {};
   Object.entries(UI.attackTargets||{}).forEach(([a,t])=>{ if(UI.selectedAttackers.includes(a)) targets[a] = t; });
   await runAction('Attaquer', ()=>gsDeclareAttackers(UI.selectedAttackers, targets));
