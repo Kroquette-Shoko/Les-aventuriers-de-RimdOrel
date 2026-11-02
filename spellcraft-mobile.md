@@ -1,6 +1,6 @@
 # Chantier « jeu sur téléphone »
 
-Statut : étapes 1, 2 (partie) et 3 faites ; plateau, éditeur et admin restent à faire. Vérifié uniquement par simulation (Chromium 390×844 avec faux Supabase), jamais sur un vrai téléphone.
+Statut : étapes 1, 2 (partie) et 3 faites ; plateau téléphone portrait codé (2026-11-02, disposition C) ; éditeur et admin restent à faire. Vérifié uniquement par simulation (Chromium 390×844 avec faux Supabase), jamais sur un vrai téléphone.
 
 ## État des lieux (11 pages sans balise `viewport` ou sans règles adaptées)
 
@@ -24,3 +24,9 @@ Constats clés :
 4. **Plateau de partie** : décision de conception nécessaire (paysage obligatoire ? disposition dédiée au lieu du canevas 1920×1080 réduit ?), cartes plus grandes, aperçu au tap/appui long, glisser-déposer tactile.
 5. **Éditeur de cartes et pages d'admin** : hors périmètre téléphone (usage ordinateur).
 6. Test sur de vrais appareils (iOS Safari / Android Chrome).
+
+## Plateau téléphone portrait (disposition C) — codé le 2026-11-02
+- `spellcraft-board-fit.js` : sur petit écran tactile en portrait (ou `?phone=1` dans l'adresse), classe `html.bd-phone`, canevas de **390 px** de large (hauteur ≥ 800) au lieu de 1920, plus d'écran « tourne ton téléphone ». Réservé aux pages qui passent `phone:true` (seul `spellcraft-server-board.html` pour l'instant ; le tutoriel garde le paysage obligatoire). Retire `bd-rail` / `bd-persp` en mode téléphone.
+- `spellcraft-board-phone.css` : toute la mise en page (aucun changement de HTML/JS du plateau) : pastilles héros + mana + piles (puces) + artefacts en haut (adversaire) et en bas (moi), 2 rangées de 3 créatures (zoom .6, .46 au-delà de 6), colonne de boutons à droite (émotes, journal, chat, Combat, Fin de tour), main en tiroir (poignée « Main » pour monter/descendre), panneaux journal/chat en pleine largeur.
+- Vérifié par simulation (Chromium 390×844, fausse partie injectée, test de « clic atteint le bon élément ») ; jamais sur un vrai téléphone. Rendu PC identique (comparaison d'images).
+- Pas encore fait : indicateur de tour en haut, glisser-déposer tactile d'une carte de la main, aperçu de carte au tap long, 3ᵉ rangée au-delà de 6 créatures vérifiée seulement en CSS.

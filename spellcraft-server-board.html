@@ -803,7 +803,8 @@ body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out 
 <link rel="stylesheet" href="spellcraft-board-compact.css">
 <link rel="stylesheet" href="spellcraft-board-rail.css">
 <link rel="stylesheet" href="spellcraft-board-persp.css">
-<script src="spellcraft-board-fit.js"></script>
+<link rel="stylesheet" href="spellcraft-board-phone.css?v=20261102a">
+<script src="spellcraft-board-fit.js?v=20261102a"></script>
 <script src="spellcraft-dialogs.js?v=20261020a"></script>
 </head>
 <body>
@@ -1743,7 +1744,7 @@ const BOARD_REF_WIDTH = 1920, BOARD_REF_HEIGHT = 1080;
 function updateBoardScale(){
   const outer = document.getElementById('app-outer');
   if(!outer) return;
-  if(window.SCBoardFit){ SCBoardFit.fit(outer, {refW:BOARD_REF_WIDTH, baseH:BOARD_REF_HEIGHT, topReserve:0}); return; }
+  if(window.SCBoardFit){ SCBoardFit.fit(outer, {refW:BOARD_REF_WIDTH, baseH:BOARD_REF_HEIGHT, topReserve:0, phone:true}); return; }
   const scale = Math.min(window.innerWidth / BOARD_REF_WIDTH, window.innerHeight / BOARD_REF_HEIGHT);
   outer.style.transform = `scale(${scale})`;
 }

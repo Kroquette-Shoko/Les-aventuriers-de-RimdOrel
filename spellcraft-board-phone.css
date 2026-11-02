@@ -1,0 +1,98 @@
+/* Plateau — disposition « téléphone portrait » (maquette C, validée le 2026-11-02).
+   Activée par html.bd-phone, posée par spellcraft-board-fit.js (petit écran tactile en portrait,
+   ou ?phone=1 dans l'adresse pour tester sur ordinateur). Le plateau devient un canevas de
+   390 px de large (au lieu de 1920) : tout est réagencé ici, sans toucher au HTML ni au JS.
+   Haut : adversaire (pastille héros, mana, piles, artefacts, main cachée) puis ses créatures
+   (2 rangées de 3). Milieu : colonne de boutons à droite (émotes, journal, chat, combat, fin du tour).
+   Bas : mes créatures, ma pastille héros + mana + piles + artefacts, et le tiroir de main. */
+html.bd-phone #app-outer{width:390px;}
+html.bd-phone #board-topbar{width:390px;height:36px;padding:3px 8px;gap:8px;--gear-size:30px;}
+html.bd-phone #board-back-btn{font-size:0;padding:0;width:36px;height:28px;display:grid;place-items:center;}
+html.bd-phone #board-back-btn::before{content:"←";font-size:17px;line-height:1;font-family:'Inter',sans-serif;}
+html.bd-phone #board-topbar-right{gap:6px;}
+html.bd-phone #sc-feedback-btn,html.bd-phone #sc-auth-slot{display:none;}
+html.bd-phone #board{padding:0;gap:0;}
+html.bd-phone #board-scroll-area{display:block;position:relative;overflow:hidden;padding:0;}
+html.bd-phone #board-scroll-area::before{display:none;}
+
+/* ----- Lignes de créatures : 2 rangées de 3, à gauche (la colonne de boutons est à droite) ----- */
+html.bd-phone .lane{position:absolute;left:8px;width:318px;margin:0;padding:0;height:auto;min-height:0;gap:6px;justify-content:flex-start;align-content:flex-start;align-items:flex-start;background:none;}
+html.bd-phone .lane.enemy{top:92px;height:210px;align-content:flex-start;}
+html.bd-phone .lane.self{bottom:198px;height:210px;align-content:flex-end;}
+html.bd-phone .lane .ncard.n-small{zoom:.6;}
+html.bd-phone .lane:has(> .card-slot:nth-child(7)) .ncard.n-small{zoom:.46;}
+html.bd-phone .slot-empty{width:102px;height:102px;}
+
+/* ----- Rangées « héros » : pastille, mana, piles, artefacts ----- */
+html.bd-phone .board-row{position:absolute;left:0;right:0;width:390px;height:64px;min-height:0;margin:0;padding:0;display:block;}
+html.bd-phone .board-row.enemy{top:0;}
+html.bd-phone .board-row.self{top:auto;bottom:126px;margin-top:0;}
+html.bd-phone .board-row.self .hero-frame,
+html.bd-phone .board-row.enemy .hero-frame,
+html.bd-phone .hero-frame{position:absolute;left:8px;top:8px;bottom:auto;right:auto;width:48px;height:48px;}
+html.bd-phone .hero-portrait-big{width:48px;height:48px;font-size:20px;border-width:3px;}
+html.bd-phone .hp-badge-big{min-width:24px;height:24px;padding:0 4px;font-size:13px;right:-8px;bottom:-6px;border-width:2px;}
+html.bd-phone .hero-indicators{zoom:.4;}
+html.bd-phone .ritual-slot{zoom:.4;}
+
+html.bd-phone .board-row.self .mana-box,
+html.bd-phone .board-row.enemy .mana-box{position:absolute;left:68px;top:6px;right:auto;bottom:auto;width:auto;min-width:0;height:26px;max-height:none;flex-direction:row-reverse;align-items:center;justify-content:flex-start;gap:8px;padding:0 6px;border-radius:13px;border-width:1.5px;overflow:visible;}
+html.bd-phone .mana-box-line.normal{font-size:13px;gap:3px;}
+html.bd-phone .mana-box-line.fragile{font-size:13px;gap:3px;}
+html.bd-phone .mana-ico,
+html.bd-phone .mana-box-line.fragile .mana-ico{width:16px;height:16px;}
+html.bd-phone .mana-box-region-thumb{width:20px;height:20px;border-radius:5px;}
+
+html.bd-phone .board-row.self .deck-zone,
+html.bd-phone .board-row.enemy .deck-zone{position:absolute;left:68px;top:36px;right:auto;bottom:auto;gap:0;flex-direction:row;}
+html.bd-phone .deck-back-visual{display:none;}
+html.bd-phone .deck-counts{display:flex;grid-template-columns:none;gap:4px;}
+html.bd-phone .badge{flex-direction:row;gap:3px;width:auto;height:24px;padding:0 6px;border-radius:12px;}
+html.bd-phone .badge .badge-icon{font-size:12px;}
+html.bd-phone .badge .badge-count{font-size:12px;}
+html.bd-phone .badge .badge-label{display:none;}
+html.bd-phone .badge.exile:not(.has-cards),
+html.bd-phone .badge.deckbuffs:not(.has-cards){display:none;}
+
+html.bd-phone .board-row.self .artifact-stack,
+html.bd-phone .board-row.enemy .artifact-stack{position:absolute;left:206px;right:auto;top:5px;bottom:auto;flex-direction:row;gap:6px;align-items:flex-start;}
+html.bd-phone .artifact-stack .relic-slot{width:54px;height:54px;}
+html.bd-phone .artifact-stack .relic-slot .ncard{zoom:.32;}
+html.bd-phone .artifact-stack .relic-slot .card{transform:scale(.25);}
+
+/* ----- Main adverse : petit éventail en haut à droite ----- */
+html.bd-phone .enemy-hand-row{top:46px;left:auto;right:8px;width:auto;padding:0;justify-content:flex-end;z-index:5;}
+html.bd-phone .enemy-hand-card{width:16px;height:23px;border-width:1px;border-radius:3px;margin-left:-6px;box-shadow:none;}
+html.bd-phone .enemy-hand-card-revealed{transform:scale(.3);margin:0 -40px;}
+
+/* ----- Colonne de boutons (à droite, zone du pouce) ----- */
+html.bd-phone .board-divider{position:absolute;right:6px;left:auto;top:50%;transform:translateY(-50%);margin:0;display:block;width:52px;z-index:30;}
+html.bd-phone .divider-line{display:none;}
+html.bd-phone #turn-timer{display:none;}
+html.bd-phone .phase-bar-wrap{position:static;display:flex;flex-direction:column;align-items:center;gap:8px;}
+html.bd-phone .menu-toggles-row{position:static;margin:0;flex-direction:column;gap:8px;}
+html.bd-phone .menu-toggles-row button{width:44px;height:44px;border-radius:50%;font-size:20px;padding:0;}
+html.bd-phone .phase-bar{flex-direction:column;align-items:center;gap:8px;justify-content:center;}
+html.bd-phone .phase-bar-stack{align-items:center;gap:8px;}
+html.bd-phone .phase-bar-subrow{flex-direction:column;align-items:center;gap:8px;}
+html.bd-phone .phase-btn{width:56px;min-width:0;height:56px;border-radius:50%;padding:2px;font-size:10px;letter-spacing:0;line-height:1.1;white-space:normal;text-align:center;display:flex;align-items:center;justify-content:center;}
+html.bd-phone .phase-reminder,html.bd-phone .phase-hint{display:none;}
+
+/* ----- Panneaux (journal, chat, signalement, émotes) : pleine largeur ----- */
+html.bd-phone #journal-panel,
+html.bd-phone #chat-panel,
+html.bd-phone #bug-report-panel{position:absolute;left:8px;right:8px;top:44px;bottom:auto;width:auto;max-width:none;max-height:calc(var(--bd-canvas-h, 844px) - 200px);z-index:200;}
+html.bd-phone #emote-panel{position:absolute;right:58px;left:auto;top:auto;bottom:auto;max-width:300px;z-index:200;}
+
+/* ----- Tiroir de main : cartes en éventail serré, poignée pour monter / descendre ----- */
+html.bd-phone .hand-row{left:0;right:0;bottom:0;padding:0 53px 0 8px;height:230px;align-items:flex-start;justify-content:center;transform:translateY(112px);transition:transform .22s ease;background:linear-gradient(180deg,rgba(14,11,26,.0),rgba(14,11,26,.92) 40%) !important;pointer-events:auto;border-radius:16px 16px 0 0;padding-top:34px;box-sizing:border-box;}
+html.bd-phone.bd-hand-open .hand-row{transform:translateY(-12px);}
+/* margin-left : le script de la main pose une marge négative calculée pour 177 px → on l'écrase */
+html.bd-phone .hand-card-slot{width:64px;min-width:12px;flex:0 1 64px;height:150px;margin-left:0 !important;}
+html.bd-phone .hand-card-slot .ncard.hand-card,
+html.bd-phone .hand-card-slot:hover .ncard.hand-card,
+html.bd-phone.bd-touch .hand-card-slot:hover .ncard.hand-card{transform:translateY(var(--fy,0px)) translate(54.5px,139px) rotate(var(--fr,0deg)) translate(-54.5px,-139px) scale(0.3);}
+html.bd-phone #bd-hand-handle{position:absolute;left:50%;margin-left:-60px;width:120px;bottom:86px;height:26px;padding:0;border:0;background:none;z-index:41;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:#a39dbb;font:700 10.5px 'Inter',sans-serif;cursor:pointer;transform:none;}
+html.bd-phone #bd-hand-handle .bd-hh-bar{width:44px;height:5px;border-radius:3px;background:#6d6794;}
+html.bd-phone.bd-hand-open #bd-hand-handle{bottom:210px;}
+html:not(.bd-phone) #bd-hand-handle{display:none;}

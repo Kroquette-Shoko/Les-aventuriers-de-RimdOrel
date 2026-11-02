@@ -37,6 +37,18 @@
     return el;
   }
 
+  // Poignée du tiroir de main (téléphone) : un appui la monte ou la redescend.
+  function ensureHandHandle(){
+    if(document.getElementById('bd-hand-handle')) return;
+    var host = document.getElementById('app-outer');
+    if(!host) return;
+    var h = document.createElement('button');
+    h.id = 'bd-hand-handle'; h.type = 'button'; h.setAttribute('aria-label', 'Monter ou descendre la main');
+    h.innerHTML = '<span class="bd-hh-bar"></span><span class="bd-hh-txt">Main</span>';
+    h.addEventListener('click', function(){ root.classList.toggle('bd-hand-open'); });
+    host.appendChild(h);
+  }
+
   /* outer : élément à mettre à l'échelle ; opts : { refW, baseH, topReserve }
      (topReserve = hauteur d'écran occupée par une barre hors plateau, ex. tutoriel) */
   function fit(outer, opts){
@@ -47,8 +59,31 @@
     var touchSmall = isSmallTouch();
     var portrait = vh > vw;
     root.classList.toggle('bd-touch', !!(window.matchMedia && matchMedia('(pointer: coarse)').matches));
-    root.classList.toggle('bd-need-landscape', touchSmall && portrait);
-    if(touchSmall && portrait) ensureRotateOverlay();
+    // Mode « téléphone portrait » (disposition C) : réservé aux pages qui le demandent (opts.phone),
+    // sur petit écran tactile en portrait — ou en ajoutant ?phone=1 à l'adresse (pour tester sur ordinateur).
+    var forcePhone = /[?&]phone=1\b/.test(location.search);
+    var phone = !!opts.phone && ((touchSmall && portrait) || (forcePhone && portrait));
+    root.classList.toggle('bd-phone', phone);
+    // Sur téléphone, la disposition C remplace les dispositions « rails » et « perspective ».
+    if(phone){ root.classList.remove('bd-rail'); root.classList.remove('bd-persp'); }
+    root.classList.toggle('bd-need-landscape', touchSmall && portrait && !phone);
+    if(touchSmall && portrait && !phone) ensureRotateOverlay();
+    if(phone){
+      var PW = 390, PH_MIN = 800;
+      var pch = Math.max(PH_MIN, Math.round(PW * availH / vw));
+      root.classList.remove('bd-compact');
+      outer.style.width = PW + 'px';
+      outer.style.height = pch + 'px';
+      var pscale = Math.min(vw / PW, availH / pch);
+      outer.style.transform = 'scale(' + pscale + ')';
+      root.style.setProperty('--bd-scale', String(pscale));
+      root.style.setProperty('--bd-canvas-h', pch + 'px');
+      root.style.setProperty('--bd-ovl-zoom', String(Math.max(0.3, Math.min(1, (vw - 24) / 1580 * 3.2, (vh - 140) / 440))));
+      root.style.setProperty('--bd-prev-zoom', String(Math.max(0.5, Math.min(1, (vw - 24) / 300))));
+      ensureHandHandle();
+      return;
+    }
+    outer.style.width = '';
     // Petit écran (téléphone, ou fenêtre très peu haute) : hauteur du plateau = ratio de l'écran,
     // bornée à MIN_H, et mode compact si ça reste nettement sous la hauteur d'origine.
     // Écran « normal » : on garde la hauteur d'origine (jamais en dessous, comme avant — bandes noires
