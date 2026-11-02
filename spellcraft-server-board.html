@@ -6701,7 +6701,9 @@ function renderPhaseBar(){
     // Le bouton "Tout sélectionner" (et "Annuler") passe sous le bouton
     // d'attaque, dans un empilement vertical plutôt qu'à côté.
     const selectAll = document.createElement('button');
-    selectAll.className = 'phase-btn secondary small';
+    // « Tout sélectionner » prend la place où se trouvait « Combat » (même endroit sous le doigt) :
+    // un double clic sur Combat ne peut plus passer le combat par erreur.
+    selectAll.className = 'phase-btn';
     selectAll.textContent = 'Tout sélectionner';
     selectAll.onclick = uiSelectAllAttackers;
     const cancel = document.createElement('button');
@@ -6710,10 +6712,11 @@ function renderPhaseBar(){
     cancel.onclick = ()=>{ UI.selectingAttackers = false; UI.selectedAttackers = []; UI.attackTargets = {}; render(); };
     const subRow = document.createElement('div');
     subRow.className = 'phase-bar-subrow';
-    subRow.appendChild(selectAll);
     subRow.appendChild(cancel);
     const stack = document.createElement('div');
     stack.className = 'phase-bar-stack';
+    stack.appendChild(selectAll);
+    if(!UI.selectedAttackers.length) btn.classList.add('secondary'); // « Passer » discret ; « Valider » reste mis en avant
     stack.appendChild(btn);
     stack.appendChild(subRow);
     if((S[OPP_KEY].relics||[]).some(isEdificeClient) && UI.selectedAttackers.length){
