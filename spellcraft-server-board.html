@@ -3863,8 +3863,15 @@ function renderKeywordChoiceModal(){
     if(existing) existing.remove();
     return;
   }
-  if(existing) return;
+  // Signature des options : si le serveur propose une NOUVELLE liste (2ᵉ choix de « Terrible destinée »),
+  // la fenêtre déjà affichée est reconstruite au lieu de garder l'ancienne liste.
+  const __sig = (S.pendingKeywordChoice.creatureInstId||'') + '|' + (S.pendingKeywordChoice.options||[]).join(',');
+  if(existing){
+    if(existing.dataset.sig === __sig) return;
+    existing.remove();
+  }
   const modal = document.createElement('div');
+  modal.dataset.sig = __sig;
   modal.id = 'keyword-choice-modal';
   modal.className = 'modal-overlay show';
   modal.innerHTML = `
