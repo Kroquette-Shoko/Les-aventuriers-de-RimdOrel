@@ -1355,7 +1355,7 @@ function getFilteredSortedCollection(){
     }
     if(filters.setId && c.set!==filters.setId) return false;
     if(rewardHiddenSetNames.has(c.set) && (ownedCollection[c.id]||0) === 0) return false;
-    if(!filters.setId && hiddenSetNames.has(c.set) && (ownedCollection[c.id]||0) === 0) return false;
+    if(hiddenSetNames.has(c.set) && (ownedCollection[c.id]||0) === 0) return false; // set masqué : introuvable (même via le filtre de set) et non fabricable tant qu'on n'a aucun exemplaire
     if(filters.classes.size){
       const realClasses = [...filters.classes].filter(k=>k!=='Multi-source');
       const wantsMulti = filters.classes.has('Multi-source');
