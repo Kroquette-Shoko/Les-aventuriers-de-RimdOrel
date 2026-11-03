@@ -665,3 +665,8 @@ Sauvegarde : `_backup_game_action_chunks_20261101_anywhere`.
 - **Plateau téléphone portrait (2026-11-02)** : `html.bd-phone` (posé par `spellcraft-board-fit.js` quand `opts.phone` et petit écran tactile en portrait, ou `?phone=1`) ; canevas 390 px ; styles dans `spellcraft-board-phone.css` (chargé après rail/persp) ; poignée `#bd-hand-handle` créée par le script ; classe `bd-hand-open` = tiroir de main monté. Voir `spellcraft-mobile.md`.
 
 - **Effet « Phase de combat supplémentaire » (2026-11-02)** : `effectType:'extraCombat'` (éditeur : famille « Spécial », valeur = nombre de phases, 1 à 5, plafond 5 par tour). Moteur (chunks 2, 5, 6, 11, 12 de `game-action`, sauvegarde `_backup_game_action_chunks_20261102_extracombat`) : l'effet ajoute à `p.extraCombats` ; si le combat du tour est déjà fait (phase principale 2), la phase repart tout de suite ; sinon elle démarre à la fin du combat en cours (`doFinishBlocking` → `__startExtraCombat`). Au début d'une phase supplémentaire : `attackPhaseDone=false`, `hasAttacked`/`hasBlockedThisTurn`/`hasBeenBlocked` remis à zéro (les créatures avec mal d'invocation ne peuvent toujours pas attaquer). Remis à zéro à chaque début de tour. L'IA n'en profite pas encore.
+
+## Cycle sur Pièges et Artefacts (game-action v196)
+Sauvegarde : `_backup_game_action_chunks_20261104_cycle_art`.
+- `destroyArtifact` (destruction, usure, Édifice détruit) et la résolution des pièges (nouveau et ancien format) passent par `__discardOrCycle` au lieu de `p.discard.push`.
+- Un artefact cyclé revient avec ses charges d'origine quand il est rejoué.
