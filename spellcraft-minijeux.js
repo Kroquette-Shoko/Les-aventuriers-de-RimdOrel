@@ -243,7 +243,7 @@
 
   // ====================== FUSION (façon Suika) ======================
   // 11 mots-clés, du plus petit au plus gros : deux icônes identiques qui se touchent fusionnent en la suivante.
-  var KW_CHAIN = ['fugace','peureux','discret','charge','portee','vol','initiative','toxique','brutalite','armure','tenace'];
+  var KW_CHAIN = ['fugace','peureux','discret','charge','portee','envol','initiative','toxique','brutalite','armure','tenace'];
   var KW_LABEL = ['Fugace','Peureux','Discret','Charge','Portée','Vol','Initiative','Toxique','Brutalité','Armure','Tenace'];
   var KW_IMG = {}, kwReady = false, kwLoading = false, kwWaiters = [];
   function loadKw(cb){
