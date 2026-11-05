@@ -1517,7 +1517,16 @@ function buildNewCardEl(card, size, opts={}){
     root.appendChild(we);
   }
   // Charges (artefacts)
-  if(isArtifact){
+  const isEdiCard = isArtifact && (card.subtypes||[]).some(s=>String(s).trim().toLowerCase()==='\u00e9difice');
+  if(isEdiCard){ // Édifice : Endurance à la place des charges
+    const we = nEl('div','nstat-wrap n-end');
+    we.appendChild(nImg('images/card/icon/bubble/endurance.png'));
+    const te = nEl('div','nstat-txt'); te.textContent = (card.hp ?? 0);
+    we.appendChild(te);
+    we.title = "Endurance de l'Édifice";
+    root.appendChild(we);
+  }
+  if(isArtifact && !isEdiCard){
     const wf = nEl('div','nstat-wrap n-art');
     wf.appendChild(nImg('images/card/icon/bubble/artefact.png'));
     const t = nEl('div','nstat-txt'); t.textContent = (card.charges ?? 0)+'x';
