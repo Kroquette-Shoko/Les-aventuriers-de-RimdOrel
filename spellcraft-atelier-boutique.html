@@ -354,7 +354,14 @@ function renderGold(){
     <div class="row2"><div class="field"><label>Titre (masculin)</label><input type="text" id="tc-m" placeholder="Ex : Champion"></div>
     <div class="field"><label>Titre (féminin)</label><input type="text" id="tc-f" placeholder="Ex : Championne"></div></div>
     <div class="actions"><button class="btn primary" data-act="title-create">➕ Créer le titre</button><span id="tc-status" class="hint"></span></div>
-    <div id="t-mine" style="margin-top:14px;">${myTitlesHtml()}</div></div></div>`;
+    <div id="t-mine" style="margin-top:14px;">${myTitlesHtml()}</div></div></div>
+  <div class="split" style="grid-template-columns:1fr 1fr;margin-top:16px;">
+  <div class="panel"><h2>📦 Donner un booster ou un mini-set</h2><p class="hint">Un <b>booster</b> est ajouté, fermé, à l'inventaire du joueur (il l'ouvre lui-même ; la quantité s'applique). Un <b>mini-set</b> ajoute directement ses cartes à la collection, jusqu'au maximum d'exemplaires, sans rien débiter.</p>
+    <div class="field"><label>Booster / mini-set</label><select id="bg-booster">${BOOSTERS.length?['booster','miniset'].map(k=>{const l=BOOSTERS.filter(x=>(x.kind||'booster')===k);return l.length?`<optgroup label="${k==='miniset'?'Mini-sets':'Boosters'}">${l.map(x=>`<option value="${esc(x.id)}" data-kind="${k}">${esc(x.name)}${x.in_shop===false?' (hors boutique)':''}</option>`).join('')}</optgroup>`:'';}).join(''):'<option value="">Aucun booster : crées-en un</option>'}</select></div>
+    <div class="field"><label>Cible</label><select id="bg-mode"><option value="single">Un joueur précis</option><option value="all">Tous les joueurs</option></select></div>
+    <div class="field" id="bg-user-f"><label>Pseudo</label><input type="text" id="bg-user" placeholder="Ex : Kroquette"></div>
+    <div class="field" id="bg-n-f"><label>Quantité (boosters)</label><input type="number" id="bg-n" value="1" min="1" max="100"></div>
+    <div class="actions"><button class="btn primary" data-act="give-booster">📦 Donner</button><span id="bg-status" class="hint"></span></div></div></div>`;
 }
 const MANUAL='manual';
 const titleLabel=t=>{const m=t.title_masculine||t.name, f=t.title_feminine; return f&&f!==m?m+' / '+f:m;};
@@ -420,6 +427,24 @@ async function titleOwners(){
   if(r.error||(r.data&&r.data.error)) return say('t-status',titleErr(r,''),false);
   const o=r.data.owners||[];
   say('t-status',o.length?`« ${titleLabel(t)} » : ${o.length} joueur(s) — ${o.join(', ')}`:`Personne n'a encore « ${titleLabel(t)} ».`, o.length?true:undefined);
+}
+async function giveBooster(){
+  const sel=$('bg-booster'), id=sel.value, opt=sel.selectedOptions[0], kind=opt?opt.dataset.kind:'booster';
+  const all=$('bg-mode').value==='all', user=$('bg-user').value.trim(), n=parseInt($('bg-n').value,10)||1;
+  if(!id) return say('bg-status',"Choisis un booster ou un mini-set.",false);
+  if(!all&&!user) return say('bg-status','Indique le pseudo du joueur.',false);
+  const lbl=kind==='miniset'?'le mini-set':n+' × le booster';
+  if(all&&!await scConfirm(`Confirmer : donner ${lbl} « ${opt.textContent} » à TOUS les joueurs ?`)) return;
+  say('bg-status','Envoi…');
+  const r=await sb.rpc('admin_grant_booster',{p_username:user||null,p_booster_id:id,p_count:n,p_all:all});
+  const e=r.error, d=r.data;
+  if(e&&(e.code==='PGRST202'||/could not find the function|schema cache/i.test(e.message||''))) return say('bg-status',"Fonction manquante dans la base (admin_grant_booster).",false);
+  if(e||(d&&d.error)){const code=(d&&d.error)||(e&&e.message)||'erreur';
+    const m={'not-authorized':'Seul le compte Kroquette peut donner des boosters.','player-not-found':`Aucun joueur « ${user} ».`,'unknown-booster':"Ce booster n'existe plus (rafraîchis la page)."};
+    return say('bg-status',m[code]||('Erreur : '+code),false);}
+  const what=d.kind==='miniset'?`mini-set « ${d.booster_name} »`:`${d.count} × « ${d.booster_name} »`;
+  const extra=d.kind==='miniset'?` (${d.cards_added} carte(s) ajoutée(s)${d.player_count?' au total':''})`:'';
+  say('bg-status',all?`✓ ${what} donné à ${d.player_count} joueur(s)${extra}.`:`✓ ${what} donné à ${d.username}${extra}.`,true);
 }
 async function giveGold(){
   const all=$('g-mode').value==='all', user=$('g-user').value.trim(), amount=parseInt($('g-amount').value,10);
@@ -489,7 +514,7 @@ document.addEventListener('click',async e=>{
   else if(a==='sel-c'){SEL.backs=t.dataset.id;renderBacks();}
   else if(a==='new-c'){SEL.backs='new';renderBacks();}
   else if(a==='save-c') saveBack(); else if(a==='del-c') delBack();
-  else if(a==='gold') giveGold(); else if(a==='grant-back') giveBack(); else if(a==='give-card') giveCard();
+  else if(a==='gold') giveGold(); else if(a==='grant-back') giveBack(); else if(a==='give-card') giveCard(); else if(a==='give-booster') giveBooster();
   else if(a==='title-create') createTitle(); else if(a==='title-del') deleteTitle(t.dataset.id);
   else if(a==='title-give') giveTitle(false); else if(a==='title-revoke') giveTitle(true); else if(a==='title-owners') titleOwners();
   else if(a==='picker-open'){pickTarget=t.dataset.p;try{$('picker-list').value=localStorage.getItem(STORE)||'';}catch(x){}pickerGrid();$('picker').classList.add('show');}
@@ -512,7 +537,7 @@ document.addEventListener('input',e=>{
   if(e.target.dataset&&e.target.dataset.prev){const im=$(e.target.dataset.prev+'-prev'),v=e.target.value.trim(); if(v){im.src=imgSrc(v);im.style.display='inline-block';}else{im.style.display='none';}}
 });
 window.addEventListener('message',e=>{ if(e.data&&e.data.type==='coffres-admin-height'){const f=$('coffres-frame'); if(f) f.style.height=Math.ceil(e.data.h)+20+'px';} });
-document.addEventListener('change',e=>{ if(e.target.id==='g-mode') $('g-user-f').style.display=e.target.value==='all'?'none':''; if(e.target.id==='t-mode') $('t-user-f').style.display=e.target.value==='all'?'none':''; });
+document.addEventListener('change',e=>{ if(e.target.id==='g-mode') $('g-user-f').style.display=e.target.value==='all'?'none':''; if(e.target.id==='t-mode') $('t-user-f').style.display=e.target.value==='all'?'none':''; if(e.target.id==='bg-mode') $('bg-user-f').style.display=e.target.value==='all'?'none':''; if(e.target.id==='bg-booster'){ const o=e.target.selectedOptions[0]; $('bg-n-f').style.display=(o&&o.dataset.kind==='miniset')?'none':''; } });
 
 (async function init(){
   try{
