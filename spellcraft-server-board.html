@@ -727,6 +727,33 @@ body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out 
    booster : la carte se retourne pour montrer ce qui vient de se
    passer, puis s'efface.
    ============================================================ */
+
+/* ===== Faille : une brèche s'ouvre et laisse apparaître la carte ===== */
+.faille-overlay{position:fixed;inset:0;z-index:9990;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;background:rgba(4,2,10,0);transition:opacity .25s,background .4s;cursor:pointer;}
+.faille-overlay.show{opacity:1;background:rgba(4,2,10,.62);pointer-events:auto;}
+.faille-overlay.closing{opacity:0;background:rgba(4,2,10,0);}
+.faille-stage{position:relative;width:min(420px,70vw);height:min(560px,78vh);display:flex;align-items:center;justify-content:center;}
+.faille-rift{position:absolute;inset:-6% 8%;transform:scale(.02,.5);opacity:0;
+  clip-path:polygon(50% 0%,57% 9%,52% 18%,64% 27%,55% 37%,69% 47%,58% 58%,66% 69%,55% 79%,60% 90%,50% 100%,41% 91%,46% 80%,32% 70%,43% 59%,29% 48%,42% 38%,34% 27%,47% 17%,40% 8%);
+  background:radial-gradient(ellipse at 50% 50%,#fff 0%,#e6b8ff 14%,#9b3dff 34%,#3b0a7a 62%,#10031f 100%);
+  filter:drop-shadow(0 0 28px #b45cff) drop-shadow(0 0 60px #7a1fe0);}
+.faille-overlay.fx-enemy .faille-rift{filter:drop-shadow(0 0 28px #ff5c8a) drop-shadow(0 0 60px #e01f4f);
+  background:radial-gradient(ellipse at 50% 50%,#fff 0%,#ffc0cf 14%,#ff3d78 34%,#7a0a30 62%,#1f0310 100%);}
+.faille-overlay.show .faille-rift{animation:faille-open .7s cubic-bezier(.2,.9,.25,1) forwards;}
+.faille-overlay.closing .faille-rift{animation:faille-close .3s ease-in forwards;}
+@keyframes faille-open{0%{transform:scale(.02,.4);opacity:0}25%{transform:scale(.06,.85);opacity:1}100%{transform:scale(1,1);opacity:1}}
+@keyframes faille-close{from{transform:scale(1,1);opacity:1}to{transform:scale(.02,.6);opacity:0}}
+.faille-glow{position:absolute;inset:-25%;background:radial-gradient(circle,rgba(190,110,255,.55),transparent 62%);opacity:0;}
+.faille-overlay.fx-enemy .faille-glow{background:radial-gradient(circle,rgba(255,110,150,.55),transparent 62%);}
+.faille-overlay.show .faille-glow{animation:faille-glow 1.6s ease-out forwards;}
+@keyframes faille-glow{0%{opacity:0;transform:scale(.5)}35%{opacity:1}100%{opacity:.5;transform:scale(1.1)}}
+.faille-card{position:relative;transform:translateY(40px) scale(.3);opacity:0;filter:brightness(2.2) saturate(.4);}
+.faille-overlay.show .faille-card{animation:faille-card .75s .45s cubic-bezier(.2,1.1,.3,1) forwards;}
+.faille-overlay.closing .faille-card{opacity:0;transform:translateY(20px) scale(.5);transition:all .25s;}
+@keyframes faille-card{0%{transform:translateY(40px) scale(.3);opacity:0;filter:brightness(2.2) saturate(.4)}100%{transform:translateY(0) scale(1);opacity:1;filter:none}}
+.faille-spark{position:absolute;left:50%;top:50%;width:3px;height:70px;border-radius:2px;background:linear-gradient(#fff,transparent);transform-origin:50% 0;opacity:0;}
+.faille-overlay.show .faille-spark{animation:faille-spark .9s .15s ease-out forwards;}
+@keyframes faille-spark{0%{opacity:0;transform:rotate(var(--a)) translateY(0) scaleY(.2)}30%{opacity:1}100%{opacity:0;transform:rotate(var(--a)) translateY(150px) scaleY(1)}}
 .ability-reveal-overlay{position:fixed;inset:0;z-index:9990;display:flex;align-items:center;justify-content:center;
   background:rgba(5,4,10,0);opacity:0;pointer-events:none;transition:opacity .28s ease, background .28s ease;}
 .ability-reveal-overlay.show{opacity:1;background:rgba(5,4,10,.58);pointer-events:auto;cursor:pointer;}
@@ -1712,6 +1739,7 @@ function entryQueuesCardAnimation(entry){
   if(entry.deadInstId) return true;
   if(!entry.cardName) return false;
   if(entry.kind==='play' || entry.kind==='trap') return true;
+  if(entry.faille) return true;
   return (entry.effects||[]).some(eff=>eff && (eff.targetInstIds||[]).length>0);
 }
 // Faut-il retenir l'affichage des attaquants adverses derrière la file ?
@@ -2308,6 +2336,16 @@ function renderGameLog(){
           return playCardFlipReveal(fullAtAnimTime, {isTrap: entry.kind==='trap', isSpell: fullAtAnimTime.type==='Sortilège', backUrl: ownerBackUrl, fxMine: entry.ownerKey===MY_KEY}).then(()=>{
             // (le tremblement des créatures de 10 de force ou plus est joué par BFX à leur arrivée sur le plateau)
           });
+        });
+      }
+
+      // Faille : brèche qui s'ouvre et révèle la carte qui se déclenche (avant les flèches vers les cibles)
+      if(entry.faille && !combatInstant()){
+        const __fCardId = entry.cardId, __fMine = entry.ownerKey===MY_KEY;
+        playSfx('cast');
+        queueCombatAnim(()=>{
+          const fc = __fCardId ? JOURNAL_CARD_LOOKUP[__fCardId] : null;
+          return fc ? playFailleRift(fc, {fxMine: __fMine}) : Promise.resolve();
         });
       }
 
@@ -5922,7 +5960,7 @@ function releaseCombatAnimLock(){
 // Interruption immédiate (bouton « Passer » ou garde-fou) : coupe les sons en
 // cours, retire tout ce qui flotte encore (chiffres, flèches, révélation,
 // clones), puis lève le verrou et rend l'état final.
-const COMBAT_ABORT_PURGE_SELECTOR = '.dmg-popup, .ability-reveal-overlay, .land-fly, .ability-bolt, .ability-impact-ring, .ability-self-burst, .combat-impact-ring, .kw-ghost';
+const COMBAT_ABORT_PURGE_SELECTOR = '.dmg-popup, .ability-reveal-overlay, .land-fly, .ability-bolt, .ability-impact-ring, .ability-self-burst, .combat-impact-ring, .kw-ghost, .faille-overlay';
 function abortCombatAnimations(){
   try { if(typeof stopAllSfx==='function') stopAllSfx(); } catch(e){}
   document.querySelectorAll(COMBAT_ABORT_PURGE_SELECTOR).forEach(n=>n.remove());
@@ -6172,6 +6210,40 @@ function playCardFlipReveal(card, opts={}){
     });
     const holdMs = opts.isTrap ? 1500 : (opts.isSpell ? 850 : 1150);
     setTimeout(finish, 220 + 550 + holdMs);
+  });
+}
+
+
+// Faille : brèche qui s'ouvre, la carte qui se déclenche en sort (violet = vous, rose = adversaire)
+function playFailleRift(card, opts={}){
+  return new Promise(resolve=>{
+    if(!card){ resolve(); return; }
+    const overlay = document.createElement('div');
+    overlay.className = 'faille-overlay ' + (opts.fxMine===false ? 'fx-enemy' : 'fx-mine');
+    const stage = document.createElement('div'); stage.className = 'faille-stage';
+    const glow = document.createElement('div'); glow.className = 'faille-glow';
+    const rift = document.createElement('div'); rift.className = 'faille-rift';
+    stage.appendChild(glow); stage.appendChild(rift);
+    for(let i=0;i<14;i++){
+      const sp = document.createElement('div'); sp.className='faille-spark';
+      sp.style.setProperty('--a', (i*360/14 + (i%2?9:0))+'deg');
+      stage.appendChild(sp);
+    }
+    const holder = document.createElement('div'); holder.className = 'faille-card';
+    try { holder.appendChild(cardEl(card, {isPreview:true})); }
+    catch(e){ console.error('Erreur playFailleRift (cardEl) :', e, card); }
+    stage.appendChild(holder);
+    overlay.appendChild(stage);
+    document.body.appendChild(overlay);
+    let done = false;
+    const finish = ()=>{
+      if(done) return; done = true;
+      overlay.classList.remove('show'); overlay.classList.add('closing');
+      setTimeout(()=>{ overlay.remove(); resolve(); }, 320);
+    };
+    overlay.onclick = finish;
+    requestAnimationFrame(()=>{ overlay.classList.add('show'); });
+    setTimeout(finish, cms(2000));
   });
 }
 
