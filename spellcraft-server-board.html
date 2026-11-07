@@ -4399,11 +4399,6 @@ function renderArtifactStack(key, slot){
         wrap.classList.add('edifice-clickable');
         wrap.title = "Envoyer le dernier attaquant choisi sur cet Édifice (re-cliquer : retour sur le héros)";
         wrap.onclick = ()=>toggleAttackTargetEdifice(r.instId);
-      } else if(isEdi && key===MY_KEY && S.phase==='declareBlockersMe' && S.active===OPP_KEY && !r.hasBlockedThisTurn){
-        // Blocage : l'Édifice peut bloquer comme une créature
-        wrap.classList.add(UI.pendingBlocker===r.instId ? 'edifice-selected' : 'edifice-clickable');
-        wrap.title = 'Bloquer avec cet Édifice : clique-le, puis clique l\'attaquant';
-        wrap.onclick = ()=>{ UI.pendingBlocker = (UI.pendingBlocker===r.instId ? null : r.instId); render(); };
       } else if(isTargetable){
         cardElNode.style.cursor = 'pointer';
         cardElNode.onclick = ()=>pickNewFormatTarget(r.instId);
