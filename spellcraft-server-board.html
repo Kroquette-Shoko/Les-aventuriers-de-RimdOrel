@@ -1023,7 +1023,8 @@ body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out 
   /* Édifice : Endurance et cible d'attaque */
   .edifice-hp{position:absolute;right:4px;bottom:4px;min-width:30px;height:30px;padding:0 6px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#5d7ea8,#1f3550);border:2px solid #0e1a2a;color:#fff;font-family:'Cinzel',serif;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:center;z-index:6;pointer-events:none;}
   .edifice-target-badge{position:absolute;right:4px;top:4px;padding:2px 7px;border-radius:9px;background:#8b1d1d;color:#fff;font-size:11px;font-weight:700;z-index:6;pointer-events:none;box-shadow:0 2px 5px rgba(0,0,0,.6);}
-  .relic-slot.edifice-clickable{cursor:crosshair;}
+  .relic-slot.edifice-clickable{cursor:crosshair;z-index:30;}
+  .artifact-stack{z-index:12;}
   .relic-slot.edifice-clickable::after,.relic-slot.edifice-selected::after{content:'';position:absolute;inset:0;border:3px solid var(--gold);border-radius:8px;z-index:7;pointer-events:none;box-shadow:inset 0 0 12px rgba(212,175,55,.6);}
   .relic-slot.edifice-selected::after{border-color:#ff5d5d;box-shadow:inset 0 0 12px rgba(255,93,93,.7);}
   .badge.deckbuffs .badge-icon{color:#c9a8ff;}
@@ -6794,11 +6795,27 @@ function renderPhaseBar(){
     if(!UI.selectedAttackers.length) btn.classList.add('secondary'); // « Passer » discret ; « Valider » reste mis en avant
     stack.appendChild(btn);
     stack.appendChild(subRow);
-    if((S[OPP_KEY].relics||[]).some(isEdificeClient) && UI.selectedAttackers.length){
-      const hint = document.createElement('div');
-      hint.style.cssText = 'font-size:11px;color:#e9d9a8;max-width:220px;text-align:center;';
-      hint.textContent = 'Clique un Édifice adverse pour y envoyer le dernier attaquant choisi.';
-      stack.appendChild(hint);
+    {
+      const __eds = (S[OPP_KEY].relics||[]).filter(isEdificeClient);
+      if(__eds.length){
+        const hint = document.createElement('div');
+        hint.style.cssText = 'font-size:11px;color:#e9d9a8;max-width:220px;text-align:center;';
+        hint.textContent = UI.selectedAttackers.length
+          ? "Édifice adverse : choisis-le ci-dessous pour y envoyer le dernier attaquant sélectionné (re-clic : retour sur le héros)."
+          : "Sélectionne d'abord un attaquant pour pouvoir viser un Édifice adverse.";
+        stack.appendChild(hint);
+        if(UI.selectedAttackers.length){
+          const lastId = UI.lastSelectedAttacker && UI.selectedAttackers.includes(UI.lastSelectedAttacker) ? UI.lastSelectedAttacker : UI.selectedAttackers[UI.selectedAttackers.length-1];
+          __eds.forEach(ed=>{
+            const eb = document.createElement('button');
+            eb.className = 'phase-btn secondary small';
+            const on = (UI.attackTargets||{})[lastId]===ed.instId;
+            eb.textContent = (on ? '✔ ' : '🏛 ') + 'Attaquer « ' + ed.name + ' » (' + (ed.curHp ?? ed.hp ?? '?') + ')';
+            eb.onclick = ()=>toggleAttackTargetEdifice(ed.instId);
+            stack.appendChild(eb);
+          });
+        }
+      }
     }
     bar.appendChild(stack);
   } else if(S.phase==='main' && !me.attackPhaseDone && shouldOfferCombat(S, MY_KEY)){
