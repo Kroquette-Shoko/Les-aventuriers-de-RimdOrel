@@ -140,10 +140,11 @@
     function round(p, r, c){ return ringGem(p[0], p[1], r, c || 'gem2', 'round', 0); }
     var i, p;
     if(type === 'creature'){
-      S.d = 'M38,18 H262 Q278,18 278,34 V182 Q278,198 262,198 H38 Q22,198 22,182 V34 Q22,18 38,18 Z'; S.top = 18;
-      [[23,19],[277,19],[23,197],[277,197]].forEach(function(q){ S.st += ringRivet(q[0], q[1]); });
-      S.st += round([72,18], 6.5) + round([228,18], 6.5) + round([150,198], 9, 'gem') + round([72,198], 6.5) + round([228,198], 6.5);
-      S.st += round([22,74], 6) + round([22,142], 6) + round([278,74], 6) + round([278,142], 6) + oval([22,108], 90) + oval([278,108], 90);
+      /* suit la vraie ligne dorée du cadre (haut légèrement bombé, bas à y=194, juste au-dessus du bandeau du nom) */
+      S.d = 'M26,44 Q26,31 38,29 Q150,12 262,29 Q274,31 274,44 V180 Q274,192 262,192 H38 Q26,192 26,180 Z'; S.top = 20.5; S.w = 8; S.k = .66;
+      [[30,32],[270,32],[30,188],[270,188]].forEach(function(q){ S.st += ringRivet(q[0], q[1]); });
+      S.st += round([72,24.6], 5.5) + round([228,24.6], 5.5) + round([150,191], 7, 'gem') + round([76,191], 5) + round([224,191], 5);
+      S.st += round([26,78], 5) + round([26,138], 5) + round([274,78], 5) + round([274,138], 5) + oval([26,108], 90) + oval([274,108], 90);
     } else if(type === 'spell' || type === 'region'){
       var rx = type === 'spell' ? 131 : 130, ry = type === 'spell' ? 131 : 106, cy = type === 'spell' ? 138 : 124;
       S.d = 'M' + (150 - rx) + ',' + cy + ' a' + rx + ',' + ry + ' 0 1,0 ' + (2 * rx) + ',0 a' + rx + ',' + ry + ' 0 1,0 ' + (-2 * rx) + ',0 Z'; S.top = cy - ry;
@@ -169,11 +170,11 @@
     var g = '<defs><linearGradient id="' + u + 'rs" x1="0" y1="0" x2="1" y2="1">'
       + '<stop offset="0" style="stop-color:color-mix(in srgb,var(--gem) 10%,#fff)"/><stop offset=".35" style="stop-color:color-mix(in srgb,var(--gem) 22%,#cfd5e0)"/>'
       + '<stop offset=".7" style="stop-color:color-mix(in srgb,var(--gem) 30%,#8a94a6)"/><stop offset="1" style="stop-color:color-mix(in srgb,var(--gem) 14%,#dde2ea)"/></linearGradient></defs>';
-    var band = '<path d="' + S.d + '" fill="none" stroke="' + RING_DK + '" stroke-width="14" stroke-linejoin="round"/>'
-      + '<path d="' + S.d + '" fill="none" stroke="url(#@S)" stroke-width="11" stroke-linejoin="round"/>'
-      + '<path d="' + S.d + '" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="1.3" stroke-linejoin="round" transform="translate(-3 -3)"/>'
-      + '<path d="' + S.d + '" fill="none" stroke="' + RING_DK + '" stroke-opacity=".45" stroke-width="3.9" stroke-dasharray="1.6 4.2" stroke-linecap="round" stroke-linejoin="round"/>';
-    var inner = band + S.st + ringCimier(S.cx, S.top);
+    var band = '<path d="' + S.d + '" fill="none" stroke="' + RING_DK + '" stroke-width="' + ((S.w || 11) + 3) + '" stroke-linejoin="round"/>'
+      + '<path d="' + S.d + '" fill="none" stroke="url(#@S)" stroke-width="' + (S.w || 11) + '" stroke-linejoin="round"/>'
+      + '<path d="' + S.d + '" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="1.3" stroke-linejoin="round" transform="translate(-2 -2)"/>'
+      + '<path d="' + S.d + '" fill="none" stroke="' + RING_DK + '" stroke-opacity=".45" stroke-width="' + ((S.w || 11) * .35).toFixed(1) + '" stroke-dasharray="1.6 4.2" stroke-linecap="round" stroke-linejoin="round"/>';
+    var inner = band + S.st + (S.k ? '<g transform="translate(' + S.cx + ' ' + S.top + ') scale(' + S.k + ') translate(' + (-S.cx) + ' ' + (-S.top) + ')">' + ringCimier(S.cx, S.top) + '</g>' : ringCimier(S.cx, S.top));
     inner = inner.split('url(#@S)').join('url(#' + u + 'rs)');
     return '<svg viewBox="0 0 300 423" xmlns="http://www.w3.org/2000/svg" style="overflow:visible;width:100%;height:100%">' + g + inner + '</svg>';
   }
