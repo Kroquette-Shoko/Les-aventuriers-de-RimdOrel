@@ -729,8 +729,8 @@ body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out 
    ============================================================ */
 
 /* ===== Faille : une brèche s'ouvre et laisse apparaître la carte ===== */
-.faille-overlay{position:fixed;inset:0;z-index:9990;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;background:rgba(4,2,10,0);transition:opacity .25s,background .4s;cursor:pointer;}
-.faille-overlay.show{opacity:1;background:rgba(4,2,10,.62);pointer-events:auto;}
+.faille-overlay{position:fixed;inset:0;z-index:9990;overflow:visible;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;background:rgba(4,2,10,0);transition:opacity .25s,background .4s;cursor:pointer;}
+.faille-overlay.show{opacity:1;background:rgba(4,2,10,.5);pointer-events:auto;}
 .faille-overlay.closing{opacity:0;background:rgba(4,2,10,0);}
 .faille-stage{position:relative;width:min(420px,70vw);height:min(560px,78vh);display:flex;align-items:center;justify-content:center;}
 .faille-rift{position:absolute;inset:-10% -14%;opacity:0;
@@ -6228,6 +6228,18 @@ function playFailleRift(card, opts={}){
     win.appendChild(holder);
     stage.appendChild(win);
     overlay.appendChild(stage);
+    // Affichage limité au plateau adverse (la zone du joueur reste dégagée)
+    const __row = document.querySelector('.board-row.enemy');
+    if(__row){
+      const rc = __row.getBoundingClientRect();
+      if(rc.width>0 && rc.height>0){
+        overlay.style.inset = 'auto';
+        overlay.style.left = rc.left+'px'; overlay.style.top = rc.top+'px';
+        overlay.style.width = rc.width+'px'; overlay.style.height = rc.height+'px';
+        stage.style.width = '420px'; stage.style.height = '560px'; stage.style.flex = 'none';
+        stage.style.transform = 'scale(' + Math.min(1, (rc.height*1.1)/560) + ')';
+      }
+    }
     document.body.appendChild(overlay);
     // Déchirure : polygone « lentille » aux bords irréguliers, même nombre de points à chaque étape (interpolable)
     const lens = (w, k)=>{
