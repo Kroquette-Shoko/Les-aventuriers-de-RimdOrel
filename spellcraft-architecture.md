@@ -670,3 +670,13 @@ Sauvegarde : `_backup_game_action_chunks_20261101_anywhere`.
 Sauvegarde : `_backup_game_action_chunks_20261104_cycle_art`.
 - `destroyArtifact` (destruction, usure, Édifice détruit) et la résolution des pièges (nouveau et ancien format) passent par `__discardOrCycle` au lieu de `p.discard.push`.
 - Un artefact cyclé revient avec ses charges d'origine quand il est rejoué.
+
+## Offrande : cartes du set + moteur (game-action v199)
+Sauvegarde : `_backup_game_action_chunks_20261108_offrande`.
+- `__sacrifice` mémorise aussi le coût (`cost`) et `S.__lastSacrificedAny` (dernier sacrifice, tous joueurs confondus). La cible « La créature sacrifiée » lit `S.__lastSacrificedAny` : une capacité qui réagit à l'Offrande adverse voit la créature de l'adversaire.
+- Valeur dynamique `sacrificedCost` (coût de la créature sacrifiée).
+- Nouvel effet `reanimateUnderControl` : met en jeu, de votre côté, la créature ciblée qui se trouve dans une défausse ou un deck (Faucheuse d'âmes).
+- Conjuration : coût dynamique (`conjureCostValueMode: "dynamic"`, `conjureCostDynamic`, `conjureCostOffset`) — Transmutation.
+- `copyKeyword` : donneur `sacrificed` (Avatar du don).
+- Sort dont tous les effets sont sous « Offrande » : jouable, mais Offrande **obligatoire** (`offering-required` ; côté client, la carte est grisée sans créature et la fenêtre n'a pas « Jouer sans Offrande »).
+- Cartes créées : 16 cartes Offrande (set La guerre élémentaire) + jeton « Fidèle » (set Conjuration).

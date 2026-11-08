@@ -4673,7 +4673,11 @@ function spellAbilityRunsClient(ab){
 function spellIsPlayableClient(card){
   const abs = card.abilities || [];
   if(!abs.length) return true;
-  return !!card.effect || abs.some(spellAbilityRunsClient);
+  return !!card.effect || abs.some(spellAbilityRunsClient) || cardHasOfferingClient(card);
+}
+// Sort dont tout l'effet passe par l'Offrande : l'Offrande est obligatoire (miroir serveur : offering-required)
+function offeringRequiredClient(card){
+  return !!card && card.type==='Sortilège' && !card.effect && cardHasOfferingClient(card) && !(card.abilities||[]).some(spellAbilityRunsClient);
 }
 // Effets + définitions de cibles d'une capacité, selon le choix A/B/C/D déjà fait.
 function newFormatAbilityView(ab, choiceKey){
@@ -5189,7 +5193,8 @@ function renderHand(){
     const extraCostUnpayable = !isTrapCard && extraSrc.extraCostEnabled && (
          (extraSrc.extraCostType==='sacrificeCreature' && (p.board||[]).length<1)
       || (extraSrc.extraCostType==='discardCard' && hand.filter((c,j)=>j!==i).length<1)
-      || (extraSrc.extraCostType==='loseLife' && !(p.hp > (extraSrc.extraCostAmount || 1)))); // PV <= coût : injouable
+      || (extraSrc.extraCostType==='loseLife' && !(p.hp > (extraSrc.extraCostAmount || 1)))) // PV <= coût : injouable
+      || (offeringRequiredClient(card) && (p.board||[]).length<1); // Offrande obligatoire sans créature à sacrifier
     const canPlay = GS_ROLE!=='spectator' && myTurn && S.phase==='main' && affordable && !UI.selectingAttackers && !isLockedTrap && !isPendingTrap
                     && !hasBlockingChoice && !noRoom && !extraCostUnpayable && !drawOnlySpell;
     const el2 = cardEl(card, {});
@@ -7226,6 +7231,7 @@ const ACTION_ERROR_LABELS = {
   'ritual-not-now': "Le Rituel se nourrit une fois par tour, au début du tour : avant de jouer une carte ou d'attaquer.",
   'no-ritual': "Vous n'avez pas de Rituel en cours.",
   'ritual-no-offering': "Ce Rituel n'accepte pas d'Offrande.",
+  'offering-required': "Ce sort demande une Offrande : sacrifiez une de vos créatures.",
   'invalid-offering': "Offrande impossible : la créature choisie n'est plus en jeu ou la carte n'a pas d'Offrande. Rien n'est dépensé.",
   'invalid-target': 'cible invalide (hors critères, mauvais camp, créature protégée par Parade ou cible en double) : rien n\'est dépensé.',
   'invalid-choice': 'choix invalide : cette option n\'existe pas sur la carte.',
@@ -7362,6 +7368,10 @@ async function uiPlayCard(i, targetInfo, chosenTargets, choiceKey, offeringInstI
     showOfferingModal(card, (picked)=>{ uiPlayCard(i, targetInfo, chosenTargets, choiceKey, picked || null); });
     return;
   }
+  if(!offeringInstId && offeringRequiredClient(card)){
+    showActionError("Ce sort demande une Offrande : sacrifiez une de vos créatures.");
+    return;
+  }
   LAST_SACRIFICEABLE_ACTION = { action:'playCardSimple', handIndex:i, targetInfo, chosenTargets, choiceKey, placeAfter, offeringInstId: offeringInstId || undefined };
   await runAction('Jouer carte', ()=>gsPlayCardSimple(i, targetInfo, chosenTargets, choiceKey, undefined, placeAfter, offeringInstId || undefined));
 }
@@ -7381,7 +7391,8 @@ function showOfferingModal(card, onPick){
   title.textContent = `Offrande — ${card.name}`;
   const sub = document.createElement('div');
   sub.style.cssText = "font-family:inherit;font-size:13px;opacity:.85;margin-bottom:12px;";
-  sub.textContent = 'Sacrifier une de vos créatures en plus du coût pour obtenir le bonus d\'Offrande ?';
+  const __req = offeringRequiredClient(card);
+  sub.textContent = __req ? "Ce sort demande une Offrande : choisissez la créature à sacrifier." : 'Sacrifier une de vos créatures en plus du coût pour obtenir le bonus d\'Offrande ?';
   box.appendChild(title); box.appendChild(sub);
   const list = document.createElement('div');
   list.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;';
@@ -7400,7 +7411,8 @@ function showOfferingModal(card, onPick){
   none.onclick = ()=>{ overlay.remove(); onPick(null); };
   const cancel = document.createElement('button'); cancel.className='phase-btn'; cancel.textContent='Annuler';
   cancel.onclick = ()=>{ overlay.remove(); };
-  row.appendChild(none); row.appendChild(cancel); box.appendChild(row);
+  if(!__req) row.appendChild(none);
+  row.appendChild(cancel); box.appendChild(row);
   overlay.appendChild(box);
   overlay.onclick = (e)=>{ if(e.target===overlay) overlay.remove(); };
   document.body.appendChild(overlay);

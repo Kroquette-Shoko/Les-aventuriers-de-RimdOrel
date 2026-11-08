@@ -1065,7 +1065,7 @@ const EFFECT_GROUPS = [
   ['Créatures et plateau', ['destroy','stun','bounce','sacrificeEffect','removeFromCombat','summonCopy','transformCard','stealCreature','fight','destroyDealAtk','reviveDestroyedLastTurn','redirectTarget']],
   ['Artefacts et pièges', ['removeArtifactCharges','destroySelf','addCharges','exhaustArtifact','disarmTraps','counterCard']],
   ['Spécial', ['extraCombat','coinFlip','doubleTrigger','doubleEffectsTrigger','custom']],
-  ['La guerre élémentaire', ['doubleVorace','discoverCycle','failleExtraZone','doubleFaille','triggerFailles','addDevotion','shuffleIntoDeck','addRitualMana','removeRitualMana','destroyRitual','repairEdifice']]
+  ['La guerre élémentaire', ['doubleVorace','discoverCycle','failleExtraZone','doubleFaille','triggerFailles','addDevotion','shuffleIntoDeck','addRitualMana','removeRitualMana','destroyRitual','repairEdifice','reanimateUnderControl']]
 ];
 
 const EFFECT_TYPES = [
@@ -1137,7 +1137,8 @@ const EFFECT_TYPES = [
   {key:'addRitualMana', label:'Rituel : ajoute X mana à votre Rituel', needsTarget:false, needsValue:true},
   {key:'removeRitualMana', label:'Rituel : retire X mana du Rituel adverse', needsTarget:false, needsValue:true},
   {key:'destroyRitual', label:'Rituel : détruit le Rituel adverse', needsTarget:false, needsValue:false},
-  {key:'repairEdifice', label:'Édifice : restaure X Endurance à un Édifice', needsTarget:true, needsValue:true}
+  {key:'repairEdifice', label:'Édifice : restaure X Endurance à un Édifice', needsTarget:true, needsValue:true},
+  {key:'reanimateUnderControl', label:'Met en jeu de votre côté la cible (créature en défausse ou dans un deck, ex. « la créature sacrifiée »)', needsTarget:true}
 ];
 
 const EXPLORE_OWNERS = [
@@ -1278,6 +1279,7 @@ const DYNAMIC_VALUES = [
   {key:'offeringsThisGame', label:"= nombre d'Offrandes que vous avez faites cette partie"},
   {key:'sacrificedAtk', label:'= Force de la créature sacrifiée (Offrande)'},
   {key:'sacrificedHp', label:'= Endurance de la créature sacrifiée (Offrande)'},
+  {key:'sacrificedCost', label:'= coût de mana de la créature sacrifiée (Offrande)'},
   {key:'ritualMana', label:'= mana versé dans votre Rituel'},
   {key:'edificesInPlay', label:"= nombre d'Édifices que vous contrôlez"}
 ];
@@ -3879,6 +3881,21 @@ function buildEffectRow(ab, eff, choiceKey){
       row.appendChild(exField);
 
       row.appendChild(buildNumericFilterField(eff, 'conjureCostMode', 'conjureCostValue', 'Coût'));
+      if(eff.conjureCostMode && eff.conjureCostMode!=='any'){
+        const ccDyn = document.createElement('label');
+        ccDyn.className='evolve-toggle';
+        ccDyn.innerHTML = `<input type="checkbox" ${eff.conjureCostValueMode==='dynamic'?'checked':''}> Coût dynamique (valeur dynamique + bonus)`;
+        ccDyn.querySelector('input').onchange=(e)=>{ eff.conjureCostValueMode = e.target.checked ? 'dynamic' : 'fixed'; if(!eff.conjureCostDynamic) eff.conjureCostDynamic='sacrificedCost'; rebuildAbilitiesUI(); onFormChange(); };
+        row.appendChild(ccDyn);
+        if(eff.conjureCostValueMode==='dynamic'){
+          row.appendChild(makeSelectField('Valeur dynamique du coût', DYNAMIC_VALUES, eff.conjureCostDynamic||'sacrificedCost', v=>{ eff.conjureCostDynamic=v; onFormChange(); }));
+          const offF = document.createElement('div');
+          offF.className='field'; offF.innerHTML=`<label class="mini-field">Bonus (+/-)</label>`;
+          const offI = document.createElement('input'); offI.type='number'; offI.min=-10; offI.max=10; offI.value=eff.conjureCostOffset||0;
+          offI.oninput=()=>{ eff.conjureCostOffset=parseInt(offI.value)||0; onFormChange(); };
+          offF.appendChild(offI); row.appendChild(offF);
+        }
+      }
       row.appendChild(buildNumericFilterField(eff, 'conjureAtkMode', 'conjureAtkValue', 'Force'));
       row.appendChild(buildNumericFilterField(eff, 'conjureHpMode', 'conjureHpValue', 'Endurance'));
       row.appendChild(buildConjureQuantityField(eff));
@@ -3958,7 +3975,7 @@ function buildEffectRow(ab, eff, choiceKey){
   }
 
   if(def.isCopyKeyword){
-    row.appendChild(makeSelectField('Copier depuis', [{key:'ally',label:'Une autre créature alliée'},{key:'enemy',label:'Une créature ennemie'},{key:'any',label:'Une autre créature (alliée ou ennemie)'}], eff.copyKeywordDonorOwner||'ally', v=>{ eff.copyKeywordDonorOwner=v; onFormChange(); }));
+    row.appendChild(makeSelectField('Copier depuis', [{key:'ally',label:'Une autre créature alliée'},{key:'enemy',label:'Une créature ennemie'},{key:'any',label:'Une autre créature (alliée ou ennemie)'},{key:'sacrificed',label:'La créature sacrifiée (Offrande)'}], eff.copyKeywordDonorOwner||'ally', v=>{ eff.copyKeywordDonorOwner=v; onFormChange(); }));
     row.appendChild(makeSelectField('Quoi copier', [{key:'random',label:'Un mot-clé au hasard'},{key:'all',label:'Tous ses mots-clés'}], eff.copyKeywordMode||'random', v=>{ eff.copyKeywordMode=v; onFormChange(); }));
     row.appendChild(makeSelectField('Durée', [{key:'permanent',label:'Permanent'},{key:'thisTurn',label:'Ce tour-ci seulement'}], eff.copyKeywordDuration||'permanent', v=>{ eff.copyKeywordDuration=v; onFormChange(); }));
   }
@@ -4799,7 +4816,7 @@ function buildEffectClause(eff, ab){
     case 'copyKeyword': {
       const what = eff.copyKeywordMode==='all' ? 'tous les mots-clés' : 'un mot-clé au hasard';
       const durC = eff.copyKeywordDuration==='thisTurn' ? ' ce tour-ci' : '';
-      const donorDe = {ally:"d'une autre créature alliée", enemy:"d'une créature ennemie", any:"d'une autre créature"}[eff.copyKeywordDonorOwner||'ally'];
+      const donorDe = {ally:"d'une autre créature alliée", enemy:"d'une créature ennemie", any:"d'une autre créature", sacrificed:"de la créature sacrifiée"}[eff.copyKeywordDonorOwner||'ally'];
       return `${targetPhrase(resolvedTarget)} copie${durC} ${what} ${donorDe}`;
     }
     case 'keywordChoice':
@@ -4905,6 +4922,7 @@ function buildEffectClause(eff, ab){
     case 'addRitualMana': return `ajoutez ${valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic')} mana à votre Rituel`;
     case 'removeRitualMana': return `retirez ${valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic')} mana du Rituel adverse`;
     case 'destroyRitual': return 'détruisez le Rituel adverse';
+    case 'reanimateUnderControl': return `mettez ${targetPhrase(resolvedTarget)} en jeu de votre côté`;
     case 'repairEdifice': return `restaurez ${valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic')} Endurance à ${targetPhrase(resolvedTarget)}`;
     case 'addDevotion': {
       const n = valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic');
@@ -5128,7 +5146,9 @@ function conjureClause(eff){
   const distinctPhrase = (eff.conjureDistinct && qty>1) ? ' (toutes différentes)' : '';
   const excludePhrase = (eff.conjureExcludeNames && eff.conjureExcludeNames.length) ? ` (hors ${eff.conjureExcludeNames.map(n=>'"'+n+'"').join(', ')})` : '';
   const filters = [
-    numericFilterPhrase(eff, 'conjureCostMode', 'conjureCostValue', 'coût'),
+    (eff.conjureCostValueMode==='dynamic' && eff.conjureCostMode && eff.conjureCostMode!=='any')
+      ? numericFilterPhrase({m:eff.conjureCostMode, v:`${(DYNAMIC_VALUES.find(d=>d.key===eff.conjureCostDynamic)||{label:'X'}).label.replace(/^=\s*/,'')}${eff.conjureCostOffset ? (eff.conjureCostOffset>0?' + ':' - ')+Math.abs(eff.conjureCostOffset) : ''}`}, 'm', 'v', 'coût')
+      : numericFilterPhrase(eff, 'conjureCostMode', 'conjureCostValue', 'coût'),
     numericFilterPhrase(eff, 'conjureAtkMode', 'conjureAtkValue', 'Force'),
     numericFilterPhrase(eff, 'conjureHpMode', 'conjureHpValue', 'Endurance')
   ].filter(Boolean);
