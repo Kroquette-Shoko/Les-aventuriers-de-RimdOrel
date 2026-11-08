@@ -321,11 +321,8 @@ function buildNewCardEl(card, size, opts={}){
     root.appendChild(tl);
   }
 
-  if(!isHero && card.rarity && NRARITY_TO_SLUG[card.rarity]){
-    root.appendChild(typeof rarityGemImg==='function' ? rarityGemImg(card, NRARITY_TO_SLUG[card.rarity], 'nrarity-gem', nImg) : nImg(`images/card/icon/rare/${NRARITY_TO_SLUG[card.rarity]}.png`, 'nrarity-gem'));
-  }
-  if(!isHero && card.isLegendary){
-    root.appendChild(typeof rarityGemImg==='function' ? rarityGemImg(card, 'legendaire', 'nlegendary-gem', nImg) : nImg('images/card/icon/rare/legendaire.png', 'nlegendary-gem'));
+  if(!isHero && (card.isLegendary || (card.rarity && NRARITY_TO_SLUG[card.rarity]))){ const __gs = card.isLegendary ? 'legendaire' : NRARITY_TO_SLUG[card.rarity];
+    root.appendChild(typeof rarityGemImg==='function' ? rarityGemImg(card, __gs, 'nrarity-gem', nImg) : nImg(`images/card/icon/rare/${__gs}.png`, 'nrarity-gem'));
   }
 
   if(window.SCCardRender) SCCardRender.decorate(root, card, size, opts);
