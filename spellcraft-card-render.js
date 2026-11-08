@@ -141,10 +141,10 @@
     var i, p;
     if(type === 'creature'){
       /* suit la vraie ligne dorée du cadre (haut légèrement bombé, bas à y=194, juste au-dessus du bandeau du nom) */
-      S.d = 'M26,44 Q26,31 38,29 Q150,12 262,29 Q274,31 274,44 V180 Q274,192 262,192 H38 Q26,192 26,180 Z'; S.top = 20.5; S.w = 8; S.k = .66;
-      [[30,32],[270,32],[30,188],[270,188]].forEach(function(q){ S.st += ringRivet(q[0], q[1]); });
-      S.st += round([72,24.6], 5.5) + round([228,24.6], 5.5) + round([150,191], 7, 'gem') + round([76,191], 5) + round([224,191], 5);
-      S.st += round([26,78], 5) + round([26,138], 5) + round([274,78], 5) + round([274,138], 5) + oval([26,108], 90) + oval([274,108], 90);
+      S.d = 'M26,44 Q26,31 38,29 Q150,12 262,29 Q274,31 274,44 V174 Q274,186 262,186 H38 Q26,186 26,174 Z'; S.top = 20.5; S.w = 8; S.k = .66;
+      [[30,32],[270,32],[30,182],[270,182]].forEach(function(q){ S.st += ringRivet(q[0], q[1]); });
+      S.st += round([72,24.6], 5.5) + round([228,24.6], 5.5) + round([150,185], 6.5, 'gem') + round([76,185], 4.6) + round([224,185], 4.6);
+      S.st += round([26,76], 5) + round([26,136], 5) + round([274,76], 5) + round([274,136], 5) + oval([26,106], 90) + oval([274,106], 90);
     } else if(type === 'spell' || type === 'region'){
       var rx = type === 'spell' ? 131 : 130, ry = type === 'spell' ? 131 : 106, cy = type === 'spell' ? 138 : 124;
       S.d = 'M' + (150 - rx) + ',' + cy + ' a' + rx + ',' + ry + ' 0 1,0 ' + (2 * rx) + ',0 a' + rx + ',' + ry + ' 0 1,0 ' + (-2 * rx) + ',0 Z'; S.top = cy - ry;
