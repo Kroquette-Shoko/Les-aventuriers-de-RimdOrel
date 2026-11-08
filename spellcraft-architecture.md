@@ -680,3 +680,8 @@ Sauvegarde : `_backup_game_action_chunks_20261108_offrande`.
 - `copyKeyword` : donneur `sacrificed` (Avatar du don).
 - Sort dont tous les effets sont sous « Offrande » : jouable, mais Offrande **obligatoire** (`offering-required` ; côté client, la carte est grisée sans créature et la fenêtre n'a pas « Jouer sans Offrande »).
 - Cartes créées : 16 cartes Offrande (set La guerre élémentaire) + jeton « Fidèle » (set Conjuration).
+
+## Vorace : cartes du set + correctif moteur (game-action v200)
+Sauvegarde : `_backup_game_action_chunks_20261108_vorace`.
+- Le bonus de Force de Vorace est maintenant calculé **après** les auras dans `recalculateContinuousEffects` : un Vorace donné par une capacité continue (ex. Reine des peulons) compte tout de suite.
+- Cartes créées : 17 cartes Vorace (set La guerre élémentaire) + jeton « Peulon » 1/1 Insensible (set Conjuration).
