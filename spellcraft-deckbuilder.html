@@ -1032,8 +1032,9 @@ function markCardSeen(id, badge){
 async function refreshCollection(silent){
   const allCards = await loadAllCardsAcrossSets();
   await reloadOwned();
-  allCardsCache = allCards;
-  collection = allCards.filter(c => (ownedCollection[c.id]||0) > 0);
+  // Cartes secrètes : invisibles (liste, craft) tant qu'on ne les possède pas.
+  allCardsCache = allCards.filter(c => !c.isSecret || (ownedCollection[c.id]||0) > 0);
+  collection = allCardsCache.filter(c => (ownedCollection[c.id]||0) > 0);
   await updateNewCards();
   // Sets « masqués par défaut » (nouveaux sets) : leurs cartes non possédées n'apparaissent
   // pas tant que le joueur n'a pas choisi ce set dans le filtre.

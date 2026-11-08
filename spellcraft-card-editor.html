@@ -438,6 +438,12 @@ header .spacer{flex:1;}
             </label>
             <div class="hint" style="margin-top:4px;">Un seul exemplaire autorisé par deck, quelle que soit la rareté.</div>
           </div>
+          <div class="field">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+              <input type="checkbox" id="f-secret" onchange="onFormChange()" style="width:auto;"> Carte secrète
+            </label>
+            <div class="hint" style="margin-top:4px;">Obtenable uniquement dans un booster. Invisible dans la collection, le craft et la boutique tant qu'on ne la possède pas ; on la découvre en la voyant jouée par un adversaire ou en la tirant d'un booster.</div>
+          </div>
         </div>
 <div class="field">
           <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;cursor:pointer;">
@@ -5566,6 +5572,7 @@ function readForm(){
     set: document.getElementById('f-set').value.trim(),
     rarity: document.getElementById('f-rarity').value,
     isLegendary: document.getElementById('f-legendary').checked,
+    isSecret: document.getElementById('f-secret').checked,
     foil: document.getElementById('f-foil').checked,
     image: document.getElementById('f-image').value.trim(),
     imagePosX: parseInt(document.getElementById('f-image-x').value) || 50,
@@ -5656,6 +5663,7 @@ function loadCardIntoForm(card){
   document.getElementById('f-class2').value = card.classSecondary || '';
   document.getElementById('f-rarity').value = card.rarity || 'Commune';
   document.getElementById('f-legendary').checked = !!card.isLegendary;
+  document.getElementById('f-secret').checked = !!card.isSecret;
   document.getElementById('f-foil').checked = !!card.foil;
   document.getElementById('f-extracost-enabled').checked = !!card.extraCostEnabled;
   document.getElementById('f-extracost-type').value = card.extraCostType || 'sacrificeCreature';
@@ -5743,6 +5751,7 @@ function newCard(){
   document.getElementById('f-class2').value = '';
   document.getElementById('f-rarity').value = 'Commune';
   document.getElementById('f-legendary').checked = false;
+  document.getElementById('f-secret').checked = false;
   document.getElementById('f-foil').checked = false;
   document.getElementById('f-extracost-enabled').checked = false;
   document.getElementById('f-extracost-type').value = 'sacrificeCreature';
