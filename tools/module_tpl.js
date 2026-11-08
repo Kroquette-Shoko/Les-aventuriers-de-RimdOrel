@@ -107,6 +107,76 @@
 
   /* Dessine le cadre d'une carte déjà construite par buildNewCardEl.
      Ne fait rien si ce type/format n'a pas de version dessinée. */
+
+  /* Légendaire : anneau d'argent serti de pierres autour de l'illustration (au lieu de la couronne).
+     Les pierres prennent les couleurs de la classe (--gem) et de la 2e classe (--gem2). */
+  var RING_DK = '#2b3140';
+  function ringGem(x, y, r, c, shape, rot){
+    var col = 'var(--' + c + ')';
+    var base = 'color-mix(in srgb,' + col + ' 72%,#000)', lite = 'color-mix(in srgb,' + col + ' 55%,#fff)';
+    var o = '<g transform="translate(' + x.toFixed(1) + ' ' + y.toFixed(1) + ') rotate(' + (rot || 0) + ') scale(' + (r / 10).toFixed(3) + ')">';
+    if(shape === 'oval'){
+      o += '<ellipse rx="9" ry="13.5" fill="' + RING_DK + '"/><ellipse rx="8" ry="12.4" fill="url(#@S)"/><ellipse rx="5.8" ry="10" style="fill:' + base + '"/><ellipse rx="4.6" ry="8.6" style="fill:' + col + '"/>'
+         + '<ellipse cx="-1.4" cy="-3.4" rx="2" ry="4" style="fill:' + lite + '" fill-opacity=".85"/><circle cx="-1.8" cy="-6" r="1.3" fill="#fff"/>';
+    } else {
+      o += '<circle r="11.5" fill="' + RING_DK + '"/><circle r="10.4" fill="url(#@S)"/><circle r="8" style="fill:' + base + '"/>'
+         + '<polygon points="0,-8 5.7,-5.7 8,0 5.7,5.7 0,8 -5.7,5.7 -8,0 -5.7,-5.7" style="fill:' + col + '"/>'
+         + '<polygon points="0,-8 5.7,-5.7 0,0" style="fill:' + lite + '" fill-opacity=".85"/><polygon points="-8,0 -5.7,-5.7 0,0" style="fill:' + lite + '" fill-opacity=".45"/>'
+         + '<polygon points="0,0 5.7,5.7 0,8 -5.7,5.7" style="fill:' + base + '" fill-opacity=".7"/><circle cx="-2.6" cy="-3.2" r="1.7" fill="#fff" fill-opacity=".95"/>';
+    }
+    return o + '</g>';
+  }
+  function ringRivet(x, y){ return '<circle cx="' + x + '" cy="' + y + '" r="6" fill="' + RING_DK + '"/><circle cx="' + x + '" cy="' + y + '" r="5" fill="url(#@S)"/><circle cx="' + (x - 1) + '" cy="' + (y - 1.2) + '" r="1.7" fill="#fff"/>'; }
+  function ringCimier(cx, y0){
+    return '<path d="M' + (cx - 36) + ',' + (y0 + 2) + ' Q' + (cx - 22) + ',' + (y0 - 14) + ' ' + cx + ',' + (y0 - 20) + ' Q' + (cx + 22) + ',' + (y0 - 14) + ' ' + (cx + 36) + ',' + (y0 + 2) + ' Z" fill="url(#@S)" stroke="' + RING_DK + '" stroke-width="1.5"/>'
+         + '<path d="M' + (cx - 30) + ',' + y0 + ' Q' + cx + ',' + (y0 - 12) + ' ' + (cx + 30) + ',' + y0 + '" fill="none" stroke="#fff" stroke-opacity=".6" stroke-width="1"/>'
+         + ringGem(cx, y0 - 7, 14, 'gem', 'round', 0);
+  }
+  function ringPolar(cx, cy, rx, ry, deg){ var a = deg * Math.PI / 180; return [cx + rx * Math.cos(a), cy + ry * Math.sin(a)]; }
+  /* Formes de l'illustration (repère 300 x 423) : tracé de l'anneau + pierres */
+  function ringShape(type){
+    var S = { d: '', st: '', cx: 150, top: 18 };
+    function oval(p, rot){ return ringGem(p[0], p[1], 9, 'gem', 'oval', rot); }
+    function round(p, r, c){ return ringGem(p[0], p[1], r, c || 'gem2', 'round', 0); }
+    var i, p;
+    if(type === 'creature'){
+      S.d = 'M38,18 H262 Q278,18 278,34 V182 Q278,198 262,198 H38 Q22,198 22,182 V34 Q22,18 38,18 Z'; S.top = 18;
+      [[23,19],[277,19],[23,197],[277,197]].forEach(function(q){ S.st += ringRivet(q[0], q[1]); });
+      S.st += round([72,18], 6.5) + round([228,18], 6.5) + round([150,198], 9, 'gem') + round([72,198], 6.5) + round([228,198], 6.5);
+      S.st += round([22,74], 6) + round([22,142], 6) + round([278,74], 6) + round([278,142], 6) + oval([22,108], 90) + oval([278,108], 90);
+    } else if(type === 'spell' || type === 'region'){
+      var rx = type === 'spell' ? 131 : 130, ry = type === 'spell' ? 131 : 106, cy = type === 'spell' ? 138 : 124;
+      S.d = 'M' + (150 - rx) + ',' + cy + ' a' + rx + ',' + ry + ' 0 1,0 ' + (2 * rx) + ',0 a' + rx + ',' + ry + ' 0 1,0 ' + (-2 * rx) + ',0 Z'; S.top = cy - ry;
+      [45,135,225,315].forEach(function(a){ p = ringPolar(150, cy, rx, ry, a); S.st += ringRivet(p[0].toFixed(1), p[1].toFixed(1)); });
+      [-130,-50,50,130].forEach(function(a){ S.st += round(ringPolar(150, cy, rx, ry, a), 6.5); });
+      [-18,18,162,198].forEach(function(a){ S.st += round(ringPolar(150, cy, rx, ry, a), 6); });
+      S.st += round(ringPolar(150, cy, rx, ry, 90), 9, 'gem') + oval(ringPolar(150, cy, rx, ry, 0), 90) + oval(ringPolar(150, cy, rx, ry, 180), 90);
+    } else if(type === 'trap'){
+      S.d = 'M150,-19 L287,109 L150,237 L13,109 Z'; S.top = -19;
+      S.st += round([218,45], 6.5) + round([218,173], 6.5) + round([82,45], 6.5) + round([82,173], 6.5);
+      S.st += round([150,237], 9, 'gem') + oval([13,109], 90) + oval([287,109], 90);
+    } else if(type === 'artefact'){
+      S.d = 'M106,18 H194 L256,80 V168 L194,230 H106 L44,168 V80 Z'; S.top = 18;
+      [[106,18],[194,18],[106,230],[194,230]].forEach(function(q){ S.st += ringRivet(q[0], q[1]); });
+      S.st += round([225,49], 6.5) + round([225,199], 6.5) + round([75,49], 6.5) + round([75,199], 6.5);
+      S.st += round([150,230], 9, 'gem') + oval([44,124], 90) + oval([256,124], 90);
+    } else { return null; }
+    return S;
+  }
+  function ringSvg(type, u){
+    if(type !== 'creature') return ''; /* anneau : cartes Créature seulement, les autres gardent la couronne */
+    var S = ringShape(type); if(!S) return '';
+    var g = '<defs><linearGradient id="' + u + 'rs" x1="0" y1="0" x2="1" y2="1">'
+      + '<stop offset="0" style="stop-color:color-mix(in srgb,var(--gem) 10%,#fff)"/><stop offset=".35" style="stop-color:color-mix(in srgb,var(--gem) 22%,#cfd5e0)"/>'
+      + '<stop offset=".7" style="stop-color:color-mix(in srgb,var(--gem) 30%,#8a94a6)"/><stop offset="1" style="stop-color:color-mix(in srgb,var(--gem) 14%,#dde2ea)"/></linearGradient></defs>';
+    var band = '<path d="' + S.d + '" fill="none" stroke="' + RING_DK + '" stroke-width="14" stroke-linejoin="round"/>'
+      + '<path d="' + S.d + '" fill="none" stroke="url(#@S)" stroke-width="11" stroke-linejoin="round"/>'
+      + '<path d="' + S.d + '" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="1.3" stroke-linejoin="round" transform="translate(-3 -3)"/>'
+      + '<path d="' + S.d + '" fill="none" stroke="' + RING_DK + '" stroke-opacity=".45" stroke-width="3.9" stroke-dasharray="1.6 4.2" stroke-linecap="round" stroke-linejoin="round"/>';
+    var inner = band + S.st + ringCimier(S.cx, S.top);
+    inner = inner.split('url(#@S)').join('url(#' + u + 'rs)');
+    return '<svg viewBox="0 0 300 423" xmlns="http://www.w3.org/2000/svg" style="overflow:visible;width:100%;height:100%">' + g + inner + '</svg>';
+  }
   function isEdifice(c){ return !!c && c.type === 'Artefact' && (c.subtypes || []).some(function(s){ return String(s).trim().toLowerCase() === '\u00e9difice'; }); }
   function decorateFrame(root, card, size, opts){
     try{
@@ -136,8 +206,18 @@
       if(art && art.nextSibling){ root.insertBefore(bg, art.nextSibling); } else { root.appendChild(bg); }
       root.insertBefore(fr, bg.nextSibling);
       if(size === 'big' && type !== 'hero' && card.isLegendary){
-        var lg = document.createElement('div'); lg.className = 'nd-leg'; lg.innerHTML = sub(LEG, u + 'l');
-        root.appendChild(lg);
+        var ringHtml = fk === 'edifice' ? '' : ringSvg(type, u);
+        if(ringHtml){
+          var c2 = src2 ? PAL[src2][3] : 'color-mix(in srgb,var(--gem) 55%,#fff)';
+          root.style.setProperty('--gem2', c2);
+          var rg = document.createElement('div'); rg.className = 'nd-ring';
+          rg.style.cssText = 'position:absolute;left:0;top:0;width:100%;height:100%;z-index:6;pointer-events:none;';
+          rg.innerHTML = ringHtml;
+          root.appendChild(rg);
+        } else {
+          var lg = document.createElement('div'); lg.className = 'nd-leg'; lg.innerHTML = sub(LEG, u + 'l');
+          root.appendChild(lg);
+        }
       }
     }catch(e){ if(window.console) console.warn('SCCardRender.decorate', e); }
     return root;
