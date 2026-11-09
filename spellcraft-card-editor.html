@@ -1057,6 +1057,7 @@ const CONDITION_TYPES = [
   {key:'sacrificedThisTurn', label:'Vous avez sacrifié une créature ce tour-ci', hasValue:false},
   {key:'allyOfferingThisTurn', label:'Vous avez fait une Offrande ce tour-ci', hasValue:false},
   {key:'enemyOfferingLastTurn', label:'Votre adversaire a fait une Offrande pendant son dernier tour', hasValue:false},
+  {key:'failleAllyTurn', label:'Au moins X de vos Failles se sont déclenchées ce tour-ci', hasValue:true, valueType:'number'},
   {key:'enemyFailleLastTurn', label:'Votre adversaire a déclenché au moins X Failles à son dernier tour', hasValue:true, valueType:'number'},
   {key:'edificeInPlay', label:'Vous contrôlez au moins X Édifices', hasValue:true, valueType:'number'},
   {key:'custom', label:'⚠ Condition personnalisée (texte libre)', hasValue:true, valueType:'text'}
@@ -1067,7 +1068,7 @@ const COND_GROUPS = [
   ['Ce tour-ci', ['healthChange','drawnThisTurn','countThisTurn','selfDrawnThisTurn','hpLostLastTurn','manaNotFromRegion']],
   ['Cartes et créatures', ['statCompare','targetHasKeyword','creatureState','deadCreatureCause','deadCreatureSubtype','playedCardCost','playedCardType']],
   ['Timing et hasard', ['turnAtLeast','turnParity','chance','whileInHand','whileYourTurn']],
-  ['La guerre élémentaire', ['devotionAtLeast','failleInDeck','enemyManaSpent','ritualManaAtLeast','cycledThisTurn','sacrificedThisTurn','allyOfferingThisTurn','enemyOfferingLastTurn','enemyFailleLastTurn','edificeInPlay']],
+  ['La guerre élémentaire', ['devotionAtLeast','failleInDeck','failleAllyTurn','enemyManaSpent','ritualManaAtLeast','cycledThisTurn','sacrificedThisTurn','allyOfferingThisTurn','enemyOfferingLastTurn','enemyFailleLastTurn','edificeInPlay']],
   ['Avancé', ['custom']]
 ];
 
@@ -1146,7 +1147,7 @@ const EFFECT_TYPES = [
   {key:'blessGods', label:'Bénédiction : vos dieux de la Dévotion gagnent les capacités « à transmettre » de cette carte (deck, main, jeu, défausse, pour la partie)', needsTarget:false, needsValue:false},
   {key:'doubleVorace', label:'Voracité : doublez les effets de Voracité (capacité continue)', needsTarget:false, needsValue:false},
   {key:'discoverCycle', label:'Cycle : révélez une carte avec Cycle (choisissez-en 1 parmi 3)', needsTarget:false, needsValue:false, isDiscoverCycle:true},
-  {key:'failleExtraZone', label:'Faille : vos Failles se déclenchent aussi depuis une autre zone (capacité continue)', needsTarget:false, needsValue:false, isFailleZone:true},
+  {key:'failleExtraZone', label:'Faille : vos Failles se déclenchent aussi depuis une autre zone (en continu ; si la capacité est déclenchée : pour toute la partie)', needsTarget:false, needsValue:false, isFailleZone:true},
   {key:'doubleFaille', label:'Faille : vos Failles se déclenchent deux fois (capacité continue)', needsTarget:false, needsValue:false},
   {key:'triggerFailles', label:'Faille : déclenche une fois les Failles des cartes de votre deck', needsTarget:false, needsValue:false},
   {key:'shuffleIntoDeck', label:'Mélange la cible dans le deck de son propriétaire (créature, artefact ou carte en main)', needsTarget:true, needsValue:false},
@@ -1285,6 +1286,7 @@ const DYNAMIC_VALUES = [
   {key:'opponentManaJustSpent', label:"= mana que l'adversaire vient de dépenser (avec « Chaque fois que l'adversaire dépense du mana »)"},
   {key:'allyManaSpentThisTurn', label:'= mana que vous avez dépensé ce tour-ci'},
   {key:'failleInDeck', label:'= nombre de cartes avec Faille dans votre deck'},
+  {key:'lastShuffledCount', label:"= nombre de cartes que l'effet « mélangez dans le deck » précédent a mélangées"},
   {key:'failleTriggeredAllyTurn', label:'= nombre de vos Failles déclenchées ce tour-ci'},
   {key:'failleTriggeredEnemyTurn', label:'= nombre de Failles adverses déclenchées à son dernier tour'},
   {key:'failleTriggeredAllyGame', label:'= nombre de vos Failles déclenchées cette partie'},
@@ -2271,6 +2273,13 @@ function buildTargetsSectionUI(ab, targetsArray, choiceKey, heading){
         tg.querySelector('input').onchange=(e)=>{ tgt[k]=e.target.checked; onFormChange(); };
         trow.appendChild(tg);
       });
+    }
+    if(tgt.targetCategory==='creature' || tgt.targetCategory==='artifact' || tgt.targetCategory==='card_anywhere' || (tgt.targetCategory && tgt.targetCategory.startsWith('card_in_'))){
+      const ff = document.createElement('label');
+      ff.className='evolve-toggle';
+      ff.innerHTML = `<input type="checkbox" ${tgt.failleFilter?'checked':''}> Uniquement les cartes avec Faille`;
+      ff.querySelector('input').onchange=(e)=>{ tgt.failleFilter=e.target.checked; onFormChange(); };
+      trow.appendChild(ff);
     }
     if(tgt.targetCategory==='creature' || tgt.targetCategory==='hero_creature' || tgt.targetCategory==='artifact' || (tgt.targetCategory && tgt.targetCategory.startsWith('card_in_'))){
       trow.appendChild(tbSelect('Comparée à cette carte', [
@@ -4745,6 +4754,7 @@ function targetPhrase(t){
     + (t.keywordFilter ? ` ${t.keywordFilterExclude ? "n'ayant pas" : 'ayant'} ${(KEYWORDS.find(k=>k.key===t.keywordFilter)||{}).label||t.keywordFilter}` : '')
     + (t.woundedFilter ? ' blessée' : '')
     + (t.devotionGodFilter ? ' (dieu de la Dévotion)' : '')
+    + (t.failleFilter ? ' avec Faille' : '')
     + (t.notAttackedFilter ? " n'ayant pas encore attaqué ce tour-ci" : '')
     + (t.sourceCompareFilter ? ({stronger:' plus forte que cette carte', weaker:' moins forte que cette carte', costlier:' plus chère que cette carte', cheaper:' moins chère que cette carte'}[t.sourceCompareFilter]||'') : '')
     + (t.rarityFilter ? ` de rareté ${t.rarityFilter}` : '')
@@ -5309,6 +5319,7 @@ function conditionClauseBase(cond, ab){
     case 'sacrificedThisTurn': return 'vous avez sacrifié une créature ce tour-ci';
     case 'allyOfferingThisTurn': return 'vous avez fait une Offrande ce tour-ci';
     case 'enemyOfferingLastTurn': return 'votre adversaire a fait une Offrande pendant son dernier tour';
+    case 'failleAllyTurn': return `au moins ${condValueText(cond)} de vos Failles se sont déclenchées ce tour-ci`;
     case 'enemyFailleLastTurn': return `votre adversaire a déclenché au moins ${condValueText(cond)} Faille(s) à son dernier tour`;
     case 'edificeInPlay': return `vous contrôlez au moins ${condValueText(cond)} Édifice(s)`;
     case 'chance': return `vous avez ${condValueText(cond)}% de chance`;
