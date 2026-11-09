@@ -730,7 +730,9 @@ header .spacer{flex:1;}
             </div>
           </div>
           <div id="f-vorace-wrap" style="display:none;margin-top:8px;">
-            <div class="grid2">
+            <div style="font-size:11px;color:var(--parchment-dim);margin-bottom:4px;">Vorace est un <b>tag</b> : ce que fait la carte se règle dans ses capacités (déclencheur « Voracité : au début de votre tour » ou capacité continue avec la valeur « mana dépensé par votre adversaire »).</div>
+            <label class="evolve-toggle" style="margin-bottom:6px;"><input type="checkbox" id="f-vorace-atk" onchange="onFormChange()"> Bonus de base : +1 Force par mana dépensé par l'adversaire (ancien Vorace)</label>
+            <div class="grid2" id="f-vorace-atk-opts">
               <div class="field">
                 <label class="mini-field">Vorace : +1 Force pour chaque…</label>
                 <select id="f-vorace-ratio" onchange="onFormChange()">
@@ -868,7 +870,7 @@ header .spacer{flex:1;}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="spellcraft-shared.js?v=20261101e"></script>
+<script src="spellcraft-shared.js?v=20261109a"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>
 <script src="spellcraft-atelier-nav.js"></script>
@@ -896,12 +898,12 @@ const SET_WATCH_TEXT = {
 };
 
 const TRIGGERS_BY_TYPE = {
-  'Créature': ['onPlay','offering','inDeckStartOfTurn','onCycle','onSacrificed','onOpponentSpendMana','onAttack','onBlocked','onWasBlocked','onDealtHeroDamage','onDamaged','onHealed','onBuffed','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
-  'Héros':    ['gameStart','onPlay','onOpponentSpendMana','onDamaged','onHealed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
+  'Créature': ['onPlay','offering','inDeckStartOfTurn','onCycle','onSacrificed','voracity','onOpponentSpendMana','onAttack','onBlocked','onWasBlocked','onDealtHeroDamage','onDamaged','onHealed','onBuffed','onDeath','onDestroyed','onKill','onRevive','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
+  'Héros':    ['gameStart','onPlay','voracity','onOpponentSpendMana','onDamaged','onHealed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
   // Une Région n'est jamais jouée, détruite, ni ramenée du cimetière, et n'a
   // pas de capacité activée : ces déclencheurs ne sont pas proposés ici.
   'Région':   ['gameStart','manaAlternative','onOpponentSpendMana','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS],
-  'Artefact': ['onPlay','offering','inDeckStartOfTurn','onCycle','onEdificeAttacked','onOpponentSpendMana','onUse','onDestroyed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
+  'Artefact': ['onPlay','offering','inDeckStartOfTurn','onCycle','onEdificeAttacked','voracity','onOpponentSpendMana','onUse','onDestroyed','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS,'activated'],
   'Sortilège':['onPlay','onDrawn','offering','inDeckStartOfTurn','onCycle'],
   'Piège':    ['onOpponentAttack','inDeckStartOfTurn','onOpponentSpendMana','onOpponentSpell','onOpponentPlayCreature','onOpponentPlayArtifact','onOpponentPlayCard','onOpponentEndTurn','onOpponentTargetsAlly','onAllySurvivesCombat','onEnemySurvivesCombat','beforeAllyFights','onAllyBlocked','onDestroyed','gameStart','onReturnFromGraveyard','startOfTurn','startOfTurnX','endOfTurn','endOfTurnX','startOfMainPhase1','startOfCombat','startOfBlockPhase','endOfCombat','onManaGained','onManaGainedNonRegion','onDraw','onDrawn','onHandDiscard','onSummonSubtype','playedCardTypeCountThisTurn','playedCardTypeCountMatch','hpLostLastTurnThreshold','attackedWithCountThisTurn', ...WATCH_TRIGGERS],
   // Rituel (set « La guerre élémentaire ») : son effet se déclenche quand le total de mana est atteint
@@ -992,6 +994,7 @@ const TRIGGER_TEXT = {
   onSacrificed: 'Quand cette créature est sacrifiée',
   onEdificeAttacked: 'Quand cet Édifice est attaqué',
   onOpponentSpendMana: "Quand votre adversaire dépense du mana",
+  voracity: "Voracité — au début de votre tour, si votre adversaire a dépensé du mana à son tour",
   watchFaille: 'Quand une Faille se déclenche',
   watchFaillePlayed: 'Quand une carte avec Faille est jouée',
   watchOffering: 'Quand une Offrande est faite',
@@ -1408,7 +1411,7 @@ function blankEffect(){
     manaType:'normal', silenceMode:'both',
     reduceCostScope:'hand', reduceCostOwner:'ally', reduceCostType:'any', reduceCostSubtype:'', reduceCostAmount:1, reduceCostNotInBaseDeck:false,
     nextDiscountType:'Sortilège',
-    grantKeywordKey:'charge', grantKeywordDuration:'permanent',
+    grantKeywordKey:'charge', grantKeywordDuration:'permanent', grantVoraceAtk:false,
     copyKeywordDonorOwner:'ally', copyKeywordMode:'random', copyKeywordDuration:'permanent',
     upgradeCount:1, upgradeDuration:'permanent',
     fightAllySelection:'chosen', fightEnemySelection:'chosen',
@@ -1997,6 +2000,9 @@ function buildKeywordGrid(){
   grid.innerHTML='';
   const vw = document.getElementById('f-vorace-wrap');
   if(vw) vw.style.display = keywords.includes('vorace') ? 'block' : 'none';
+  const vao = document.getElementById('f-vorace-atk-opts');
+  const vac = document.getElementById('f-vorace-atk');
+  if(vao && vac){ vao.style.display = vac.checked ? '' : 'none'; if(!vac.__wired){ vac.__wired = true; vac.addEventListener('change', ()=>{ vao.style.display = vac.checked ? '' : 'none'; }); } }
   KEYWORDS.forEach(kw=>{
     const item = document.createElement('label');
     item.className = 'keyword-item' + (keywords.includes(kw.key) ? ' checked' : '');
@@ -2540,6 +2546,7 @@ const TB_MOMENTS = [
       {key:'watchRetrieveDeck', label:'une carte est récupérée depuis le deck'}, {key:'watchDrawFromOpponentDeck', label:'vous piochez dans le deck adverse'}
     ]},
     {k:'g_vorace', label:'Voracité', leaves:[
+      {key:'voracity', label:"Voracité : au début de votre tour (si votre adversaire a dépensé du mana à son tour)"},
       {key:'onOpponentSpendMana', label:'votre adversaire dépense du mana (à chaque dépense, pendant son tour)'}
     ]},
     {k:'g_cycle', label:'Cycle', leaves:[
@@ -3976,7 +3983,14 @@ function buildEffectRow(ab, eff, choiceKey){
   }
 
   if(def.isGrantKeyword){
-    row.appendChild(makeSelectField('Mot-clé', KEYWORDS.map(k=>({key:k.key,label:k.label})), eff.grantKeywordKey, v=>{ eff.grantKeywordKey=v; onFormChange(); }));
+    row.appendChild(makeSelectField('Mot-clé', KEYWORDS.map(k=>({key:k.key,label:k.label})), eff.grantKeywordKey, v=>{ eff.grantKeywordKey=v; rebuildAbilitiesUI(); onFormChange(); }));
+    if(eff.grantKeywordKey==='vorace'){
+      const gv = document.createElement('label');
+      gv.className='evolve-toggle';
+      gv.innerHTML = `<input type="checkbox" ${eff.grantVoraceAtk!==false?'checked':''}> avec le bonus de base (+1 Force par mana dépensé par l'adversaire)`;
+      gv.querySelector('input').onchange=(e)=>{ eff.grantVoraceAtk = e.target.checked; onFormChange(); };
+      row.appendChild(gv);
+    }
     row.appendChild(makeSelectField('Durée', [{key:'permanent',label:'Permanent'},{key:'thisTurn',label:'Ce tour-ci seulement'},{key:'game',label:'Pour le reste de la partie (ne se consomme jamais : Cycle, Tenace, Parade, Armure…)'}], eff.grantKeywordDuration, v=>{ eff.grantKeywordDuration=v; onFormChange(); }));
   }
 
@@ -4594,6 +4608,22 @@ function buildValueField(eff, modeKey, fixedKey, dynKey, label, shareMode, allow
     maxF.appendChild(maxI);
     clampRow.appendChild(minF); clampRow.appendChild(maxF);
     wrap.appendChild(clampRow);
+    // « Pour chaque N … » et « × M » : résultat = (valeur ÷ N, arrondi en dessous) × M, puis min/max
+    const perKey = dynKey+'Per', multKey = dynKey+'Mult';
+    const pmRow = document.createElement('div');
+    pmRow.style.cssText = 'display:flex;gap:6px;margin-top:4px;';
+    const perF = document.createElement('div'); perF.className='field'; perF.style.flex='1';
+    perF.innerHTML = `<label class="mini-field">Pour chaque… (ex : 2 = 1 par tranche de 2)</label>`;
+    const perI = document.createElement('input'); perI.type='number'; perI.min=1; perI.placeholder='1'; perI.value = eff[perKey]??'';
+    perI.oninput=()=>{ const v=parseInt(perI.value); eff[perKey] = (!v || v<=1) ? undefined : v; onFormChange(); };
+    perF.appendChild(perI);
+    const multF = document.createElement('div'); multF.className='field'; multF.style.flex='1';
+    multF.innerHTML = `<label class="mini-field">Multiplié par (ex : 2 = deux fois)</label>`;
+    const multI = document.createElement('input'); multI.type='number'; multI.min=1; multI.placeholder='1'; multI.value = eff[multKey]??'';
+    multI.oninput=()=>{ const v=parseInt(multI.value); eff[multKey] = (!v || v===1) ? undefined : v; onFormChange(); };
+    multF.appendChild(multI);
+    pmRow.appendChild(perF); pmRow.appendChild(multF);
+    wrap.appendChild(pmRow);
   }
 
   modeSel.onchange=()=>{
@@ -4620,6 +4650,9 @@ function valuePhrase(eff, mode, fixedVal, dynFieldName){
     const dv = DYNAMIC_VALUES.find(d=>d.key===dynKeyValue);
     if(!dv) return '?';
     let phrase = dynamicValueLabel(eff, dynFieldName, dv);
+    const perV = parseInt(eff[dynFieldName+'Per'])||1, multV = parseInt(eff[dynFieldName+'Mult'])||1;
+    if(perV>1) phrase = `${phrase} divisé par ${perV} (arrondi en dessous)`;
+    if(multV!==1) phrase = perV>1 ? `${multV} fois (${phrase})` : `${multV} fois ${phrase}`;
     const minV = eff[dynFieldName+'Min'], maxV = eff[dynFieldName+'Max'];
     if(minV!==undefined && maxV!==undefined) phrase += ` (entre ${minV} et ${maxV})`;
     else if(minV!==undefined) phrase += ` (minimum ${minV})`;
@@ -4631,7 +4664,7 @@ function valuePhrase(eff, mode, fixedVal, dynFieldName){
 
 function dynamicValueLabel(obj, dynFieldName, dv){
   // Libellés courts sur la carte (le menu garde l'explication complète)
-  if(dv.key==='enemyManaSpentLastTurn') return 'mana dépensé par votre adversaire ce tour-ci';
+  if(dv.key==='enemyManaSpentLastTurn') return 'mana dépensé par votre adversaire à son dernier tour';
   if(dv.key==='opponentManaJustSpent') return 'mana que votre adversaire vient de dépenser';
   let label = dv.label.replace('= ','');
   if(dv.parametric==='typeZone'){
@@ -4817,7 +4850,8 @@ function buildEffectClause(eff, ab){
     case 'grantKeyword': {
       const kw = KEYWORDS.find(k=>k.key===eff.grantKeywordKey);
       const durLabel = eff.grantKeywordDuration==='thisTurn' ? ' ce tour-ci' : eff.grantKeywordDuration==='game' ? ' pour le reste de la partie' : '';
-      return `${targetPhrase(resolvedTarget)} obtient ${kw?kw.label:'?'}${durLabel}`;
+      const vAtk = eff.grantKeywordKey==='vorace' && eff.grantVoraceAtk!==false ? ' (+1 Force par mana dépensé par votre adversaire)' : '';
+      return `${targetPhrase(resolvedTarget)} obtient ${kw?kw.label:'?'}${vAtk}${durLabel}`;
     }
     case 'copyKeyword': {
       const what = eff.copyKeywordMode==='all' ? 'tous les mots-clés' : 'un mot-clé au hasard';
@@ -5520,6 +5554,7 @@ function buildCardText(){
       if(!kw) return '';
       // Vorace : le rythme et le plafond font partie de la carte (comme un chiffre de mot-clé)
       if(k==='vorace'){
+        if(!document.getElementById('f-vorace-atk').checked) return kw.label;
         const ratio = parseInt(document.getElementById('f-vorace-ratio').value)||1;
         const cap = parseInt(document.getElementById('f-vorace-cap').value)||0;
         const bits = [];
@@ -5603,6 +5638,7 @@ function readForm(){
     fideleEnabled: document.getElementById('f-fidele-enabled').checked,
     fideleGod: document.getElementById('f-fidele-god').value.trim(),
     fideleAmount: parseInt(document.getElementById('f-fidele-amount').value) || 1,
+    voraceAtk: document.getElementById('f-vorace-atk').checked,
     voraceRatio: parseInt(document.getElementById('f-vorace-ratio').value) || 1,
     voraceCap: parseInt(document.getElementById('f-vorace-cap').value) || 0,
     ritualOfferingEnabled: currentType==='Rituel' ? document.getElementById('f-ritual-offering').checked : false,
@@ -5651,6 +5687,8 @@ function loadCardIntoForm(card){
   document.getElementById('f-fidele-enabled').checked = !!card.fideleEnabled;
   document.getElementById('f-fidele-god').value = card.fideleGod || '';
   document.getElementById('f-fidele-amount').value = card.fideleAmount ?? 1;
+  // Anciennes cartes (sans le champ) : le bonus de base +1 Force/mana reste actif
+  document.getElementById('f-vorace-atk').checked = card.voraceAtk !== false;
   document.getElementById('f-vorace-ratio').value = String(card.voraceRatio || 1);
   document.getElementById('f-vorace-cap').value = card.voraceCap ?? 0;
   document.getElementById('f-ritual-offering').checked = !!card.ritualOfferingEnabled;
@@ -5739,6 +5777,7 @@ function newCard(){
   document.getElementById('f-fidele-enabled').checked = false;
   document.getElementById('f-fidele-god').value = '';
   document.getElementById('f-fidele-amount').value = 1;
+  document.getElementById('f-vorace-atk').checked = false;
   document.getElementById('f-vorace-ratio').value = '1';
   document.getElementById('f-vorace-cap').value = 0;
   document.getElementById('f-ritual-offering').checked = false;

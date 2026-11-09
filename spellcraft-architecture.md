@@ -685,3 +685,9 @@ Sauvegarde : `_backup_game_action_chunks_20261108_offrande`.
 Sauvegarde : `_backup_game_action_chunks_20261108_vorace`.
 - Le bonus de Force de Vorace est maintenant calculé **après** les auras dans `recalculateContinuousEffects` : un Vorace donné par une capacité continue (ex. Reine des peulons) compte tout de suite.
 - Cartes créées : 17 cartes Vorace (set La guerre élémentaire) + jeton « Peulon » 1/1 Insensible (set Conjuration).
+
+## Vorace devient un tag (game-action v201)
+Sauvegarde : `_backup_game_action_chunks_20261109_vorace_tag`.
+- Le mot-clé Vorace ne donne plus de bonus par lui-même. Le « +1 Force par mana » (ancien Vorace) n'existe que si la carte a `voraceAtk: true` (case « Bonus de base » dans l'éditeur) ou si un octroi de Vorace a `grantVoraceAtk: true`. **Champ absent = ancienne carte = bonus actif** (aucune migration des données nécessaire).
+- Nouveau déclencheur `voracity` : au début de votre tour (après la pioche et les « début de tour »), si l'adversaire a dépensé du mana pendant son tour. Doublé par « doublez les effets de Voracité ».
+- Valeurs dynamiques : réglages `<champ>Per` (« pour chaque N ») et `<champ>Mult` (« × M »), appliqués dans `resolveDynamicValue` (donc aussi aux auras continues), avant min/max. Le min/max s'applique désormais aussi aux auras continues.

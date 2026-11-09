@@ -43,7 +43,7 @@ const KEYWORDS = [
   {key:'imparable', label:'Imparable', desc:"Ne peut pas être la cible d'un piège."},
   {key:'fugace', label:'Fugace', desc:'Meurt à la fin de ce tour.'},
   // Set « La guerre élémentaire »
-  {key:'vorace', label:'Vorace', desc:"Gagne de la Force selon le mana dépensé par l'adversaire pendant son dernier tour (remis à 0 au début du tour adverse suivant)."},
+  {key:'vorace', label:'Vorace', desc:"Voracité : la carte profite du mana dépensé par l'adversaire pendant son dernier tour (voir son texte)."},
   {key:'insensible', label:'Insensible', desc:'Ne peut pas être ciblée par les sortilèges, y compris les vôtres. Les effets de zone la touchent.'},
   {key:'cycle', label:'Cycle', desc:"Au lieu d'aller au cimetière, est remélangée dans votre deck (après résolution pour un sort, à la mort pour une créature). Une seule fois : elle revient sans Cycle."},
   {key:'assault', label:'Assault', desc:"Étiquette de suivi sans effet de jeu — sert à filtrer/traquer la carte (ex: à la conjuration)."},
