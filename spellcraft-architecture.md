@@ -706,3 +706,11 @@ Sauvegarde : `_backup_game_action_chunks_20261109_fidele_cards`.
 - Filtre de cible `devotionGodFilter` : ne garde que les cartes avec `devotionGod: true`.
 - Un Fidèle se compte lui-même : sa Dévotion est ajoutée avant ses propres capacités d'arrivée.
 - 16 cartes Fidèle créées (set La guerre élémentaire).
+
+## Cartes Faille — moteur v204 (2026-11-09)
+- 17 cartes Faille ajoutées au set « La guerre élémentaire » (communes → mythiques).
+- `failleExtraZone` déclenché (ex. Rituel de la brèche, `ritualComplete`) : ajoute la zone de façon permanente (`p.__failleZonesPerm`), recopiée à chaque `__scanGuerreFlags`. En continu (Autel de la brèche), la zone ne dure que tant que la carte est en jeu.
+- `shuffleIntoDeck` compte les cartes mélangées : valeur dynamique `lastShuffledCount` (Gardienne des profondeurs).
+- Filtre de cible `failleFilter` (« Uniquement les cartes avec Faille »).
+- Condition `failleAllyTurn` (nombre de vos Failles déclenchées ce tour).
+- Sauvegarde avant patch : `_backup_game_action_chunks_20261109_faille`.
