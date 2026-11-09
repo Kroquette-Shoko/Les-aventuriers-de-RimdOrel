@@ -16,50 +16,92 @@
 <link rel="stylesheet" href="spellcraft-ui-kit.css">
 <style>
 /* ---- Réglages propres à cette page (le reste vient de spellcraft-ui-kit.css) ---- */
-.hub-container{
-  --logo:clamp(160px,min(30vw,32vh),400px);  /* suit aussi la hauteur de l'écran pour éviter le défilement */
-  max-width:1180px;padding-top:14px;}
-/* Bandeau d'accueil : grand logo en filigrane doré derrière le titre */
-.hub-title-row{
-  position:relative;display:flex;align-items:center;justify-content:center;
-  min-height:calc(var(--logo) * .78);margin-bottom:0;
-}
-.hub-title-row::before{
-  content:"";position:absolute;left:50%;top:50%;
-  width:var(--logo);height:var(--logo);transform:translate(-50%,-50%);
-  background:var(--gold);opacity:.22;
-  -webkit-mask:url(images/logo_jeu.png) center/contain no-repeat;
-          mask:url(images/logo_jeu.png) center/contain no-repeat;
-  filter:drop-shadow(0 0 22px var(--gold));pointer-events:none;
-}
-.hub-title-row .sc-h1{
-  position:relative;z-index:1;text-align:center;
-  font-size:clamp(46px,9vw,104px);line-height:1;letter-spacing:2px;
-  text-shadow:0 3px 0 rgba(0,0,0,.5),0 0 28px rgba(0,0,0,.85),0 0 46px rgba(242,207,90,.35);
-}
-/* Compte à rebours du lancement de la saison 0 */
-.season-countdown{
-  margin:calc(var(--logo) * -.16) auto 14px;position:relative;z-index:2;max-width:620px;text-align:center;padding:8px 16px 10px;
-  border:1px solid color-mix(in srgb,var(--gold) 55%,transparent);border-radius:14px;
-  background:linear-gradient(180deg,rgba(0,0,0,.42),rgba(0,0,0,.28));
-  box-shadow:0 0 24px rgba(242,207,90,.12) inset,0 6px 22px rgba(0,0,0,.35);
-}
+.hub-container{max-width:1180px;padding-top:6px;gap:16px;position:relative;z-index:1;}
+#hub-dust{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;}
+.sc-page{position:relative;z-index:1;}
+/* Barre joueur */
+.hb-player{display:flex;align-items:center;gap:14px;padding:9px 16px;border-radius:999px;
+  background:color-mix(in srgb,var(--bg-panel) 82%,transparent);border:1px solid color-mix(in srgb,var(--gold) 38%,transparent);
+  backdrop-filter:blur(4px);}
+.hb-avatar{flex:none;width:42px;height:42px;border-radius:50%;border:2px solid var(--gold);background:var(--bg-panel-3) center/cover no-repeat;
+  display:flex;align-items:center;justify-content:center;font-size:19px;}
+.hb-left{flex:1;display:flex;align-items:center;gap:12px;min-width:0;}
+.hb-who{min-width:0;line-height:1.25;}
+.hb-who b{display:block;font-size:14px;color:var(--parchment);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:190px;}
+.hb-who small{font-size:11.5px;color:var(--parchment-dim);}
+.hb-player .sc-h1{margin:0;flex:none;font-size:clamp(22px,3.4vw,32px);line-height:1;letter-spacing:1.5px;text-align:center;
+  text-shadow:0 2px 0 rgba(0,0,0,.5),0 0 22px rgba(242,207,90,.3);}
+.hb-wallet{flex:1;justify-content:flex-end;display:flex;gap:16px;font-size:13.5px;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.hb-wallet[hidden]{display:flex;visibility:hidden;}
+.hb-gold{color:var(--gold-bright);}.hb-frag{color:#b99cff;}
+/* Zone principale */
+.hb-main{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:16px;}
+.hb-play{position:relative;display:flex;flex-direction:column;justify-content:flex-end;min-height:330px;padding:26px;overflow:hidden;
+  border-radius:var(--radius-lg,18px);border:1px solid var(--gold);text-decoration:none;color:inherit;
+  background:linear-gradient(135deg,var(--bg-panel-3),var(--bg-void) 75%);box-shadow:0 0 30px rgba(242,207,90,.14);
+  transition:transform .2s,box-shadow .2s;}
+.hb-play:hover{transform:translateY(-3px);box-shadow:0 0 44px rgba(242,207,90,.3),0 14px 34px rgba(0,0,0,.5);}
+.hb-play-spin{position:absolute;inset:-45%;background:conic-gradient(from 0deg,transparent,rgba(242,207,90,.2),transparent 25%,rgba(140,90,255,.28),transparent 55%);animation:hb-spin 16s linear infinite;pointer-events:none;}
+.hb-play-logo{position:absolute;right:-4%;top:6%;width:56%;aspect-ratio:1;background:var(--gold);opacity:.26;
+  -webkit-mask:url(images/logo_jeu.png) center/contain no-repeat;mask:url(images/logo_jeu.png) center/contain no-repeat;
+  filter:drop-shadow(0 0 20px var(--gold));pointer-events:none;}
+.hb-play-body{position:relative;}
+.hb-kicker{font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--parchment-dim);}
+.hb-play-title{font-family:'Cinzel',serif;font-weight:900;color:var(--gold);font-size:clamp(40px,5.4vw,58px);line-height:1.05;text-shadow:0 3px 0 rgba(0,0,0,.5),0 0 28px rgba(242,207,90,.3);}
+.hb-play-sub{color:var(--parchment-dim);font-size:14px;margin:4px 0 16px;max-width:34ch;}
+.hb-play-btn{position:relative;overflow:hidden;display:inline-flex;align-items:center;gap:10px;padding:12px 28px;border-radius:999px;
+  background:linear-gradient(180deg,var(--gold-bright),var(--gold));color:var(--ink);font-weight:700;font-size:15px;
+  box-shadow:0 6px 0 rgba(0,0,0,.35),0 0 24px rgba(242,207,90,.3);}
+.hb-play-btn svg{width:18px;height:18px;}
+.hb-play-btn::after{content:"";position:absolute;top:0;bottom:0;width:60px;left:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);animation:hb-shine 3.4s ease-in-out infinite;}
+@keyframes hb-shine{0%{transform:translateX(-120%) skewX(-20deg)}60%,100%{transform:translateX(420%) skewX(-20deg)}}
+@keyframes hb-spin{to{transform:rotate(360deg)}}
+/* Grille de sections */
+.hb-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-content:stretch;}
+.hb-grid .sc-tile{flex-direction:row;align-items:flex-start;gap:12px;padding:14px;min-height:98px;}
+.hb-grid .sc-tile-icon{flex:none;width:44px;height:44px;}
+.hb-news{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border-radius:var(--radius-lg,14px);border:1px dashed color-mix(in srgb,var(--gold) 45%,transparent);
+  font-size:12.5px;color:var(--parchment-dim);cursor:pointer;background:none;text-align:left;font-family:inherit;}
+.hb-news:hover{border-color:var(--gold-bright);}
+.hb-news .hb-news-t{color:var(--parchment);font-size:13px;line-height:1.35;}
+/* Bande « Du moment » */
+.hb-band{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-radius:var(--radius-lg,16px);
+  background:color-mix(in srgb,var(--bg-panel) 82%,transparent);border:1px solid color-mix(in srgb,var(--gold) 38%,transparent);}
+.hb-cell{padding:16px 20px;min-width:0;}
+.hb-cell+.hb-cell{border-left:1px solid color-mix(in srgb,var(--gold) 20%,transparent);}
+.hb-cell h2{margin:0;font-size:11.5px;letter-spacing:2px;font-weight:500;text-transform:uppercase;color:var(--parchment-dim);}
+.hb-cell .hb-big{font-family:'Cinzel',serif;font-weight:700;color:var(--gold);font-size:20px;margin:5px 0 3px;}
+.hb-cell p{margin:0;font-size:13px;color:var(--parchment-dim);}
+.hb-stats{display:flex;gap:16px;color:var(--gold-bright);font-variant-numeric:tabular-nums;}
+.hb-stats b{display:block;font-size:24px;line-height:1.15;}.hb-stats small{color:var(--parchment-dim);font-size:11.5px;}
+.hb-bar{height:9px;border-radius:5px;background:rgba(0,0,0,.4);overflow:hidden;margin:8px 0 5px;}
+.hb-bar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--gold-bright));border-radius:5px;transition:width .8s ease;}
+.hb-quest-link{color:var(--parchment);text-decoration:none;}
+.hb-quest-link:hover{color:var(--gold-bright);}
+/* Compte à rebours (ids conservés pour le script existant) */
 .season-countdown[hidden]{display:none;}
-.season-countdown-label{font-size:12.5px;letter-spacing:2.2px;text-transform:uppercase;color:var(--parchment-dim);}
-.season-countdown-time{display:flex;justify-content:center;gap:clamp(8px,2.4vw,18px);margin-top:4px;}
-.season-countdown-unit{min-width:58px;}
-.season-countdown-num{display:block;font-size:clamp(24px,5vw,34px);font-weight:700;line-height:1.1;color:var(--gold-bright);font-variant-numeric:tabular-nums;text-shadow:0 2px 0 rgba(0,0,0,.5),0 0 18px rgba(242,207,90,.35);}
-.season-countdown-name{display:block;font-size:11px;letter-spacing:1.6px;text-transform:uppercase;color:var(--parchment-dim);margin-top:2px;}
-.hub-footer{margin:10px auto 0;text-align:center;color:var(--parchment-dim);font-size:11.5px;max-width:600px;line-height:1.6;}
+.season-countdown-time{display:flex;gap:12px;margin-top:2px;}
+.season-countdown-unit{min-width:44px;}
+.season-countdown-num{display:block;font-size:24px;font-weight:700;line-height:1.15;color:var(--gold-bright);font-variant-numeric:tabular-nums;}
+.season-countdown-name{display:block;font-size:11px;color:var(--parchment-dim);}
+.hub-footer{text-align:center;color:var(--parchment-dim);font-size:11.5px;line-height:1.6;}
 .hub-footer strong{color:var(--parchment);}
-
-@media (max-width:600px){
-  .hub-container{padding-top:10px;}
-  .hub-container{--logo:170px;}
-  .hub-title-row .sc-h1{font-size:clamp(40px,12vw,56px);}
+@media (max-width:900px){
+  .hb-main{grid-template-columns:1fr;}
+  .hb-play{min-height:260px;}
+  .hb-wallet{display:none;}
+  .hb-left{flex:1 1 auto;}
+}
+@media (max-width:700px){
+  .hb-band{grid-template-columns:1fr;}
+  .hb-cell+.hb-cell{border-left:0;border-top:1px solid color-mix(in srgb,var(--gold) 20%,transparent);}
+  .hb-player{border-radius:18px;}
+  .hb-who b{max-width:120px;}
   #patchnote-btn-label{display:none;}
   #patchnote-btn{padding:9px;}
 }
+@media (max-width:560px){.hb-grid .sc-tile{flex-direction:column;gap:8px;min-height:0;padding:12px;}.hb-grid .sc-tile-sub{display:none;}.hb-news{padding:10px 12px;}}
+@media (prefers-reduced-motion:reduce){.hb-play-spin,.hb-play-btn::after{animation:none;}}
 </style>
 </head>
 <body>
@@ -78,81 +120,95 @@
   </div>
 
   <div class="sc-container hub-container">
-    <div class="hub-title-row">
+    <header class="hb-player">
+      <div class="hb-left">
+        <div class="hb-avatar" id="hb-avatar" aria-hidden="true">👤</div>
+        <div class="hb-who"><b id="hb-name">Invité</b><small id="hb-rank">Connecte-toi pour voir ta progression</small></div>
+      </div>
       <h1 class="sc-h1">Rimd'Orël</h1>
-    </div>
+      <div class="hb-wallet" id="hb-wallet" hidden>
+        <span class="hb-gold" id="hb-gold" title="Pièces d'or">● 0</span>
+        <span class="hb-frag" id="hb-frag" title="Fragments (pour le craft)">◆ 0</span>
+      </div>
+    </header>
 
-    <div class="season-countdown" id="season-countdown" role="timer" aria-live="off" hidden>
-      <div id="season-countdown-live">
-        <div class="season-countdown-label">Lancement de la saison 0</div>
-        <div class="season-countdown-time">
-          <span class="season-countdown-unit"><span class="season-countdown-num" id="scd-d">0</span><span class="season-countdown-name" id="scn-d">jours</span></span>
-          <span class="season-countdown-unit"><span class="season-countdown-num" id="scd-h">00</span><span class="season-countdown-name" id="scn-h">heures</span></span>
-          <span class="season-countdown-unit"><span class="season-countdown-num" id="scd-m">00</span><span class="season-countdown-name" id="scn-m">minutes</span></span>
-          <span class="season-countdown-unit"><span class="season-countdown-num" id="scd-s">00</span><span class="season-countdown-name" id="scn-s">secondes</span></span>
+    <div class="hb-main">
+      <a class="hb-play" href="spellcraft-lobby.html" title="Affronter l'IA ou un ami">
+        <div class="hb-play-spin"></div>
+        <div class="hb-play-logo"></div>
+        <div class="hb-play-body">
+          <div class="hb-kicker">Partie rapide</div>
+          <div class="hb-play-title">Jouer</div>
+          <div class="hb-play-sub">Recherche une partie contre l'IA ou un ami, avec le deck de ton choix.</div>
+          <span class="hb-play-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M7 4.5v15l13-7.5-13-7.5Z"/></svg>Lancer une partie</span>
         </div>
+      </a>
+      <div class="hb-grid">
+      <a class="sc-tile" href="spellcraft-shop.html" title="Boosters, cartes à l'unité, dos de cartes.">
+        <div class="sc-tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5c0-1.4 1.3-2.5 3-2.5s3 .9 3 2.2c0 2.8-6 1.6-6 4.3 0 1.3 1.3 2.3 3 2.3s3-1 3-2.3"/></svg></div>
+        <div class="sc-tile-body"><div class="sc-tile-title">Boutique</div><div class="sc-tile-sub">Boosters, cartes à l'unité, dos de cartes.</div></div>
+      </a>
+      <a class="sc-tile" href="spellcraft-deckbuilder.html" title="Consulte ta collection et construis tes decks.">
+        <div class="sc-tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="12" height="16" rx="1.5"/><rect x="8" y="6" width="12" height="16" rx="1.5" fill="var(--bg-panel)"/></svg></div>
+        <div class="sc-tile-body"><div class="sc-tile-title">Collection &amp; Deck</div><div class="sc-tile-sub">Consulte ta collection et construis tes decks.</div></div>
+      </a>
+      <a class="sc-tile" href="spellcraft-grimoire.html" title="Toutes les règles du jeu, expliquées en détail.">
+        <div class="sc-tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5C4 4.1 5.6 3 7.5 3H20v15H7.5C5.6 18 4 19.1 4 20.5v-15Z"/><path d="M20 18v3H7.5A2.5 2.5 0 0 1 5 18.5"/><path d="M8 7h9M8 10.5h9"/></svg></div>
+        <div class="sc-tile-body"><div class="sc-tile-title">Le Grimoire</div><div class="sc-tile-sub">Toutes les règles du jeu, expliquées en détail.</div></div>
+      </a>
+      <a class="sc-tile" href="spellcraft-achievements.html" title="Tes badges et récompenses débloqués.">
+        <div class="sc-tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="6"/><path d="M8.5 14 7 21l5-2.5L17 21l-1.5-7"/></svg></div>
+        <div class="sc-tile-body"><div class="sc-tile-title">Hauts-faits</div><div class="sc-tile-sub">Tes badges et récompenses débloqués.</div></div>
+      </a>
+      <a class="sc-tile" href="spellcraft-quests.html" title="Des objectifs à accomplir, des récompenses à la clé.">
+        <div class="sc-tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg></div>
+        <div class="sc-tile-body"><div class="sc-tile-title">Quêtes</div><div class="sc-tile-sub">Des objectifs à accomplir, des récompenses à la clé.</div></div>
+      </a>
+        <button type="button" class="hb-news" id="hb-news" onclick="openPatchNotes()">
+          NOUVEAUTÉS<span class="hb-news-t" id="hb-news-t">Notes de version et feuille de route.</span>
+        </button>
       </div>
     </div>
 
-    <div class="sc-nav-grid sc-nav-grid-feature">
-
-      <a class="sc-tile sc-tile-feature" href="spellcraft-lobby.html" title="Affronter l'IA ou un ami">
-        <div class="sc-tile-icon">
-          <svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M7 4.5v15l13-7.5-13-7.5Z"/></svg>
+    <section class="hb-band" aria-label="Du moment">
+      <div class="hb-cell">
+        <h2>Saison 0</h2>
+        <div class="season-countdown" id="season-countdown" role="timer" aria-live="off" hidden>
+          <div id="season-countdown-live">
+            <div class="hb-big">Lancement dans</div>
+            <div class="season-countdown-time">
+              <span class="season-countdown-unit"><span class="season-countdown-num" id="scd-d">0</span><span class="season-countdown-name" id="scn-d">jours</span></span>
+              <span class="season-countdown-unit"><span class="season-countdown-num" id="scd-h">00</span><span class="season-countdown-name" id="scn-h">heures</span></span>
+              <span class="season-countdown-unit"><span class="season-countdown-num" id="scd-m">00</span><span class="season-countdown-name" id="scn-m">minutes</span></span>
+              <span class="season-countdown-unit"><span class="season-countdown-num" id="scd-s">00</span><span class="season-countdown-name" id="scn-s">secondes</span></span>
+            </div>
+          </div>
         </div>
-        <div class="sc-tile-body">
-          <div class="sc-tile-title">Jouer</div>
-          <div class="sc-tile-sub">Recherche une partie contre l'IA ou un ami, avec le deck de ton choix.</div>
+        <div id="hb-season-live">
+          <div class="hb-big" id="hb-season-title">En cours</div>
+          <div class="hb-stats" id="hb-season-stats"><span><b>–</b><small>parties</small></span><span><b>–</b><small>victoires</small></span></div>
         </div>
-      </a>
-
-      <a class="sc-tile" href="spellcraft-shop.html" title="Boosters, cartes à l'unité, dos de cartes">
-        <div class="sc-tile-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9 9.5c0-1.4 1.3-2.5 3-2.5s3 .9 3 2.2c0 2.8-6 1.6-6 4.3 0 1.3 1.3 2.3 3 2.3s3-1 3-2.3"/></svg>
-        </div>
-        <div class="sc-tile-title">Boutique</div>
-        <div class="sc-tile-sub">Boosters, cartes à l'unité, dos de cartes.</div>
-      </a>
-
-      <a class="sc-tile" href="spellcraft-deckbuilder.html" title="Ta collection et tes decks">
-        <div class="sc-tile-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="12" height="16" rx="1.5"/><rect x="8" y="6" width="12" height="16" rx="1.5" fill="var(--bg-panel)"/></svg>
-        </div>
-        <div class="sc-tile-title">Collection &amp; Deck</div>
-        <div class="sc-tile-sub">Consulte ta collection et construis tes decks.</div>
-      </a>
-
-      <a class="sc-tile" href="spellcraft-grimoire.html" title="Règles complètes du jeu">
-        <div class="sc-tile-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5C4 4.1 5.6 3 7.5 3H20v15H7.5C5.6 18 4 19.1 4 20.5v-15Z"/><path d="M20 18v3H7.5A2.5 2.5 0 0 1 5 18.5"/><path d="M8 7h9M8 10.5h9"/></svg>
-        </div>
-        <div class="sc-tile-title">Le Grimoire</div>
-        <div class="sc-tile-sub">Toutes les règles du jeu, expliquées en détail.</div>
-      </a>
-
-      <a class="sc-tile" href="spellcraft-achievements.html" title="Tes badges et récompenses">
-        <div class="sc-tile-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="6"/><path d="M8.5 14 7 21l5-2.5L17 21l-1.5-7"/></svg>
-        </div>
-        <div class="sc-tile-title">Hauts-faits</div>
-        <div class="sc-tile-sub">Tes badges et récompenses débloqués.</div>
-      </a>
-
-      <a class="sc-tile" href="spellcraft-quests.html" title="Tes quêtes en cours">
-        <div class="sc-tile-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg>
-        </div>
-        <div class="sc-tile-title">Quêtes</div>
-        <div class="sc-tile-sub">Des objectifs à accomplir, des récompenses à la clé.</div>
-      </a>
-
-    </div>
+      </div>
+      <div class="hb-cell">
+        <h2>Mode du week-end</h2>
+        <div class="hb-big" id="hb-mode-name">…</div>
+        <p id="hb-mode-desc"></p>
+      </div>
+      <div class="hb-cell">
+        <h2>Quête en cours</h2>
+        <div id="hb-quest-title" style="font-size:15px;margin-top:6px;">…</div>
+        <div class="hb-bar"><i id="hb-quest-bar"></i></div>
+        <p id="hb-quest-prog"></p>
+      </div>
+    </section>
 
     <div class="hub-footer">
       Une question, un bug à signaler ? Utilise le bouton <strong>Feedback</strong> depuis n'importe quelle page.
     </div>
   </div>
 </div>
+
+<canvas id="hub-dust" aria-hidden="true"></canvas>
 
 <!-- ---------------- Notes de version & feuille de route ---------------- -->
 <div id="patchnote-overlay" class="sc-overlay">
@@ -251,7 +307,7 @@
 <script src="spellcraft-server-client.js"></script>
 <script src="spellcraft-auth.js"></script>
 <script>
-initSpellcraftAuth().then(initPatchNotesBadge).then(()=>{ try{ if(window.scNotif) scNotif.refreshHub(); }catch(e){} }).then(checkTutorialAutoLaunch);
+initSpellcraftAuth().then(initPatchNotesBadge).then(()=>{ try{ if(window.scNotif) scNotif.refreshHub(); }catch(e){} }).then(()=>{ try{ if(typeof loadHubDashboard === 'function') loadHubDashboard(); else document.addEventListener('DOMContentLoaded', ()=>loadHubDashboard()); }catch(e){ console.error(e); } }).then(checkTutorialAutoLaunch);
 playMenuMusicRotation(0.35);
 
 let PATCHNOTE_CAN_EDIT = false;
@@ -265,6 +321,7 @@ async function initPatchNotesBadge(){
   const res = await gsGetLatestPatchNote(MY_USER_ID_HUB);
   if(res.error) return;
   document.getElementById('patchnote-badge').style.display = res.hasUnread ? 'flex' : 'none';
+  try{ if(res.hasUnread){ document.getElementById('hb-news-t').textContent = 'Nouvelles notes de version à lire.'; } }catch(e){}
 }
 
 async function checkTutorialAutoLaunch(){
@@ -358,6 +415,95 @@ async function savePatchNote(){
 }
 </script>
 
+<script>
+/* ---------- Tableau de bord du menu : joueur, week-end, quête, fond animé ---------- */
+function hbSet(id, txt){ const el = document.getElementById(id); if(el) el.textContent = txt; }
+async function loadHubDashboard(){
+  const user = await scGetCurrentUser();
+  // Quel que soit l'état de connexion, on remplit le mode du week-end (public)
+  loadHubWeekend();
+  if(!user) return;
+  try{
+    const { data: p } = await sb.from('profiles')
+      .select('username,currency,fragments_aube,fragments_crepuscule,fragments_volonte,fragments_prima,fragments_arcane,fragments_opale,avatar_hero_name,discord_avatar_url,total_wins,total_games_played')
+      .eq('id', user.id).single();
+    if(p){
+      hbSet('hb-name', p.username || 'Aventurier');
+      const frag = ['aube','crepuscule','volonte','prima','arcane','opale'].reduce((n,k)=>n + (p['fragments_'+k]||0), 0);
+      hbSet('hb-gold', '● ' + (p.currency||0).toLocaleString('fr-FR'));
+      hbSet('hb-frag', '◆ ' + frag.toLocaleString('fr-FR'));
+      document.getElementById('hb-wallet').hidden = false;
+      const st = document.getElementById('hb-season-stats');
+      st.innerHTML = '';
+      [[p.total_games_played||0,'parties'],[p.total_wins||0,'victoires']].forEach(([n,l])=>{
+        const sp = document.createElement('span'); const b = document.createElement('b'); b.textContent = n.toLocaleString('fr-FR');
+        const sm = document.createElement('small'); sm.textContent = l; sp.appendChild(b); sp.appendChild(sm); st.appendChild(sp);
+      });
+      const av = document.getElementById('hb-avatar');
+      const setImg = (u)=>{ av.style.backgroundImage = "url('" + String(u).replace(/'/g,'') + "')"; av.textContent = ''; };
+      if(p.avatar_hero_name){
+        try{
+          const { data: h } = await sb.from('cards').select('data').eq('data->>name', p.avatar_hero_name).eq('data->>type','Héros').limit(1);
+          if(h && h[0] && h[0].data && h[0].data.image) setImg(h[0].data.image);
+          else if(p.discord_avatar_url) setImg(p.discord_avatar_url);
+        }catch(e){ if(p.discord_avatar_url) setImg(p.discord_avatar_url); }
+      } else if(p.discord_avatar_url) setImg(p.discord_avatar_url);
+    }
+  }catch(e){ console.error('hub profil', e); }
+  try{
+    const { data: r } = await sb.from('player_ratings').select('season,rating,games').eq('user_id', user.id).order('season',{ascending:false}).limit(1);
+    hbSet('hb-rank', r && r[0] && r[0].games > 0 ? ('Cote ' + Math.round(r[0].rating) + ' · saison ' + r[0].season) : 'Pas encore classé');
+  }catch(e){ hbSet('hb-rank', 'Pas encore classé'); }
+  loadHubQuest(user.id);
+}
+async function loadHubWeekend(){
+  try{
+    if(typeof scWeekendWindowOpenNow === 'function' && !scWeekendWindowOpenNow()){
+      hbSet('hb-mode-name', 'Pas de mode spécial'); hbSet('hb-mode-desc', 'Le prochain mode démarre vendredi à 18h (heure de Paris).'); return;
+    }
+    const id = await scWeekendModeId();
+    const info = id ? await scWeekendModeInfo(id) : null;
+    if(info){ hbSet('hb-mode-name', (info.icon ? info.icon + ' ' : '') + info.name); hbSet('hb-mode-desc', info.description || ''); }
+    else { hbSet('hb-mode-name', 'Pas de mode spécial'); hbSet('hb-mode-desc', ''); }
+  }catch(e){ hbSet('hb-mode-name', '—'); }
+}
+async function loadHubQuest(userId){
+  const box = document.getElementById('hb-quest-title');
+  try{
+    const { data: uq } = await sb.from('user_quests').select('quest_id,progress_count,completed,claimed,assigned_at').eq('user_id', userId).eq('claimed', false).order('assigned_at',{ascending:false}).limit(12);
+    if(!uq || !uq.length){ box.textContent = 'Aucune quête en cours'; return; }
+    const { data: defs } = await sb.from('quest_definitions').select('id,title,target_count').in('id', uq.map(q=>q.quest_id));
+    const byId = {}; (defs||[]).forEach(d=>{ byId[d.id] = d; });
+    const rows = uq.map(q=>({ q, d: byId[q.quest_id] })).filter(x=>x.d).map(x=>{
+      const t = Math.max(1, x.d.target_count||1); return { title: x.d.title, p: Math.min(t, x.q.progress_count||0), t, done: !!x.q.completed, ratio: Math.min(1,(x.q.progress_count||0)/t) };
+    });
+    if(!rows.length){ box.textContent = 'Aucune quête en cours'; return; }
+    rows.sort((a,b)=> (b.done - a.done) || (b.ratio - a.ratio));
+    const x = rows[0];
+    box.innerHTML = '';
+    const a = document.createElement('a'); a.className = 'hb-quest-link'; a.href = 'spellcraft-quests.html'; a.textContent = x.title; box.appendChild(a);
+    document.getElementById('hb-quest-bar').style.width = Math.round(x.ratio*100) + '%';
+    hbSet('hb-quest-prog', x.done ? 'Terminée : récompense à récupérer' : (x.p + ' / ' + x.t));
+  }catch(e){ box.textContent = '—'; }
+}
+// Poussière dorée (désactivée si l'utilisateur préfère moins d'animations)
+(function(){
+  const c = document.getElementById('hub-dust'); if(!c) return;
+  let reduce = false; try{ reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
+  if(reduce) return;
+  const x = c.getContext('2d'); let W = 0, H = 0;
+  const fit = ()=>{ W = c.width = innerWidth; H = c.height = innerHeight; }; fit(); addEventListener('resize', fit);
+  const P = Array.from({length:60}, ()=>({x:Math.random(), y:Math.random(), r:Math.random()*1.6+.4, v:Math.random()*.00035+.00008, p:Math.random()*6}));
+  (function f(t){
+    x.clearRect(0,0,W,H);
+    P.forEach(q=>{ q.y -= q.v*16; q.x += Math.sin(t/1800+q.p)*.0003; if(q.y < -.02){ q.y = 1.02; q.x = Math.random(); }
+      x.fillStyle = 'rgba(242,207,90,' + (.18 + .3*Math.sin(t/800+q.p)) + ')'; x.beginPath(); x.arc(q.x*W, q.y*H, q.r, 0, 7); x.fill(); });
+    requestAnimationFrame(f);
+  })(0);
+})();
+// Le bloc « Saison 0 » montre soit le compte à rebours (avant le lancement), soit les statistiques du joueur
+setInterval(function(){ const cd = document.getElementById('season-countdown'), lv = document.getElementById('hb-season-live'); if(cd && lv) lv.hidden = !cd.hidden; }, 1000);
+</script>
 <script>
 /* Compte à rebours : mardi 20 octobre 2026, 00h00 à Paris (heure d'été = UTC+2) = lundi 19 octobre 22h00 UTC.
    À la fin du compte à rebours, la boîte disparaît (aussi pour toute visite ultérieure). */
