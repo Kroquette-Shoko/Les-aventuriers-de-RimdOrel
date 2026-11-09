@@ -964,6 +964,10 @@ body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out 
   .mana-box-line{display:flex;align-items:center;justify-content:center;gap:4px;font-family:'Cinzel',serif;font-weight:700;color:var(--gold);white-space:nowrap;}
   .mana-box-line.normal{font-size:17px;}
   .mana-box-line.fragile{font-size:20px;color:#9fd8ff;}
+  .devotion-bubble{width:44px;height:44px;border-radius:50%;flex-shrink:0;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;background:radial-gradient(circle at 35% 30%,#fff3d0 0%,#e8c25a 45%,#9a6b12 100%);border:2px solid #ffd98a;box-shadow:0 0 8px rgba(255,217,138,.7);line-height:1;}
+  .devotion-bubble:hover{box-shadow:0 0 14px rgba(255,217,138,1);}
+  .devotion-bubble-ico{font-size:13px;}
+  .devotion-bubble-count{font-family:'Cinzel',serif;font-weight:700;font-size:16px;color:#3a2500;}
   .mana-ico{width:26px;height:26px;flex-shrink:0;background:url('images/mana-plein.png') center/contain no-repeat;}
   .mana-box-line.fragile .mana-ico{width:38px;height:38px;background-image:url('images/mana-fragile.png');}
 
@@ -4051,12 +4055,20 @@ function renderManaBox(key, slot){
   // avec des icônes plus grosses. (Les colonnes de points ont été supprimées.)
   const fragileLine = p.manaFragile > 0
     ? `<div class="mana-box-line fragile" title="Mana fragile"><span class="mana-ico"></span><span>${p.manaFragile}</span></div>` : '';
+  // Dévotion (Fidèle) : bulle au-dessus du mana, affichée dès qu'un Fidèle est arrivé en jeu
+  const devo = (p.__g && p.__g.devotion) || {};
+  const devoTotal = Object.values(devo).reduce((a,b)=>a+(b||0),0);
+  const devoBubble = devoTotal > 0
+    ? `<div class="devotion-bubble" id="devotion-bubble-${slot}" title="Dévotion : ${devoTotal} (Fidèles arrivés en jeu cette partie) — cliquer pour le détail"><span class="devotion-bubble-ico">🙏</span><span class="devotion-bubble-count">${devoTotal}</span></div>` : '';
   el.title = region.name || 'Région';
   el.innerHTML = `
+    ${devoBubble}
     ${fragileLine}
     <div class="mana-box-line normal" title="Mana disponible / maximum"><span class="mana-ico"></span><span>${p.manaNormal}/${p.manaNormalMax}</span></div>
     <div class="mana-box-region-thumb" style="${regionThumbStyle}"></div>
   `;
+  const devoEl = document.getElementById(`devotion-bubble-${slot}`);
+  if(devoEl) devoEl.onclick = (ev)=>{ ev.stopPropagation(); openDevotionModal(key); };
   if(region.name){
     const thumbEl = el.querySelector('.mana-box-region-thumb');
     thumbEl.style.cursor = 'pointer';
@@ -4324,10 +4336,6 @@ function renderDeckZone(key, slot){
   // Champs facultatifs : le moteur ne les envoie pas encore (nouvelles mécaniques à venir).
   const exiled = Array.isArray(p.exile) ? p.exile : [];
   const buffs = Array.isArray(p.deckBuffs) ? p.deckBuffs : [];
-  // Dévotion (set La guerre élémentaire) : compteur par dieu, p.__g.devotion = { nom en minuscules: valeur }
-  const devo = (p.__g && p.__g.devotion) || {};
-  const devoTotal = Object.values(devo).reduce((a,b)=>a+(b||0),0);
-  const devoTitle = Object.entries(devo).filter(([,v])=>v>0).map(([k,v])=>`${k.charAt(0).toUpperCase()+k.slice(1)} ${v}`).join(', ');
   const backStyle = p.cardBackUrl ? `style="background-image:url('${p.cardBackUrl.replace(/'/g,"")}');background-size:cover;background-position:center;"` : '';
   el.innerHTML = `
     <div class="deck-back-visual" ${backStyle} title="${p.deck.length} carte(s) restante(s)"></div>
@@ -4336,11 +4344,8 @@ function renderDeckZone(key, slot){
       <div class="badge discard ${p.discard.length>0?'has-cards':''}" title="Défausse" id="discard-badge-${slot}"><span class="badge-icon">🪦</span><span class="badge-count">${p.discard.length}</span><span class="badge-label">Défausse</span></div>
       <div class="badge exile ${exiled.length>0?'has-cards':''}" title="Exil : cartes retirées de la partie (définitivement ou temporairement)" id="exile-badge-${slot}"><span class="badge-icon">🌀</span><span class="badge-count">${exiled.length}</span><span class="badge-label">Exil</span></div>
       <div class="badge deckbuffs ${buffs.length>0?'has-cards':''}" title="Bonus permanents ajoutés aux cartes de la pioche" id="deckbuffs-badge-${slot}"><span class="badge-icon">✨</span><span class="badge-count">${buffs.length}</span><span class="badge-label">Bonus</span></div>
-      ${devoTotal>0 ? `<div class="badge devotion has-cards" title="Dévotion : ${devoTotal} (Fidèles arrivés en jeu cette partie)" id="devotion-badge-${slot}"><span class="badge-icon">🙏</span><span class="badge-count">${devoTotal}</span><span class="badge-label">Dévotion</span></div>` : ''}
     </div>
   `;
-  const devoEl = document.getElementById(`devotion-badge-${slot}`);
-  if(devoEl) devoEl.onclick = ()=>openDevotionModal(key);
   document.getElementById(`discard-badge-${slot}`).onclick = ()=>openDiscardModal(key);
   document.getElementById(`exile-badge-${slot}`).onclick = ()=>openExileModal(key);
   document.getElementById(`deckbuffs-badge-${slot}`).onclick = ()=>openDeckBuffsModal(key);
