@@ -700,3 +700,9 @@ Sauvegarde : `_backup_game_action_chunks_20261109_devotion`.
 - **Dieu de la Dévotion** : champ de carte `devotionGod: true`.
 - **Bénédiction** : les capacités cochées « À transmettre aux dieux » sont rangées dans `transmitAbilities` (jamais actives sur la carte elle-même). L'effet `blessGods` les copie dans `p.__godBlessings` et les ajoute à tous vos dieux de la Dévotion (main, deck, jeu, défausse) ; un dieu qui arrive en jeu plus tard les reçoit aussi. Rejouer la même Bénédiction l'ajoute une seconde fois (cumulable).
 - Correctif : les effets « guerre » lancés par un sortilège reçoivent bien la carte du sort comme source.
+
+## Cartes Fidèle + filtre de cible « dieux de la Dévotion » (game-action v203)
+Sauvegarde : `_backup_game_action_chunks_20261109_fidele_cards`.
+- Filtre de cible `devotionGodFilter` : ne garde que les cartes avec `devotionGod: true`.
+- Un Fidèle se compte lui-même : sa Dévotion est ajoutée avant ses propres capacités d'arrivée.
+- 16 cartes Fidèle créées (set La guerre élémentaire).

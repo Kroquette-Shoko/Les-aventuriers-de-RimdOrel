@@ -2263,7 +2263,8 @@ function buildTargetsSectionUI(ab, targetsArray, choiceKey, heading){
 
     if(tgt.targetCategory==='creature' || tgt.targetCategory==='hero_creature'){
       [['woundedFilter','Uniquement les créatures blessées (PV sous leur maximum)'],
-       ['notAttackedFilter',"Uniquement les créatures qui n'ont pas encore attaqué ce tour-ci"]].forEach(([k,l])=>{
+       ['notAttackedFilter',"Uniquement les créatures qui n'ont pas encore attaqué ce tour-ci"],
+       ['devotionGodFilter','Uniquement les dieux de la Dévotion']].forEach(([k,l])=>{
         const tg = document.createElement('label');
         tg.className='evolve-toggle';
         tg.innerHTML = `<input type="checkbox" ${tgt[k]?'checked':''}> ${l}`;
@@ -4743,6 +4744,7 @@ function targetPhrase(t){
   const attackedLastTurnSuffix = (t.attackedLastTurnFilter ? ' ayant attaqué au tour précédent' : '')
     + (t.keywordFilter ? ` ${t.keywordFilterExclude ? "n'ayant pas" : 'ayant'} ${(KEYWORDS.find(k=>k.key===t.keywordFilter)||{}).label||t.keywordFilter}` : '')
     + (t.woundedFilter ? ' blessée' : '')
+    + (t.devotionGodFilter ? ' (dieu de la Dévotion)' : '')
     + (t.notAttackedFilter ? " n'ayant pas encore attaqué ce tour-ci" : '')
     + (t.sourceCompareFilter ? ({stronger:' plus forte que cette carte', weaker:' moins forte que cette carte', costlier:' plus chère que cette carte', cheaper:' moins chère que cette carte'}[t.sourceCompareFilter]||'') : '')
     + (t.rarityFilter ? ` de rareté ${t.rarityFilter}` : '')
