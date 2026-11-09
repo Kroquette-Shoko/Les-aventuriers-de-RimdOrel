@@ -691,3 +691,12 @@ Sauvegarde : `_backup_game_action_chunks_20261109_vorace_tag`.
 - Le mot-clé Vorace ne donne plus de bonus par lui-même. Le « +1 Force par mana » (ancien Vorace) n'existe que si la carte a `voraceAtk: true` (case « Bonus de base » dans l'éditeur) ou si un octroi de Vorace a `grantVoraceAtk: true`. **Champ absent = ancienne carte = bonus actif** (aucune migration des données nécessaire).
 - Nouveau déclencheur `voracity` : au début de votre tour (après la pioche et les « début de tour »), si l'adversaire a dépensé du mana pendant son tour. Doublé par « doublez les effets de Voracité ».
 - Valeurs dynamiques : réglages `<champ>Per` (« pour chaque N ») et `<champ>Mult` (« × M »), appliqués dans `resolveDynamicValue` (donc aussi aux auras continues), avant min/max. Le min/max s'applique désormais aussi aux auras continues.
+
+## Fidèle / Dévotion / Bénédiction (game-action v202)
+Sauvegarde : `_backup_game_action_chunks_20261109_devotion`.
+- **Dévotion** = une seule réserve par joueur, partagée par tous ses dieux, jamais consommée (`p.__g.devotion._`). `__devotionOf` renvoie toujours le total ; le filtre « dieu précis » de `watchDevotion` est ignoré.
+- **Fidèle** = toute créature avec le sous-type « Fidèle » (accent/majuscule indifférents). Quand elle arrive en jeu de votre côté (jouée, invoquée, ramenée), +1 Dévotion : `__onCreatureEnters` appelé au début de `fireSummonSubtypeTrigger`.
+- L'ancienne option de carte « Fidèle d'un dieu (+N) » (`fideleEnabled`) est retirée (aucune carte ne l'utilisait).
+- **Dieu de la Dévotion** : champ de carte `devotionGod: true`.
+- **Bénédiction** : les capacités cochées « À transmettre aux dieux » sont rangées dans `transmitAbilities` (jamais actives sur la carte elle-même). L'effet `blessGods` les copie dans `p.__godBlessings` et les ajoute à tous vos dieux de la Dévotion (main, deck, jeu, défausse) ; un dieu qui arrive en jeu plus tard les reçoit aussi. Rejouer la même Bénédiction l'ajoute une seconde fois (cumulable).
+- Correctif : les effets « guerre » lancés par un sortilège reçoivent bien la carte du sort comme source.

@@ -4336,7 +4336,7 @@ function renderDeckZone(key, slot){
       <div class="badge discard ${p.discard.length>0?'has-cards':''}" title="Défausse" id="discard-badge-${slot}"><span class="badge-icon">🪦</span><span class="badge-count">${p.discard.length}</span><span class="badge-label">Défausse</span></div>
       <div class="badge exile ${exiled.length>0?'has-cards':''}" title="Exil : cartes retirées de la partie (définitivement ou temporairement)" id="exile-badge-${slot}"><span class="badge-icon">🌀</span><span class="badge-count">${exiled.length}</span><span class="badge-label">Exil</span></div>
       <div class="badge deckbuffs ${buffs.length>0?'has-cards':''}" title="Bonus permanents ajoutés aux cartes de la pioche" id="deckbuffs-badge-${slot}"><span class="badge-icon">✨</span><span class="badge-count">${buffs.length}</span><span class="badge-label">Bonus</span></div>
-      ${devoTotal>0 ? `<div class="badge devotion has-cards" title="Dévotion (Fidèle) : ${escapeHtml(devoTitle)}" id="devotion-badge-${slot}"><span class="badge-icon">🙏</span><span class="badge-count">${devoTotal}</span><span class="badge-label">Dévotion</span></div>` : ''}
+      ${devoTotal>0 ? `<div class="badge devotion has-cards" title="Dévotion : ${devoTotal} (Fidèles arrivés en jeu cette partie)" id="devotion-badge-${slot}"><span class="badge-icon">🙏</span><span class="badge-count">${devoTotal}</span><span class="badge-label">Dévotion</span></div>` : ''}
     </div>
   `;
   const devoEl = document.getElementById(`devotion-badge-${slot}`);
@@ -7210,15 +7210,17 @@ function openExileModal(key){
 // Dévotion (Fidèle) : une ligne par dieu.
 function openDevotionModal(key){
   const devo = (S[key].__g && S[key].__g.devotion) || {};
-  const rows = Object.entries(devo).filter(([,v])=>v>0);
-  if(!rows.length) return;
+  // Dévotion : une seule réserve partagée par tous les dieux (nombre de Fidèles arrivés en jeu, jamais consommée)
+  const total = Object.values(devo).reduce((a,v)=>a+(v||0),0);
+  if(!total) return;
+  const bless = (S[key].__godBlessings || []).length;
   document.getElementById('discard-modal-title').textContent = 'Dévotion';
   const box = document.getElementById('discard-modal-list');
   box.innerHTML = '';
-  rows.forEach(([k,v])=>{
+  [`Dévotion : ${total}`, 'Nombre de Fidèles arrivés en jeu de ce côté pendant la partie (partagée par tous les dieux, jamais consommée).', bless ? `Bénédictions reçues par les dieux de la Dévotion : ${bless}` : ''].filter(Boolean).forEach((t)=>{
     const line = document.createElement('div');
     line.className = 'zone-list-line';
-    line.textContent = `${k.charAt(0).toUpperCase()+k.slice(1)} : ${v}`;
+    line.textContent = t;
     box.appendChild(line);
   });
   document.getElementById('discard-modal').classList.add('show');

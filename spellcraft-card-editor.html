@@ -478,6 +478,7 @@ header .spacer{flex:1;}
             <span class="chip-suggest" onclick="addSubtype('Golem')">+ Golem</span>
             <span class="chip-suggest" onclick="addSubtype('Esprit')">+ Esprit</span>
             <span class="chip-suggest" onclick="addSubtype('Peulon')">+ Peulon</span>
+            <span class="chip-suggest" onclick="addSubtype('Fidèle')" title="Chaque créature Fidèle qui arrive en jeu donne +1 Dévotion">+ Fidèle</span>
             <span class="chip-suggest" onclick="addSubtype('Édifice')">+ Édifice (artefact)</span>
           </div>
         </div>
@@ -716,7 +717,12 @@ header .spacer{flex:1;}
           <div class="keyword-grid" id="keyword-grid"></div>
           <div style="margin-top:10px;">
             <label style="display:flex;align-items:center;gap:8px;text-transform:none;letter-spacing:0;cursor:pointer;">
-              <input type="checkbox" id="f-fidele-enabled" onchange="refreshFormVisibility(); onFormChange();" style="width:auto;"> Fidèle d'un dieu (donne de la Dévotion quand la carte entre en jeu)
+              <input type="checkbox" id="f-devotion-god" onchange="onFormChange();" style="width:auto;"> Dieu de la Dévotion (reçoit les capacités transmises par les Bénédictions)
+            </label>
+            <div style="font-size:10.5px;color:var(--parchment-dim);margin-top:2px;">Dévotion = nombre de créatures avec le sous-type « Fidèle » arrivées en jeu de votre côté pendant la partie (réserve partagée par tous vos dieux, jamais consommée).</div>
+            <!-- Ancienne option « Fidèle d'un dieu (+N) » : retirée (gardée cachée pour la compatibilité du formulaire) -->
+            <label style="display:none;">
+              <input type="checkbox" id="f-fidele-enabled" onchange="refreshFormVisibility(); onFormChange();" style="width:auto;">
             </label>
             <div id="f-fidele-wrap" class="grid2" style="display:none;margin-top:6px;">
               <div class="field">
@@ -1000,7 +1006,7 @@ const TRIGGER_TEXT = {
   watchOffering: 'Quand une Offrande est faite',
   watchCycle: 'Quand une carte avec Cycle retourne dans un deck',
   watchSacrifice: 'Quand une créature est sacrifiée',
-  watchDevotion: 'Quand un dieu gagne de la Dévotion',
+  watchDevotion: 'Quand la Dévotion augmente',
   watchRitualMana: 'Quand du mana est versé dans un Rituel',
   watchRitualComplete: 'Quand un Rituel est accompli',
   watchEdificeAttacked: 'Quand un Édifice est attaqué'
@@ -1043,7 +1049,7 @@ const CONDITION_TYPES = [
   {key:'turnParity', label:'Votre numéro de tour est pair / impair', hasValue:false, isTurnParity:true},
   {key:'cardNameInPlay', label:'Un artefact / une carte précise est en jeu', hasValue:false, isCardNameInPlay:true},
   {key:'creatureState', label:'Une créature est blessée / a déjà attaqué', hasValue:false, isCreatureState:true},
-  {key:'devotionAtLeast', label:"La Dévotion d'un dieu est au moins X (vide = ce dieu)", hasValue:true, valueType:'number'},
+  {key:'devotionAtLeast', label:"Votre Dévotion est au moins X", hasValue:true, valueType:'number'},
   {key:'failleInDeck', label:'Vous avez au moins X cartes avec Faille dans votre deck', hasValue:true, valueType:'number'},
   {key:'enemyManaSpent', label:"Votre adversaire a dépensé au moins X mana ce tour-ci (Voracité)", hasValue:true, valueType:'number'},
   {key:'ritualManaAtLeast', label:'Votre Rituel contient au moins X mana', hasValue:true, valueType:'number'},
@@ -1074,7 +1080,7 @@ const EFFECT_GROUPS = [
   ['Créatures et plateau', ['destroy','stun','bounce','sacrificeEffect','removeFromCombat','summonCopy','transformCard','stealCreature','fight','destroyDealAtk','reviveDestroyedLastTurn','redirectTarget']],
   ['Artefacts et pièges', ['removeArtifactCharges','destroySelf','addCharges','exhaustArtifact','disarmTraps','counterCard']],
   ['Spécial', ['extraCombat','coinFlip','doubleTrigger','doubleEffectsTrigger','custom']],
-  ['La guerre élémentaire', ['doubleVorace','discoverCycle','failleExtraZone','doubleFaille','triggerFailles','addDevotion','shuffleIntoDeck','addRitualMana','removeRitualMana','destroyRitual','repairEdifice','reanimateUnderControl']]
+  ['La guerre élémentaire', ['doubleVorace','discoverCycle','failleExtraZone','doubleFaille','triggerFailles','addDevotion','blessGods','shuffleIntoDeck','addRitualMana','removeRitualMana','destroyRitual','repairEdifice','reanimateUnderControl']]
 ];
 
 const EFFECT_TYPES = [
@@ -1136,7 +1142,8 @@ const EFFECT_TYPES = [
   {key:'halveLife', label:'Divise la vie du joueur en deux', needsTarget:false, needsValue:false, isHalveLife:true},
   {key:'custom', label:'⚠ Effet personnalisé (texte libre)', needsTarget:false, needsValue:false},
   // Fidèle (set « La guerre élémentaire ») : ajoute de la Dévotion à un dieu précis, lue par le dieu quand il entre en jeu
-  {key:'addDevotion', label:'Fidèle : +X Dévotion à un dieu', needsTarget:false, needsValue:true, isAddDevotion:true},
+  {key:'addDevotion', label:'Dévotion : ajoute X à votre Dévotion', needsTarget:false, needsValue:true, isAddDevotion:true},
+  {key:'blessGods', label:'Bénédiction : vos dieux de la Dévotion gagnent les capacités « à transmettre » de cette carte (deck, main, jeu, défausse, pour la partie)', needsTarget:false, needsValue:false},
   {key:'doubleVorace', label:'Voracité : doublez les effets de Voracité (capacité continue)', needsTarget:false, needsValue:false},
   {key:'discoverCycle', label:'Cycle : révélez une carte avec Cycle (choisissez-en 1 parmi 3)', needsTarget:false, needsValue:false, isDiscoverCycle:true},
   {key:'failleExtraZone', label:'Faille : vos Failles se déclenchent aussi depuis une autre zone (capacité continue)', needsTarget:false, needsValue:false, isFailleZone:true},
@@ -1271,10 +1278,9 @@ const DYNAMIC_VALUES = [
   {key:'hpLostThisTurn', label:'= nombre de PV perdus ce tour-ci'},
   {key:'hpLostThisTurnEnemy', label:"= nombre de PV perdus par l'adversaire ce tour-ci"},
   {key:'hpGainedThisTurn', label:'= nombre de PV gagnés ce tour-ci'},
-  {key:'devotionTotal', label:'= votre Dévotion (tous vos dieux)'},
-  {key:'enemyDevotionTotal', label:'= la Dévotion de votre adversaire (tous ses dieux)'},
-  {key:'devotion', label:'= Dévotion de ce dieu'},
-  {key:'devotionOf', label:"= Dévotion d'un dieu précis [nom]", parametric:'cardName'},
+  {key:'devotionTotal', label:'= votre Dévotion (Fidèles arrivés en jeu de votre côté cette partie)'},
+  {key:'enemyDevotionTotal', label:'= la Dévotion de votre adversaire'},
+  {key:'devotion', label:'= votre Dévotion (ancien nom, identique)'},
   {key:'enemyManaSpentLastTurn', label:"= mana dépensé par votre adversaire ce tour-ci (Voracité : compté en direct pendant son tour, gardé jusqu'à son tour suivant)"},
   {key:'opponentManaJustSpent', label:"= mana que l'adversaire vient de dépenser (avec « Chaque fois que l'adversaire dépense du mana »)"},
   {key:'allyManaSpentThisTurn', label:'= mana que vous avez dépensé ce tour-ci'},
@@ -1917,7 +1923,7 @@ function refreshFormVisibility(){
   document.getElementById('f-ritual-wrap').style.display = isRitual ? 'block':'none';
   document.getElementById('f-ritual-offering-mana-wrap').style.display = (isRitual && document.getElementById('f-ritual-offering').checked) ? 'block':'none';
   document.getElementById('f-class3-wrap').style.display = document.getElementById('f-class2').value ? 'block':'none';
-  document.getElementById('f-fidele-wrap').style.display = document.getElementById('f-fidele-enabled').checked ? 'grid':'none';
+  document.getElementById('f-fidele-wrap').style.display = 'none';
   document.getElementById('f-stats-wrap').style.display = showAtk ? 'block':'none';
   document.getElementById('f-hp-wrap').style.display = showHp ? 'block':'none';
   const hpLabel = document.querySelector('#f-hp-wrap label');
@@ -2697,7 +2703,7 @@ function buildTriggerEntryBox(te, tIdx, totalCount, availableTriggers, onRemove)
     tBox.appendChild(orow);
   }
 
-  if(te.trigger==='watchDevotion'){
+  if(false && te.trigger==='watchDevotion'){
     const drow = document.createElement('div'); drow.className='ability-row';
     const f = document.createElement('div'); f.className='field';
     f.innerHTML = `<label class="mini-field">Dieu précis (optionnel : vide = tous vos dieux)</label>`;
@@ -3058,11 +3064,14 @@ function buildTargetsStep(ab, heading){
 function rebuildAbilitiesUI(){
   const list = document.getElementById('abilities-list');
   list.innerHTML = '';
-  const availableTriggers = TRIGGERS_BY_TYPE[currentType] || [];
-  const isSpellLike = currentType==='Sortilège' || currentType==='Rituel';
+  const __availTrigOuter = TRIGGERS_BY_TYPE[currentType] || [];
+  const __spellLikeOuter = currentType==='Sortilège' || currentType==='Rituel';
 
   let regionConverted = 0;
   abilities.forEach((ab, idx)=>{
+    // Capacité « à transmettre » : se règle comme une capacité de créature (celle du dieu qui la recevra)
+    const availableTriggers = ab.transmit ? (TRIGGERS_BY_TYPE['Créature'] || []) : __availTrigOuter;
+    const isSpellLike = __spellLikeOuter && !ab.transmit;
     if(!ab.kind) ab.kind = 'triggered';
     if(!ab.triggers || ab.triggers.length===0) ab.triggers = [ blankTriggerEntry() ];
     ab.triggers.forEach(te=>{
@@ -3076,7 +3085,15 @@ function rebuildAbilitiesUI(){
     // header
     const header = document.createElement('div');
     header.className = 'ability-card-header';
-    header.innerHTML = `<span class="ability-title">Capacité ${idx+1}</span><span class="spacer"></span>`;
+    header.innerHTML = `<span class="ability-title">Capacité ${idx+1}${ab.transmit ? ' — à transmettre aux dieux' : ''}</span><span class="spacer"></span>`;
+    {
+      const tr = document.createElement('label');
+      tr.style.cssText = 'display:flex;align-items:center;gap:4px;font-size:11px;margin-right:8px;cursor:pointer;';
+      tr.title = "Bénédiction : cette capacité ne fait rien sur cette carte ; l'effet « Bénédiction » la donne à vos dieux de la Dévotion.";
+      tr.innerHTML = `<input type="checkbox" ${ab.transmit?'checked':''} style="width:auto;"> À transmettre aux dieux`;
+      tr.querySelector('input').onchange = (e)=>{ ab.transmit = e.target.checked; rebuildAbilitiesUI(); onFormChange(); };
+      header.appendChild(tr);
+    }
     const delBtn = document.createElement('button');
     delBtn.className='mini-btn'; delBtn.textContent='🗑';
     delBtn.onclick = ()=>removeAbility(ab.id);
@@ -3201,7 +3218,7 @@ function rebuildAbilitiesUI(){
       if(ctDef && ctDef.isTurnParity){
         row.appendChild(makeCondSelectField(cond, 'turnParityKind', [['even','Pair (2, 4, 6…)'],['odd','Impair (1, 3, 5…)']], 'even', 'Votre numéro de tour est…'));
       }
-      if(cond.conditionType==='devotionAtLeast'){
+      if(false && cond.conditionType==='devotionAtLeast'){
         const gf=document.createElement('div'); gf.className='field';
         gf.innerHTML='<label class="mini-field">Dieu (vide = cette carte)</label>';
         const gi=document.createElement('input'); gi.type='text'; gi.value=cond.devotionGod||''; gi.placeholder='Ex : Uhaina';
@@ -4287,7 +4304,7 @@ function buildEffectRow(ab, eff, choiceKey){
   if(def.isDiscoverCycle){
     row.appendChild(makeSelectField('Parmi', [{key:'deck',label:'Votre deck'},{key:'discard',label:'Votre défausse'},{key:'all',label:'Toutes les cartes du jeu (copie)'}], eff.discoverCycleSource||'deck', v=>{ eff.discoverCycleSource=v; onFormChange(); }));
   }
-  if(def.isAddDevotion){
+  if(false && def.isAddDevotion){
     const gf = document.createElement('div'); gf.className='field';
     gf.innerHTML = `<label class="mini-field">Dieu (nom exact de la carte)</label>`;
     const gi = document.createElement('input'); gi.type='text'; gi.value=eff.devotionGod||''; gi.placeholder='Ex : Uhaina';
@@ -4682,6 +4699,7 @@ function dynamicValueLabel(obj, dynFieldName, dv){
   }
   if(dv.parametric==='cardName'){
     const nameVal = obj[dynFieldName+'CardName']||'?';
+    if(dv.key==='devotion' || dv.key==='devotionTotal') return 'votre Dévotion';
     if(dv.key==='devotionOf') return `Dévotion ${/^[aeiouyhâàéèêëîïôöûüAEIOUYHÂÀÉÈÊËÎÏÔÖÛÜ]/.test(nameVal) ? "d'" : 'de '}${nameVal}`;
     return `nombre de cartes "${nameVal}"`;
   }
@@ -4964,9 +4982,10 @@ function buildEffectClause(eff, ab){
     case 'destroyRitual': return 'détruisez le Rituel adverse';
     case 'reanimateUnderControl': return `mettez ${targetPhrase(resolvedTarget)} en jeu de votre côté`;
     case 'repairEdifice': return `restaurez ${valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic')} Endurance à ${targetPhrase(resolvedTarget)}`;
+    case 'blessGods': return `vos dieux de la Dévotion gagnent les capacités de Bénédiction de cette carte`;
     case 'addDevotion': {
-      const n = valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic');
-      return `+${n} Dévotion à ${(eff.devotionGod||'').trim() || '?'}`;
+      const n = eff.valueMode==='dynamic' ? valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic') : (parseInt(eff.valueFixed)||1);
+      return `ajoutez ${n} à votre Dévotion`;
     }
     case 'manaTheft':
       return `volez ${valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic')} mana à l'adversaire pendant ${eff.manaTheftDuration||1} tour${(eff.manaTheftDuration||1)>1?'s':''}`;
@@ -5280,7 +5299,7 @@ function conditionClauseBase(cond, ab){
       return `la ${statLabel} ${scopeLabel} est ${compLabel} à ${condValueText(cond)}`;
     }
     case 'turnAtLeast': return `on est au tour ${condValueText(cond)} ou plus`;
-    case 'devotionAtLeast': return (cond.devotionGod||'').trim() ? `la Dévotion de ${cond.devotionGod.trim()} est d'au moins ${condValueText(cond)}` : `la Dévotion est d'au moins ${condValueText(cond)}`;
+    case 'devotionAtLeast': return `votre Dévotion est d'au moins ${condValueText(cond)}`;
     case 'failleInDeck': return `vous avez au moins ${condValueText(cond)} cartes avec Faille dans votre deck`;
     case 'enemyManaSpent': return `votre adversaire a dépensé au moins ${condValueText(cond)} mana ce tour-ci`;
     case 'ritualManaAtLeast': return `votre Rituel contient au moins ${condValueText(cond)} mana`;
@@ -5361,8 +5380,7 @@ function buildAbilitySentence(cardType, ab){
   const labelTrig = ab.kind!=='continuous' && trigKeys.length===1 && LABEL_TRIGGERS.includes(trigKeys[0]) ? trigKeys[0] : null;
   // Fidèle : « Quand cette carte entre en jeu, +1 Dévotion à X » s'écrit « Fidèle de X »
   const effs = ab.effects||[];
-  const fidele = !ab.useChoice && ab.kind!=='continuous' && trigKeys.length===1 && trigKeys[0]==='onPlay' && !condText
-    && effs.length===1 && effs[0].effectType==='addDevotion' && effs[0].valueMode!=='dynamic';
+  const fidele = false;
   if(fidele){
     const god = (effs[0].devotionGod||'').trim() || '?';
     const n = parseInt(effs[0].valueFixed)||1;
@@ -5388,7 +5406,7 @@ function buildAbilitySentence(cardType, ab){
           if(te.watchCardType && te.watchCardType!=='any') fparts.push(te.watchCardType.toLowerCase());
           if(te.watchSubtype && te.watchSubtype.trim()) fparts.push(te.watchSubtypeExclude ? `pas du sous-type ${te.watchSubtype.trim()}` : `sous-type ${te.watchSubtype.trim()}`);
         }
-        if(te.trigger==='watchDevotion' && (te.devotionGodFilter||'').trim()) fparts.push(te.devotionGodFilter.trim());
+
         if(fparts.length) prefix += ` (${fparts.join(', ')})`;
       } else if(WATCH_TRIGGERS.includes(te.trigger)){
         const ownerSuffix = {ally:' alliée', enemy:' ennemie', both:''}[te.triggerOwner||'ally'];
@@ -5541,7 +5559,7 @@ function buildCardText(){
       parts.push(`Règle de deck : votre deck peut avoir une seconde source au choix${typeTxt ? ' pour les cartes'+typeTxt : ''}. Dès qu'une carte de cette seconde source est ajoutée, le deck ne peut contenir que celle-là en plus de la source du héros.`);
     }
   }
-  if(document.getElementById('f-fidele-enabled').checked){
+  if(false){
     const god = document.getElementById('f-fidele-god').value.trim() || '?';
     const n = parseInt(document.getElementById('f-fidele-amount').value)||1;
     const de = /^[aeiouyhâàéèêëîïôöûüAEIOUYHÂÀÉÈÊËÎÏÔÖÛÜ]/.test(god) ? "d'" : 'de ';
@@ -5566,9 +5584,13 @@ function buildCardText(){
       return kw.label;
     }).filter(Boolean).join(', '));
   }
-  abilities.forEach(ab=>{
+  abilities.filter(ab=>!ab.transmit).forEach(ab=>{
     const s = buildAbilitySentence(currentType, ab);
     if(s) parts.push(s);
+  });
+  abilities.filter(ab=>ab.transmit).forEach(ab=>{
+    const s = buildAbilitySentence('Créature', ab);
+    if(s) parts.push(`Bénédiction — vos dieux de la Dévotion gagnent : « ${s} »`);
   });
   return parts.filter(Boolean).join('\n');
 }
@@ -5632,10 +5654,13 @@ function readForm(){
     extraCostType: document.getElementById('f-extracost-type').value,
     extraCostAmount: parseInt(document.getElementById('f-extracost-amount').value) || 1,
     extraCostCustom: document.getElementById('f-extracost-custom').value.trim(),
-    abilities: JSON.parse(JSON.stringify(abilities)),
+    abilities: JSON.parse(JSON.stringify(abilities.filter(a=>!a.transmit))),
+    // Bénédiction : capacités données aux dieux de la Dévotion (jamais actives sur cette carte)
+    transmitAbilities: JSON.parse(JSON.stringify(abilities.filter(a=>a.transmit))),
     keywords: [...keywords],
     persistentKeywords: persistentKeywords.filter(k=>keywords.includes(k)),
-    fideleEnabled: document.getElementById('f-fidele-enabled').checked,
+    fideleEnabled: false,
+    devotionGod: document.getElementById('f-devotion-god').checked,
     fideleGod: document.getElementById('f-fidele-god').value.trim(),
     fideleAmount: parseInt(document.getElementById('f-fidele-amount').value) || 1,
     voraceAtk: document.getElementById('f-vorace-atk').checked,
@@ -5677,6 +5702,8 @@ function loadCardIntoForm(card){
   currentType = card.type;
   subtypes = [...card.subtypes];
   abilities = card.abilities.length ? JSON.parse(JSON.stringify(card.abilities)) : [];
+  // Bénédiction : les capacités « à transmettre » sont rangées à part dans la carte
+  (Array.isArray(card.transmitAbilities) ? card.transmitAbilities : []).forEach(a=>abilities.push(Object.assign(JSON.parse(JSON.stringify(a)), {transmit:true})));
   keywords = [...card.keywords];
   persistentKeywords = [...(card.persistentKeywords||[])];
   mcAllowedClasses = [...(card.heroMultiClass?.allowedClasses || [])];
@@ -5684,7 +5711,8 @@ function loadCardIntoForm(card){
 
   document.getElementById('f-class2').value = card.classSecondary || '';
   document.getElementById('f-class3').value = card.classTertiary || '';
-  document.getElementById('f-fidele-enabled').checked = !!card.fideleEnabled;
+  document.getElementById('f-fidele-enabled').checked = false;
+  document.getElementById('f-devotion-god').checked = !!card.devotionGod;
   document.getElementById('f-fidele-god').value = card.fideleGod || '';
   document.getElementById('f-fidele-amount').value = card.fideleAmount ?? 1;
   // Anciennes cartes (sans le champ) : le bonus de base +1 Force/mana reste actif
@@ -5775,6 +5803,7 @@ function newCard(){
   document.getElementById('f-class2').value = '';
   document.getElementById('f-class3').value = '';
   document.getElementById('f-fidele-enabled').checked = false;
+  document.getElementById('f-devotion-god').checked = false;
   document.getElementById('f-fidele-god').value = '';
   document.getElementById('f-fidele-amount').value = 1;
   document.getElementById('f-vorace-atk').checked = false;
