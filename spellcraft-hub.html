@@ -478,12 +478,15 @@ async function loadHubQuest(userId){
       const t = Math.max(1, x.d.target_count||1); return { title: x.d.title, p: Math.min(t, x.q.progress_count||0), t, done: !!x.q.completed, ratio: Math.min(1,(x.q.progress_count||0)/t) };
     });
     if(!rows.length){ box.textContent = 'Aucune quête en cours'; return; }
-    rows.sort((a,b)=> (b.done - a.done) || (b.ratio - a.ratio));
-    const x = rows[0];
+    // Uniquement les quêtes en cours (pas terminées) : on montre la plus avancée
+    const active = rows.filter(r=>!r.done && r.ratio < 1);
+    if(!active.length){ box.textContent = 'Aucune quête en cours'; return; }
+    active.sort((a,b)=> b.ratio - a.ratio);
+    const x = active[0];
     box.innerHTML = '';
     const a = document.createElement('a'); a.className = 'hb-quest-link'; a.href = 'spellcraft-quests.html'; a.textContent = x.title; box.appendChild(a);
     document.getElementById('hb-quest-bar').style.width = Math.round(x.ratio*100) + '%';
-    hbSet('hb-quest-prog', x.done ? 'Terminée : récompense à récupérer' : (x.p + ' / ' + x.t));
+    hbSet('hb-quest-prog', x.p + ' / ' + x.t);
   }catch(e){ box.textContent = '—'; }
 }
 // Poussière dorée (désactivée si l'utilisateur préfère moins d'animations)
