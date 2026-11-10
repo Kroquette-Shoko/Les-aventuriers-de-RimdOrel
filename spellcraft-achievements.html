@@ -516,7 +516,10 @@ function showToast(msg){
   setTimeout(()=>el.classList.remove('show'), 2600);
 }
 
-initSpellcraftAuth().then(loadAchievements);
+initSpellcraftAuth().then(loadAchievements).then(()=>{
+  // Accès rapide depuis le menu principal : ?view=classement ouvre directement le classement
+  try{ if(new URLSearchParams(location.search).get('view')==='classement' && !showingLeaderboard) toggleLeaderboardView(); }catch(e){}
+});
 playMenuMusicRotation(0.35);
 </script>
 </body>

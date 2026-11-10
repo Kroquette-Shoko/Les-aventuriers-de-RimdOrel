@@ -60,7 +60,7 @@
 .hb-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-content:stretch;}
 .hb-grid .sc-tile{flex-direction:row;align-items:flex-start;gap:12px;padding:14px;min-height:98px;}
 .hb-grid .sc-tile-icon{flex:none;width:44px;height:44px;}
-.hb-news{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border-radius:var(--radius-lg,14px);border:1px dashed color-mix(in srgb,var(--gold) 45%,transparent);
+.hb-news{grid-column:1/-1;display:flex;flex-direction:column;gap:4px;padding:12px 14px;border-radius:var(--radius-lg,14px);border:1px dashed color-mix(in srgb,var(--gold) 45%,transparent);
   font-size:12.5px;color:var(--parchment-dim);cursor:pointer;background:none;text-align:left;font-family:inherit;}
 .hb-news:hover{border-color:var(--gold-bright);}
 .hb-news .hb-news-t{color:var(--parchment);font-size:13px;line-height:1.35;}
@@ -159,6 +159,10 @@
       <a class="sc-tile" href="spellcraft-achievements.html" title="Tes badges et récompenses débloqués.">
         <div class="sc-tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="6"/><path d="M8.5 14 7 21l5-2.5L17 21l-1.5-7"/></svg></div>
         <div class="sc-tile-body"><div class="sc-tile-title">Hauts-faits</div><div class="sc-tile-sub">Tes badges et récompenses débloqués.</div></div>
+      </a>
+      <a class="sc-tile" href="spellcraft-achievements.html?view=classement" title="Ta ligue, tes points et le classement de la saison.">
+        <div class="sc-tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0V4Z"/><path d="M7 6H4v1.5A3.5 3.5 0 0 0 7 11M17 6h3v1.5A3.5 3.5 0 0 1 17 11"/></svg></div>
+        <div class="sc-tile-body"><div class="sc-tile-title">Classement</div><div class="sc-tile-sub">Ta ligue, tes points et le classement de la saison.</div></div>
       </a>
       <a class="sc-tile" href="spellcraft-quests.html" title="Des objectifs à accomplir, des récompenses à la clé.">
         <div class="sc-tile-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/></svg></div>
