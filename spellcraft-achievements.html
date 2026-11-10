@@ -89,11 +89,27 @@
   .card-act{flex-basis:100%;text-align:right;}
 }
 .empty-state{text-align:center;padding:60px 20px;color:var(--parchment-dim);}
-#leaderboard-wrap{max-width:1100px;margin:0 auto;min-width:0;}
-.lb-cols{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:18px;align-items:start;}
-@media(max-width:800px){.lb-cols{grid-template-columns:minmax(0,1fr);}}
-.lb-main,.lb-side{min-width:0;}
-#lb-search{width:100%;box-sizing:border-box;margin-bottom:10px;padding:10px 12px;border-radius:9px;border:1.5px solid var(--line);background:var(--bg-panel);color:inherit;font-size:14px;}
+#leaderboard-wrap{min-width:0;}
+.lb-top{display:flex;flex-direction:column;gap:10px;margin-bottom:12px;}
+#lb-players-body{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+@media(max-width:900px){#lb-players-body{grid-template-columns:minmax(0,1fr);}}
+#lb-search{width:100%;box-sizing:border-box;margin:0 0 10px;padding:11px 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg-panel);color:inherit;font-size:14px;}
+#lb-players-body .empty-state{grid-column:1/-1;}
+.lb-main{min-width:0;}
+.lb-hero{display:flex;align-items:center;gap:22px;flex-wrap:wrap;padding:16px 22px;border-radius:16px;border:1px solid var(--gold);background:linear-gradient(100deg,var(--bg-panel-3),var(--bg-panel));}
+.lb-ring{position:relative;width:104px;height:104px;flex:none;}
+.lb-ring svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);}
+.lb-ring .lb-ring-in{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.lb-ring .lb-ring-ico{font-size:30px;line-height:1;}
+.lb-ring .lb-ring-pts{font-family:'Cinzel',serif;font-weight:700;font-size:13px;color:var(--gold);margin-top:3px;}
+.lb-hero-mid{flex:1;min-width:220px;}
+.lb-hero-lbl{font-size:11px;letter-spacing:2px;color:var(--parchment-dim);text-transform:uppercase;}
+.lb-hero-league{font-family:'Cinzel',serif;font-weight:700;font-size:24px;color:var(--gold);}
+.lb-hero-end{text-align:right;max-width:260px;margin-left:auto;}
+.lb-hero-end .lb-reward-val{color:var(--gold);font-weight:600;margin:3px 0;}
+.lb-details{margin-top:14px;border:1px solid var(--line);border-radius:12px;background:var(--bg-panel);padding:10px 14px;}
+.lb-details summary{cursor:pointer;font-family:'Cinzel',serif;font-weight:700;color:var(--gold);font-size:13px;}
+.lb-details .lb-grades{margin:10px 0;}
 .lb-who{flex:1;min-width:0;}
 .lb-who .lb-name{display:block;text-decoration:none;color:inherit;}
 .lb-who .lb-name:hover{color:var(--gold);}
@@ -122,13 +138,6 @@
 .lb-row .lb-rating{font-family:'Cinzel',serif;font-weight:700;color:var(--gold);min-width:64px;text-align:right;}
 .lb-row .lb-record{font-size:11px;color:var(--parchment-dim);min-width:58px;text-align:right;}
 .lb-row.lb-me{border-color:#4aa3ff;}
-#lb-season-head{text-align:center;font-family:'Cinzel',serif;color:var(--gold);margin:0 0 10px;font-size:15px;}
-#lb-me-card{background:var(--bg-panel);border:1.5px solid var(--gold);border-radius:12px;padding:14px 16px;margin-bottom:14px;}
-#lb-me-card .lb-me-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;}
-#lb-me-card .lb-me-league{font-family:'Cinzel',serif;font-weight:700;font-size:18px;color:var(--gold);}
-#lb-me-card .lb-bar{height:8px;border-radius:5px;background:rgba(255,255,255,.1);margin:8px 0 4px;overflow:hidden;}
-#lb-me-card .lb-bar > span{display:block;height:100%;background:var(--gold);}
-#lb-me-card .lb-sub{font-size:11.5px;color:var(--parchment-dim);}
 #lb-me-card .lb-recent{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap;}
 #lb-me-card .lb-chip{font-size:11px;padding:1px 7px;border-radius:7px;font-weight:700;}
 #lb-me-card .lb-chip.up{background:rgba(74,157,107,.25);color:#7fd6a0;}
@@ -370,6 +379,7 @@ async function loadLeaderboardRows(){
   const { data, error } = await sb.rpc('get_ranked_board', { p_search: LB_STATE.search || null, p_limit: LB_PAGE_SIZE, p_offset: LB_STATE.page*LB_PAGE_SIZE });
   if(error || !data || data.error){ body.innerHTML = `<div class="empty-state" style="padding:24px;">Le tableau n'est pas disponible pour l'instant.</div>`; return; }
   LB_STATE.total = data.total;
+  if(!LB_STATE.search){ const t = document.getElementById('lb-total'); if(t) t.textContent = data.total; }
   const pages = Math.max(1, Math.ceil(data.total/LB_PAGE_SIZE));
   if(!data.players.length){
     body.innerHTML = `<div class="empty-state" style="padding:24px;">${LB_STATE.search ? 'Aucun joueur ne correspond à cette recherche.' : 'Aucun joueur pour l\'instant.'}</div>`;
@@ -405,14 +415,14 @@ async function loadLeaderboard(){
   try{ const { data: au } = await sb.auth.getUser(); LB_STATE.myId = au && au.user && au.user.id; }catch(e){}
   LB_STATE.page = 0; LB_STATE.search = '';
   const season = (me && me.ok && me.season) ? me.season : null;
-  let top = `<div id="lb-season-head">${season ? 'Saison de '+escapeHtml(seasonLabel(season)) : 'Classement'}</div>`;
+  let top = '';
   if(me && me.ok && me.pendingRewards && me.pendingRewards.length){
     const total = me.pendingRewards.reduce((s,r)=>s+r.gold,0), totalB = me.pendingRewards.reduce((s,r)=>s+(r.boosters||0),0);
     const detail = me.pendingRewards.map(r=>`${escapeHtml(seasonLabel(r.season))} : ${LEAGUE_ICONS[r.league]||''} ${escapeHtml(r.league)}`).join(' · ');
-    top += `<div id="lb-reward"><div><strong>Récompenses de saison à réclamer : +${rewardText(total, totalB)}</strong><div class="lb-sub" style="font-size:11.5px;color:var(--parchment-dim);">${detail}</div></div>
+    top += `<div id="lb-reward"><div style="font-size:26px;">🎁</div><div style="flex:1;min-width:180px;"><strong>Récompenses de saison à réclamer : +${rewardText(total, totalB)}</strong><div class="lb-sub">${detail}</div></div>
       <button class="claim-btn" style="margin-top:0;" onclick="claimSeasonRewardsUi()">Réclamer</button></div>`;
   }
-  // Colonne droite : grades, progression, récompenses
+  // Grades et récompenses (repliable, en bas de page)
   const myLeague = (me && me.ok) ? me.league : null;
   const rows = LEAGUE_ORDER.map((l,i)=>{
     const from = LEAGUE_FLOORS[l], next = LEAGUE_ORDER[i+1];
@@ -420,32 +430,35 @@ async function loadLeaderboard(){
     const r = LEAGUE_REWARDS[l];
     return `<tr class="${l===myLeague?'lb-cur':''}"><td>${LEAGUE_ICONS[l]} ${l}</td><td>${range}</td><td>${r[0]>0?rewardText(r[0], r[1]):'—'}</td></tr>`;
   }).join('');
-  let progress = '';
   if(me && me.ok){
     const floor = LEAGUE_FLOORS[me.league] || 0;
-    const pct = me.nextLeagueAt ? Math.max(0, Math.min(100, Math.round(((me.rating-floor)/(me.nextLeagueAt-floor))*100))) : 100;
+    const pc = me.nextLeagueAt ? Math.max(0, Math.min(1, (me.rating-floor)/(me.nextLeagueAt-floor))) : 1;
+    const R = 46, C = 2*Math.PI*R;
     const rw = LEAGUE_REWARDS[me.league] || [0,0];
     const chips = (me.recent||[]).map(c=>`<span class="lb-chip ${c.delta>=0?'up':'down'}" title="${c.won?'Victoire':'Défaite'}">${c.delta>=0?'+':''}${c.delta}</span>`).join('');
-    progress = `<div id="lb-me-card">
-      <div class="lb-me-top"><span class="lb-me-league">${LEAGUE_ICONS[me.league]||''} ${escapeHtml(me.league)}</span>
-        <span><strong>${me.rating} pts</strong>${me.rank?` · #${me.rank}`:''}</span></div>
-      <div class="lb-bar"><span style="width:${pct}%"></span></div>
-      <div class="lb-sub">${me.nextLeagueAt ? `${me.nextLeagueAt-me.rating} pts avant ${escapeHtml(LEAGUE_ORDER[LEAGUE_ORDER.indexOf(me.league)+1]||'')}` : 'Ligue maximale atteinte'} · ${me.wins}V ${me.losses}D · meilleur : ${me.peak}</div>
-      <div class="lb-sub" style="margin-top:8px;"><strong>Récompense de fin de saison avec votre rang actuel :</strong> ${rw[0]>0?rewardText(rw[0], rw[1]):'aucune'}${me.games<5?`<br>Encore ${5-me.games} partie${5-me.games>1?'s':''} classée${5-me.games>1?'s':''} pour y avoir droit.`:''}</div>
-      ${chips?`<div class="lb-recent">${chips}</div>`:''}
+    top += `<div id="lb-me-card" class="lb-hero">
+      <div class="lb-ring"><svg viewBox="0 0 104 104"><circle cx="52" cy="52" r="${R}" fill="none" stroke="var(--line)" stroke-width="7"/><circle cx="52" cy="52" r="${R}" fill="none" stroke="var(--gold)" stroke-width="7" stroke-linecap="round" stroke-dasharray="${C*pc} ${C}"/></svg>
+        <div class="lb-ring-in"><span class="lb-ring-ico">${LEAGUE_ICONS[me.league]||''}</span><span class="lb-ring-pts">${me.rating} pts</span></div></div>
+      <div class="lb-hero-mid">
+        <div class="lb-hero-lbl">${season ? 'Saison de '+escapeHtml(seasonLabel(season)) : 'Classement'}</div>
+        <div class="lb-hero-league">${LEAGUE_ICONS[me.league]||''} ${escapeHtml(me.league)}${me.rank?` · #${me.rank} sur <span id="lb-total">…</span>`:''}</div>
+        <div class="lb-sub">${me.nextLeagueAt ? `${me.nextLeagueAt-me.rating} pts avant ${escapeHtml(LEAGUE_ORDER[LEAGUE_ORDER.indexOf(me.league)+1]||'')}` : 'Ligue maximale atteinte'} · ${me.wins}V ${me.losses}D · meilleur : ${me.peak}</div>
+        ${chips?`<div class="lb-recent">${chips}</div>`:''}
+      </div>
+      <div class="lb-hero-end"><div class="lb-hero-lbl">Fin de saison</div><div class="lb-reward-val">${rw[0]>0?rewardText(rw[0], rw[1]):'aucune récompense'}</div><div class="lb-sub">Récompense avec votre rang actuel${me.games<5?`<br>Encore ${5-me.games} partie${5-me.games>1?'s':''} classée${5-me.games>1?'s':''} pour y avoir droit.`:''}</div></div>
     </div>`;
+  } else {
+    top += `<div id="lb-season-head" style="font-family:'Cinzel',serif;color:var(--gold);font-size:15px;">${season ? 'Saison de '+escapeHtml(seasonLabel(season)) : 'Classement'}</div>`;
   }
-  const right = `<div class="lb-side">
-    <table class="lb-grades"><thead><tr><th>Grade</th><th>Points</th><th>Récompense de fin de saison</th></tr></thead><tbody>${rows}</tbody></table>
-    ${progress}
-    <div class="lb-sub lb-rules-mini">+20 points par victoire contre un joueur. Défaite : rien avant l'Argent, −10 de l'Argent à l'Or, −20 à partir du Platine. Récompenses à partir de 5 parties classées.</div>
-  </div>`;
-  const left = `<div class="lb-main">
+  const list = `<div class="lb-main">
     <input id="lb-search" type="search" placeholder="Rechercher un joueur par nom..." autocomplete="off" oninput="lbSearchInput(this.value)">
     <div id="lb-players-body"></div>
     <div class="lb-pager"><button id="lb-prev" class="claim-btn" onclick="lbGoPage(-1)">‹ Précédent</button><span id="lb-page-info" class="lb-sub"></span><button id="lb-next" class="claim-btn" onclick="lbGoPage(1)">Suivant ›</button></div>
   </div>`;
-  wrap.innerHTML = top + `<div class="lb-cols">${left}${right}</div>`;
+  const details = `<details class="lb-details"><summary>Grades et récompenses de fin de saison</summary>
+    <table class="lb-grades"><thead><tr><th>Grade</th><th>Points</th><th>Récompense de fin de saison</th></tr></thead><tbody>${rows}</tbody></table>
+    <div class="lb-sub lb-rules-mini">+20 points par victoire contre un joueur. Défaite : rien avant l'Argent, −10 de l'Argent à l'Or, −20 à partir du Platine. Récompenses à partir de 5 parties classées.</div></details>`;
+  wrap.innerHTML = `<div class="lb-top">${top}</div>` + list + details;
   await loadLeaderboardRows();
 }
 
