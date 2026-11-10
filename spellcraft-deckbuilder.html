@@ -620,6 +620,10 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 .lp-chip .dot{width:10px;height:10px;border-radius:50%;background:var(--qc,var(--gold));flex:none;box-shadow:0 0 5px var(--qc,transparent);}
 .lp-chip.src.on{background:var(--qc);border-color:var(--qc);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.6);}
 .lp-chip.src.on .dot{background:#fff;box-shadow:none;}
+.lp-chip.multi .dot{background:conic-gradient(#d4af37,#c23b3b,#8a5cf0,#5b9bd5,#3fae5c,#d4af37);box-shadow:0 0 5px #fff4;}
+.lp-chip.multi{border-color:color-mix(in srgb,#8a5cf0 55%,var(--line));}
+.lp-chip.multi.on{background:linear-gradient(90deg,#d4af37,#c23b3b,#8a5cf0,#5b9bd5,#3fae5c);border-color:#fff8;color:#fff;font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.7);}
+.lp-chip.multi.on .dot{background:#fff;box-shadow:none;}
 .lp-chip .gem{width:9px;height:9px;transform:rotate(45deg);border-radius:2px;background:var(--rc);flex:none;}
 .lp-stat{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--parchment-dim);}
 .lp-stat span{width:70px;flex:none;}
@@ -1245,7 +1249,7 @@ function buildLeftPanel(){
   leftPanelBuilt = true;
   $id('lp-rar').innerHTML = RARITIES.map(r=>`<button type="button" class="lp-chip" data-lp="rarities" data-k="${escapeHtml(r)}" style="--rc:${RAR_COLOR[r]||'#999'}"><i class="gem"></i>${escapeHtml(r)}</button>`).join('');
   $id('lp-kw').innerHTML = KEYWORDS.map(k=>`<button type="button" class="lp-chip" data-lp="keywords" data-k="${escapeHtml(k.key)}" title="${escapeHtml(k.desc||'')}">${escapeHtml(k.label)}</button>`).join('');
-  $id('lp-opt').innerHTML = OPTION_TOGGLES.map(([k,label,tip])=>`<button type="button" class="lp-chip" data-lp="tog" data-k="${k}" title="${escapeHtml(tip)}">${escapeHtml(label)}</button>`).join('');
+  $id('lp-opt').innerHTML = OPTION_TOGGLES.filter(o=>o[0]!=='multiOnly').map(([k,label,tip])=>`<button type="button" class="lp-chip" data-lp="tog" data-k="${k}" title="${escapeHtml(tip)}">${escapeHtml(label)}</button>`).join('');
 }
 function buildFilterDropdowns(){ buildLeftPanel(); }
 function toggleLeftPanel(){ $id('lp-col').classList.toggle('collapsed'); }
@@ -2068,7 +2072,7 @@ function buildQuickBar(){
   bar.innerHTML = `
     <div class="qb-row" id="qb-src"><span class="qb-lbl">Source</span>${
       QUICK_CLASSES.map(k=>`<button type="button" class="lp-chip src" data-lp="classes" data-k="${escapeHtml(k)}" style="--qc:${getClassColor(k)}"><i class="dot"></i>${escapeHtml(k)}</button>`).join('')
-    }</div>
+    }<button type="button" class="lp-chip multi" data-lp="tog" data-k="multiOnly" title="Affiche seulement les cartes de 2 sources"><i class="dot"></i>Multi-source</button></div>
     <div class="qb-row" id="qb-cost"><span class="qb-lbl">Coût</span>${
       [0,1,2,3,4,5,6,7].map(n=>`<button type="button" class="qcost" data-n="${n}" onclick="quickCost(${n})">${n===7?'7+':n}</button>`).join('')
     }</div>
@@ -2171,6 +2175,7 @@ function syncQuickBar(){
     b.classList.toggle('dim', !usable);
     b.title = usable ? '' : 'Source non disponible avec ce héros';
   });
+  bar.querySelectorAll('[data-lp="tog"]').forEach(b=>b.classList.toggle('on', !!filters[b.dataset.k]));
   bar.querySelectorAll('.qcost').forEach(b=>b.classList.toggle('on', cs === +b.dataset.n));
   const types = CARD_TYPES.filter(t=>t!=='Héros' && (t!=='Région' || !currentDeck));
   $id('qb-types-list').innerHTML = types.map(t=>`<button type="button" class="lp-chip${filters.types.has(t)?' on':''}" data-lp="types" data-k="${escapeHtml(t)}">${TYPE_EMOJI[t]||''} ${escapeHtml(t)}</button>`).join('');
