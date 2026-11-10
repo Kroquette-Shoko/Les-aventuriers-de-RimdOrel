@@ -542,15 +542,27 @@ body.bfx-hero-dead-p1 #hero-frame-p1, body.bfx-hero-dead-p2 #hero-frame-p2{visib
       const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
 
       // 1) le cadre se fissure : copies superposées, léger tremblement + lueur
-      const COLS = 4, ROWS = 5;
+      // Zone découpée = le cadre + tout ce qui dépasse (bulle de PV, indicateurs…).
+      // Sans ça, les éclats (clip-path) coupaient ce qui sort du rectangle du cadre.
+      let ux0 = r.left, uy0 = r.top, ux1 = r.right, uy1 = r.bottom;
+      frameEl.querySelectorAll('*').forEach((n) => {
+        const q = n.getBoundingClientRect();
+        if (!q.width || !q.height) return;
+        ux0 = Math.min(ux0, q.left); uy0 = Math.min(uy0, q.top);
+        ux1 = Math.max(ux1, q.right); uy1 = Math.max(uy1, q.bottom);
+      });
+      const PAD = 4;
+      const ox = ux0 - r.left - PAD, oy = uy0 - r.top - PAD;
+      const uw = ux1 - ux0 + PAD * 2, uh = uy1 - uy0 + PAD * 2;
+      const COLS = 5, ROWS = 5;
       const pts = [];
       for (let j = 0; j <= ROWS; j++) {
         pts[j] = [];
         for (let i = 0; i <= COLS; i++) {
           const edge = i === 0 || j === 0 || i === COLS || j === ROWS;
-          const jx = edge ? 0 : (Math.random() - 0.5) * (r.width / COLS) * 0.7;
-          const jy = edge ? 0 : (Math.random() - 0.5) * (r.height / ROWS) * 0.7;
-          pts[j][i] = [(i / COLS) * r.width + jx, (j / ROWS) * r.height + jy];
+          const jx = edge ? 0 : (Math.random() - 0.5) * (uw / COLS) * 0.7;
+          const jy = edge ? 0 : (Math.random() - 0.5) * (uh / ROWS) * 0.7;
+          pts[j][i] = [ox + (i / COLS) * uw + jx, oy + (j / ROWS) * uh + jy];
         }
       }
       const shards = [];
@@ -562,7 +574,8 @@ body.bfx-hero-dead-p1 #hero-frame-p1, body.bfx-hero-dead-p2 #hero-frame-p2{visib
       }
       const glow = document.createElement('div');
       glow.className = 'bfx-death-layer bfx-death-glow';
-      glow.style.cssText = 'left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px;box-shadow:0 0 40px 12px rgba(' + rgb + ',.9), inset 0 0 40px rgba(' + rgb + ',.8);';
+      const pr = (frameEl.querySelector('.hero-portrait-big') || frameEl).getBoundingClientRect();
+      glow.style.cssText = 'border-radius:50%;left:' + pr.left + 'px;top:' + pr.top + 'px;width:' + pr.width + 'px;height:' + pr.height + 'px;box-shadow:0 0 40px 12px rgba(' + rgb + ',.9), inset 0 0 40px rgba(' + rgb + ',.8);';
       add(glow);
 
       const els = shards.map((tri) => {
