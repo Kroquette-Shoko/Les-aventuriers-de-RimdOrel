@@ -254,5 +254,85 @@
     });
   }
 
-  window.BFX2 = { heroPower, kindOf, playOnCard, cycle: cyc, auraOn, auraOff, syncAuras, colors: COL };
+
+  // ---------- Rituel : runes dorées ----------
+  const RUNES = 'ᚠᚢᚦᚨᚱᚲᚷᚹ';
+  // Runes qui voyagent de `from` à `to` (élément ou rectangle). onHit(i) à chaque arrivée ;
+  // la promesse se résout quand tout est arrivé.
+  function runeFlight(from, to, n, onHit) {
+    return new Promise((resolve) => {
+      try {
+        if (off() || !from || !to) { resolve(); return; }
+        const a = R(from), b = R(to); let done = 0;
+        for (let i = 0; i < n; i++) later(() => {
+          const e = fx('left:0;top:0;margin:-11px;font:700 22px Georgia,serif;color:' + COL.trig + ';text-shadow:0 0 10px #ffb400;', RUNES[i % 8], ms(1200));
+          const lift = -50 - Math.random() * 40, sx = (Math.random() - .5) * 60, kf = [];
+          for (let k = 0; k <= 12; k++) {
+            const f = k / 12, cx = (a.cx + b.cx) / 2 + sx, cy = Math.min(a.cy, b.cy) + lift;
+            const x = (1 - f) * (1 - f) * a.cx + 2 * (1 - f) * f * cx + f * f * b.cx, y = (1 - f) * (1 - f) * a.cy + 2 * (1 - f) * f * cy + f * f * b.cy;
+            kf.push({ transform: 'translate(' + x + 'px,' + y + 'px) scale(' + (k === 0 ? .5 : k === 12 ? .4 : 1) + ')', opacity: (k === 0 || k === 12) ? .2 : 1 });
+          }
+          const an = e.animate(kf, { duration: ms(650), easing: 'cubic-bezier(.4,0,.7,.7)', fill: 'forwards' });
+          an.onfinish = () => { e.remove(); try { onHit && onHit(i); } catch (x) { /* ignoré */ } if (++done >= n) resolve(); };
+        }, ms(90) * i);
+        later(resolve, ms(90) * n + ms(1000)); // filet de sécurité
+      } catch (e) { resolve(); }
+    });
+  }
+  function ritualPulse(el) { glow(el, COL.trig, 380, 30); }
+  // Rituel accompli : runes qui s'emballent, colonne de lumière, la carte apparaît puis se disperse en runes.
+  // anchor = élément ou rectangle du centre de l'anneau ; cardNode = carte (cardEl) ; up = la carte monte (sinon descend).
+  function ritualComplete(anchor, cardNode, up) {
+    return new Promise((resolve) => {
+      try {
+        if (off() || !anchor) { resolve(); return; }
+        const r = R(anchor), G = COL.trig, Rr = 60, sgn = up ? -1 : 1;
+        const life = ms(4200);
+        const ringEl = fx('left:' + (r.cx - 42) + 'px;top:' + (r.cy - 42) + 'px;width:84px;height:84px;border-radius:50%;box-sizing:border-box;border:6px solid ' + G + ';background:radial-gradient(circle at 40% 35%,#2b1d3d,#0e0816);box-shadow:0 0 18px ' + G + ';', '', life);
+        ringEl.animate([{ opacity: 0 }, { opacity: 1 }], { duration: ms(200), fill: 'forwards' });
+        let gl = '';
+        for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 - Math.PI / 2; gl += '<div style="position:absolute;left:' + (Rr + Math.cos(a) * 52 - 11) + 'px;top:' + (Rr + Math.sin(a) * 52 - 11) + 'px;width:22px;text-align:center;font:700 18px Georgia,serif;color:' + G + ';text-shadow:0 0 10px #ffb400">' + RUNES[i] + '</div>'; }
+        const runes = fx('left:' + (r.cx - Rr) + 'px;top:' + (r.cy - Rr) + 'px;width:' + Rr * 2 + 'px;height:' + Rr * 2 + 'px;', gl, life);
+        later(() => runes.animate([{ transform: 'rotate(0deg)' }, { transform: 'rotate(180deg)' }], { duration: ms(900), easing: 'ease-in-out', fill: 'forwards' }), ms(200));
+        later(() => {
+          const h = Math.min(up ? r.cy : window.innerHeight - r.cy, 340), o = up ? '50% 100%' : '50% 0%';
+          const col = fx('left:' + (r.cx - 40) + 'px;top:' + (up ? r.cy - h : r.cy) + 'px;width:80px;height:' + h + 'px;filter:blur(6px);background:linear-gradient(' + (up ? '0deg' : '180deg') + ',' + G + 'cc,' + G + '00);', '', ms(1300));
+          col.animate([{ opacity: 0, transform: 'scaleX(.2)', transformOrigin: o }, { opacity: 1, transform: 'scaleX(1)', transformOrigin: o, offset: .25 }, { opacity: 0, transform: 'scaleX(.5)', transformOrigin: o }], { duration: ms(1200), fill: 'forwards' });
+        }, ms(300));
+        // la carte
+        const wrap = fx('left:' + r.cx + 'px;top:' + r.cy + 'px;z-index:9994;', '', life);
+        if (cardNode) { cardNode.style.position = 'absolute'; cardNode.style.left = '0'; cardNode.style.top = '0'; cardNode.style.transform = 'translate(-50%,-50%) scale(.45)'; cardNode.style.boxShadow = '0 0 26px ' + G; wrap.appendChild(cardNode); }
+        const dy = sgn * 150;
+        later(() => { wrap.animate([{ opacity: 0, transform: 'translate(0,0) scale(.25)' }, { opacity: 1, transform: 'translate(0,' + dy + 'px) scale(1)' }], { duration: ms(700), easing: 'cubic-bezier(.2,.8,.3,1)', fill: 'forwards' }); }, ms(450));
+        later(() => {
+          for (let i = 0; i < 16; i++) fx('left:' + (r.cx + (Math.random() - .5) * 90) + 'px;top:' + (r.cy + dy + (Math.random() - .3) * 100) + 'px;font:700 20px Georgia,serif;color:' + G + ';text-shadow:0 0 10px #ffb400', RUNES[i % 8], ms(1700))
+            .animate([{ opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: 'translateY(' + (-70 - Math.random() * 60) + 'px)' }], { duration: ms(1000 + Math.random() * 500), fill: 'forwards' });
+          wrap.animate([{ opacity: 1, transform: 'translate(0,' + dy + 'px) scale(1)', filter: 'brightness(1)' }, { opacity: 0, transform: 'translate(0,' + (dy - 50) + 'px) scale(1.08)', filter: 'brightness(3)' }], { duration: ms(800), fill: 'forwards' });
+          [ringEl, runes].forEach((e) => e.animate([{ opacity: 1 }, { opacity: 0 }], { duration: ms(600), fill: 'forwards' }));
+        }, ms(2000));
+        later(resolve, ms(2900));
+      } catch (e) { resolve(); }
+    });
+  }
+  // Rituel détruit : l'anneau se brise en éclats dorés.
+  function ritualDestroy(anchor) {
+    return new Promise((resolve) => {
+      try {
+        if (off() || !anchor) { resolve(); return; }
+        const r = R(anchor), G = COL.trig;
+        const ringEl = fx('left:' + (r.cx - 42) + 'px;top:' + (r.cy - 42) + 'px;width:84px;height:84px;border-radius:50%;box-sizing:border-box;border:6px solid ' + G + ';background:radial-gradient(circle at 40% 35%,#2b1d3d,#0e0816);box-shadow:0 0 18px ' + G + ';', '', ms(1100));
+        ringEl.animate([{ opacity: 1, transform: 'scale(1) rotate(0)' }, { opacity: 1, transform: 'scale(1.08) rotate(-4deg)', offset: .25 }, { opacity: 0, transform: 'scale(.2) rotate(30deg)' }], { duration: ms(700), fill: 'forwards' });
+        for (let i = 0; i < 20; i++) {
+          const a = Math.random() * 6.28, d = 50 + Math.random() * 80;
+          fx('left:' + r.cx + 'px;top:' + r.cy + 'px;width:' + (6 + Math.random() * 7) + 'px;height:' + (12 + Math.random() * 12) + 'px;background:' + (i % 2 ? G : '#ff7a6a') + ';clip-path:polygon(50% 0,100% 100%,0 100%)', '', ms(1000))
+            .animate([{ opacity: 1, transform: 'translate(0,0)' }, { opacity: 0, transform: 'translate(' + Math.cos(a) * d + 'px,' + (Math.sin(a) * d + 40) + 'px) rotate(' + a * 220 + 'deg)' }], { duration: ms(800), fill: 'forwards' });
+        }
+        fx('left:' + (r.cx - 50) + 'px;top:' + (r.cy - 50) + 'px;width:100px;height:100px;border-radius:50%;border:4px solid #ff7a6a;box-shadow:0 0 22px #ff7a6a', '', ms(700))
+          .animate([{ opacity: 1, transform: 'scale(.5)' }, { opacity: 0, transform: 'scale(2.4)' }], { duration: ms(600), fill: 'forwards' });
+        later(resolve, ms(800));
+      } catch (e) { resolve(); }
+    });
+  }
+
+  window.BFX2 = { heroPower, runeFlight, ritualPulse, ritualComplete, ritualDestroy, kindOf, playOnCard, cycle: cyc, auraOn, auraOff, syncAuras, colors: COL };
 })();

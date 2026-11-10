@@ -382,6 +382,7 @@ function renderHeroFrame(key, slot){
   } else if(canActivate){
     btn.onclick = uiActivateHeroPower;
   }
+  ritualWatch(key, slot, el);
   renderRitualSlot(key, slot, el);
 }
 
@@ -395,10 +396,81 @@ function canPourRitualClient(){
   const played = Object.values(me.cardsPlayedThisTurnByType||{}).reduce((a,b)=>a+(b||0),0);
   return played===0 && ((me.manaNormal||0)+(me.manaFragile||0))>0;
 }
+// --- Animation du Rituel (runes) : détectée en comparant l'état d'un rendu au suivant ---
+// (le moteur n'écrit pas ces événements dans le journal structuré).
+//   mana en hausse  -> runes de la réserve de mana vers l'anneau ;
+//   mana en baisse  -> les runes quittent l'anneau ;
+//   Rituel disparu  -> « accompli » (p.ritualsDone a augmenté) ou « détruit ».
+const __RIT_SEEN = {};   // key -> { mana, total, card, done }
+const __RIT_HOLD = {};   // key -> mana affiché pendant qu'une animation est en cours
+function ritualRunesHtml(mana, tot){
+  const lit = tot>0 ? Math.round(Math.min(mana,tot)/tot*8) : 0;
+  let h = '';
+  for(let i=0;i<8;i++){
+    const a = i/8*Math.PI*2 - Math.PI/2;
+    h += `<span class="rit-rune ${i<lit?'lit':''}" style="left:${(42+Math.cos(a)*54).toFixed(1)}px;top:${(42+Math.sin(a)*54).toFixed(1)}px">${'ᚠᚢᚦᚨᚱᚲᚷᚹ'[i]}</span>`;
+  }
+  return h;
+}
+function ritualRingSet(key, mana){
+  const slot = key===MY_KEY ? 'p1' : 'p2';
+  const wrap = document.querySelector(`#hero-frame-${slot} .ritual-slot`);
+  const r = S[key] && S[key].ritual; if(!wrap || !r) return;
+  const tot = ritualTotalClient(r);
+  const ring = wrap.querySelector('.ritual-ring'), num = wrap.querySelector('.rit-num'), runes = wrap.querySelector('.ritual-runes');
+  if(ring) ring.style.setProperty('--rit-p', tot>0 ? Math.round(mana*100/tot) : 0);
+  if(num) num.textContent = `${mana}/${tot}`;
+  if(runes) runes.innerHTML = ritualRunesHtml(mana, tot);
+}
+function ritualAnchorRect(slot, frameEl){
+  const f = frameEl.getBoundingClientRect();
+  return slot==='p1'
+    ? { left:f.right+14+59, top:f.bottom-74, width:0, height:0 }
+    : { left:f.left-14-59, top:f.top+42, width:0, height:0 };
+}
+function ritualWatch(key, slot, frameEl){
+  const p = S && S[key];
+  const r = p && p.ritual && p.ritual.card ? p.ritual : null;
+  const done = (p && p.ritualsDone) || 0;
+  const prev = __RIT_SEEN[key];
+  const cur = r ? { mana:Math.min(r.mana||0, ritualTotalClient(r)), total:ritualTotalClient(r), card:r.card, done } : { gone:true, done };
+  __RIT_SEEN[key] = cur;
+  if(!prev || !window.BFX2 || combatInstant()) return;
+  const mine = key===MY_KEY;
+  if(prev.card && cur.gone){
+    const accomplished = done > (prev.done||0);
+    const anchor = ritualAnchorRect(slot, frameEl);
+    const node = accomplished && typeof cardEl==='function' ? cardEl(prev.card) : null;
+    queueCombatAnim(()=> accomplished ? BFX2.ritualComplete(anchor, node, mine) : BFX2.ritualDestroy(anchor));
+  } else if(prev.card && cur.card && prev.card===cur.card || (prev.card && cur.card && (prev.card.id||prev.card.name)===(cur.card.id||cur.card.name))){
+    if(cur.mana > prev.mana){
+      __RIT_HOLD[key] = prev.mana;
+      queueCombatAnim(()=>{
+        const fromEl = document.getElementById(`mana-box-${slot}`) || frameEl;
+        const ringEl = frameEl.querySelector('.ritual-ring');
+        const n = Math.min(10, cur.mana - prev.mana + 2);
+        return BFX2.runeFlight(fromEl, ringEl, n, (i)=>{
+          const m = Math.min(cur.mana, prev.mana + Math.ceil((i+1)*(cur.mana-prev.mana)/n));
+          ritualRingSet(key, m);
+          BFX2.ritualPulse(frameEl.querySelector('.ritual-ring'));
+        }).then(()=>{ delete __RIT_HOLD[key]; ritualRingSet(key, cur.mana); });
+      });
+    } else if(cur.mana < prev.mana){
+      __RIT_HOLD[key] = prev.mana;
+      queueCombatAnim(()=>{
+        const ringEl = frameEl.querySelector('.ritual-ring');
+        const up = ringEl ? ringEl.getBoundingClientRect() : null;
+        const away = up ? { left:up.left+up.width/2+30, top:-20, width:0, height:0 } : null;
+        return BFX2.runeFlight(ringEl, away, Math.min(10, prev.mana-cur.mana+2), null)
+          .then(()=>{ delete __RIT_HOLD[key]; ritualRingSet(key, cur.mana); });
+      });
+    }
+  }
+}
 function renderRitualSlot(key, slot, frameEl){
   const r = S[key] && S[key].ritual;
   if(!r || !r.card) return;
-  const tot = ritualTotalClient(r), mana = Math.min(r.mana||0, tot);
+  const tot = ritualTotalClient(r), mana = Math.min(__RIT_HOLD[key]!=null ? __RIT_HOLD[key] : (r.mana||0), tot);
   const pct = tot>0 ? Math.round(mana*100/tot) : 0;
   const color = (typeof getClassColor==='function' ? getClassColor(r.card.class) : null) || '#c98bff';
   const mine = key===MY_KEY;
@@ -407,9 +479,12 @@ function renderRitualSlot(key, slot, frameEl){
   const wrap = document.createElement('div');
   wrap.className = 'ritual-slot';
   wrap.innerHTML = `
-    <button class="ritual-ring ${canPour?'can-pour':''}" style="--rit-p:${pct};--rit-c:${color};" title="Rituel : ${escapeHtml(r.card.name||'')} — ${mana}/${tot} mana (clic : voir la carte)">
-      <div class="ritual-ring-inner"><span class="rit-num">${mana}/${tot}</span><span class="rit-lbl">Rituel</span></div>
-    </button>
+    <div class="ritual-ringwrap">
+      <div class="ritual-runes">${ritualRunesHtml(mana, tot)}</div>
+      <button class="ritual-ring ${canPour?'can-pour':''}" style="--rit-p:${pct};--rit-c:${color};" title="Rituel : ${escapeHtml(r.card.name||'')} — ${mana}/${tot} mana (clic : voir la carte)">
+        <div class="ritual-ring-inner"><span class="rit-num">${mana}/${tot}</span><span class="rit-lbl">Rituel</span></div>
+      </button>
+    </div>
     <div class="ritual-name">${escapeHtml(r.card.name||'Rituel')}</div>`;
   wrap.querySelector('.ritual-ring').onclick = ()=>openRitualCardModal(key);
   if(canPour){
