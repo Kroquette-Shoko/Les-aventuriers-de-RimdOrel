@@ -9,7 +9,7 @@
    jouer l'animation : Rapide les divise par 2, Instantanée les supprime
    (voir « Vitesse des animations de combat » dans spellcraft-shared.js).
    ============================================================ */
-const ANIM_LUNGE_WINDUP_MS = 150;  // recul d'élan avant la charge
+const ANIM_LUNGE_WINDUP_MS = 300;  // élan : la carte s'élève vers le joueur (grossit, ombre) avant de piquer
 const ANIM_LUNGE_CHARGE_MS = 200;  // course jusqu'au centre de la cible
 const ANIM_IMPACT_HOLD_MS  = 130;  // arrêt à l'impact (laisse voir le choc, flash et chiffres)
 const ANIM_LUNGE_RETURN_MS = 270;  // retour à sa place
@@ -402,18 +402,32 @@ function lungeToward(el, targetEl, opts){
   return new Promise(resolve=>{
     const done = ()=>{ restore(); resolve(); };
     if(ghost.animate){
-      // Recul marqué (élan), puis fonce jusqu'au CENTRE de la cible (dx/dy
-      // représentent déjà le vecteur exact jusqu'à ce centre) en le
-      // dépassant légèrement, pour donner l'impression de passer par-
-      // dessus elle plutôt que de simplement s'y arrêter.
-      const hit = `translate(${dx*1.12}px, ${dy*1.12}px) scale(1.22)`;
+      // « Plongeon » : la carte s'élève vers le joueur (elle grossit, ombre portée),
+      // puis pique sur le CENTRE de la cible (dx/dy = vecteur exact jusqu'à ce centre),
+      // s'arrête à l'impact, puis revient. Des images rémanentes suivent la descente.
+      const rise = `translate(${dx*0.1}px, ${dy*0.1}px) scale(1.5)`;
+      const hit = `translate(${dx*0.96}px, ${dy*0.96}px) scale(1.08)`;
+      const sh = 'drop-shadow(0 18px 12px rgba(0,0,0,.55))';
       const frames = [
-        { transform:'translate(0,0) scale(1)', offset:0, easing:'ease-out' },
-        { transform:`translate(${-ux*22}px, ${-uy*22}px) scale(1.06)`, offset:windup/total, easing:'cubic-bezier(.5,0,.9,.55)' },
-        { transform:hit, offset:tImpact/total, easing:'linear' },
-        { transform:hit, offset:tHoldEnd/total, easing:'ease-in-out' }, // arrêt à l'impact
-        { transform:'translate(0,0) scale(1)', offset:tHome/total }
+        { transform:'translate(0,0) scale(1)', filter:'none', offset:0, easing:'ease-out' },
+        { transform:rise, filter:sh, offset:windup/total, easing:'cubic-bezier(.6,0,1,.6)' },
+        { transform:hit, filter:'none', offset:tImpact/total, easing:'linear' },
+        { transform:hit, filter:'none', offset:tHoldEnd/total, easing:'ease-in-out' }, // arrêt à l'impact
+        { transform:'translate(0,0) scale(1)', filter:'none', offset:tHome/total }
       ];
+      const echoes = [];
+      combatTimeout(()=>{
+        for(let i=0;i<3;i++){
+          const c = ghost.cloneNode(true);
+          c.style.zIndex = String(9994-i);
+          c.style.opacity = String(.4-i*.1);
+          document.body.appendChild(c); echoes.push(c);
+          c.animate([{ transform:rise, filter:'brightness(1.4) blur(1px)' }, { transform:hit, filter:'brightness(1.4) blur(1px)' }],
+                    { duration: charge, delay: i*cms(26), easing:'cubic-bezier(.6,0,1,.6)', fill:'both' });
+        }
+      }, windup);
+      combatTimeout(()=>echoes.forEach(c=>c.remove()), tImpact+cms(120));
+      registerCombatCleanup(()=>echoes.forEach(c=>c.remove()));
       const anim = ghost.animate(frames, { duration: total });
       anim.onfinish = done;
       anim.oncancel = done;
@@ -424,18 +438,45 @@ function lungeToward(el, targetEl, opts){
 }
 // Anneau + éclat rouge/orangé sur la cible d'un coup de combat (distinct de
 // l'éclat violet des capacités, voir flashImpact).
-function flashCombatImpact(targetEl){
+function flashCombatImpact(targetEl, fromEl){
   if(!targetEl) return;
   const fxMs = cms(ANIM_IMPACT_FX_MS);
   if(!fxMs) return;
   const r = targetEl.getBoundingClientRect();
-  const ring = document.createElement('div');
-  ring.className = 'combat-impact-ring';
-  ring.style.left = (r.left+r.width/2)+'px';
-  ring.style.top = (r.top+r.height/2)+'px';
-  ring.style.animationDuration = fxMs+'ms';
-  document.body.appendChild(ring);
-  setTimeout(()=>ring.remove(), fxMs+30);
+  const cx = r.left+r.width/2, cy = r.top+r.height/2;
+  // « Estoc » : entaille blanche en travers de la cible + étincelles + cible repoussée.
+  const sl = document.createElement('div');
+  const len = Math.max(120, r.width*1.8);
+  sl.style.cssText = `position:fixed;z-index:9996;pointer-events:none;left:${cx-len/2}px;top:${cy-2.5}px;width:${len}px;height:5px;background:linear-gradient(90deg,#fff0,#fff,#fff0);box-shadow:0 0 14px #fff;`;
+  document.body.appendChild(sl);
+  if(sl.animate) sl.animate([
+    { transform:'rotate(-35deg) scaleX(0)', opacity:1 },
+    { transform:'rotate(-35deg) scaleX(1)', opacity:1, offset:.3 },
+    { transform:'rotate(-35deg) scaleX(1)', opacity:0 }
+  ], { duration: fxMs*.85, fill:'forwards' });
+  setTimeout(()=>sl.remove(), fxMs+30);
+  for(let i=0;i<10;i++){
+    const sp = document.createElement('div');
+    sp.style.cssText = `position:fixed;z-index:9996;pointer-events:none;left:${cx}px;top:${cy}px;width:4px;height:4px;border-radius:50%;background:#ffe9a0;box-shadow:0 0 6px #ffd34a;`;
+    document.body.appendChild(sp);
+    const ang = Math.random()*Math.PI*2, d = 40+Math.random()*60;
+    if(sp.animate) sp.animate([
+      { transform:'translate(0,0)', opacity:1 },
+      { transform:`translate(${Math.cos(ang)*d}px,${Math.sin(ang)*d}px)`, opacity:0 }
+    ], { duration: fxMs, fill:'forwards' });
+    setTimeout(()=>sp.remove(), fxMs+30);
+  }
+  // la cible est repoussée dans le sens du coup (en pivotant, sauf un héros)
+  if(fromEl && targetEl.animate){
+    const a = fromEl.getBoundingClientRect();
+    const vx = cx-(a.left+a.width/2), vy = cy-(a.top+a.height/2), vl = Math.hypot(vx,vy)||1;
+    const isHero = !!(targetEl.id && targetEl.id.indexOf('hero-frame')===0);
+    targetEl.animate([
+      { transform:'translate(0,0) rotate(0deg)' },
+      { transform:`translate(${vx/vl*24}px,${vy/vl*24}px) rotate(${isHero?0:7}deg)`, offset:.3 },
+      { transform:'translate(0,0) rotate(0deg)' }
+    ], { duration: fxMs });
+  }
   targetEl.style.animationDuration = fxMs+'ms';
   targetEl.classList.add('combat-hit-flash');
   setTimeout(()=>{ if(targetEl && targetEl.classList){ targetEl.classList.remove('combat-hit-flash'); targetEl.style.animationDuration = ''; } }, fxMs+30);
@@ -586,7 +627,7 @@ function applyBlockImpact(attEl, blkEl, o){
   // sur l'attaquant, à son emplacement d'origine), avec le même décalage que les sons.
   const specB = damagePopupSpec(o.dmgToBlocker, o.absorbedBlocker);
   const specA = damagePopupSpec(o.dmgToAttacker, o.absorbedAttacker);
-  flashCombatImpact(blkEl);
+  flashCombatImpact(blkEl, attEl);
   if(specB) spawnDamageNumber(blkEl, 0, { spec:specB });
   if(specA) combatTimeout(()=>spawnDamageNumber(attEl, 0, { spec:specA }), cms(SFX_RIPOSTE_GAP_MS));
   const big = maxBlockDamage(o);
