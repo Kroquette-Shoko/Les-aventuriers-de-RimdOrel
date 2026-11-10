@@ -23,27 +23,24 @@
 #app > .sc-topbar{margin:0 -20px 20px;width:calc(100% + 40px);}
 
 .wrap{width:100%;max-width:1260px;margin:0 auto;padding:10px 0 0;min-width:0;}
-#ach-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px;}
-#ach-head .sc-h1{margin:0;flex:1;min-width:180px;text-align:left;}
-#summary{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
-.ach-chip{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:999px;border:1px solid var(--line);background:var(--bg-panel);font-size:13.5px;color:var(--parchment);white-space:nowrap;}
-.ach-chip b{color:var(--gold);}
-.ach-chip.todo{border-color:var(--gold);color:var(--gold);}
-#view-toggle-btn{padding:8px 18px;font-size:13.5px;border-radius:999px;min-height:0;border-color:var(--gold);color:var(--gold);}
+#ach-head{display:flex;align-items:center;gap:14px;margin-bottom:18px;}
+#ach-head .sc-h1{margin:0;text-align:left;}
 #ach-layout{display:flex;gap:18px;align-items:flex-start;min-width:0;}
-#category-tabs{width:392px;flex:none;display:flex;flex-direction:column;gap:8px;position:sticky;top:12px;max-height:calc(100vh - 24px);overflow-y:auto;scrollbar-width:thin;padding-right:2px;}
-.cat-row{background:var(--bg-panel);border:1px solid var(--line);border-radius:13px;padding:10px 12px;cursor:pointer;text-align:left;color:var(--parchment);font:inherit;transition:border-color .15s,background .15s;}
-.cat-row:hover{border-color:var(--gold);}
-.cat-row.active{border-color:var(--gold);background:rgba(212,175,55,.14);}
-.cat-row.has-claim:not(.active){border-color:rgba(212,175,55,.45);}
-.cat-top{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
-.cat-ico{font-size:15px;}
-.cat-name{flex:1;font-family:'Cinzel',serif;font-weight:700;font-size:12.5px;line-height:1.2;}
-.cat-row.active .cat-name{color:var(--gold);}
-.cat-count{font-size:11px;color:var(--parchment-dim);}
-.path{display:flex;align-items:center;}
-.path-link{flex:1;height:3px;min-width:5px;border-radius:2px;background:var(--line);}
-.path-link.on{background:var(--gold);}
+#ach-side{width:236px;flex:none;display:flex;flex-direction:column;gap:8px;position:sticky;top:12px;max-height:calc(100vh - 24px);}
+#category-tabs{display:flex;flex-direction:column;gap:6px;overflow-y:auto;min-height:0;scrollbar-width:thin;}
+.cat-row{display:flex;align-items:center;gap:9px;background:rgba(0,0,0,.2);border:1px solid transparent;border-radius:11px;padding:9px 12px;cursor:pointer;text-align:left;color:var(--parchment);font:inherit;font-size:13px;transition:border-color .15s,background .15s;}
+.cat-row:hover{border-color:var(--line);}
+.cat-row.active{border-color:var(--gold);background:rgba(212,175,55,.14);color:var(--gold);}
+.cat-ico{font-size:17px;}
+.cat-name{flex:1;line-height:1.2;}
+.cat-count{font-size:11px;opacity:.7;}
+#lb-entry{margin-top:4px;border-color:rgba(212,175,55,.3);}
+#summary:empty{display:none;}
+#summary{border:1px solid var(--line);border-radius:12px;padding:10px 14px;background:rgba(0,0,0,.2);}
+#summary .qs-lbl{font-size:11px;letter-spacing:2px;color:var(--parchment-dim);text-transform:uppercase;}
+#summary .qs-val{font-size:22px;font-weight:700;color:var(--gold);margin:2px 0 6px;}
+#summary .qs-bar{height:7px;border-radius:5px;background:var(--bg-panel-3);overflow:hidden;}
+#summary .qs-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--arcane),var(--gold));}
 .medal{position:relative;flex:none;border-radius:50%;}
 .medal svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);}
 .medal .m-in{position:absolute;inset:13%;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;background:radial-gradient(circle at 35% 30%,var(--bg-panel-3),var(--bg-panel-2));}
@@ -55,7 +52,8 @@
 .medal circle.bg{stroke:var(--line);}
 .medal circle.fg{stroke:var(--arcane);transition:stroke-dasharray .4s;}
 .medal.done circle.fg{stroke:var(--gold);}
-#ach-grid{flex:1;min-width:0;display:flex;flex-direction:column;gap:9px;}
+#ach-main{flex:1;min-width:0;}
+#ach-grid{min-width:0;display:flex;flex-direction:column;gap:9px;}
 .pane-head{display:flex;align-items:center;gap:12px;margin:0 0 4px;}
 .pane-title{flex:1;font-family:'Cinzel',serif;font-weight:700;font-size:22px;color:var(--gold);}
 .card{background:var(--bg-panel-2);border:1px solid var(--line);border-radius:15px;padding:11px 16px;display:flex;align-items:center;gap:14px;transition:border-color .15s;}
@@ -82,15 +80,16 @@
 @media (prefers-reduced-motion:reduce){.card.claimable,.card-act .claim-btn{animation:none;}}
 @media (max-width:860px){
   #ach-layout{flex-direction:column;}
-  #category-tabs{width:100%;position:static;max-height:none;flex-direction:row;overflow-x:auto;overflow-y:hidden;padding-bottom:6px;}
-  .cat-row{flex:none;width:250px;}
+  #ach-side{width:100%;position:static;max-height:none;}
+  #category-tabs{flex-direction:row;overflow-x:auto;overflow-y:hidden;padding-bottom:6px;}
+  .cat-row{flex:none;width:200px;}
   #ach-grid{width:100%;}
   .card{flex-wrap:wrap;}
   .card-body{flex-basis:calc(100% - 80px);}
   .card-act{flex-basis:100%;text-align:right;}
 }
 .empty-state{text-align:center;padding:60px 20px;color:var(--parchment-dim);}
-#leaderboard-wrap{max-width:1100px;margin:0 auto;}
+#leaderboard-wrap{max-width:1100px;margin:0 auto;min-width:0;}
 .lb-cols{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:18px;align-items:start;}
 @media(max-width:800px){.lb-cols{grid-template-columns:minmax(0,1fr);}}
 .lb-main,.lb-side{min-width:0;}
@@ -160,14 +159,18 @@
   <div class="wrap">
     <div id="ach-head">
       <h1 class="sc-h1">Hauts faits</h1>
-      <div id="summary"></div>
-      <button class="sc-btn sc-btn-ghost" id="view-toggle-btn" onclick="toggleLeaderboardView()">🏅 Classement</button>
     </div>
     <div id="ach-layout">
-      <div id="category-tabs"></div>
-      <div id="ach-grid"></div>
+      <div id="ach-side">
+        <div id="category-tabs"></div>
+        <button class="cat-row" id="lb-entry" onclick="toggleLeaderboardView()"><span class="cat-ico">🏅</span><span class="cat-name">Classement</span></button>
+        <div id="summary"></div>
+      </div>
+      <div id="ach-main">
+        <div id="ach-grid"></div>
+        <div id="leaderboard-wrap" style="display:none;"></div>
+      </div>
     </div>
-    <div id="leaderboard-wrap" style="display:none;"></div>
   </div>
 </div>
 
@@ -229,10 +232,7 @@ function renderSummary(){
   const total = achievements.length;
   if(!total){ document.getElementById('summary').innerHTML = ''; return; }
   const pct = Math.round((done/total)*100);
-  const todo = achievements.filter(a=>a.completed && !a.claimed).length;
-  document.getElementById('summary').innerHTML =
-    `<span class="ach-chip">🏆 <b>${done}</b> / ${total} (${pct}%)</span>` +
-    (todo ? `<span class="ach-chip todo">🎁 ${todo} à réclamer</span>` : '');
+  document.getElementById('summary').innerHTML = `<div class="qs-lbl">Progression</div><div class="qs-val">${done} / ${total}</div><div class="qs-bar"><i style="width:${pct}%"></i></div>`;
 }
 
 function achList(c){
@@ -252,7 +252,7 @@ function medalHtml(a, size, icon){
 function catIcon(c){ const l = CATEGORY_LABELS[c] || '🏆'; return l.split(' ')[0]; }
 function catName(c){ const l = CATEGORY_LABELS[c] || 'Autre'; return l.substring(l.indexOf(' ')+1); }
 
-// Colonne de gauche : toutes les catégories avec leurs paliers reliés
+// Menu de gauche : une ligne par catégorie (compteur + « ! » si récompense à réclamer)
 function renderCategoryTabs(){
   const wrap = document.getElementById('category-tabs');
   const present = CATEGORY_ORDER.filter(c=>achievements.some(a=>(a.category||'autre')===c));
@@ -263,16 +263,13 @@ function renderCategoryTabs(){
     const done = list.filter(a=>a.completed).length;
     const claimable = list.some(a=>a.completed && !a.claimed);
     const ico = c==='autre' ? '🏆' : catIcon(c);
-    const curIdx = list.findIndex(a=>!a.completed);
-    const path = list.map((a,i)=> (i?`<i class="path-link ${list[i-1].completed?'on':''}"></i>`:'') + medalHtml(a, i===curIdx?38:30, ico)).join('');
-    return `<button class="cat-row ${c===activeCategory?'active':''} ${claimable?'has-claim':''}" onclick="switchCategory('${c}')">
-      <div class="cat-top"><span class="cat-ico">${ico}</span><span class="cat-name">${c==='autre'?'Autre':catName(c)}</span><span class="cat-count">${done}/${list.length}</span>${claimable?'<span class="sc-notif sc-notif-inline" aria-label="Récompense à réclamer">!</span>':''}</div>
-      <div class="path">${path}</div></button>`;
+    return `<button class="cat-row ${(!showingLeaderboard && c===activeCategory)?'active':''}" onclick="switchCategory('${c}')"><span class="cat-ico">${ico}</span><span class="cat-name">${c==='autre'?'Autre':catName(c)}</span><span class="cat-count">${done}/${list.length}</span>${claimable?'<span class="sc-notif sc-notif-inline" aria-label="Récompense à réclamer">!</span>':''}</button>`;
   }).join('');
 }
 
 function switchCategory(c){
   activeCategory = c;
+  if(showingLeaderboard){ toggleLeaderboardView(); return; }
   renderCategoryTabs();
   renderGrid();
 }
@@ -306,8 +303,7 @@ function renderGrid(){
     return;
   }
   const ico = activeCategory==='autre' ? '🏆' : catIcon(activeCategory);
-  const nClaim = visible.filter(a=>a.completed && !a.claimed).length;
-  const head = `<div class="pane-head"><span class="pane-title">${ico} ${activeCategory==='autre'?'Autre':escapeHtml(catName(activeCategory))}</span>${nClaim>1?`<button class="claim-btn" onclick="claimAllInCategory(this)">🎁 Tout réclamer (${nClaim})</button>`:''}</div>`;
+  const head = `<div class="pane-head"><span class="pane-title">${ico} ${activeCategory==='autre'?'Autre':escapeHtml(catName(activeCategory))}</span></div>`;
   grid.innerHTML = head + visible.map(a=>{
     const pct = Math.min(100, Math.round((a.progress_count / a.target_count) * 100));
     const canClaim = a.completed && !a.claimed;
@@ -335,11 +331,11 @@ function renderGrid(){
 let showingLeaderboard = false;
 async function toggleLeaderboardView(){
   showingLeaderboard = !showingLeaderboard;
-  document.getElementById('summary').style.display = showingLeaderboard ? 'none' : 'flex';
-  document.getElementById('ach-layout').style.display = showingLeaderboard ? 'none' : 'flex';
+  document.getElementById('ach-grid').style.display = showingLeaderboard ? 'none' : '';
   document.getElementById('leaderboard-wrap').style.display = showingLeaderboard ? 'block' : 'none';
-  document.getElementById('view-toggle-btn').textContent = showingLeaderboard ? '🏆 Mes succès' : '🏅 Classement';
-  if(showingLeaderboard) await loadLeaderboard();
+  document.getElementById('lb-entry').classList.toggle('active', showingLeaderboard);
+  renderCategoryTabs();
+  if(showingLeaderboard) await loadLeaderboard(); else renderGrid();
 }
 const CLASS_SLUG_NOACCENT = {'Aube':'aube', 'Crépuscule':'crepuscule', 'Volonté':'volonte', 'Prima':'prima', 'Arcane':'arcane', 'Neutre':'neutre'};
 
@@ -496,22 +492,6 @@ async function claimAchievement(id, btn){
   claimBurst(btn);
   const detail = await describeGrantedRewards(data.granted || []);
   showToast(`Récompense obtenue : ${detail}`);
-  await loadAchievements();
-  sb.rpc('progress_collection_achievements').catch(()=>{});
-}
-
-// Réclame d'un coup toutes les récompenses prêtes de la catégorie affichée.
-async function claimAllInCategory(btn){
-  if(btn){ if(btn.disabled) return; btn.disabled = true; }
-  const todo = achList(activeCategory).filter(a=>a.completed && !a.claimed);
-  const parts = []; let fails = 0;
-  for(const a of todo){
-    const { data, error } = await sb.rpc('claim_achievement_reward', { p_user_achievement_id: a.user_achievement_id });
-    if(error || !data || data.error){ fails++; continue; }
-    parts.push(await describeGrantedRewards(data.granted || []));
-  }
-  claimBurst(btn);
-  showToast(parts.length ? `Récompenses obtenues : ${parts.join(' · ')}${fails?` (${fails} échec${fails>1?'s':''})`:''}` : 'Impossible de réclamer ces récompenses.');
   await loadAchievements();
   sb.rpc('progress_collection_achievements').catch(()=>{});
 }
