@@ -75,6 +75,60 @@
 }
 @media (prefers-reduced-motion:reduce){ #bruno-bubble{transition:opacity .01s;transform:none;} }
 
+
+/* ---------- mise en page : menu latéral + vitrine ---------- */
+#shop-layout{width:100%;max-width:1160px;display:flex;gap:22px;align-items:flex-start;margin-top:4px;}
+#shop-side{width:210px;flex-shrink:0;position:sticky;top:16px;display:flex;flex-direction:column;gap:8px;background:var(--bg-panel);border:1px solid var(--line);border-radius:14px;padding:16px 12px;}
+#shop-side .side-title{font-family:'Cinzel',serif;font-weight:700;font-size:24px;color:var(--gold);letter-spacing:1px;margin:0 4px 8px;}
+.side-tab{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;border:1px solid transparent;background:none;color:var(--parchment);font-family:'Inter',sans-serif;font-size:14px;text-align:left;cursor:pointer;position:relative;transition:background .15s,border-color .15s;}
+.side-tab:hover{background:rgba(212,175,55,.08);}
+.side-tab.active{background:rgba(212,175,55,.14);border-color:var(--gold);color:var(--gold-bright,var(--gold));}
+#shop-side #shop-toolbar{width:auto;max-width:none;margin:14px 0 0;display:block;}
+#shop-side #my-boosters-btn{width:100%;justify-content:space-between;}
+#shop-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:16px;}
+#shop-main #currency-bar{align-self:flex-end;}
+#shop-main #tutorial-shop-banner{margin-bottom:0 !important;}
+#shop-main #shelves{max-width:none;margin-top:0;}
+.shelf{display:none;}
+.shelf.active{display:block;animation:shelfIn .25s ease;}
+@keyframes shelfIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* vitrine : un grand article + rangée de miniatures */
+.sc-show > .shop-item{display:none;}
+.sc-show > .shop-item.sel{display:grid;grid-template-columns:minmax(260px,400px) 1fr;grid-template-rows:repeat(8,auto);align-content:center;column-gap:36px;justify-items:start;text-align:left;width:100% !important;background:none;border:none;padding:10px 6px;min-height:400px;gap:0 36px;}
+.sc-show > .shop-item.sel:hover{transform:none;border:none;}
+.sc-show > .shop-item.sel > *{grid-column:2;margin:0 0 12px;}
+.sc-show > .shop-item.sel > :first-child{grid-column:1;grid-row:1 / span 8;margin:0;align-self:center;justify-self:center;filter:drop-shadow(0 0 34px rgba(212,175,55,.32));animation:scFloat 4.5s ease-in-out infinite;}
+.sc-show > .shop-item.sel > .shop-item-art{width:300px;height:360px;font-size:90px;}
+.sc-show > .shop-item.sel > :first-child:not(.shop-item-art){zoom:1.3;}
+.sc-show > .shop-item.sel .shop-item-name{font-size:28px;color:var(--gold);line-height:1.15;}
+.sc-show > .shop-item.sel .shop-item-desc{font-size:14px;max-width:46ch;}
+.sc-show > .shop-item.sel .shop-item-price{font-size:24px;}
+.sc-show > .shop-item.sel .buy-btn{width:auto;min-width:220px;padding:12px 28px;font-size:14px;border-radius:999px;}
+.sc-show > .shop-item.sel .shop-item-more{font-size:12.5px;padding:6px 12px;}
+@keyframes scFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
+@media (prefers-reduced-motion:reduce){.sc-show > .shop-item.sel > :first-child{animation:none;}.shelf.active{animation:none;}}
+.sc-thumbs{display:flex;gap:12px;justify-content:flex-start;flex-wrap:wrap;margin-top:14px;padding:12px;border:1px solid var(--line);border-radius:14px;background:rgba(0,0,0,.18);}
+.sc-thumb{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 12px;border-radius:10px;border:2px solid transparent;opacity:.6;cursor:pointer;transition:opacity .15s,border-color .15s,transform .15s;min-width:100px;}
+.sc-thumb:hover{opacity:1;transform:translateY(-3px);}
+.sc-thumb.on{opacity:1;border-color:var(--gold);}
+.sc-thumb .th-vis{height:150px;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+.sc-thumb .th-vis > *{zoom:.5;}
+.sc-thumb .th-vis .shop-item-art{width:150px;height:200px;}
+.sc-thumb .shop-item-price{font-size:13px;}
+.sc-thumb .shop-item-price .money-icon{width:22px;height:22px;vertical-align:-6px;}
+@media (max-width:860px){
+  #shop-layout{flex-direction:column;}
+  #shop-side{width:100%;position:static;flex-direction:row;flex-wrap:wrap;align-items:center;padding:10px;}
+  #shop-side .side-title{width:100%;font-size:20px;margin-bottom:2px;}
+  .side-tab{padding:8px 12px;font-size:13px;}
+  #shop-side #shop-toolbar{margin:0;width:100%;}
+  .sc-show > .shop-item.sel{grid-template-columns:1fr;min-height:0;}
+  .sc-show > .shop-item.sel > *{grid-column:1;}
+  .sc-show > .shop-item.sel > :first-child{grid-row:auto;margin-bottom:14px;}
+  #shop-main #currency-bar{align-self:stretch;}
+}
+
 /* ---------- étagères ---------- */
 #shelves{width:100%;max-width:1160px;display:flex;flex-direction:column;gap:26px;margin-top:20px;}
 .shelf{background:var(--bg-panel);border:1px solid var(--line, hsl(calc(var(--th, 252) + 3) calc(var(--ts-n, 1) * 28%) 19.6%));border-radius:14px;padding:18px 22px;}
@@ -449,52 +503,64 @@
     </div>
   </div>
 
+  <div id="shop-layout">
+    <nav id="shop-side" aria-label="Rayons de la boutique">
+      <div class="side-title">Boutique</div>
+      <button class="side-tab active" data-shelf="shelf-boosters-wrap"><span>📦</span> Boosters</button>
+      <button class="side-tab" data-shelf="shelf-minisets-wrap" id="side-minisets" style="display:none;"><span>🗂️</span> Mini-sets</button>
+      <button class="side-tab" data-shelf="shelf-singles-wrap"><span>🃏</span> Cartes à l'unité</button>
+      <button class="side-tab" data-shelf="shelf-heroes-wrap"><span>👑</span> Héros</button>
+      <button class="side-tab" data-shelf="shelf-backs-wrap"><span>🎴</span> Dos de cartes</button>
+      <div id="shop-toolbar">
+        <button id="my-boosters-btn" onclick="showMyBoostersModal()">📦 Mes boosters <span id="my-boosters-badge">0</span></button>
+      </div>
+    </nav>
+    <div id="shop-main">
   <!-- Bandeau affiché une seule fois en arrivant depuis le tutoriel
-       (spellcraft-tutorial.html → ici, ?fromTutorial=1). Les 3 boosters
-       offerts sont accordés côté serveur au chargement de la page
-       (voir maybeGrantTutorialBoosters()), pas ici. -->
-  <div id="tutorial-shop-banner" style="display:none;background:linear-gradient(180deg,hsl(calc(var(--th, 252) + 0.4) calc(var(--ts-n, 1) * 38.6%) 17.3%),hsl(calc(var(--th, 252) + 1.3) calc(var(--ts-n, 1) * 32.1%) 11%));border:1px solid var(--gold);border-radius:10px;padding:12px 16px;margin-bottom:14px;font-family:'Inter',sans-serif;font-size:12.5px;color:#efe6c8;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
-    <div>🎁 <strong>3 « Booster classique » offerts</strong> t'attendent dans « 📦 Mes boosters » — ouvre-les, puis direction ta collection pour construire ton premier deck.</div>
-    <div style="display:flex;gap:8px;flex-shrink:0;">
-      <button class="buy-btn" onclick="showMyBoostersModal()">Ouvrir mes boosters</button>
-      <button class="buy-btn" style="background:hsl(calc(var(--th, 252) + 3) calc(var(--ts-n, 1) * 28%) 19.6%);" onclick="window.location.href='spellcraft-deckbuilder.html?fromTutorial=1'">Aller à ma collection →</button>
-    </div>
-  </div>
+           (spellcraft-tutorial.html → ici, ?fromTutorial=1). Les 3 boosters
+           offerts sont accordés côté serveur au chargement de la page
+           (voir maybeGrantTutorialBoosters()), pas ici. -->
+      <div id="tutorial-shop-banner" style="display:none;background:linear-gradient(180deg,hsl(calc(var(--th, 252) + 0.4) calc(var(--ts-n, 1) * 38.6%) 17.3%),hsl(calc(var(--th, 252) + 1.3) calc(var(--ts-n, 1) * 32.1%) 11%));border:1px solid var(--gold);border-radius:10px;padding:12px 16px;margin-bottom:14px;font-family:'Inter',sans-serif;font-size:12.5px;color:#efe6c8;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+        <div>🎁 <strong>3 « Booster classique » offerts</strong> t'attendent dans « 📦 Mes boosters » — ouvre-les, puis direction ta collection pour construire ton premier deck.</div>
+        <div style="display:flex;gap:8px;flex-shrink:0;">
+          <button class="buy-btn" onclick="showMyBoostersModal()">Ouvrir mes boosters</button>
+          <button class="buy-btn" style="background:hsl(calc(var(--th, 252) + 3) calc(var(--ts-n, 1) * 28%) 19.6%);" onclick="window.location.href='spellcraft-deckbuilder.html?fromTutorial=1'">Aller à ma collection →</button>
+        </div>
+      </div>
 
   <div id="currency-bar">
-    <div class="currency-chip gold"><span class="money-icon"></span><span id="cur-gold">–</span> Or</div>
-    <div class="currency-chip aube" title="Diamant (fragments Aube)"><span class="gem-icon"></span> <span id="cur-aube">–</span></div>
-    <div class="currency-chip crepuscule" title="Obsidienne (fragments Crépuscule)"><span class="gem-icon"></span> <span id="cur-crepuscule">–</span></div>
-    <div class="currency-chip volonte" title="Rubis (fragments Volonté)"><span class="gem-icon"></span> <span id="cur-volonte">–</span></div>
-    <div class="currency-chip prima" title="Émeraude (fragments Prima)"><span class="gem-icon"></span> <span id="cur-prima">–</span></div>
-    <div class="currency-chip arcane" title="Saphir (fragments Arcane)"><span class="gem-icon"></span> <span id="cur-arcane">–</span></div>
-    <div class="currency-chip opale" title="Opale (fragments des cartes bicolores)"><span class="gem-icon"></span> <span id="cur-opale">–</span></div>
-  </div>
+        <div class="currency-chip gold"><span class="money-icon"></span><span id="cur-gold">–</span> Or</div>
+        <div class="currency-chip aube" title="Diamant (fragments Aube)"><span class="gem-icon"></span> <span id="cur-aube">–</span></div>
+        <div class="currency-chip crepuscule" title="Obsidienne (fragments Crépuscule)"><span class="gem-icon"></span> <span id="cur-crepuscule">–</span></div>
+        <div class="currency-chip volonte" title="Rubis (fragments Volonté)"><span class="gem-icon"></span> <span id="cur-volonte">–</span></div>
+        <div class="currency-chip prima" title="Émeraude (fragments Prima)"><span class="gem-icon"></span> <span id="cur-prima">–</span></div>
+        <div class="currency-chip arcane" title="Saphir (fragments Arcane)"><span class="gem-icon"></span> <span id="cur-arcane">–</span></div>
+        <div class="currency-chip opale" title="Opale (fragments des cartes bicolores)"><span class="gem-icon"></span> <span id="cur-opale">–</span></div>
+      </div>
 
-  <div id="shop-toolbar">
-    <button id="my-boosters-btn" onclick="showMyBoostersModal()">📦 Mes boosters <span id="my-boosters-badge">0</span></button>
-  </div>
 
-  <div id="shelves">
-    <div class="shelf">
-      <h2>📦 Boosters</h2>
-      <div class="shelf-items" id="shelf-boosters"></div>
-    </div>
-    <div class="shelf" id="shelf-minisets-wrap" style="display:none;">
-      <h2>🗂️ Mini-sets</h2>
-      <div class="shelf-items" id="shelf-minisets"></div>
-    </div>
-    <div class="shelf">
-      <h2>🃏 Cartes à l'unité</h2>
-      <div class="shelf-items" id="shelf-singles"></div>
-    </div>
-    <div class="shelf">
-      <h2>👑 Héros</h2>
-      <div class="shelf-items" id="shelf-heroes"></div>
-    </div>
-    <div class="shelf">
-      <h2>🎴 Dos de cartes</h2>
-      <div class="shelf-items" id="shelf-backs"></div>
+      <div id="shelves">
+        <div class="shelf active" id="shelf-boosters-wrap">
+          <h2>📦 Boosters</h2>
+          <div class="shelf-items" id="shelf-boosters"></div>
+        </div>
+        <div class="shelf" id="shelf-minisets-wrap" style="display:none;">
+          <h2>🗂️ Mini-sets</h2>
+          <div class="shelf-items" id="shelf-minisets"></div>
+        </div>
+        <div class="shelf" id="shelf-singles-wrap">
+          <h2>🃏 Cartes à l'unité</h2>
+          <div class="shelf-items" id="shelf-singles"></div>
+        </div>
+        <div class="shelf" id="shelf-heroes-wrap">
+          <h2>👑 Héros</h2>
+          <div class="shelf-items" id="shelf-heroes"></div>
+        </div>
+        <div class="shelf" id="shelf-backs-wrap">
+          <h2>🎴 Dos de cartes</h2>
+          <div class="shelf-items" id="shelf-backs"></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -2128,6 +2194,59 @@ async function maybeGrantTutorialBoosters(){
 // Capturée ici (au lieu d'un simple appel "fire and forget") pour que
 // renderBrunoLine() puisse attendre que la session soit prête avant
 // d'enregistrer la réplique vue — voir le commentaire dans renderBrunoLine.
+
+// ---- Menu latéral + vitrine (un grand article, miniatures pour changer) ----
+(function initShowcase(){
+  const tabs = [...document.querySelectorAll('.side-tab')];
+  const wraps = tabs.map(t => document.getElementById(t.dataset.shelf));
+  function activate(id){
+    const wrap = document.getElementById(id);
+    if(!wrap || wrap.style.display === 'none'){ id = 'shelf-boosters-wrap'; }
+    tabs.forEach(t => t.classList.toggle('active', t.dataset.shelf === id));
+    wraps.forEach(w => w && w.classList.toggle('active', w.id === id));
+    try{ sessionStorage.setItem('shopShelf', id); }catch(e){}
+  }
+  tabs.forEach(t => t.addEventListener('click', () => activate(t.dataset.shelf)));
+  function syncNav(){
+    const mini = document.getElementById('shelf-minisets-wrap');
+    const hidden = mini.style.display === 'none';
+    document.getElementById('side-minisets').style.display = hidden ? 'none' : '';
+    const act = tabs.find(t => t.classList.contains('active'));
+    if(hidden && act && act.dataset.shelf === 'shelf-minisets-wrap') activate('shelf-boosters-wrap');
+  }
+  function build(box){
+    const items = [...box.children].filter(c => c.classList.contains('shop-item'));
+    let strip = box.nextElementSibling;
+    if(!strip || !strip.classList.contains('sc-thumbs')){
+      strip = document.createElement('div'); strip.className = 'sc-thumbs'; box.after(strip);
+    }
+    strip.innerHTML = '';
+    if(!items.length){ box.classList.remove('sc-show'); strip.style.display = 'none'; return; }
+    box.classList.add('sc-show');
+    let idx = box.__scIdx || 0; if(idx >= items.length) idx = 0; box.__scIdx = idx;
+    items.forEach((it, i) => it.classList.toggle('sel', i === idx));
+    strip.style.display = items.length > 1 ? '' : 'none';
+    items.forEach((it, i) => {
+      const t = document.createElement('div'); t.className = 'sc-thumb' + (i === idx ? ' on' : '');
+      const vis = document.createElement('div'); vis.className = 'th-vis';
+      const first = it.firstElementChild;
+      if(first){ const c = first.cloneNode(true); c.removeAttribute('id'); c.querySelectorAll('[id]').forEach(e => e.removeAttribute('id')); vis.appendChild(c); }
+      t.appendChild(vis);
+      const pr = it.querySelector('.shop-item-price');
+      if(pr && pr.textContent.trim()){ const pc = pr.cloneNode(true); pc.querySelectorAll('span[style]').forEach(e => { if(!e.classList.contains('money-icon')) e.remove(); }); t.appendChild(pc); }
+      t.addEventListener('click', () => { box.__scIdx = i; build(box); });
+      strip.appendChild(t);
+    });
+  }
+  document.querySelectorAll('.shelf-items').forEach(box => {
+    new MutationObserver(() => { build(box); syncNav(); }).observe(box, { childList: true });
+    build(box);
+  });
+  new MutationObserver(syncNav).observe(document.getElementById('shelf-minisets-wrap'), { attributes: true, attributeFilter: ['style'] });
+  syncNav();
+  let saved = null; try{ saved = sessionStorage.getItem('shopShelf'); }catch(e){}
+  activate(saved || 'shelf-boosters-wrap');
+})();
 const __spellcraftAuthReadyForBruno = initSpellcraftAuth();
 initShop();
 // « ! » jaune sur les rayons renouvelés depuis la dernière visite, puis la boutique est notée « vue ».
@@ -2135,7 +2254,7 @@ initShop();
   try{
     await __spellcraftAuthReadyForBruno;
     const n = await scNotif.shopNewness();
-    const head = (id)=>{ const el = document.getElementById(id); const sh = el && el.closest('.shelf'); return sh && sh.querySelector('h2'); };
+    const head = (id)=>{ const el = document.getElementById(id); const sh = el && el.closest('.shelf'); return sh && document.querySelector('.side-tab[data-shelf="'+sh.id+'"]'); };
     scNotif.mark(head('shelf-singles'), n.dailyNew, 'inline');
     scNotif.mark(head('shelf-boosters') || head('shelf-booster'), n.boostersNew, 'inline');
     scNotif.mark(head('shelf-cardbacks') || head('shelf-backs'), n.backsNew, 'inline');
