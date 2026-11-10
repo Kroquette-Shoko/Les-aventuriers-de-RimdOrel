@@ -76,6 +76,43 @@
 @media (prefers-reduced-motion:reduce){ #bruno-bubble{transition:opacity .01s;transform:none;} }
 
 
+
+/* ---------- La roue de Bruno ---------- */
+.side-badge{margin-left:auto;background:var(--gold);color:#2a1c05;border-radius:999px;font-size:11px;font-weight:800;padding:1px 7px;}
+#shelf-wheel-wrap{padding:18px 22px;}
+#wheel-app{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start;justify-content:center;}
+#wheel-main{width:296px;max-width:100%;display:flex;flex-direction:column;align-items:center;gap:12px;}
+#wheel-banner{width:100%;text-align:center;padding:7px 0;font-size:14px !important;border-radius:8px;background:linear-gradient(180deg,#8a1f2f,#5a1020);border:2px solid #f2cf5a;font-family:'Cinzel',serif;font-weight:700;color:#fff3b0;font-size:17px;letter-spacing:2px;}
+#wheel-box{width:296px;max-width:100%;}
+#wheel-box svg{width:100%;height:auto;overflow:visible;display:block;}
+#wheel-rot{transition:transform 4.2s cubic-bezier(.12,.7,.1,1);}
+.wheel-bulb{animation:wheelBulb 1.2s infinite;}
+@keyframes wheelBulb{0%,100%{opacity:1}50%{opacity:.35}}
+#wheel-actions{display:flex;align-items:center;gap:12px;}
+#wheel-ticket{transform:rotate(-3deg);padding:6px 14px;border-radius:8px;background:linear-gradient(135deg,#f2cf5a,#c8932a);color:#2a1c05;text-align:center;border:2px dashed #2a1c05;box-shadow:0 6px 14px #0008;}
+#wheel-ticket span{display:block;font-size:9.5px;letter-spacing:2px;font-weight:700;}
+#wheel-ticket b{font-family:'Cinzel',serif;font-weight:900;font-size:26px;line-height:1;}
+.wheel-spin-btn{padding:11px 18px;border-radius:999px;border:none;background:linear-gradient(180deg,#f2cf5a,#c8932a);color:#2a1c05;font-family:'Inter';font-weight:800;font-size:15px;cursor:pointer;box-shadow:0 4px 0 #7a5a12;}
+.wheel-spin-btn:disabled{opacity:.5;cursor:not-allowed;}
+#wheel-hint{font-size:11.5px;color:var(--parchment);opacity:.75;text-align:center;line-height:1.5;}
+#wheel-side{width:320px;max-width:100%;display:flex;flex-direction:column;gap:10px;}
+.wheel-card{border:1px solid var(--line);border-radius:14px;background:var(--bg-panel-2);padding:12px 16px;}
+.wheel-card h3{font-family:'Cinzel',serif;font-size:15px;color:var(--gold);margin:0 0 6px;}
+.wheel-card h3.small{font-family:'Inter';font-size:11px;letter-spacing:2px;color:var(--parchment);opacity:.7;font-weight:600;}
+.wheel-odd{display:flex;align-items:center;gap:8px;font-size:12px;padding:4px 0;}
+.wheel-odd .ic{width:22px;text-align:center;font-size:15px;}
+.wheel-odd .nm{width:104px;font-weight:600;}
+.wheel-odd .bar{flex:1;height:6px;border-radius:4px;background:rgba(255,255,255,.1);overflow:hidden;}
+.wheel-odd .bar i{display:block;height:100%;}
+.wheel-odd b{width:42px;text-align:right;color:var(--gold-bright,var(--gold));}
+#wheel-hist{display:flex;flex-direction:column;gap:5px;margin-top:6px;}
+#wheel-hist div{display:flex;gap:8px;align-items:center;padding:5px 10px;border-radius:9px;background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.07);font-size:12px;}
+.wheel-res{border:2px solid var(--gold);border-radius:14px;background:rgba(0,0,0,.45);padding:10px 14px;text-align:center;animation:wheelPop .5s;}
+.wheel-res small{display:block;font-size:11px;letter-spacing:2px;opacity:.7;}
+.wheel-res b{display:block;font-size:15px;color:var(--gold-bright,var(--gold));margin-top:2px;}
+@keyframes wheelPop{0%{transform:scale(.8);opacity:0}100%{transform:scale(1);opacity:1}}
+.token-btn{margin-top:6px;background:linear-gradient(180deg,#e0584f,#a8322b);}
+
 /* ---------- mise en page : menu latéral + vitrine ---------- */
 #shop-layout{width:100%;max-width:1160px;display:flex;gap:22px;align-items:flex-start;margin-top:4px;}
 #shop-side{width:210px;flex-shrink:0;position:sticky;top:16px;display:flex;flex-direction:column;gap:8px;background:var(--bg-panel);border:1px solid var(--line);border-radius:14px;padding:16px 12px;}
@@ -513,6 +550,7 @@
       <button class="side-tab" data-shelf="shelf-singles-wrap"><span>🃏</span> Cartes à l'unité</button>
       <button class="side-tab" data-shelf="shelf-heroes-wrap"><span>👑</span> Héros</button>
       <button class="side-tab" data-shelf="shelf-backs-wrap"><span>🎴</span> Dos de cartes</button>
+      <button class="side-tab" data-shelf="shelf-wheel-wrap" id="side-wheel"><span>🎡</span> La roue de Bruno <span id="side-wheel-badge" class="side-badge" style="display:none;">0</span></button>
       <div id="shop-toolbar">
         <button id="my-boosters-btn" onclick="showMyBoostersModal()">📦 Mes boosters <span id="my-boosters-badge">0</span></button>
       </div>
@@ -538,6 +576,8 @@
         <div class="currency-chip prima" title="Émeraude (fragments Prima)"><span class="gem-icon"></span> <span id="cur-prima">–</span></div>
         <div class="currency-chip arcane" title="Saphir (fragments Arcane)"><span class="gem-icon"></span> <span id="cur-arcane">–</span></div>
         <div class="currency-chip opale" title="Opale (fragments des cartes bicolores)"><span class="gem-icon"></span> <span id="cur-opale">–</span></div>
+        <div class="currency-chip" id="chip-tickets" title="Tickets de la roue de Bruno">🎟️ <span id="cur-tickets">0</span></div>
+        <div class="currency-chip" id="chip-tokens" title="Jetons héros" style="display:none;">👑 <span id="cur-tokens">0</span></div>
       </div>
 
 
@@ -561,6 +601,24 @@
         <div class="shelf" id="shelf-backs-wrap">
           <h2>🎴 Dos de cartes</h2>
           <div class="shelf-items" id="shelf-backs"></div>
+        </div>
+        <div class="shelf" id="shelf-wheel-wrap">
+          <div id="wheel-app">
+            <div id="wheel-main">
+              <div id="wheel-banner">✦ TENTEZ VOTRE CHANCE ✦</div>
+              <div id="wheel-box"></div>
+              <div id="wheel-actions">
+                <div id="wheel-ticket"><span>TICKETS</span><b id="wheel-tk">0</b></div>
+                <button id="wheel-spin" class="wheel-spin-btn">🎡 TOURNER · 1 ticket</button>
+              </div>
+              <div id="wheel-hint">🎟️ 1 ticket par jour, avec une victoire en mode taverne (week-end).</div>
+            </div>
+            <div id="wheel-side">
+              <div class="wheel-card"><h3>Les lots</h3><div id="wheel-odds"></div></div>
+              <div id="wheel-result"></div>
+              <div class="wheel-card"><h3 class="small">DERNIERS TOURS</h3><div id="wheel-hist"></div></div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1169,17 +1227,25 @@ async function renderHeroShelf(){
     btn.textContent = 'Acheter';
     btn.onclick = ()=>buyHeroCard(h.card_id, full.name, full.image || full.imageUrl);
     wrap.appendChild(btn);
+    if((window.__wheelTokens||0) > 0){
+      const tb = document.createElement('button');
+      tb.className = 'buy-btn token-btn';
+      tb.textContent = '👑 Utiliser un jeton héros (' + window.__wheelTokens + ')';
+      tb.onclick = ()=>buyHeroCard(h.card_id, full.name, full.image || full.imageUrl, true);
+      wrap.appendChild(tb);
+    }
     el.appendChild(wrap);
   });
 }
 
-async function buyHeroCard(cardId, heroName, heroImage){
-  if(!(await confirmPurchase({ name: heroName || 'Héros', imageUrl: heroImage, price: 1000 }))) return;
-  const { data, error } = await sb.rpc('buy_hero_card', { p_card_id: cardId });
+async function buyHeroCard(cardId, heroName, heroImage, useToken){
+  if(!(await confirmPurchase({ name: heroName || 'Héros', imageUrl: heroImage, price: useToken ? '1 jeton héros' : 1000 }))) return;
+  const { data, error } = await sb.rpc('buy_hero_card', { p_card_id: cardId, p_use_token: !!useToken });
   if(error || data.error){ alert(shopErrorMessage(data ? data.error : error.message)); return; }
   playSfx('coin');
   brunoSayHero(cardId);
   refreshCurrency();
+  if(useToken) await loadWheel();
   renderHeroShelf();
 }
 
@@ -2073,6 +2139,7 @@ async function buyCardBack(id){
 function shopErrorMessage(code){
   return {
     'not-logged-in': "Connecte-toi pour acheter dans la boutique.",
+    'no-token': "Tu n'as plus de jeton héros.",
     'not-enough-gold': "Pas assez d'or pour cet achat.",
     'already-owned': "Tu possèdes déjà ce dos de carte.",
     'unknown-card-back': "Ce dos de carte n'existe plus.",
@@ -2150,7 +2217,7 @@ function confirmPurchase({ name, imageUrl, price }){
     art.style.backgroundImage = imageUrl ? `url('${String(imageUrl).replace(/'/g,"%27")}')` : '';
     art.textContent = imageUrl ? '' : '🎴';
     document.getElementById('confirm-buy-name').textContent = name || '';
-    document.getElementById('confirm-buy-price').innerHTML = `<span class="money-icon"></span> ${price} pièces d'or`;
+    document.getElementById('confirm-buy-price').innerHTML = (typeof price === 'string') ? `👑 ${price}` : `<span class="money-icon"></span> ${price} pièces d'or`;
     const done = v => { closeModal('confirm-buy-modal'); resolve(v); };
     document.getElementById('confirm-buy-yes').onclick = ()=>done(true);
     document.getElementById('confirm-buy-no').onclick = ()=>done(false);
@@ -2167,6 +2234,7 @@ async function initShop(){
   await renderMinisetShelf();
   await renderSingleShelf();
   await renderCardBackShelf();
+  await loadWheel();
   await renderHeroShelf();
   await refreshCurrency();
   await flashBoosterInventoryBadge();
@@ -2249,6 +2317,119 @@ async function maybeGrantTutorialBoosters(){
   let saved = null; try{ saved = sessionStorage.getItem('shopShelf'); }catch(e){}
   activate(saved || 'shelf-boosters-wrap');
 })();
+
+// ============================================================
+// La roue de Bruno : 1 ticket = 1 tour. Le tirage est fait par le serveur (spin_wheel) ;
+// la roue ne fait que s'arrêter sur le secteur du lot gagné.
+// ============================================================
+const WHEEL_SEGS = ['gem','gold','booster','key','gem','rare','gold','epic','booster','myth','gold','token'];
+const WHEEL_META = {
+  gem:{ic:'💎',col:'#8a5cf0',nm:'Gemmes'}, gold:{ic:'🪙',col:'#d4af37',nm:'Or'}, booster:{ic:'📦',col:'#3a8fd0',nm:'Booster'},
+  key:{ic:'🗝️',col:'#3fae5c',nm:'Clef'}, rare:{ic:'🃏',col:'#3fd0e0',nm:'Carte rare'}, epic:{ic:'🃏',col:'#b05cff',nm:'Carte épique'},
+  myth:{ic:'🌟',col:'#ff8a2e',nm:'Carte mythique'}, token:{ic:'👑',col:'#e0584f',nm:'Jeton héros'}
+};
+const WHEEL_SRC = {aube:'Diamant', crepuscule:'Obsidienne', volonte:'Rubis', prima:'Émeraude', arcane:'Saphir'};
+const WHEEL_LINES = {
+  hi:["Approchez, approchez ! Un ticket, un tour !","La roue n'attend que vous !","Tentez votre chance, c'est Bruno qui régale."],
+  win:["Ha ! Quelle belle prise !","La chance vous sourit !","Bien joué, je n'aurais pas parié là-dessus !"],
+  big:["Par tous les dieux ! Gardez ça précieusement !"],
+  no:["Plus de ticket ? Revenez après une victoire à la taverne !"]
+};
+let WHEEL = { tickets:0, tokens:0, prizes:[], history:[], rot:0, spinning:false, last:null, logged:false };
+function wheelPrizeText(p){
+  switch(p.kind){
+    case 'gem': return `${p.amount} ${WHEEL_SRC[p.source]||'gemmes'}`;
+    case 'gold': return `${p.amount} pièces d'or`;
+    case 'booster': return `${p.amount} booster${p.amount>1?'s':''} « ${p.name||''} »`;
+    case 'key': return '1 clef : une case de plus à ouvrir chez Velkrin';
+    case 'token': return '1 jeton héros : à utiliser dans l\'onglet Héros';
+    default: return `${WHEEL_META[p.kind]?WHEEL_META[p.kind].nm:'Carte'} : « ${p.name||'?'} »`;
+  }
+}
+async function loadWheel(){
+  try{
+    const user = await scGetCurrentUser();
+    if(!user){ WHEEL.logged = false; renderWheel(); return; }
+    const { data } = await sb.rpc('get_wheel');
+    if(data && data.ok){
+      WHEEL.logged = true; WHEEL.tickets = data.tickets; WHEEL.tokens = data.tokens;
+      WHEEL.prizes = data.prizes || []; WHEEL.history = (data.history||[]).map(h=>h.prize);
+      window.__wheelTokens = data.tokens;
+    }
+  }catch(e){ console.error('get_wheel', e); }
+  renderWheel();
+}
+function wheelSvg(){
+  const sz=340, c=sz/2, R=c-6, n=WHEEL_SEGS.length, st=360/n;
+  let s=`<svg viewBox="0 0 ${sz} ${sz}"><g id="wheel-rot" style="transform-origin:${c}px ${c}px;transform:rotate(${WHEEL.rot}deg)">`;
+  s+=`<circle cx="${c}" cy="${c}" r="${R+5}" fill="#2a1d0a" stroke="#d4af37" stroke-width="3"/>`;
+  WHEEL_SEGS.forEach((k,i)=>{
+    const m=WHEEL_META[k], a0=(i*st-90)*Math.PI/180, a1=((i+1)*st-90)*Math.PI/180, am=((i+.5)*st-90)*Math.PI/180;
+    s+=`<path d="M${c} ${c} L${c+R*Math.cos(a0)} ${c+R*Math.sin(a0)} A${R} ${R} 0 0 1 ${c+R*Math.cos(a1)} ${c+R*Math.sin(a1)} Z" fill="${m.col}" fill-opacity="${i%2?.78:.95}" stroke="#1a1030" stroke-width="2"/>`;
+    const tx=c+R*.7*Math.cos(am), ty=c+R*.7*Math.sin(am);
+    s+=`<text x="${tx}" y="${ty}" font-size="${sz*.085}" text-anchor="middle" dominant-baseline="central" transform="rotate(${(i+.5)*st} ${tx} ${ty})">${m.ic}</text>`;
+  });
+  for(let i=0;i<24;i++){ const a=(i*15-90)*Math.PI/180; s+=`<circle class="wheel-bulb" cx="${c+(R+5)*Math.cos(a)}" cy="${c+(R+5)*Math.sin(a)}" r="3.4" fill="#fff3b0" style="animation-delay:${(i%2)*.6}s"/>`; }
+  s+=`</g><circle cx="${c}" cy="${c}" r="${sz*.07}" fill="#d4af37" stroke="#2a1c05" stroke-width="3"/><polygon points="${c-14},-4 ${c+14},-4 ${c},22" fill="#f2cf5a" stroke="#2a1c05" stroke-width="3"/></svg>`;
+  return s;
+}
+function renderWheel(keepWheel){
+  if(!document.getElementById('wheel-box')) return;
+  if(!keepWheel) document.getElementById('wheel-box').innerHTML = wheelSvg();
+  document.getElementById('wheel-tk').textContent = WHEEL.tickets;
+  const btn = document.getElementById('wheel-spin');
+  btn.disabled = WHEEL.spinning || !WHEEL.logged;
+  btn.style.opacity = (WHEEL.tickets<=0 && !WHEEL.spinning) ? .6 : '';
+  document.getElementById('cur-tickets').textContent = WHEEL.tickets;
+  document.getElementById('chip-tokens').style.display = WHEEL.tokens>0 ? '' : 'none';
+  document.getElementById('cur-tokens').textContent = WHEEL.tokens;
+  const bd = document.getElementById('side-wheel-badge');
+  bd.style.display = WHEEL.tickets>0 ? '' : 'none'; bd.textContent = WHEEL.tickets;
+  document.getElementById('wheel-odds').innerHTML = (WHEEL.prizes||[]).map(p=>{
+    const m = WHEEL_META[p.kind]||{ic:'🎁',col:'#999'};
+    return `<div class="wheel-odd"><span class="ic">${m.ic}</span><span class="nm">${p.label}</span><span class="bar"><i style="width:${Math.min(100,p.pct*3)}%;background:${m.col}"></i></span><b>${p.pct} %</b></div>`;
+  }).join('') || '<div style="font-size:12px;opacity:.7">Connecte-toi pour voir les lots.</div>';
+  document.getElementById('wheel-hist').innerHTML = WHEEL.history.length
+    ? WHEEL.history.map(p=>`<div><span style="font-size:15px">${(WHEEL_META[p.kind]||{}).ic||'🎁'}</span>${escapeHtmlShop(wheelPrizeText(p).split(' : ')[0])}</div>`).join('')
+    : '<div style="opacity:.7">Aucun tour pour l\'instant.</div>';
+  document.getElementById('wheel-result').innerHTML = WHEEL.last
+    ? `<div class="wheel-res" style="border-color:${(WHEEL_META[WHEEL.last.kind]||{}).col||'var(--gold)'}"><small>VOUS GAGNEZ</small><b>${(WHEEL_META[WHEEL.last.kind]||{}).ic||''} ${escapeHtmlShop(wheelPrizeText(WHEEL.last))}</b></div>` : '';
+}
+async function spinWheel(){
+  if(WHEEL.spinning) return;
+  if(WHEEL.tickets <= 0){ brunoSay(WHEEL_LINES.no[0], 5000); return; }
+  WHEEL.spinning = true; WHEEL.last = null; renderWheel(true);
+  const { data, error } = await sb.rpc('spin_wheel');
+  if(error || !data || data.error){
+    WHEEL.spinning = false;
+    brunoSay(data && data.error==='no-ticket' ? WHEEL_LINES.no[0] : 'Oups, la roue s\'est coincée. Réessayez dans un instant.', 5000);
+    await loadWheel(); return;
+  }
+  const prize = data.prize;
+  const idxs = WHEEL_SEGS.map((k,i)=>k===prize.kind?i:-1).filter(i=>i>=0);
+  const i = idxs[Math.floor(Math.random()*idxs.length)], st = 360/WHEEL_SEGS.length;
+  WHEEL.rot = WHEEL.rot + 360*5 + ((360 - (WHEEL.rot % 360)) % 360) - (i*st + st/2) + (Math.random()*16-8);
+  WHEEL.tickets = data.tickets;
+  document.getElementById('wheel-tk').textContent = WHEEL.tickets;
+  document.getElementById('wheel-rot').style.transform = `rotate(${WHEEL.rot}deg)`;
+  try{ playSfx('coin'); }catch(e){}
+  setTimeout(async ()=>{
+    WHEEL.spinning = false; WHEEL.last = prize; WHEEL.tokens = data.tokens; window.__wheelTokens = data.tokens;
+    WHEEL.history = [prize, ...WHEEL.history].slice(0,5);
+    renderWheel(true);
+    const pool = (prize.kind==='myth'||prize.kind==='token') ? WHEEL_LINES.big : WHEEL_LINES.win;
+    brunoSay(pool[Math.floor(Math.random()*pool.length)], 5000);
+    refreshCurrency();
+    if(prize.kind==='token') renderHeroShelf();
+  }, 4300);
+}
+document.getElementById('wheel-spin').addEventListener('click', spinWheel);
+document.getElementById('side-wheel').addEventListener('click', ()=>{
+  loadWheel();
+  brunoSay(WHEEL_LINES.hi[Math.floor(Math.random()*WHEEL_LINES.hi.length)], 6000);
+});
+renderWheel();
+
 const __spellcraftAuthReadyForBruno = initSpellcraftAuth();
 initShop();
 // « ! » jaune sur les rayons renouvelés depuis la dernière visite, puis la boutique est notée « vue ».
