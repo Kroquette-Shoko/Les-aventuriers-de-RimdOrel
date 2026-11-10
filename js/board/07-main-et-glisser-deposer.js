@@ -173,6 +173,7 @@ function renderHand(){
         el2.addEventListener('click', ()=>showActionError('Ce sort se déclenche à la pioche : il ne se joue pas depuis la main.'));
       }
     }
+    if(isLockedTrap) el2.classList.add('trap-active'); // piège armé : contour doré + quadrillage (voir CSS)
     if(isPendingTrap || isLockedTrap){
       const badge = document.createElement('div');
       badge.style.cssText = 'position:absolute;top:-10px;left:50%;transform:translateX(-50%);font-size:11px;font-weight:700;padding:2px 8px;border-radius:8px;background:var(--gold);color:hsl(calc(var(--th, 252) + 4.4) calc(var(--ts-n, 1) * 27.5%) 15.7%);white-space:nowrap;z-index:6;';
@@ -217,6 +218,15 @@ function renderHand(){
   live.replaceChildren(...el.childNodes);
   live.dataset.sig = sig;
   applyHandFan();
+  // Un piège vient d'être armé (le nombre de pièges armés en main augmente) : retournement scellé.
+  // Au tout premier rendu on mémorise seulement le nombre (rechargement de page : pas d'animation).
+  const armedNow = hand.filter(c=>c && c.activeTrap).length;
+  if(window.__armedTrapCount!=null && armedNow>window.__armedTrapCount && window.BFX && BFX.trapArm){
+    const cards = live.querySelectorAll('.hand-card.trap-active');
+    const last = cards[cards.length-1];
+    if(last) BFX.trapArm(last);
+  }
+  window.__armedTrapCount = armedNow;
   // la carte piochée voyage du paquet jusqu'à la main
   if(__newDrawn.length && window.BFX){
     const deckEl = document.querySelector('#deck-zone-p1 .deck-back-visual');

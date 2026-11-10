@@ -882,7 +882,7 @@ function playCardFlipReveal(card, opts={}){
       overlay.classList.add('show');
       setTimeout(()=>{ inner.classList.add('flipped'); }, 220);
       if(window.BFX && opts.isSpell) setTimeout(()=>BFX.spellFlash(flip), 220+260);   // éclair lumineux à l'apparition d'un sort
-      if(window.BFX && opts.isTrap) setTimeout(()=>BFX.trapSnap(flip), 220+300);       // piège : le déclenchement claque
+      if(window.BFX && opts.isTrap) BFX.trapJaws();                                     // piège : des mâchoires claquent sur l'écran, puis révèlent la carte
     });
     const holdMs = opts.isTrap ? 1500 : (opts.isSpell ? 850 : 1150);
     setTimeout(finish, 220 + 550 + holdMs);

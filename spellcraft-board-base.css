@@ -235,6 +235,11 @@ body .ncard.n-prem:not(.n-live) .nfin{animation:none;}
 .card.dragging{opacity:.35;}
 .card.trap-pending{outline:3px dashed var(--gold);outline-offset:2px;opacity:.75;cursor:default;}
 .card.trap-active{outline:3px solid var(--gold);outline-offset:2px;box-shadow:0 0 16px rgba(212,175,55,.6);cursor:default;animation:trap-armed-pulse 1.8s ease-in-out infinite;}
+/* Piège armé : quadrillage doré en losanges sur la carte */
+.card.trap-active::after{content:"";position:absolute;inset:-2px;border-radius:inherit;pointer-events:none;z-index:5;opacity:.5;
+  background:repeating-linear-gradient(45deg,transparent 0 9px,rgba(200,170,90,.9) 9px 12px,transparent 12px 21px),repeating-linear-gradient(-45deg,transparent 0 9px,rgba(200,170,90,.9) 9px 12px,transparent 12px 21px);
+  animation:trap-lattice 2.4s ease-in-out infinite;}
+@keyframes trap-lattice{0%,100%{transform:translateX(-1.5px);}50%{transform:translateX(1.5px);}}
 .trap-wolf-icon{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:34px;filter:drop-shadow(0 2px 4px rgba(0,0,0,.8));z-index:10;pointer-events:none;}
 @keyframes trap-armed-pulse{0%,100%{box-shadow:0 0 12px rgba(212,175,55,.45);}50%{box-shadow:0 0 22px rgba(212,175,55,.85);}}
 .hand-card.discard-choosable{cursor:pointer;}

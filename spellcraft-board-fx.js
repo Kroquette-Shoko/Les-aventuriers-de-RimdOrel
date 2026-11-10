@@ -142,6 +142,16 @@
   -webkit-mask:radial-gradient(circle, #000 20%, transparent 68%);mask:radial-gradient(circle, #000 20%, transparent 68%);
   opacity:0;transform:scale(.3) rotate(0deg);animation:bfx-starburst .75s ease-out forwards;}
 @keyframes bfx-starburst{0%{opacity:0;transform:scale(.3) rotate(0deg);}20%{opacity:1;}100%{opacity:0;transform:scale(1.25) rotate(22deg);}}
+/* 9b. Piège : pose (retournement) et déclenchement (mâchoires) */
+.bfx-jaw-wrap{position:fixed;left:0;right:0;height:52%;z-index:9992;pointer-events:none;filter:drop-shadow(0 0 10px rgba(0,0,0,.7));}
+.bfx-jaw-wrap.t{top:0;}.bfx-jaw-wrap.b{bottom:0;}
+.bfx-jaw{position:absolute;inset:0;background:linear-gradient(#e6dcc6,#c9bda3);}
+.bfx-jaw-wrap.t .bfx-jaw{clip-path:polygon(0 0,100% 0,100% 82%,95% 100%,90% 82%,85% 100%,80% 82%,75% 100%,70% 82%,65% 100%,60% 82%,55% 100%,50% 82%,45% 100%,40% 82%,35% 100%,30% 82%,25% 100%,20% 82%,15% 100%,10% 82%,5% 100%,0 82%);}
+.bfx-jaw-wrap.b .bfx-jaw{clip-path:polygon(0 18%,5% 0,10% 18%,15% 0,20% 18%,25% 0,30% 18%,35% 0,40% 18%,45% 0,50% 18%,55% 0,60% 18%,65% 0,70% 18%,75% 0,80% 18%,85% 0,90% 18%,95% 0,100% 18%,100% 100%,0 100%);}
+.bfx-trap-back{position:absolute;inset:0;border-radius:inherit;z-index:20;display:flex;align-items:center;justify-content:center;font-size:44px;
+  background:radial-gradient(circle at 50% 40%,#4a2f78,#1a1030 75%);border:3px solid #b8923a;}
+.bfx-trap-ring{position:fixed;z-index:9991;pointer-events:none;border:3px solid #ffd34a;border-radius:12px;box-shadow:0 0 18px #ffd34a,inset 0 0 12px #ffd34a66;}
+
 .bfx-redflash{position:fixed;inset:0;z-index:9993;pointer-events:none;background:radial-gradient(circle at 50% 50%, rgba(255,60,40,.0) 30%, rgba(255,40,20,.35) 100%);opacity:0;animation:bfx-redflash .5s ease-out forwards;}
 @keyframes bfx-redflash{0%{opacity:0;}20%{opacity:1;}100%{opacity:0;}}
 /* 10. Mort d'un héros : le cadre éclate en morceaux */
@@ -520,6 +530,66 @@ body.bfx-hero-dead-p1 #hero-frame-p1, body.bfx-hero-dead-p2 #hero-frame-p2{visib
     } catch (e) { /* ignoré */ }
   }
 
+  // ---------- 9b. Piège : déclenchement en mâchoires ----------
+  function bfxTrapJaws() {
+    try {
+      if (off()) return;
+      const mk = (cls, from) => {
+        const w = document.createElement('div'); w.className = 'bfx-jaw-wrap ' + cls;
+        const j = document.createElement('div'); j.className = 'bfx-jaw'; w.appendChild(j);
+        document.body.appendChild(w);
+        w.style.transform = 'translateY(' + from + ')';
+        return w;
+      };
+      const t = mk('t', '-100%'), b = mk('b', '100%');
+      const close = { duration: ms(220), easing: 'cubic-bezier(.7,0,1,1)', fill: 'forwards' };
+      t.animate([{ transform: 'translateY(-100%)' }, { transform: 'translateY(0)' }], close);
+      b.animate([{ transform: 'translateY(100%)' }, { transform: 'translateY(0)' }], close);
+      later(() => {
+        try { if (typeof shakeScreen === 'function') shakeScreen('hitMedium'); } catch (e) { /* ignoré */ }
+        const f = document.createElement('div');
+        f.style.cssText = 'position:fixed;inset:0;z-index:9993;pointer-events:none;background:#fff;opacity:0';
+        document.body.appendChild(f);
+        f.animate([{ opacity: .75 }, { opacity: 0 }], { duration: ms(320), fill: 'forwards' });
+        later(() => f.remove(), ms(340));
+      }, ms(220));
+      const open = { duration: ms(450), delay: ms(360), easing: 'ease-out', fill: 'forwards' };
+      t.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(-100%)' }], open);
+      b.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(100%)' }], open);
+      later(() => { t.remove(); b.remove(); }, ms(360 + 450 + 60));
+    } catch (e) { /* ignoré */ }
+  }
+
+  // ---------- 9c. Piège : pose (retournement scellé) ----------
+  function bfxTrapArm(el) {
+    try {
+      if (!el || off() || !el.animate) return;
+      const P = 'perspective(700px) ';
+      const half = ms(190);
+      const back = document.createElement('div'); back.className = 'bfx-trap-back'; back.textContent = '🐺';
+      const a1 = el.animate([{ transform: P + 'rotateY(0deg)' }, { transform: P + 'rotateY(90deg)' }], { duration: half, easing: 'ease-in' });
+      a1.onfinish = () => {
+        el.appendChild(back);
+        el.animate([{ transform: P + 'rotateY(-90deg)' }, { transform: P + 'rotateY(0deg)' }], { duration: half, easing: 'ease-out' });
+        later(() => { try { if (typeof shakeScreen === 'function') shakeScreen('hitLight'); } catch (e) { /* ignoré */ } }, half);
+        later(() => {
+          const a2 = el.animate([{ transform: P + 'rotateY(0deg)' }, { transform: P + 'rotateY(90deg)' }], { duration: half, easing: 'ease-in' });
+          a2.onfinish = () => {
+            back.remove();
+            el.animate([{ transform: P + 'rotateY(-90deg)' }, { transform: P + 'rotateY(0deg)' }], { duration: half, easing: 'ease-out' });
+            const r = el.getBoundingClientRect();
+            const ring = document.createElement('div'); ring.className = 'bfx-trap-ring';
+            ring.style.cssText = 'left:' + (r.left - 4) + 'px;top:' + (r.top - 4) + 'px;width:' + (r.width + 8) + 'px;height:' + (r.height + 8) + 'px';
+            document.body.appendChild(ring);
+            ring.animate([{ transform: 'scale(1.5)', opacity: 0 }, { transform: 'scale(1)', opacity: 1, offset: .35 }, { transform: 'scale(1)', opacity: 0 }], { duration: ms(800), fill: 'forwards' });
+            later(() => ring.remove(), ms(820));
+          };
+        }, half + ms(250));
+        later(() => back.remove(), half * 2 + ms(300)); // sécurité
+      };
+    } catch (e) { /* ignoré */ }
+  }
+
   // ---------- Suivi des arrivées (créatures et artefacts) ----------
   const seen = { creatures: null, relics: null };
   function ids(list) { return (list || []).map((c) => c && c.instId).filter(Boolean); }
@@ -697,7 +767,7 @@ body.bfx-hero-dead-p1 #hero-frame-p1, body.bfx-hero-dead-p2 #hero-frame-p2{visib
     setDrop: bfxSetDrop, actionStart: bfxActionStart, actionEnd: bfxActionEnd,
     syncArrivals: bfxSyncArrivals, creatureArrive: bfxCreatureArrive, claim: bfxClaim, unclaim: bfxUnclaim, getDrop: bfxGetDrop, artifactArrive: bfxArtifactArrive,
     artifactUse: bfxArtifactUse, keywordTrail: bfxKeywordTrail, drawFly: bfxDrawFly,
-    burnReveal: bfxBurnReveal, spellFlash: bfxSpellFlash, trapSnap: bfxTrapSnap,
+    burnReveal: bfxBurnReveal, spellFlash: bfxSpellFlash, trapSnap: bfxTrapSnap, trapJaws: bfxTrapJaws, trapArm: bfxTrapArm,
     heroDeath: bfxHeroDeath, resetHeroDeath: bfxResetHeroDeath, clearDeathLayers: bfxClearDeathLayers,
     busy: busy, hold: hold
   };
