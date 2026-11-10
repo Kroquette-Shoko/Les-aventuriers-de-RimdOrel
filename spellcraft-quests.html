@@ -21,31 +21,51 @@
 #app{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:0 20px 60px;}
 #app > .sc-topbar{margin:0 -20px 20px;width:calc(100% + 40px);}
 
-.quest-tabs{width:100%;max-width:1000px;display:flex;gap:8px;margin-bottom:18px;}
-.quest-tab{flex:0 0 auto;cursor:pointer;padding:9px 18px;border-radius:999px;border:1px solid var(--border,hsl(calc(var(--th, 252) + 5.4) calc(var(--ts-n, 1) * 24%) 25.3%));background:transparent;color:inherit;font-family:'Cinzel',serif;font-weight:700;font-size:14px;}
-.quest-tab.active{background:var(--gold,#d4af37);color:hsl(calc(var(--th, 252) - 2) calc(var(--ts-n, 1) * 33.3%) 14.1%);border-color:var(--gold,#d4af37);}
-#coffres-view{display:none;width:100%;max-width:1000px;}
+#quests-layout{width:100%;max-width:1260px;display:flex;gap:22px;align-items:flex-start;}
+#quests-side{width:230px;flex-shrink:0;position:sticky;top:16px;display:flex;flex-direction:column;gap:8px;background:var(--bg-panel);border:1px solid var(--line);border-radius:14px;padding:16px 12px;}
+#quests-side .side-title{font-family:'Cinzel',serif;font-weight:700;font-size:26px;color:var(--gold);letter-spacing:1px;margin:0 4px;}
+#quests-side #gold-chip{align-self:flex-start;margin:0 4px 8px;}
+.quest-tab{display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:12px;border:1px solid transparent;background:none;color:var(--parchment);font-family:'Inter',sans-serif;font-size:14px;text-align:left;cursor:pointer;position:relative;transition:background .15s,border-color .15s;}
+.quest-tab:hover{background:rgba(212,175,55,.08);}
+.quest-tab.active{background:rgba(212,175,55,.14);border-color:var(--gold);color:var(--gold-bright,var(--gold));}
+#quests-summary:empty{display:none;}
+#quests-summary{margin-top:12px;border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:rgba(0,0,0,.2);}
+#quests-summary .qs-lbl{font-size:11px;letter-spacing:2px;color:var(--parchment-dim);text-transform:uppercase;}
+#quests-summary .qs-val{font-size:26px;font-weight:700;color:var(--gold-bright,var(--gold));margin:2px 0 6px;}
+#quests-summary .qs-sub{font-size:11.5px;color:var(--parchment-dim);margin-top:6px;}
+#quests-content{flex:1;min-width:0;max-width:100%;}
+#quests-layout{min-width:0;}
+#progression-road{max-width:100%;}
+.quest-section{display:none;min-width:0;}
+.quest-section.active{display:block;animation:qIn .25s ease;}
+@keyframes qIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+#coffres-view{display:none;width:100%;}
 #coffres-view iframe{width:100%;border:0;display:block;min-height:600px;background:transparent;}
-.quests-top-row{width:100%;max-width:1000px;display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:22px;}
-.quests-top-row .sc-h1{margin:0;}
-
 .money-icon{width:22px;height:22px;display:inline-block;vertical-align:-6px;background-color:#f2c94c;-webkit-mask-image:url('images/money.png');mask-image:url('images/money.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;}
 #gold-chip{font-size:13.5px;padding:7px 16px;}
 
-main{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:22px;}
+main{width:100%;min-width:0;display:flex;flex-direction:column;gap:22px;}
 .quest-section h2{font-family:'Cinzel',serif;font-size:16px;color:var(--gold);margin:0 0 14px;letter-spacing:.5px;border-bottom:1px solid var(--line);padding-bottom:10px;}
 .quest-list{display:flex;flex-direction:column;gap:10px;}
-.quest-card{background:var(--bg-panel-2);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:16px;transition:border-color .15s ease;}
+.quest-card{background:var(--bg-panel-2);border:1px solid var(--line);border-radius:16px;padding:16px 20px;display:flex;align-items:center;gap:20px;transition:border-color .15s ease;}
+.quest-ring{flex:none;width:76px;height:76px;}
+.quest-ring svg{display:block;width:100%;height:100%;}
+.quest-card.completed:not(.claimed){animation:qGlow 2s infinite;}
+@keyframes qGlow{50%{box-shadow:0 0 20px rgba(80,220,130,.45)}}
+.quest-claim-btn:not(:disabled){animation:qPulse 1.6s infinite;}
+@keyframes qPulse{50%{transform:scale(1.05)}}
+@media (prefers-reduced-motion:reduce){.quest-card.completed:not(.claimed),.quest-claim-btn:not(:disabled),.quest-section.active{animation:none;}}
+@media (max-width:640px){.quest-card{flex-wrap:wrap;gap:12px;}.quest-info{flex-basis:calc(100% - 100px);}.quest-card .quest-reward{flex-basis:100%;order:3;white-space:normal;}}
 .quest-card.completed{border-color:var(--green);}
 .quest-card.claimed{opacity:.5;}
 .quest-info{flex:1;min-width:0;}
-.quest-title{font-weight:700;font-size:14px;margin-bottom:2px;}
-.quest-desc{font-size:12px;color:var(--parchment-dim);margin-bottom:8px;}
+.quest-title{font-family:'Cinzel',serif;font-weight:700;font-size:18px;margin-bottom:2px;}
+.quest-desc{font-size:13px;color:var(--parchment-dim);}
 .quest-bar-track{width:100%;height:8px;border-radius:5px;background:var(--bg-panel-3);overflow:hidden;}
 .quest-bar-fill{height:100%;background:linear-gradient(90deg,var(--arcane),var(--gold));transition:width .3s;}
 .quest-progress-text{font-size:10.5px;color:var(--parchment-dim);margin-top:4px;}
 .quest-reward{display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:var(--gold);white-space:nowrap;}
-.quest-claim-btn{background:var(--arcane);color:#fff;border:none;border-radius:8px;padding:9px 16px;font-family:'Cinzel',serif;font-weight:700;cursor:pointer;font-size:12px;white-space:nowrap;}
+.quest-claim-btn{background:var(--arcane);color:#fff;border:none;border-radius:999px;padding:11px 22px;font-family:'Cinzel',serif;font-weight:700;cursor:pointer;font-size:12px;white-space:nowrap;}
 .quest-claim-btn:disabled{background:var(--bg-panel-3);color:var(--parchment-dim);cursor:not-allowed;opacity:.6;}
 .quest-claim-btn.claimed-label{background:none;color:var(--green);border:1px solid var(--green);}
 .empty-note{font-size:12.5px;color:var(--parchment-dim);font-style:italic;}
@@ -53,6 +73,39 @@ main{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:22px;}
 .reward-card-thumb{width:34px;height:48px;border-radius:5px;background-size:cover;background-position:center;border:2px solid var(--gold);cursor:pointer;flex-shrink:0;}
 #reward-card-preview{position:fixed;z-index:200;pointer-events:none;display:none;opacity:0;transition:opacity .12s ease;}
 #reward-card-preview.show{display:block;opacity:1;}
+
+
+/* ---------- chemin de progression ---------- */
+#progression-road{margin:0 0 14px;}
+.road-wrap{overflow-x:auto;padding-bottom:6px;}
+.road{position:relative;min-width:760px;aspect-ratio:1000/250;}
+.road svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible;}
+.road-node{position:absolute;transform:translate(-50%,-50%);width:54px;height:54px;border-radius:50%;border:3px solid var(--line);background:var(--bg-panel-3);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;color:var(--parchment);padding:0;font-family:inherit;transition:transform .15s;}
+.road-node:hover{transform:translate(-50%,-50%) scale(1.1);}
+.road-node.done{background:var(--green);border-color:var(--green);color:#fff;}
+.road-node.current{width:68px;height:68px;font-size:26px;background:radial-gradient(circle,var(--gold-bright,#f2cf5a),var(--gold));border-color:var(--gold-bright,#f2cf5a);color:#2a1c05;box-shadow:0 0 28px rgba(242,207,90,.75);animation:rdPulse 1.8s infinite;}
+.road-node.locked{opacity:.65;}
+.road-node.sel{outline:2px solid var(--gold);outline-offset:4px;}
+@keyframes rdPulse{50%{box-shadow:0 0 38px rgba(242,207,90,1)}}
+.road-lbl{position:absolute;top:calc(100% + 6px);left:50%;transform:translateX(-50%);white-space:nowrap;text-align:center;font-family:'Cinzel',serif;font-weight:700;font-size:12.5px;color:var(--parchment);pointer-events:none;}
+.road-node.locked .road-lbl{color:var(--parchment-dim);}
+.road-path-done{animation:rdDash 2s linear infinite;}
+@keyframes rdDash{to{stroke-dashoffset:-26}}
+@media (prefers-reduced-motion:reduce){.road-node.current,.road-path-done{animation:none;}}
+#road-info{margin:0 0 14px;}
+#road-info:empty{display:none;}
+.road-info-card{border:1px solid var(--gold);border-radius:14px;padding:14px 18px;background:rgba(0,0,0,.22);display:flex;align-items:center;gap:18px;flex-wrap:wrap;}
+.road-info-card .ri-t{font-family:'Cinzel',serif;font-weight:700;font-size:17px;color:var(--gold);}
+.road-info-card .ri-d{font-size:13px;color:var(--parchment-dim);}
+.road-info-card .ri-s{font-size:11.5px;letter-spacing:1px;text-transform:uppercase;color:var(--parchment-dim);}
+@media (max-width:860px){
+  #quests-layout{flex-direction:column;}
+  #quests-side{width:100%;position:static;flex-direction:row;flex-wrap:wrap;align-items:center;padding:10px;}
+  #quests-side .side-title{font-size:20px;}
+  #quests-side #gold-chip{margin:0 0 0 auto;}
+  .quest-tab{padding:8px 12px;font-size:13px;}
+  #quests-summary{width:100%;margin-top:4px;}
+}
 
 /* ---------- Rendu de carte (identique à la boutique) ---------- */
 .ncard{position:relative;flex-shrink:0;user-select:none;}
@@ -164,32 +217,36 @@ main{width:100%;max-width:1000px;display:flex;flex-direction:column;gap:22px;}
     </div>
   </div>
 
-  <div class="quests-top-row">
-    <h1 class="sc-h1">Quêtes</h1>
-    <div id="gold-chip" class="sc-pill sc-pill-gold"><span class="money-icon"></span><span id="gold-amount">–</span></div>
+  <div id="quests-layout">
+    <nav id="quests-side" aria-label="Catégories de quêtes">
+      <div class="side-title">Quêtes</div>
+      <div id="gold-chip" class="sc-pill sc-pill-gold"><span class="money-icon"></span><span id="gold-amount">–</span></div>
+      <button class="quest-tab active" data-tab="daily">Journalières</button>
+      <button class="quest-tab" data-tab="weekly">Hebdomadaire</button>
+      <button class="quest-tab" data-tab="progression">Progression</button>
+      <button class="quest-tab" data-tab="coffres" style="display:none">🎁 Les coffres de Velkrin</button>
+      <div id="quests-summary"></div>
+    </nav>
+    <div id="quests-content">
+      <div id="coffres-view"></div>
+      <main id="quests-main">
+        <div class="quest-section sc-panel active" data-pane="daily">
+          <h2>Quêtes journalières</h2>
+          <div class="quest-list" id="daily-list"><p class="empty-note">Chargement…</p></div>
+        </div>
+        <div class="quest-section sc-panel" data-pane="weekly">
+          <h2>Quête hebdomadaire</h2>
+          <div class="quest-list" id="weekly-list"></div>
+        </div>
+        <div class="quest-section sc-panel" data-pane="progression">
+          <h2>Quête de progression</h2>
+          <div id="progression-road"></div>
+          <div id="road-info"></div>
+          <div class="quest-list" id="progression-list"></div>
+        </div>
+      </main>
+    </div>
   </div>
-
-  <div class="quest-tabs" id="quest-tabs" style="display:none">
-    <button class="quest-tab active" data-tab="quetes">📜 Quêtes</button>
-    <button class="quest-tab" data-tab="coffres">🎁 Les coffres de Velkrin</button>
-  </div>
-
-  <div id="coffres-view"></div>
-
-  <main id="quests-main">
-    <div class="quest-section sc-panel">
-      <h2>Quêtes journalières</h2>
-      <div class="quest-list" id="daily-list"><p class="empty-note">Chargement…</p></div>
-    </div>
-    <div class="quest-section sc-panel">
-      <h2>Quête hebdomadaire</h2>
-      <div class="quest-list" id="weekly-list"></div>
-    </div>
-    <div class="quest-section sc-panel">
-      <h2>Quête de progression</h2>
-      <div class="quest-list" id="progression-list"></div>
-    </div>
-  </main>
 </div>
 
 <div id="reward-card-preview"></div>
@@ -512,12 +569,12 @@ function buildQuestCard(q){
   const card = document.createElement('div');
   card.className = 'quest-card' + (q.completed ? ' completed' : '') + (q.claimed ? ' claimed' : '');
   const desc = q.assigned_class ? `${escapeHtml(q.description)} <strong style="color:var(--gold);">(${escapeHtml(q.assigned_class)})</strong>` : escapeHtml(q.description);
+  const R=33, C=2*Math.PI*R, done = q.completed || q.claimed;
   card.innerHTML = `
+    <div class="quest-ring"><svg viewBox="0 0 76 76"><circle cx="38" cy="38" r="${R}" fill="none" stroke="var(--bg-panel-3)" stroke-width="6"/><circle cx="38" cy="38" r="${R}" fill="none" stroke="${done?'var(--green)':'var(--gold)'}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${C*pct/100} ${C}" transform="rotate(-90 38 38)"/><text x="38" y="39" text-anchor="middle" dominant-baseline="middle" fill="var(--parchment)" font-size="15" font-weight="700" font-family="Inter,sans-serif">${q.progress_count}/${q.target_count}</text></svg></div>
     <div class="quest-info">
       <div class="quest-title">${escapeHtml(q.title)}</div>
       <div class="quest-desc">${desc}</div>
-      <div class="quest-bar-track"><div class="quest-bar-fill" style="width:${pct}%;"></div></div>
-      <div class="quest-progress-text">${q.progress_count} / ${q.target_count}</div>
     </div>
   `;
   const rewardWrap = document.createElement('div');
@@ -607,15 +664,54 @@ async function loadQuests(){
   if(progression.length===0) progEl.innerHTML = '<p class="empty-note">Toutes les quêtes de progression sont terminées pour l\'instant — reviens plus tard !</p>';
   progression.forEach(q=>progEl.appendChild(buildQuestCard(q)));
 
-  // Pastilles « ! » : une quête terminée attend d'être récupérée dans cette section.
+  // Pastilles « ! » : une quête terminée attend d'être récupérée dans cette catégorie.
   try{
     const claimable = (list)=>list.some(q=>q.completed && !q.claimed);
-    [['daily-list',daily],['weekly-list',weekly],['progression-list',progression]].forEach(([id,list])=>{
-      const h2 = document.getElementById(id).closest('.quest-section')?.querySelector('h2');
-      if(h2) scNotif.mark(h2, claimable(list), 'inline');
+    [['daily',daily],['weekly',weekly],['progression',progression]].forEach(([tab,list])=>{
+      const b = document.querySelector('.quest-tab[data-tab="'+tab+'"]');
+      if(b) scNotif.mark(b, claimable(list), 'inline');
     });
   }catch(e){}
+  // Résumé du jour dans le menu latéral
+  try{
+    const sum = document.getElementById('quests-summary');
+    const dn = daily.filter(q=>q.completed || q.claimed).length;
+    sum.innerHTML = daily.length ? `<div class="qs-lbl">Aujourd'hui</div><div class="qs-val">${dn} / ${daily.length}</div><div class="quest-bar-track"><div class="quest-bar-fill" style="width:${Math.round(dn/daily.length*100)}%;"></div></div><div class="qs-sub">quêtes journalières terminées</div>` : '';
+  }catch(e){}
+  loadProgressionRoad();
   refreshCoffresNotif();
+}
+
+
+// Chemin de progression : toutes les étapes (Débutant → Divinité), celles déjà faites, la quête en cours, celles à venir.
+let __roadSel = null;
+async function loadProgressionRoad(){
+  const box = document.getElementById('progression-road');
+  const info = document.getElementById('road-info');
+  let res; try{ res = await sb.rpc('get_progression_path'); }catch(e){ res = null; }
+  if(!res || res.error || !res.data || res.data.error || !Array.isArray(res.data.steps) || !res.data.steps.length){ box.innerHTML=''; info.innerHTML=''; return; }
+  const steps = res.data.steps, n = steps.length;
+  const pts = steps.map((st,i)=>({ x: 60 + i*(880/Math.max(1,n-1)), y: 112 + 52*Math.sin(i*1.15+0.6) }));
+  const path = (upto)=>{ let d = 'M'+pts[0].x+' '+pts[0].y; for(let i=1;i<=upto;i++){ const mx=(pts[i-1].x+pts[i].x)/2; d += ` C${mx} ${pts[i-1].y} ${mx} ${pts[i].y} ${pts[i].x} ${pts[i].y}`; } return d; };
+  let cur = steps.findIndex(st=>st.status==='current');
+  if(cur < 0){ const lastDone = steps.map(st=>st.status).lastIndexOf('done'); cur = lastDone; }
+  const nodes = steps.map((st,i)=>`<button class="road-node ${st.status}${__roadSel===st.id?' sel':''}" data-id="${st.id}" style="left:${pts[i].x/10}%;top:${pts[i].y/2.5}%;" title="${escapeHtmlQuests(st.title)}">${st.status==='done'?'✓':st.status==='current'?'⚔':'🔒'}<span class="road-lbl">${escapeHtmlQuests(st.title)}</span></button>`).join('');
+  box.innerHTML = `<div class="road-wrap"><div class="road">
+    <svg viewBox="0 0 1000 250" preserveAspectRatio="none"><path d="${path(n-1)}" fill="none" stroke="rgba(255,255,255,.16)" stroke-width="12" stroke-linecap="round" vector-effect="non-scaling-stroke"/>${cur>0?`<path class="road-path-done" d="${path(cur)}" fill="none" stroke="var(--gold)" stroke-width="12" stroke-linecap="round" stroke-dasharray="14 12" vector-effect="non-scaling-stroke"/>`:''}</svg>${nodes}</div></div>`;
+  const stepById = {}; steps.forEach(st=>{ stepById[st.id]=st; });
+  const showInfo = (id)=>{
+    __roadSel = id;
+    box.querySelectorAll('.road-node').forEach(b=>b.classList.toggle('sel', b.dataset.id===id));
+    const st = stepById[id]; if(!st){ info.innerHTML=''; return; }
+    const label = st.status==='done' ? 'Terminée' : st.status==='current' ? 'En cours' : 'À débloquer';
+    info.innerHTML = '';
+    const card = document.createElement('div'); card.className = 'road-info-card';
+    card.innerHTML = `<div style="flex:1;min-width:200px;"><div class="ri-s">${label}</div><div class="ri-t">${escapeHtmlQuests(st.title)}</div><div class="ri-d">${escapeHtmlQuests(st.description||'')}</div></div>`;
+    const rw = document.createElement('div'); rw.className = 'quest-reward'; rw.appendChild(buildRewardEl({rewards: st.rewards||[]}));
+    card.appendChild(rw); info.appendChild(card);
+  };
+  box.querySelectorAll('.road-node').forEach(b=>b.addEventListener('click', ()=>showInfo(b.dataset.id)));
+  if(__roadSel && stepById[__roadSel]) showInfo(__roadSel); else info.innerHTML = '';
 }
 
 // Pastille « ! » sur l'onglet « Les coffres de Velkrin » : une ouverture est possible dans la grille.
@@ -631,6 +727,7 @@ async function refreshCoffresNotif(){
 function showTab(name){
   const coffres = name === 'coffres';
   document.querySelectorAll('.quest-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.quest-section').forEach(sec => sec.classList.toggle('active', sec.dataset.pane === name));
   document.getElementById('quests-main').style.display = coffres ? 'none' : '';
   const view = document.getElementById('coffres-view');
   view.style.display = coffres ? 'block' : 'none';
@@ -674,7 +771,7 @@ window.addEventListener('message', e => {
   try{
     const { data } = await sb.from('app_flags').select('value').eq('key','calendar_enabled').maybeSingle();
     if(data && data.value === true){
-      document.getElementById('quest-tabs').style.display = 'flex';
+      const cb = document.querySelector('.quest-tab[data-tab="coffres"]'); if(cb) cb.style.display = '';
       if(location.hash === '#coffres') showTab('coffres');
     }
   }catch(e){}
