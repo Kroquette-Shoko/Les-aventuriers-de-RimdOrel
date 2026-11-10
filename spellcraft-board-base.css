@@ -683,9 +683,10 @@ body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out 
 }
 /* Chiffres de dégâts : taille/couleur selon l'ampleur (voir damagePopupSpec).
    Sans classe de taille (ancien appel) : style de base ci-dessus. */
-.dmg-popup.dmg-s{font-size:26px;}
-.dmg-popup.dmg-m{font-size:34px;color:#ff3b3b;}
-.dmg-popup.dmg-l{font-size:46px;color:#ff1f1f;text-shadow:0 0 12px rgba(255,60,60,.8),0 3px 6px rgba(0,0,0,.9);}
+.dmg-popup.dmg-s{font-size:24px;color:#ffd0c8;}
+.dmg-popup.dmg-m{font-size:28px;color:#ffd0c8;text-shadow:0 0 8px rgba(255,74,58,.7),0 2px 5px rgba(0,0,0,.9);}
+.dmg-popup.dmg-l{font-size:32px;color:#ffd0c8;text-shadow:0 0 12px rgba(255,60,60,.85),0 3px 6px rgba(0,0,0,.9);}
+.dmg-popup.dmg-heal{font-size:26px;color:#5fe08a;text-shadow:0 0 10px rgba(95,224,138,.8),0 2px 5px rgba(0,0,0,.85);}
 .dmg-popup.dmg-shield{font-size:30px;color:#9fd3ff;text-shadow:0 0 10px rgba(120,190,255,.7),0 2px 5px rgba(0,0,0,.85);}
 .dmg-popup.dmg-zero{font-size:18px;color:#d9d2c0;font-weight:600;}
 /* Choc d'un coup de combat (voir flashCombatImpact) */

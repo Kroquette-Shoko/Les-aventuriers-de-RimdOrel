@@ -621,12 +621,62 @@ async function processCombatAnimQueue(){
   if(gen !== __combatAnimGen) return;
   releaseCombatAnimLock();
 }
+// ---- Variante « Éclats » : gerbe d'éclats rouges sur un coup, particules vertes
+// aspirées sur un soin. Éléments fixes animés (WAAPI), sans effet en mode instantané.
+function dmgShards(el, amount){
+  if(!el || !el.animate || !cms(100)) return;
+  const r = el.getBoundingClientRect(), cx = r.left+r.width/2, cy = r.top+r.height/2;
+  const s = amount<=4 ? 1 : amount<=10 ? 1.45 : 1.95;
+  const k = Math.round(7*s)+3, reach = Math.min(1.4, s);
+  for(let j=0;j<k;j++){
+    const a = Math.random()*Math.PI*2, d = (40+Math.random()*50)*reach;
+    const w = 4+Math.random()*5, h = 10+Math.random()*12, deg = a*57.3;
+    const e = document.createElement('div');
+    e.style.cssText = `position:fixed;left:${cx}px;top:${cy}px;width:${w}px;height:${h}px;margin:${-h/2}px 0 0 ${-w/2}px;background:${j%3?'#ff4a3a':'#ffb36a'};clip-path:polygon(50% 0,100% 100%,0 100%);pointer-events:none;z-index:9996;`;
+    document.body.appendChild(e);
+    const an = e.animate([
+      { opacity:1, transform:`translate(0,0) rotate(${deg}deg)` },
+      { opacity:1, transform:`translate(${Math.cos(a)*d}px,${Math.sin(a)*d}px) rotate(${deg+200}deg)`, offset:.55 },
+      { opacity:0, transform:`translate(${Math.cos(a)*d*1.15}px,${Math.sin(a)*d*1.15+30}px) rotate(${deg+360}deg)` }
+    ], { duration: cms(700+Math.random()*250), easing:'cubic-bezier(.1,.7,.3,1)', fill:'forwards' });
+    an.onfinish = ()=>e.remove();
+  }
+}
+function healMotes(el, amount){
+  if(!el || !el.animate || !cms(100)) return;
+  const r = el.getBoundingClientRect(), cx = r.left+r.width/2, cy = r.top+r.height/2;
+  const n = isCombatNumber(amount) ? amount : 3;
+  const k = Math.min(18, 8+Math.round(n));
+  for(let j=0;j<k;j++){
+    const a = Math.random()*Math.PI*2, d = 70+Math.random()*40;
+    setTimeout(()=>{
+      const e = document.createElement('div');
+      e.style.cssText = `position:fixed;left:${cx}px;top:${cy}px;width:7px;height:7px;margin:-3px;border-radius:50%;background:#5fe08a;box-shadow:0 0 8px #5fe08a;pointer-events:none;z-index:9996;`;
+      document.body.appendChild(e);
+      const an = e.animate([
+        { opacity:0, transform:`translate(${Math.cos(a)*d}px,${Math.sin(a)*d}px) scale(.6)` },
+        { opacity:1, transform:`translate(${Math.cos(a)*d*.6}px,${Math.sin(a)*d*.6}px) scale(1)`, offset:.35 },
+        { opacity:0, transform:'translate(0,0) scale(.3)' }
+      ], { duration: cms(650), easing:'ease-in', fill:'forwards' });
+      an.onfinish = ()=>e.remove();
+    }, cms(35)*j);
+  }
+  setTimeout(()=>{
+    const g = document.createElement('div');
+    g.style.cssText = `position:fixed;left:${cx}px;top:${cy}px;width:90px;height:90px;margin:-45px;border-radius:50%;background:radial-gradient(circle,rgba(184,255,208,.67),transparent 70%);pointer-events:none;z-index:9996;`;
+    document.body.appendChild(g);
+    const an = g.animate([{opacity:.9,transform:'scale(.3)'},{opacity:0,transform:'scale(1.6)'}], { duration: cms(600), fill:'forwards' });
+    an.onfinish = ()=>g.remove();
+    if(isCombatNumber(amount) && amount>0) spawnDamageNumber(el, 0, { spec:{ text:'+'+amount, cls:'dmg-heal' } });
+  }, cms(35)*k + cms(400));
+}
 // Chiffre flottant au centre de `anchorEl`. Ancien appel (amount seul) : « -N »
 // (rien si 0). `opts.spec` = résultat de damagePopupSpec (bouclier, « 0 »...).
 function spawnDamageNumber(anchorEl, amount, opts){
   opts = opts || {};
   const spec = opts.spec || (amount ? damagePopupSpec(amount, false) : null);
   if(!anchorEl || !spec) return;
+  if(/^dmg-[sml]$/.test(spec.cls)) dmgShards(anchorEl, parseInt(String(spec.text).replace(/\D/g,''))||1);
   const r = anchorEl.getBoundingClientRect();
   const el = document.createElement('div');
   el.className = 'dmg-popup ' + spec.cls;
@@ -802,7 +852,8 @@ function planSpellOrbTargets(entry){
       if(!id || id===entry.sourceInstId) return;
       const key = id+'|'+type;
       if(seen.has(key)) return; seen.add(key);
-      out.push({id, type});
+      const am = (type==='dmg'||type==='heal') ? (text.match(/(\d+)/)||[])[1] : null;
+      out.push({id, type, amount: am ? parseInt(am) : null});
     });
   });
   return out;
@@ -818,6 +869,8 @@ function spellOrbImpact(item, fxCls){
   document.body.appendChild(f);
   setTimeout(()=>f.remove(), 620);
   flashImpact(el, fxCls==='fx-enemy' ? false : true);
+  if(item.type==='dmg') dmgShards(el, isCombatNumber(item.amount) ? item.amount : 3);
+  else if(item.type==='heal') healMotes(el, item.amount);
   if(item.type==='dmg'){
     el.classList.add('spell-hit-shake');
     setTimeout(()=>{ if(el.classList) el.classList.remove('spell-hit-shake'); }, 420);
@@ -831,7 +884,7 @@ function spellOrbImpact(item, fxCls){
 // onLaunch() est appelé quand l'orbe quitte la carte (on ferme alors la révélation).
 function playSpellOrb(flipEl, targets, fxMine, onLaunch){
   if(!flipEl || !flipEl.animate) return null;
-  const items = (targets||[]).map(t=>({ el: resolveLogTargetEl(t.id), type: t.type })).filter(t=>t.el);
+  const items = (targets||[]).map(t=>({ el: resolveLogTargetEl(t.id), type: t.type, amount: t.amount })).filter(t=>t.el);
   if(!items.length) return null;
   const fxCls = fxMine===false ? 'fx-enemy' : 'fx-mine';
   return new Promise(resolve=>{
