@@ -652,8 +652,9 @@ document.documentElement.classList.toggle('bd-persp', scGetBoardLayout()==='pers
    (utilisé par le plateau pour « Spectateurs »). Le thème de couleur n'est plus proposé : seul le thème par défaut existe. */
 const SC_OPT_BOARD_DEFAULTS = { layout:'classic', decor:'off', anim:'always' };
 const SC_OPT_DECOR_COLORS = { off:['#1a1530','#1a1530'], random:['#6a4cff','#ff7a3d'], taverne:['#7a4a1f','#e0a040'], bateau:['#1f4a66','#8ac0e0'],
-  village:['#3f7a3f','#e0d090'], constellation:['#14103a','#7c5cff'], cimetiere:['#1f2a22','#7aa08a'], ecole:['#3a2a66','#e0b0ff'] };
-const SC_OPT_DECOR_SHORT = { off:'Aucun', random:'Aléatoire', taverne:'Taverne', bateau:'Navire', village:'Village', constellation:'Étoiles', cimetiere:'Cimetière', ecole:'École' };
+  village:['#3f7a3f','#e0d090'], constellation:['#14103a','#7c5cff'], cimetiere:['#1f2a22','#7aa08a'], ecole:['#3a2a66','#e0b0ff'],
+  carte:['#8a6a3a','#e0c890'], marbre:['#14111a','#b08d3a'], runes:['#1c2026','#4fc0d0'], crepuscule:['#2a1d52','#f4a36a'], foret:['#0d2a1b','#7aca6a'], aurore:['#0e2540','#3ae0b0'] };
+const SC_OPT_DECOR_SHORT = { off:'Aucun', random:'Aléatoire', taverne:'Taverne', bateau:'Navire', village:'Village', constellation:'Étoiles', cimetiere:'Cimetière', ecole:'École', carte:'Trésor', marbre:'Marbre', runes:'Runes', crepuscule:'Crépuscule', foret:'Forêt', aurore:'Aurore' };
 const SC_OPT_EXTRA = [];
 function scOptionsAddSection(sec){
   if(!sec || !sec.id || SC_OPT_EXTRA.some(s=>s.id===sec.id)) return;
@@ -738,7 +739,7 @@ function injectOptionsMenu(){
   const sw = (key, on)=>`<button type="button" class="so-sw${on?' on':''}" data-sw="${key}" role="switch" aria-checked="${on?'true':'false'}"></button>`;
   const slider = (label,key,val)=>`<div class="so-gap" style="margin-bottom:14px"><div class="so-row" style="margin-bottom:6px"><span class="so-lb" style="margin:0">${label}</span><b data-out="${key}" style="font-size:12px;color:var(--gold-bright, #f2cf5a)">${val} %</b></div><input type="range" class="so-rg" data-rg="${key}" min="0" max="100" value="${val}" style="--v:${val}%"></div>`;
   const boardDecor = ()=>{
-    const list = (window.SCBoardThemes && window.SCBoardThemes.list) || [{id:'taverne',label:'Taverne'},{id:'bateau',label:'Pont de navire'},{id:'village',label:'Village humain'},{id:'constellation',label:'Constellation'},{id:'cimetiere',label:'Sinistre cimetière'},{id:'ecole',label:'École de magie'}]; // pages sans le fichier des décors : liste de secours
+    const list = (window.SCBoardThemes && window.SCBoardThemes.list) || [{id:'taverne',label:'Taverne'},{id:'bateau',label:'Pont de navire'},{id:'village',label:'Village humain'},{id:'constellation',label:'Constellation'},{id:'cimetiere',label:'Sinistre cimetière'},{id:'ecole',label:'École de magie'},{id:'carte',label:'Carte au trésor'},{id:'marbre',label:'Marbre et or'},{id:'runes',label:'Pierre runique'},{id:'crepuscule',label:'Crépuscule'},{id:'foret',label:'Forêt magique'},{id:'aurore',label:'Aurore boréale'}]; // pages sans le fichier des décors : liste de secours
     const items = [{id:'off',label:'Aucun (sobre)'},{id:'random',label:'Aléatoire'}].concat(list);
     return items.map(t=>({id:t.id,label:t.label,short:SC_OPT_DECOR_SHORT[t.id]||t.label,c:SC_OPT_DECOR_COLORS[t.id]||['#2a2150','#7c5cff']}));
   };
