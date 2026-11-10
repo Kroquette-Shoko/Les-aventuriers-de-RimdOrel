@@ -14,8 +14,13 @@ const BOARD_REF_WIDTH = 1920, BOARD_REF_HEIGHT = 1080;
 function updateBoardScale(){
   const outer = document.getElementById('app-outer');
   if(!outer) return;
-  if(window.SCBoardFit){ SCBoardFit.fit(outer, {refW:BOARD_REF_WIDTH, baseH:BOARD_REF_HEIGHT, topReserve:0, phone:true}); return; }
-  const scale = Math.min(window.innerWidth / BOARD_REF_WIDTH, window.innerHeight / BOARD_REF_HEIGHT);
+  // Le tutoriel (window.SC_BOARD_LAYOUT) remplace la barre du haut par sa bande de narration :
+  // il réserve cette hauteur en haut de l'écran et retire d'autant la hauteur de référence.
+  const lay = window.SC_BOARD_LAYOUT || {};
+  const top = lay.topReserve ? lay.topReserve() : 0;
+  const baseH = lay.baseH || BOARD_REF_HEIGHT;
+  if(window.SCBoardFit){ SCBoardFit.fit(outer, {refW:BOARD_REF_WIDTH, baseH:baseH, topReserve:top, phone:true}); return; }
+  const scale = Math.min(window.innerWidth / BOARD_REF_WIDTH, (window.innerHeight - top) / baseH);
   outer.style.transform = `scale(${scale})`;
 }
 window.addEventListener('resize', updateBoardScale);

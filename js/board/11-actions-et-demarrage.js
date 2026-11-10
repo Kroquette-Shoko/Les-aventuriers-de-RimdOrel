@@ -317,7 +317,8 @@ async function initFromUrl(){
   getCatalogOnce();
   afterConnected(null);
 }
-initSpellcraftAuth().then(initFromUrl);
+// Le tutoriel (window.SC_TUTORIAL) démarre avec son propre moteur (spellcraft-tutorial-engine.js).
+if(!window.SC_TUTORIAL) initSpellcraftAuth().then(initFromUrl);
 
 // ---------------- Fenêtres déplaçables (journal et chat) ----------------
 // On les saisit par leur titre ; double-clic sur le titre = position d'origine.

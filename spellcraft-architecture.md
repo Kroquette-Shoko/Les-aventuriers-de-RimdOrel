@@ -714,3 +714,14 @@ Sauvegarde : `_backup_game_action_chunks_20261109_fidele_cards`.
 - Filtre de cible `failleFilter` (« Uniquement les cartes avec Faille »).
 - Condition `failleAllyTurn` (nombre de vos Failles déclenchées ce tour).
 - Sauvegarde avant patch : `_backup_game_action_chunks_20261109_faille`.
+
+
+---
+## Tutoriel et plateau : une seule source (10/11/2026)
+Le tutoriel (`spellcraft-tutorial.html`) n'est plus une copie générée du plateau (l'ancien `tools/build_tutorial.py` est supprimé).
+Il charge EXACTEMENT les mêmes fichiers que la partie : `spellcraft-board-base.css`, `spellcraft-board-extra.css`, et `js/board/00…11-*.js`
+(voir `js/board/README.md`). Ce qui lui est propre :
+- `window.SC_TUTORIAL = true` : le balisage (`js/board/00-balisage.js`) omet la barre du haut du plateau, et `11-actions-et-demarrage.js` ne lance pas la connexion à une partie ;
+- `window.SC_BOARD_LAYOUT` : hauteur réservée à la bande de narration (lue par `updateBoardScale`, fichier 02) ;
+- `spellcraft-tutorial.css` (bande de narration, surbrillance, écran de fin) et `spellcraft-tutorial-engine.js` (scénario scripté qui remplace les appels réseau `gs*()`).
+Toute évolution du plateau est donc automatiquement dans le tutoriel.

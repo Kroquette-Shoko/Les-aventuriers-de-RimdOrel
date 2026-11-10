@@ -5,6 +5,7 @@ DANS CET ORDRE (ne pas permuter : tout est partagé, comme avant, et certaines l
 
 | # | Fichier | Contenu |
 |---|---|---|
+| 00 | balisage | Le HTML du plateau (zones, modales, journal, chat) : partagé avec le tutoriel |
 | 01 | mots-cles-et-regles | Mots-clés, couleurs des stats, règles d'attaque/blocage côté client, séquencement adverse |
 | 02 | etat-et-journal | Échelle du plateau, état partagé (S, UI), signalement de bug, journal de partie |
 | 03 | connexion-et-annonce-de-match | Connexion, gel du rendu, annonce de match, préchargement des images, onStateUpdate, tour de l'IA |
@@ -19,3 +20,5 @@ DANS CET ORDRE (ne pas permuter : tout est partagé, comme avant, et certaines l
 
 Vérifié : le contenu est identique ligne pour ligne à l'ancien code de la page, et le rendu d'une partie simulée est identique avant/après.
 Quand un fichier change, penser à augmenter le `?v=` de sa balise dans la page (cache du navigateur).
+
+Ces fichiers (et les CSS `spellcraft-board-base.css` / `-extra.css`) sont aussi chargés par `spellcraft-tutorial.html`.
