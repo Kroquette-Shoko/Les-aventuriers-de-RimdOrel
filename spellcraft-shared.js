@@ -647,7 +647,7 @@ document.documentElement.classList.toggle('bd-rail', scGetBoardLayout()==='rail'
 document.documentElement.classList.toggle('bd-persp', scGetBoardLayout()==='persp');
 
 /* ---------- Menu d'options (engrenage) — fenêtre centrée avec menu à gauche ----------
-   Sections : Audio, Combat (vitesse, bouton Passer, disposition et décor du plateau), Cartes.
+   Sections : Audio, Animation (vitesse de combat, bouton Passer, fonds de cartes), Combat (disposition et décor du plateau).
    Les pages peuvent ajouter leur propre section avec scOptionsAddSection({id,label,icon,render,bind,visible})
    (utilisé par le plateau pour « Spectateurs »). Le thème de couleur n'est plus proposé : seul le thème par défaut existe. */
 const SC_OPT_BOARD_DEFAULTS = { layout:'classic', decor:'off', anim:'always' };
@@ -751,16 +751,16 @@ function injectOptionsMenu(){
     { id:'audio', icon:'🔊', label:'Audio', render:()=>
         slider('Musique','music',Math.round(musicVolumeLevel*100)) + slider('Effets sonores','sfx',Math.round(sfxVolumeLevel*100)) +
         `<div class="so-row" style="padding:12px 0;border-top:1px solid rgba(212,175,55,.2)"><span style="font-size:13.5px">Tout couper</span>${sw('mute',sfxMuted)}</div>` },
+    { id:'anim', icon:'✨', label:'Animation', render:()=>
+        `<div class="so-lb">Vitesse des animations de combat</div><div class="so-gap">${seg('speed',[['normal','Normale ×1'],['fast','Rapide ×2'],['instant','Instantanée']],scGetCombatSpeedMode())}</div>
+          <div class="so-row so-gap"><span style="font-size:13px">Afficher un bouton « Passer » pendant les animations</span>${sw('skip',scGetShowSkipButton())}</div>
+          <div class="so-lb">Animations des fonds de cartes</div>${seg('anim',[['always','Toujours'],['hover','Au survol de la carte (plus léger)']], lsGet('sc-card-anim')==='hover'?'hover':'always')}` },
     { id:'combat', icon:'⚔️', label:'Combat', render:()=>{
         const lay = scGetBoardLayout(), dec = lsGet('sc-board-theme') || 'off';
-        return `<div class="so-lb">Vitesse des animations de combat</div><div class="so-gap">${seg('speed',[['normal','Normale ×1'],['fast','Rapide ×2'],['instant','Instantanée']],scGetCombatSpeedMode())}</div>
-          <div class="so-row so-gap"><span style="font-size:13px">Afficher un bouton « Passer » pendant les animations</span>${sw('skip',scGetShowSkipButton())}</div>
-          <div class="so-lb">Disposition du plateau <small>(prend effet à la prochaine partie)</small></div>
+        return `<div class="so-lb">Disposition du plateau <small>(prend effet à la prochaine partie)</small></div>
           <div class="so-tiles so-gap" style="grid-template-columns:repeat(3,1fr)">${[['classic','Classique'],['rail','Minimaliste (rails)'],['persp','Table en perspective']].map(([v,l])=>`<button type="button" class="so-tile${lay===v?' on':''}" data-layout="${v}">${layoutPreview[v]}<div class="lbl">${l}</div></button>`).join('')}</div>
           <div class="so-lb">Décor animé du plateau</div>
-          <div class="so-tiles" style="grid-template-columns:repeat(4,1fr)">${boardDecor().map(d=>`<button type="button" class="so-tile${dec===d.id?' on':''}" data-decor="${esc(d.id)}" title="${esc(d.label)}"><div style="height:34px;background:linear-gradient(135deg,${d.c[0]},${d.c[1]})"></div><div class="lbl">${esc(d.short)}</div></button>`).join('')}</div>`; } },
-    { id:'cartes', icon:'🃏', label:'Cartes', render:()=>
-        `<div class="so-lb">Animations des fonds de cartes</div>${seg('anim',[['always','Toujours'],['hover','Au survol de la carte (plus léger)']], lsGet('sc-card-anim')==='hover'?'hover':'always')}` }
+          <div class="so-tiles" style="grid-template-columns:repeat(4,1fr)">${boardDecor().map(d=>`<button type="button" class="so-tile${dec===d.id?' on':''}" data-decor="${esc(d.id)}" title="${esc(d.label)}"><div style="height:34px;background:linear-gradient(135deg,${d.c[0]},${d.c[1]})"></div><div class="lbl">${esc(d.short)}</div></button>`).join('')}</div>`; } }
   ];
   let current = 'audio';
   const visibleSections = ()=>SECTIONS.concat(SC_OPT_EXTRA.filter(s=>!s.visible || s.visible()));
