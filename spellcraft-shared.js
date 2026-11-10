@@ -618,13 +618,8 @@ function playFinalSfx(key, volume=0.8){
    propres couleurs, codées en dur, restent inchangées) — rien ne casse. */
 const SC_THEMES = [
   { id:'actuel',   label:'Actuel',           swatch:['#0b0a12','#d4af37','#7c5cff'] },
-  { id:'emeraude', label:'Émeraude & bronze', swatch:['#0a100d','#c98a3e','#45c489'] },
-  { id:'sangor',   label:'Sang & or',         swatch:['#10090a','#d9a63c','#de3551'] },
-  { id:'givre',    label:'Givre & argent',    swatch:['#090d10','#9fb8c9','#5cafeb'] },
 ];
-function scGetTheme(){
-  try{ return localStorage.getItem('sc-theme') || 'actuel'; }catch(e){ return 'actuel'; }
-}
+function scGetTheme(){ return 'actuel'; } // un seul thème : le choix de couleur a été retiré des options
 function scApplyTheme(id, opts={}){
   if(!SC_THEMES.some(t=>t.id===id)) id = 'actuel';
   document.documentElement.setAttribute('data-theme', id);
@@ -635,7 +630,7 @@ function scApplyTheme(id, opts={}){
 }
 // Applique tout de suite le thème déjà choisi (au cas où la page n'a
 // pas encore le petit script anti-flash dans son <head>).
-scApplyTheme(scGetTheme(), {silent:true});
+scApplyTheme('actuel', {silent:true}); // écrase aussi un ancien choix mémorisé
 
 /* ---------- Disposition du plateau : « classic » (actuelle) ou « rail » (minimaliste,
    rails latéraux — voir spellcraft-board-rail.css). Préférence partagée (localStorage). ---------- */
@@ -651,9 +646,20 @@ function scApplyBoardLayout(id){
 document.documentElement.classList.toggle('bd-rail', scGetBoardLayout()==='rail');
 document.documentElement.classList.toggle('bd-persp', scGetBoardLayout()==='persp');
 
-/* ---------- Menu d'options (icône engrenage) — flottant par défaut, ou
-   ancré dans #sc-options-slot si une page fournit cet emplacement (barre
-   du haut unifiée). ---------- */
+/* ---------- Menu d'options (engrenage) — fenêtre centrée avec menu à gauche ----------
+   Sections : Audio, Combat (vitesse, bouton Passer, disposition et décor du plateau), Cartes.
+   Les pages peuvent ajouter leur propre section avec scOptionsAddSection({id,label,icon,render,bind,visible})
+   (utilisé par le plateau pour « Spectateurs »). Le thème de couleur n'est plus proposé : seul le thème par défaut existe. */
+const SC_OPT_BOARD_DEFAULTS = { layout:'classic', decor:'off', anim:'always' };
+const SC_OPT_DECOR_COLORS = { off:['#1a1530','#1a1530'], random:['#6a4cff','#ff7a3d'], taverne:['#7a4a1f','#e0a040'], bateau:['#1f4a66','#8ac0e0'],
+  village:['#3f7a3f','#e0d090'], constellation:['#14103a','#7c5cff'], cimetiere:['#1f2a22','#7aa08a'], ecole:['#3a2a66','#e0b0ff'] };
+const SC_OPT_DECOR_SHORT = { off:'Aucun', random:'Aléatoire', taverne:'Taverne', bateau:'Navire', village:'Village', constellation:'Étoiles', cimetiere:'Cimetière', ecole:'École' };
+const SC_OPT_EXTRA = [];
+function scOptionsAddSection(sec){
+  if(!sec || !sec.id || SC_OPT_EXTRA.some(s=>s.id===sec.id)) return;
+  SC_OPT_EXTRA.push(sec);
+  if(typeof window.__scOptionsRefresh === 'function') window.__scOptionsRefresh();
+}
 function injectOptionsMenu(){
   if(document.getElementById('sc-options-gear')) return; // déjà injecté
   const slot = document.getElementById('sc-options-slot');
@@ -665,30 +671,52 @@ function injectOptionsMenu(){
     #sc-options-gear:hover{transform:rotate(25deg);}
     #sc-options-gear img{width:65px;height:65px;pointer-events:none;}
     #sc-options-gear .sc-gear-icon{width:65px;height:65px;background-color:var(--parchment, #fff);-webkit-mask-image:url('images/gear.png');mask-image:url('images/gear.png');-webkit-mask-size:contain;mask-size:contain;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:center;mask-position:center;pointer-events:none;}
-    #sc-options-modal{display:none;position:fixed;top:96px;right:10px;z-index:99999;
-      background:var(--bg-panel, hsl(calc(var(--th, 252) + 10.5) calc(var(--ts-n, 1) * 25%) 6.3%));border:1px solid var(--gold, #d4af37);border-radius:12px;padding:16px 18px;width:230px;
-      box-shadow:0 12px 34px rgba(0,0,0,.6);font-family:'Inter',sans-serif;color:var(--parchment, #f2ead2);max-height:calc(100vh - 110px);overflow-y:auto;}
-    #sc-options-modal.show{display:block;}
-    #sc-options-modal .sc-opt-title{font-family:'Cinzel',serif;font-weight:700;color:var(--gold, #d4af37);margin-bottom:12px;font-size:14px;}
-    #sc-options-modal label.sc-opt-label{display:block;font-size:11.5px;color:var(--parchment-dim, #c8beb0);margin-bottom:5px;text-transform:uppercase;letter-spacing:.3px;}
-    #sc-options-modal input[type=range]{width:100%;margin-bottom:14px;accent-color:var(--gold, #d4af37);}
-    #sc-options-modal .sc-opt-mute{display:flex;align-items:center;gap:8px;font-size:12.5px;cursor:pointer;padding-top:2px;border-top:1px solid rgba(212,175,55,.2);padding-top:10px;}
-    #sc-options-modal select{width:100%;margin-bottom:12px;padding:5px 6px;font-size:12.5px;color:inherit;background:rgba(0,0,0,.35);border:1px solid rgba(212,175,55,.35);border-radius:6px;}
-    #sc-options-modal .sc-opt-hub{display:block;margin-top:10px;padding-top:10px;border-top:1px solid rgba(212,175,55,.2);font-size:12.5px;font-weight:700;color:var(--gold, #d4af37);text-decoration:none;text-align:center;}
-    #sc-options-modal .sc-opt-hub:hover{text-decoration:underline;}
     #sc-options-gear.sc-options-inline{position:static;width:var(--gear-size,60px);height:var(--gear-size,60px);margin:calc((38px - var(--gear-size,60px)) / 2) 0;box-shadow:none;flex:none;}
     #sc-options-gear.sc-options-inline .sc-gear-icon{width:calc(var(--gear-size,60px) * .73);height:calc(var(--gear-size,60px) * .73);}
-    #sc-options-modal.sc-options-inline-modal{top:56px;right:16px;}
-    #sc-options-modal .sc-opt-theme-row{display:flex;gap:8px;margin-bottom:4px;flex-wrap:wrap;}
-    .sc-theme-swatch{width:30px;height:30px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0;
-      position:relative;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.4);flex:none;}
-    .sc-theme-swatch span{position:absolute;inset:0;}
-    .sc-theme-swatch span:nth-child(1){clip-path:polygon(0 0,100% 0,100% 100%,0 100%);}
-    .sc-theme-swatch span:nth-child(2){clip-path:polygon(0 100%,100% 0,100% 100%);}
-    .sc-theme-swatch span:nth-child(3){clip-path:polygon(0 100%,45% 40%,100% 100%);}
-    .sc-theme-swatch:hover{transform:scale(1.08);}
-    .sc-theme-swatch.active{border-color:var(--gold, #d4af37);}
-    .sc-opt-theme-label{font-size:11px;color:var(--parchment-dim, #a89b76);margin-top:2px;min-height:14px;}
+    #sc-options-overlay{display:none;position:fixed;inset:0;z-index:100000;background:rgba(6,5,10,.8);align-items:center;justify-content:center;padding:16px;box-sizing:border-box;}
+    #sc-options-overlay.show{display:flex;}
+    #sc-options-modal{display:flex;width:min(720px,100%);height:min(540px,calc(100vh - 32px));overflow:hidden;box-sizing:border-box;
+      background:linear-gradient(180deg,var(--bg-panel-2, #1f1838),var(--bg-panel, #120c26));border:1px solid var(--gold, #d4af37);border-radius:14px;
+      box-shadow:0 18px 40px rgba(0,0,0,.7);font-family:'Inter',sans-serif;color:var(--parchment, #f2ead2);}
+    #sc-options-modal .so-nav{width:190px;flex:none;padding:18px 12px;border-right:1px solid rgba(212,175,55,.25);display:flex;flex-direction:column;gap:6px;box-sizing:border-box;}
+    #sc-options-modal .so-title{font-family:'Cinzel',serif;font-weight:700;color:var(--gold, #d4af37);font-size:20px;padding:0 8px 10px;}
+    #sc-options-modal .so-nv{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;cursor:pointer;font-size:13px;border:1px solid transparent;background:none;color:inherit;font-family:inherit;text-align:left;}
+    #sc-options-modal .so-nv:hover{border-color:rgba(212,175,55,.3);}
+    #sc-options-modal .so-nv.on{border-color:var(--gold, #d4af37);background:rgba(212,175,55,.14);color:var(--gold-bright, #f2cf5a);}
+    #sc-options-modal .so-hub{margin-top:auto;color:var(--gold-bright, #f2cf5a);font-weight:700;text-decoration:none;}
+    #sc-options-modal .so-main{flex:1;min-width:0;padding:22px 26px;display:flex;flex-direction:column;box-sizing:border-box;}
+    #sc-options-modal .so-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;}
+    #sc-options-modal .so-head b{font-family:'Cinzel',serif;color:var(--gold, #d4af37);font-size:18px;}
+    #sc-options-modal .so-x{background:none;border:none;color:var(--parchment-dim, #c8beb0);font-size:20px;cursor:pointer;padding:0 4px;}
+    #sc-options-modal .so-body{flex:1;overflow-y:auto;min-height:0;padding-right:4px;}
+    #sc-options-modal .so-foot{text-align:right;padding-top:10px;}
+    #sc-options-modal .so-btn{padding:8px 16px;border-radius:999px;background:rgba(0,0,0,.35);color:inherit;border:1px solid rgba(212,175,55,.4);font-size:12.5px;cursor:pointer;font-family:inherit;}
+    #sc-options-modal .so-btn:hover{border-color:var(--gold, #d4af37);}
+    #sc-options-modal .so-lb{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--parchment-dim, #c8beb0);margin:0 0 6px;}
+    #sc-options-modal .so-lb small{text-transform:none;letter-spacing:0;}
+    #sc-options-modal .so-row{display:flex;align-items:center;justify-content:space-between;gap:12px;}
+    #sc-options-modal .so-gap{margin-bottom:18px;}
+    #sc-options-modal input.so-rg{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:4px;outline:none;cursor:pointer;margin:0;background:linear-gradient(90deg,var(--gold-bright, #f2cf5a) var(--v,50%),rgba(255,255,255,.14) var(--v,50%));}
+    #sc-options-modal input.so-rg::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--gold-bright, #f2cf5a);border:2px solid #2a1c05;box-shadow:0 0 0 2px rgba(212,175,55,.4);}
+    #sc-options-modal input.so-rg::-moz-range-thumb{width:14px;height:14px;border-radius:50%;background:var(--gold-bright, #f2cf5a);border:2px solid #2a1c05;}
+    #sc-options-modal .so-sw{position:relative;width:40px;height:22px;border-radius:999px;background:rgba(255,255,255,.15);cursor:pointer;flex:none;transition:.2s;border:none;padding:0;}
+    #sc-options-modal .so-sw::after{content:"";position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:var(--parchment, #efe6c8);transition:.2s;}
+    #sc-options-modal .so-sw.on{background:var(--gold, #d4af37);}
+    #sc-options-modal .so-sw.on::after{left:21px;background:#2a1c05;}
+    #sc-options-modal .so-sg{display:flex;border-radius:10px;border:1px solid rgba(212,175,55,.35);overflow:hidden;}
+    #sc-options-modal .so-sg button{flex:1;text-align:center;padding:7px 4px;font-size:12px;cursor:pointer;color:var(--parchment-dim, #cfc3a0);background:rgba(0,0,0,.25);border:none;font-family:inherit;}
+    #sc-options-modal .so-sg button.on{background:rgba(212,175,55,.2);color:var(--gold-bright, #f2cf5a);font-weight:600;}
+    #sc-options-modal .so-tiles{display:grid;gap:8px;}
+    #sc-options-modal .so-tile{border-radius:10px;border:2px solid rgba(212,175,55,.2);cursor:pointer;background:rgba(0,0,0,.25);overflow:hidden;text-align:center;font-size:11px;color:var(--parchment-dim, #cfc3a0);padding:0;font-family:inherit;}
+    #sc-options-modal .so-tile.on{border-color:var(--gold-bright, #f2cf5a);color:var(--gold-bright, #f2cf5a);box-shadow:0 0 12px rgba(242,207,90,.3);}
+    #sc-options-modal .so-tile .lbl{padding:4px 2px 5px;line-height:1.15;}
+    @media (max-width:640px){
+      #sc-options-modal{flex-direction:column;height:calc(100vh - 32px);}
+      #sc-options-modal .so-nav{width:auto;flex-direction:row;flex-wrap:wrap;border-right:none;border-bottom:1px solid rgba(212,175,55,.25);padding:10px;}
+      #sc-options-modal .so-title{display:none;}
+      #sc-options-modal .so-hub{margin-top:0;margin-left:auto;}
+      #sc-options-modal .so-main{padding:14px;}
+    }
   `;
   document.head.appendChild(style);
 
@@ -696,142 +724,107 @@ function injectOptionsMenu(){
   gear.id = 'sc-options-gear';
   gear.title = 'Options';
   gear.innerHTML = `<span class="sc-gear-icon"></span>`;
-
-  const onHubPage = window.location.pathname.endsWith('spellcraft-hub.html');
-  const currentTheme = scGetTheme();
+  const overlay = document.createElement('div');
+  overlay.id = 'sc-options-overlay';
   const modal = document.createElement('div');
   modal.id = 'sc-options-modal';
-  modal.innerHTML = `
-    <div class="sc-opt-title">Thème</div>
-    <div class="sc-opt-theme-row">
-      ${SC_THEMES.map(t=>`
-        <button type="button" class="sc-theme-swatch${t.id===currentTheme?' active':''}" data-theme="${t.id}" title="${t.label}">
-          <span style="background:${t.swatch[0]}"></span>
-          <span style="background:${t.swatch[1]}"></span>
-          <span style="background:${t.swatch[2]}"></span>
-        </button>
-      `).join('')}
-    </div>
-    <div class="sc-opt-theme-label" id="sc-opt-theme-label">${(SC_THEMES.find(t=>t.id===currentTheme)||SC_THEMES[0]).label}</div>
+  overlay.appendChild(modal);
 
-    <div class="sc-opt-title" style="margin-top:14px;">Options audio</div>
-    <label class="sc-opt-label">Musique</label>
-    <input type="range" id="sc-music-vol-slider" min="0" max="100" value="${Math.round(musicVolumeLevel*100)}">
-    <label class="sc-opt-label">Effets sonores</label>
-    <input type="range" id="sc-sfx-vol-slider" min="0" max="100" value="${Math.round(sfxVolumeLevel*100)}">
-    <label class="sc-opt-mute">
-      <input type="checkbox" id="sc-mute-checkbox" ${sfxMuted?'checked':''}> Tout couper
-    </label>
-    <div class="sc-opt-title" style="margin-top:14px;">Combat</div>
-    <label class="sc-opt-label" for="sc-combat-speed-select">Vitesse des animations de combat</label>
-    <select id="sc-combat-speed-select">
-      <option value="normal">Normale (×1)</option>
-      <option value="fast">Rapide (×2)</option>
-      <option value="instant">Instantanée (sans animation)</option>
-    </select>
-    <label class="sc-opt-mute">
-      <input type="checkbox" id="sc-combat-skip-checkbox"> Afficher un bouton Passer pendant les animations
-    </label>
-    <div class="sc-opt-title" style="margin-top:14px;">Plateau</div>
-    <label class="sc-opt-label" for="sc-board-layout-select">Disposition (prend effet à la prochaine partie)</label>
-    <select id="sc-board-layout-select">
-      <option value="classic">Classique</option>
-      <option value="rail">Minimaliste (rails latéraux)</option>
-      <option value="persp">Table en perspective</option>
-    </select>
-    <label class="sc-opt-label" for="sc-board-theme-select">Décor animé du plateau</label>
-    <select id="sc-board-theme-select">
-      <option value="off">Aucun (sobre)</option>
-      <option value="random">Aléatoire à chaque partie</option>
-      <option value="taverne">Taverne</option>
-      <option value="bateau">Pont de navire</option>
-      <option value="village">Village humain</option>
-      <option value="constellation">Constellation</option>
-      <option value="cimetiere">Sinistre cimetière</option>
-      <option value="ecole">École de magie</option>
-    </select>
-    <div class="sc-opt-title" style="margin-top:14px;">Cartes</div>
-    <label class="sc-opt-label" for="sc-card-anim-select">Animations des fonds</label>
-    <select id="sc-card-anim-select">
-      <option value="always">Toujours</option>
-      <option value="hover">Au survol de la carte (plus léger)</option>
-    </select>
-    ${onHubPage ? '' : '<a class="sc-opt-hub" href="spellcraft-hub.html">🏠 Menu principal</a>'}
-  `;
+  const onHubPage = window.location.pathname.endsWith('spellcraft-hub.html');
+  const lsGet = (k)=>{ try{ return localStorage.getItem(k); }catch(e){ return null; } };
+  const lsSet = (k,v)=>{ try{ localStorage.setItem(k,v); }catch(e){} };
+  const esc = (s)=>String(s).replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const seg = (key, items, cur)=>`<div class="so-sg">${items.map(([v,l])=>`<button type="button" data-seg="${key}" data-v="${v}" class="${cur===v?'on':''}">${l}</button>`).join('')}</div>`;
+  const sw = (key, on)=>`<button type="button" class="so-sw${on?' on':''}" data-sw="${key}" role="switch" aria-checked="${on?'true':'false'}"></button>`;
+  const slider = (label,key,val)=>`<div class="so-gap" style="margin-bottom:14px"><div class="so-row" style="margin-bottom:6px"><span class="so-lb" style="margin:0">${label}</span><b data-out="${key}" style="font-size:12px;color:var(--gold-bright, #f2cf5a)">${val} %</b></div><input type="range" class="so-rg" data-rg="${key}" min="0" max="100" value="${val}" style="--v:${val}%"></div>`;
+  const boardDecor = ()=>{
+    const list = (window.SCBoardThemes && window.SCBoardThemes.list) || [{id:'taverne',label:'Taverne'},{id:'bateau',label:'Pont de navire'},{id:'village',label:'Village humain'},{id:'constellation',label:'Constellation'},{id:'cimetiere',label:'Sinistre cimetière'},{id:'ecole',label:'École de magie'}]; // pages sans le fichier des décors : liste de secours
+    const items = [{id:'off',label:'Aucun (sobre)'},{id:'random',label:'Aléatoire'}].concat(list);
+    return items.map(t=>({id:t.id,label:t.label,short:SC_OPT_DECOR_SHORT[t.id]||t.label,c:SC_OPT_DECOR_COLORS[t.id]||['#2a2150','#7c5cff']}));
+  };
+  const layoutPreview = {
+    classic:`<div style="height:46px;display:grid;grid-template-rows:1fr 1fr;gap:4px;padding:6px"><i style="background:rgba(212,175,55,.35);border-radius:3px"></i><i style="background:rgba(124,92,255,.35);border-radius:3px"></i></div>`,
+    rail:`<div style="height:46px;display:grid;grid-template-columns:8px 1fr 8px;gap:4px;padding:6px"><i style="background:rgba(212,175,55,.55);border-radius:3px"></i><i style="background:rgba(124,92,255,.3);border-radius:3px"></i><i style="background:rgba(212,175,55,.55);border-radius:3px"></i></div>`,
+    persp:`<div style="height:46px;padding:8px 10px"><div style="height:100%;background:rgba(124,92,255,.35);transform:perspective(60px) rotateX(35deg);border-radius:3px"></div></div>`
+  };
+  const SECTIONS = [
+    { id:'audio', icon:'🔊', label:'Audio', render:()=>
+        slider('Musique','music',Math.round(musicVolumeLevel*100)) + slider('Effets sonores','sfx',Math.round(sfxVolumeLevel*100)) +
+        `<div class="so-row" style="padding:12px 0;border-top:1px solid rgba(212,175,55,.2)"><span style="font-size:13.5px">Tout couper</span>${sw('mute',sfxMuted)}</div>` },
+    { id:'combat', icon:'⚔️', label:'Combat', render:()=>{
+        const lay = scGetBoardLayout(), dec = lsGet('sc-board-theme') || 'off';
+        return `<div class="so-lb">Vitesse des animations de combat</div><div class="so-gap">${seg('speed',[['normal','Normale ×1'],['fast','Rapide ×2'],['instant','Instantanée']],scGetCombatSpeedMode())}</div>
+          <div class="so-row so-gap"><span style="font-size:13px">Afficher un bouton « Passer » pendant les animations</span>${sw('skip',scGetShowSkipButton())}</div>
+          <div class="so-lb">Disposition du plateau <small>(prend effet à la prochaine partie)</small></div>
+          <div class="so-tiles so-gap" style="grid-template-columns:repeat(3,1fr)">${[['classic','Classique'],['rail','Minimaliste (rails)'],['persp','Table en perspective']].map(([v,l])=>`<button type="button" class="so-tile${lay===v?' on':''}" data-layout="${v}">${layoutPreview[v]}<div class="lbl">${l}</div></button>`).join('')}</div>
+          <div class="so-lb">Décor animé du plateau</div>
+          <div class="so-tiles" style="grid-template-columns:repeat(4,1fr)">${boardDecor().map(d=>`<button type="button" class="so-tile${dec===d.id?' on':''}" data-decor="${esc(d.id)}" title="${esc(d.label)}"><div style="height:34px;background:linear-gradient(135deg,${d.c[0]},${d.c[1]})"></div><div class="lbl">${esc(d.short)}</div></button>`).join('')}</div>`; } },
+    { id:'cartes', icon:'🃏', label:'Cartes', render:()=>
+        `<div class="so-lb">Animations des fonds de cartes</div>${seg('anim',[['always','Toujours'],['hover','Au survol de la carte (plus léger)']], lsGet('sc-card-anim')==='hover'?'hover':'always')}` }
+  ];
+  let current = 'audio';
+  const visibleSections = ()=>SECTIONS.concat(SC_OPT_EXTRA.filter(s=>!s.visible || s.visible()));
+  const render = ()=>{
+    const secs = visibleSections();
+    if(!secs.some(s=>s.id===current)) current = secs[0].id;
+    const sec = secs.find(s=>s.id===current);
+    modal.innerHTML = `<div class="so-nav"><div class="so-title">Options</div>
+        ${secs.map(s=>`<button type="button" class="so-nv${s.id===current?' on':''}" data-nav="${s.id}"><span>${s.icon}</span>${s.label}</button>`).join('')}
+        ${onHubPage ? '' : '<a class="so-nv so-hub" href="spellcraft-hub.html">🏠 Menu principal</a>'}</div>
+      <div class="so-main"><div class="so-head"><b>${sec.label}</b><button type="button" class="so-x" data-close title="Fermer">✕</button></div>
+        <div class="so-body">${sec.render()}</div>
+        <div class="so-foot"><button type="button" class="so-btn" data-reset>↺ Réinitialiser</button></div></div>`;
+    modal.querySelectorAll('[data-nav]').forEach(b=>b.onclick=()=>{ current=b.dataset.nav; render(); });
+    modal.querySelector('[data-close]').onclick = close;
+    modal.querySelector('[data-reset]').onclick = reset;
+    modal.querySelectorAll('input[data-rg]').forEach(r=>r.oninput=()=>{
+      r.style.setProperty('--v', r.value+'%');
+      const o = modal.querySelector(`[data-out="${r.dataset.rg}"]`); if(o) o.textContent = r.value+' %';
+      if(r.dataset.rg==='music') setMusicVolumeLevel(r.value/100); else setSfxVolumeLevel(r.value/100);
+    });
+    modal.querySelectorAll('[data-sw]').forEach(b=>b.onclick=()=>{
+      const k = b.dataset.sw;
+      if(k==='mute') setSfxMuted(!sfxMuted); else if(k==='skip') scSetShowSkipButton(!scGetShowSkipButton());
+      render();
+    });
+    modal.querySelectorAll('[data-seg]').forEach(b=>b.onclick=()=>{
+      const k = b.dataset.seg, v = b.dataset.v;
+      if(k==='speed') scSetCombatSpeedMode(v);
+      else if(k==='anim'){ lsSet('sc-card-anim', v); document.documentElement.classList.toggle('nd-anim-on', v==='always'); }
+      render();
+    });
+    modal.querySelectorAll('[data-layout]').forEach(b=>b.onclick=()=>{ scApplyBoardLayout(b.dataset.layout); render(); });
+    modal.querySelectorAll('[data-decor]').forEach(b=>b.onclick=()=>{
+      try{ localStorage.setItem('sc-board-theme', b.dataset.decor); sessionStorage.removeItem('sc-board-theme-game'); }catch(err){}
+      if(window.SCBoardThemes) window.SCBoardThemes.apply();
+      render();
+    });
+    if(sec.bind) sec.bind(modal.querySelector('.so-body'));
+  };
+  const reset = ()=>{
+    setMusicVolumeLevel(0.7); setSfxVolumeLevel(0.7); if(sfxMuted) setSfxMuted(false);
+    scSetCombatSpeedMode('normal'); scSetShowSkipButton(false);
+    scApplyBoardLayout(SC_OPT_BOARD_DEFAULTS.layout);
+    try{ localStorage.setItem('sc-board-theme', SC_OPT_BOARD_DEFAULTS.decor); sessionStorage.removeItem('sc-board-theme-game'); }catch(e){}
+    if(window.SCBoardThemes) window.SCBoardThemes.apply();
+    lsSet('sc-card-anim', SC_OPT_BOARD_DEFAULTS.anim); document.documentElement.classList.add('nd-anim-on');
+    render();
+  };
+  const open = ()=>{ render(); overlay.classList.add('show'); };
+  const close = ()=>{ overlay.classList.remove('show'); };
+  window.__scOptionsRefresh = (onlyId)=>{ if(overlay.classList.contains('show') && (!onlyId || current===onlyId)) render(); };
+  window.scOptionsClose = close;
 
   if(slot){
     gear.classList.add('sc-options-inline');
-    modal.classList.add('sc-options-inline-modal');
     slot.appendChild(gear);
-    document.body.appendChild(modal);
   } else {
     document.body.appendChild(gear);
-    document.body.appendChild(modal);
   }
-
-  gear.onclick = (e)=>{
-    e.stopPropagation();
-    const willShow = !modal.classList.contains('show');
-    if(willShow && slot){
-      // Position calculée à partir de la vraie place de l'engrenage à
-      // l'écran plutôt qu'un top/right fixe en pixels — sinon le menu
-      // peut s'afficher hors de l'écran selon la hauteur réelle de la
-      // barre de chaque page (variable d'une page à l'autre). Utilise
-      // left plutôt que right pour éviter tout calcul indirect, avec
-      // des bornes explicites pour ne jamais sortir de l'écran.
-      const rect = gear.getBoundingClientRect();
-      const modalWidth = 230; // largeur fixée en CSS
-      let left = rect.right - modalWidth;
-      left = Math.max(10, Math.min(left, window.innerWidth - modalWidth - 10));
-      let top = rect.bottom + 8;
-      modal.style.right = 'auto';
-      modal.style.left = left + 'px';
-      modal.style.top = top + 'px';
-    }
-    modal.classList.toggle('show');
-  };
-  document.addEventListener('click', (e)=>{
-    if(modal.classList.contains('show') && !modal.contains(e.target) && e.target!==gear){
-      modal.classList.remove('show');
-    }
-  });
-  document.getElementById('sc-music-vol-slider').oninput = (e)=>setMusicVolumeLevel(e.target.value/100);
-  document.getElementById('sc-sfx-vol-slider').oninput = (e)=>setSfxVolumeLevel(e.target.value/100);
-  document.getElementById('sc-mute-checkbox').onchange = (e)=>setSfxMuted(e.target.checked);
-  const combatSpeedSelect = document.getElementById('sc-combat-speed-select');
-  const combatSkipCheckbox = document.getElementById('sc-combat-skip-checkbox');
-  combatSpeedSelect.value = scGetCombatSpeedMode();
-  combatSkipCheckbox.checked = scGetShowSkipButton();
-  combatSpeedSelect.onchange = (e)=>scSetCombatSpeedMode(e.target.value);
-  combatSkipCheckbox.onchange = (e)=>scSetShowSkipButton(e.target.checked);
-  const boardLayoutSel = document.getElementById('sc-board-layout-select');
-  boardLayoutSel.value = scGetBoardLayout();
-  boardLayoutSel.onchange = (e)=>scApplyBoardLayout(e.target.value);
-  const boardThemeSel = document.getElementById('sc-board-theme-select');
-  try{ boardThemeSel.value = localStorage.getItem('sc-board-theme') || 'off'; }catch(e){}
-  boardThemeSel.onchange = (e)=>{
-    try{ localStorage.setItem('sc-board-theme', e.target.value); sessionStorage.removeItem('sc-board-theme-game'); }catch(err){}
-    if(window.SCBoardThemes) window.SCBoardThemes.apply();
-  };
-  // Animations des fonds de cartes : même clé que spellcraft-card-render.js,
-  // appliquée tout de suite (pas besoin de recharger la page).
-  // Les cadres PNG ont été supprimés : l'ancien réglage « Style des cartes »
-  // n'existe plus, sa clé est effacée.
-  const cardAnimSel = document.getElementById('sc-card-anim-select');
-  const lsGet = (k)=>{ try{ return localStorage.getItem(k); }catch(e){ return null; } };
-  const lsSet = (k,v)=>{ try{ localStorage.setItem(k,v); }catch(e){} };
-  try{ localStorage.removeItem('sc-card-style'); }catch(e){}
-  cardAnimSel.value = lsGet('sc-card-anim')==='hover' ? 'hover' : 'always';
-  cardAnimSel.onchange = (e)=>{ lsSet('sc-card-anim', e.target.value); document.documentElement.classList.toggle('nd-anim-on', e.target.value==='always'); };
-  modal.querySelectorAll('.sc-theme-swatch').forEach(btn=>{
-    btn.onclick = ()=>{
-      const id = btn.dataset.theme;
-      scApplyTheme(id);
-      const t = SC_THEMES.find(t=>t.id===id);
-      const label = document.getElementById('sc-opt-theme-label');
-      if(label && t) label.textContent = t.label;
-    };
-  });
+  document.body.appendChild(overlay);
+  gear.onclick = (e)=>{ e.stopPropagation(); overlay.classList.contains('show') ? close() : open(); };
+  overlay.addEventListener('mousedown', (e)=>{ if(e.target===overlay) close(); });
+  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && overlay.classList.contains('show')) close(); });
 }
 
 /* ---------- Bouton de retour testeur (bug / suggestion), en bas à gauche de chaque page ---------- */

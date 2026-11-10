@@ -1271,7 +1271,7 @@ body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out 
   // (deck, héros). C'est la cause réelle du plateau adverse "coupé".
   window.APP_TOPBAR_DISABLED = true;
 </script>
-<script src="spellcraft-shared.js?v=20261109a"></script>
+<script src="spellcraft-shared.js?v=20261110a"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>
 <script src="spellcraft-chrono.js"></script>
@@ -5098,27 +5098,21 @@ function applyEnemyHandFan(){
 // Option « Montrer ma main aux spectateurs » — rangée dans le menu des options (engrenage du haut),
 // réservée aux deux joueurs (un spectateur n'a pas de main à révéler). Reflète l'état réel à chaque rendu.
 function installBoardOptionRows(){
-  const modal = document.getElementById('sc-options-modal');
-  if(!modal) return false;
-  if(document.getElementById('sc-reveal-hand-row')) return true;
-  const row = document.createElement('div');
-  row.id = 'sc-reveal-hand-row';
-  row.innerHTML = '<div class="sc-opt-title" style="margin-top:14px;">Spectateurs</div>'
-    + '<label class="sc-opt-mute"><input type="checkbox" id="sc-reveal-hand-checkbox"> Montrer ma main aux spectateurs</label>';
-  const hub = modal.querySelector('.sc-opt-hub');
-  if(hub) modal.insertBefore(row, hub); else modal.appendChild(row);
-  document.getElementById('sc-reveal-hand-checkbox').onchange = ()=>toggleRevealHandToSpectators();
-  renderRevealHandToggle();
+  if(typeof scOptionsAddSection !== 'function') return false;
+  if(window.__revealSecAdded) return true;
+  window.__revealSecAdded = true;
+  scOptionsAddSection({
+    id:'spectateurs', icon:'👁', label:'Spectateurs',
+    visible:()=>GS_ROLE==='p1' || GS_ROLE==='p2',
+    render:()=>{ const on = !!(S[MY_KEY] && S[MY_KEY].showHandToSpectators);
+      return '<div class="so-row"><span style="font-size:13.5px">Montrer ma main aux spectateurs</span><button type="button" class="so-sw'+(on?' on':'')+'" data-reveal role="switch" aria-checked="'+(on?'true':'false')+'"></button></div>'; },
+    bind:(root)=>{ const b = root.querySelector('[data-reveal]'); if(b) b.onclick = ()=>toggleRevealHandToSpectators(); }
+  });
   return true;
 }
 function renderRevealHandToggle(){
   if(!installBoardOptionRows()) return; // le menu d'options n'est pas encore là : réessayé au rendu suivant
-  const row = document.getElementById('sc-reveal-hand-row');
-  const box = document.getElementById('sc-reveal-hand-checkbox');
-  if(!row || !box) return;
-  if(GS_ROLE!=='p1' && GS_ROLE!=='p2'){ row.style.display = 'none'; return; }
-  row.style.display = '';
-  box.checked = !!S[MY_KEY].showHandToSpectators;
+  if(window.__scOptionsRefresh) window.__scOptionsRefresh('spectateurs');
 }
 async function toggleRevealHandToSpectators(){
   const currentlyRevealed = !!S[MY_KEY].showHandToSpectators;
