@@ -270,7 +270,6 @@
     <div id="legacy-actions" hidden>
       <button id="btn-matchmaking" class="sc-btn sc-btn-primary" disabled><span class="btn-sub">Trouve un adversaire au hasard</span></button>
       <button id="btn-tavern" class="sc-btn sc-btn-gold"><span class="btn-sub" id="btn-tavern-sub">Week-end : deck sans héros, héros tiré au hasard</span></button>
-      <button id="btn-swap" class="sc-btn sc-btn-gold" style="display:none"><span class="btn-sub" id="btn-swap-sub">Week-end : les nombres de ton deck sont mélangés</span></button>
       <button id="btn-vs-ai" class="sc-btn" disabled></button>
       <button id="btn-create-private" class="sc-btn sc-btn-ghost" disabled></button>
       <button id="btn-join" class="sc-btn sc-btn-ghost" disabled></button>
@@ -307,7 +306,6 @@ let DECK_PAGE = 0;
 const DECKS_PER_PAGE = 6; // grille 3 colonnes x 2 lignes
 
 const TAVERN = new URLSearchParams(location.search).get('mode')==='taverne';
-const SWAP = new URLSearchParams(location.search).get('mode')==='swap';
 let TAVERN_LOCKED = false; // Baston de taverne fermée (hors week-end, ou autre mode ce week-end) et joueur non autorisé à tester
 const LAST_DECK_STORAGE_KEY = TAVERN ? 'spellcraft-last-used-tavern-deck-id' : 'spellcraft-last-used-deck-id';
 
@@ -333,8 +331,7 @@ async function initLobby(){
   LOADED_COLLECTION = await loadAllCardsAcrossSets();
   LOADED_DECKS = (await loadUserDecks()).filter(d => TAVERN ? d.taverne : !d.taverne);
   if(TAVERN) await setupTavernMode();
-  else if(SWAP) await setupSwapMode();
-  else { setupTavernEntryButton(); setupSwapEntryButton(); }
+  else { setupTavernEntryButton(); }
 
   try{
     const { data: backs } = await sb.from('card_backs').select('id, image_url');
@@ -364,35 +361,6 @@ async function setupTavernEntryButton(){
 async function isLobbyTester(){
   try{ const u = await scGetCurrentUser(); if(u){ const { data } = await sb.from('profiles').select('username').eq('id', u.id).single(); return !!data && data.username==='Kroquette'; } }catch(e){}
   return false;
-}
-
-// Bouton « Swap » : visible seulement quand le mode du week-end en cours est Swap (ou pour le testeur).
-async function setupSwapEntryButton(){
-  try{
-    const live = scWeekendWindowOpenNow() && (await scWeekendModeId()) === 'swap';
-    const tester = live ? false : await isLobbyTester();
-    if(!live && !tester) return;
-    const b = document.getElementById('btn-swap');
-    b.style.display = '';
-    document.getElementById('btn-swap-sub').textContent = live ? 'Ouvert ! Les nombres de ton deck sont mélangés' : 'Hors week-end : visible pour test';
-    b.onclick = ()=>{ window.location.href = 'spellcraft-lobby.html?mode=swap'; };
-    refreshShowcase();
-  }catch(e){}
-}
-
-async function setupSwapMode(){
-  document.getElementById('lobby-title').textContent = '🔀 Swap';
-  document.getElementById('lobby-sub').textContent = 'Choisis un deck : au début de la partie, tous ses nombres sont mélangés entre les cartes.';
-  ['btn-tavern','btn-swap','btn-create-private','btn-vs-ai','btn-join','btn-spectate-list'].forEach(id=>{ const el = document.getElementById(id); if(el) el.style.display = 'none'; });
-  document.querySelector('#btn-matchmaking .btn-sub').textContent = 'Adversaire au hasard, valeurs mélangées';
-  const tester = await isLobbyTester();
-  const live = scWeekendWindowOpenNow() && (await scWeekendModeId()) === 'swap';
-  TAVERN_LOCKED = !live && !tester;
-  const b = document.getElementById('tavern-banner');
-  b.style.display = 'block';
-  b.innerHTML = live ? '🔀 Le mode Swap est <b>ouvert</b> ! ' + SC_TAVERN_HOURS_LABEL + '.'
-    : (tester ? '🔒 Swap n\'est pas le mode du week-end, mais tu peux le tester.' : '🔒 Le mode Swap n\'est pas ouvert.');
-  updateActionButtons();
 }
 
 async function setupTavernMode(){
@@ -498,7 +466,7 @@ function escapeHtmlLobby(s){ return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp
 let LOBBY_MODE = 'mm';
 function lobbyModes(){
   const sub = sel => ((document.querySelector(sel)||{}).textContent||'').trim();
-  if(TAVERN || SWAP) return [{k:'mm', ic: TAVERN?'🍺':'🔀', t:'Recherche de partie', s:sub('#btn-matchmaking .btn-sub'), main:1}];
+  if(TAVERN) return [{k:'mm', ic:'🍺', t:'Recherche de partie', s:sub('#btn-matchmaking .btn-sub'), main:1}];
   const L = [
     {k:'mm', ic:'⚔️', t:'Recherche de partie', s:'Adversaire au hasard', main:1},
     {k:'ai', ic:'🤖', t:"Affronter l'IA", s:'Sans attendre'},
@@ -507,7 +475,6 @@ function lobbyModes(){
     {k:'sp', ic:'👁', t:'Regarder une partie', s:'Parties en cours'},
     {k:'tc', ic:'🍺', t:'La taverne', s:'Mode du week-end'}
   ];
-  if(document.getElementById('btn-swap').style.display !== 'none') L.push({k:'sw', ic:'🔀', t:'Swap', s:'Mode du week-end'});
   return L;
 }
 function renderLobbyMenu(){
@@ -532,8 +499,7 @@ const LOBBY_INFO = {
   pv:['Partie privée','Crée une partie et partage le code à 6 caractères avec un ami.','🔑','Créer la partie','btn-create-private'],
   jn:['Rejoindre une partie','Entre le code que ton ami t\'a donné.','🚪','',''],
   sp:['Regarder une partie','Choisis une partie en cours à suivre en spectateur.','👁','',''],
-  tc:['🍺 La taverne','Le mode du week-end : un deck sans héros (3 couleurs max), le héros est tiré au hasard à chaque partie.','🍺','Entrer dans la taverne','btn-tavern'],
-  sw:['🔀 Swap','Les nombres de ton deck sont mélangés entre les cartes au début de la partie.','🔀','Entrer dans Swap','btn-swap']
+  tc:['🍺 La taverne','Le mode du week-end : un deck sans héros (3 couleurs max), le héros est tiré au hasard à chaque partie.','🍺','Entrer dans la taverne','btn-tavern']
 };
 function refreshShowcase(){
   if(!document.getElementById('show')) return;
@@ -542,11 +508,9 @@ function refreshShowcase(){
   const has = !!CHOSEN_DECK_ID;
   let title = I[0], desc = I[1], ic = I[2], label = I[3];
   if(TAVERN){ title = '🍺 La taverne'; desc = 'Un deck sans héros : le héros est tiré au hasard à chaque partie. Adversaire au hasard.'; ic = '🍺'; }
-  if(SWAP){ title = '🔀 Swap'; desc = 'Choisis un deck : au début de la partie, tous ses nombres sont mélangés entre les cartes.'; ic = '🔀'; }
   document.getElementById('show-title').textContent = title;
   let d = desc;
   if(k==='tc'){ const st = (document.getElementById('btn-tavern-sub')||{}).textContent||''; if(st) d += ' — ' + st; }
-  if(k==='sw'){ const st = (document.getElementById('btn-swap-sub')||{}).textContent||''; if(st) d += ' — ' + st; }
   document.getElementById('show-desc').textContent = d;
   const icon = document.getElementById('show-icon');
   icon.textContent = ic; icon.style.display = (k==='jn'||k==='sp') ? 'none' : '';
@@ -563,11 +527,11 @@ function refreshShowcase(){
   } else { need.textContent = ''; need.className = ''; }
   const btn = document.getElementById('show-launch');
   const target = I[4];
-  if(!label || (TAVERN||SWAP) && k!=='mm'){ btn.style.display = 'none'; }
+  if(!label || TAVERN && k!=='mm'){ btn.style.display = 'none'; }
   else {
     btn.style.display = '';
-    if(TAVERN||SWAP) { label = 'Lancer la recherche'; }
-    const legacyId = (TAVERN||SWAP) ? 'btn-matchmaking' : target;
+    if(TAVERN) { label = 'Lancer la recherche'; }
+    const legacyId = TAVERN ? 'btn-matchmaking' : target;
     btn.textContent = label;
     const lb = document.getElementById(legacyId);
     btn.disabled = !!(lb && lb.disabled);
@@ -616,8 +580,8 @@ function wireActionButtons(){
   document.getElementById('btn-matchmaking').onclick = async ()=>{
     showLobbyError(''); closeInlinePanels();
     rememberLastDeck(CHOSEN_DECK_ID);
-    const res = await gsJoinMatchmaking(CHOSEN_DECK_ID, TAVERN ? 'taverne' : SWAP ? 'swap' : 'normal');
-    if(res.error==='mode-ferme') return showLobbyError('Le mode Swap n\'est pas ouvert.');
+    const res = await gsJoinMatchmaking(CHOSEN_DECK_ID, TAVERN ? 'taverne' : 'normal');
+    if(res.error==='mode-ferme') return showLobbyError('La taverne est fermée : ' + SC_TAVERN_HOURS_LABEL + '.');
     if(res.error==='taverne-fermee') return showLobbyError('La taverne est fermée : ' + SC_TAVERN_HOURS_LABEL + '.');
     if(res.error) return showLobbyError('Erreur : ' + res.error);
     if(!res.waiting){
