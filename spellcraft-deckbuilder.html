@@ -677,19 +677,6 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 .empty-state .btn{margin-top:10px;}
 
 /* ----- inspecteur ----- */
-#insp{display:none;flex:none;gap:8px 12px;flex-wrap:wrap;background:linear-gradient(180deg,var(--bg-panel-2) 0%,var(--bg-panel) 100%);border:1px solid var(--gold);border-radius:var(--radius-md,12px);padding:12px;box-shadow:var(--shadow-panel,0 14px 32px rgba(0,0,0,.45));}
-#insp.on{display:flex;}
-.insp-empty{width:100%;text-align:center;color:var(--parchment-dim);font-size:14px;padding:26px 8px;line-height:1.5;}
-.insp-card{flex:none;width:150px;height:212px;position:relative;}
-.insp-card .ncard{position:absolute;top:0;left:0;transform-origin:top left;width:300px !important;height:423.2px !important;transform:scale(.5);}
-.insp-info{flex:1;min-width:0;font-size:14px;display:flex;flex-direction:column;gap:5px;}
-.insp-name{font-family:'Cinzel',serif;font-weight:700;font-size:16px;line-height:1.2;color:var(--gold);}
-.insp-type{color:var(--parchment-dim);font-size:13px;}
-.insp-line{font-size:13px;color:var(--parchment);}
-.insp-line b{color:var(--gold);}
-.insp-kws{width:100%;display:flex;flex-wrap:wrap;gap:5px;}
-.insp-kw{background:var(--bg-void);border:1px solid var(--line);border-radius:999px;padding:2px 9px;font-size:12px;color:var(--frost,#8fd3ff);cursor:help;}
-.insp-hint{width:100%;font-size:12px;color:var(--parchment-dim);}
 
 /* Les 3 emplacements Héros / Région / Dos sont déjà dans les étapes en haut : on gagne de la place pour la liste du deck (grand écran). */
 @media (min-width:901px){
@@ -713,7 +700,6 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
   #lp-col:not(.collapsed) #lp-toggle .lp-arrow{transform:rotate(180deg);}
   #lp-col:not(.collapsed) #lp-toggle{margin-bottom:12px;}
   #binder-frame{overflow:visible;padding:14px 8px;}
-  #insp,#insp.on{display:none;}
   #deck-col{max-height:none;}
 }
 @media (max-width:640px){
@@ -813,7 +799,6 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
       </div>
 
       <div class="db-deck-col">
-        <div id="insp"><div class="insp-empty">Survole une carte pour la voir en grand ici.</div></div>
         <div id="deck-col">
           <div id="deck-empty-state">
             <p>Aucun deck actif.</p>
@@ -2040,7 +2025,6 @@ function renderBinder(animate){
   if(bp && animate){ bp.classList.remove('bp-fade'); void bp.offsetWidth; bp.classList.add('bp-fade'); }
   updateNavActive();
   syncQuickBar();
-  if(currentView()==='cards' || currentView()==='region') refreshInspector();
   requestAnimationFrame(fitBinderToWidth);
 }
 function currentView(){
@@ -2078,7 +2062,7 @@ function buildQuickBar(){
     }</div>
     <div class="qb-row" id="qb-types"><span class="qb-lbl">Type</span><span id="qb-types-list" style="display:contents"></span></div>
     <div class="qb-row" id="qb-active"></div>
-    <div id="quick-hint">Clic gauche : ajouter au deck · <b>Clic droit : agrandir la carte</b> · Survol : détails à droite</div>`;
+    <div id="quick-hint">Clic gauche : ajouter au deck · <b>Clic droit : agrandir la carte</b></div>`;
 }
 function quickToggle(k){
   filters[k] = !filters[k];
@@ -2153,7 +2137,6 @@ function syncQuickBar(){
   const cardsLike = view==='cards' || view==='region';
   const bar = $id('quick-bar');
   bar.classList.toggle('show', cardsLike);
-  const insp = $id('insp'); if(insp) insp.classList.toggle('on', cardsLike);
   const inp = $id('quick-search');
   const cs = quickCostState();
   if(inp && document.activeElement !== inp){
@@ -2262,53 +2245,6 @@ function renderStepper(){
   hint.style.display = H[v] ? 'block' : 'none';
 }
 
-/* ---------- Inspecteur : la carte survolée, en grand, dans la colonne de droite ---------- */
-let inspCard = null;
-function showInspector(card){
-  const box = $id('insp');
-  if(!box || !card) return;
-  inspCard = card;
-  box.innerHTML = '';
-  const wrap = document.createElement('div');
-  wrap.className = 'insp-card';
-  wrap.appendChild(buildCardEl(binderCardView(card), {isPreview:true}));
-  box.appendChild(wrap);
-  const subs = (card.subtypes||[]).filter(s=>s.trim().toLowerCase()!=='conjuration');
-  const srcs = cardSources(card);
-  const owned = ownedCollection[card.id] || 0;
-  const od = ownedDetail[card.id];
-  const bits = [];
-  if(od){ if(od.foil) bits.push(od.foil+' foil'); if(od.premiumNormal+od.premiumFoil) bits.push((od.premiumNormal+od.premiumFoil)+' premium'); }
-  const inDeck = deckCountFor(card.id);
-  const kws = (card.keywords||[]).map(k=>KEYWORDS.find(x=>x.key===k)).filter(Boolean);
-  const info = document.createElement('div');
-  info.className = 'insp-info';
-  info.innerHTML = `
-    <div class="insp-name">${escapeHtml(card.name)}</div>
-    <div class="insp-type">${escapeHtml(card.type)}${subs.length?' — '+escapeHtml(subs.join(', ')):''}</div>
-    ${srcs.length?`<div class="insp-line">${srcs.map(s=>`<span style="color:${getClassColor(s)}">●</span> ${escapeHtml(s)}`).join(' / ')}</div>`:''}
-    <div class="insp-line"><span style="color:${RAR_COLOR[card.rarity]||'#999'}">◆</span> ${escapeHtml(card.rarity||'')}${card.isLegendary?' ✦':''}</div>
-    ${card.set?`<div class="insp-line">📚 ${escapeHtml(card.set)}</div>`:''}
-    <div class="insp-line">Possédées : <b>${owned}</b>${bits.length?' <small>('+bits.join(', ')+')</small>':''}</div>
-    ${currentDeck?`<div class="insp-line">Dans le deck : <b>${inDeck}</b></div>`:''}`;
-  box.appendChild(info);
-  if(kws.length){
-    const k = document.createElement('div');
-    k.className = 'insp-kws';
-    k.innerHTML = kws.map(x=>`<span class="insp-kw" title="${escapeHtml(x.desc||'')}">${escapeHtml(x.label)}</span>`).join('');
-    box.appendChild(k);
-  }
-  const h = document.createElement('div');
-  h.className = 'insp-hint';
-  h.textContent = 'Clic gauche : ajouter · Clic droit : agrandir';
-  box.appendChild(h);
-}
-function refreshInspector(){
-  if(!inspCard) return;
-  const fresh = allCardsCache.find(c=>c.id===inspCard.id) || inspCard;
-  showInspector(fresh);
-}
-
 /* ---------- Galerie : défile, charge les cartes par paquets ---------- */
 const GALLERY_CHUNK = 30;
 let galleryCards = null, galleryLimit = GALLERY_CHUNK, lastGallerySig = null;
@@ -2355,7 +2291,6 @@ function buildCardSlot(card){
   el.onclick = ()=>onCardClick(card);
   el.oncontextmenu = (ev)=>{ ev.preventDefault(); showCraftModal(card); };   // clic droit : agrandir
   slot.appendChild(el);
-  slot.addEventListener('mouseenter', ()=>showInspector(card));
   if(versionChoices(card.id).length > 1){
     const star = document.createElement('button');
     star.type = 'button';
