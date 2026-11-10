@@ -22,6 +22,7 @@
     return reduced();
   }
   function ms(v) { try { return typeof cms === 'function' ? cms(v) : v; } catch (e) { return v; } }
+  function later(fn, t) { return setTimeout(fn, t); }
   function wait(t) { return new Promise((r) => setTimeout(r, t)); }
 
   // Déclencheur du moteur -> famille d'effet. onCycle n'en a pas (le cycle a sa propre entrée).
@@ -223,5 +224,35 @@
     '@keyframes bfx-aura-breathe{0%,100%{box-shadow:0 0 7px 1px rgba(111,176,255,.45);}50%{box-shadow:0 0 18px 5px rgba(111,176,255,.9);}}';
   document.head.appendChild(css);
 
-  window.BFX2 = { kindOf, playOnCard, cycle: cyc, auraOn, auraOff, syncAuras, colors: COL };
+  // ---------- Pouvoir de héros : invocation runique ----------
+  // Un cercle de runes se dessine autour du héros, une colonne de lumière monte vers le
+  // plateau, le portrait s'élève légèrement. `el` = portrait du héros, `mine` = côté du joueur.
+  function heroPower(el, mine) {
+    return new Promise((resolve) => {
+      try {
+        if (!el || off()) { resolve(); return; }
+        const r = el.getBoundingClientRect();
+        const cx = r.left + r.width / 2, cy = r.top + r.height / 2, R = r.width / 2 + 30, G = COL.trig;
+        const ring = fx('left:' + (cx - R) + 'px;top:' + (cy - R) + 'px;width:' + R * 2 + 'px;height:' + R * 2 + 'px;border-radius:50%;border:3px solid ' + G + ';box-shadow:0 0 18px ' + G + ',inset 0 0 18px ' + G + '66;');
+        let gl = '';
+        for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; gl += '<div style="position:absolute;left:' + (R + Math.cos(a) * R - 5) + 'px;top:' + (R + Math.sin(a) * R - 5) + 'px;width:10px;height:10px;background:' + G + ';transform:rotate(45deg);box-shadow:0 0 10px ' + G + '"></div>'; }
+        const glyphs = fx('left:' + (cx - R) + 'px;top:' + (cy - R) + 'px;width:' + R * 2 + 'px;height:' + R * 2 + 'px;', gl);
+        const open = { duration: ms(500), easing: 'ease-out', fill: 'forwards' };
+        const grow = [{ transform: 'scale(.2) rotate(0deg)', opacity: 0 }, { transform: 'scale(1) rotate(200deg)', opacity: 1 }];
+        ring.animate(grow, open); glyphs.animate(grow, open);
+        later(() => {
+          const h = Math.min(mine ? cy : window.innerHeight - cy, 320);
+          const col = fx('left:' + (cx - 40) + 'px;top:' + (mine ? cy - h : cy) + 'px;width:80px;height:' + h + 'px;filter:blur(6px);background:linear-gradient(' + (mine ? '0deg' : '180deg') + ',' + G + 'cc,' + G + '00);');
+          const o = mine ? '50% 100%' : '50% 0%';
+          col.animate([{ opacity: 0, transform: 'scaleY(.2)', transformOrigin: o }, { opacity: 1, transform: 'scaleY(1)', transformOrigin: o, offset: .3 }, { opacity: 0, transform: 'scaleY(1)', transformOrigin: o }], { duration: ms(900), fill: 'forwards' });
+          if (el.animate) el.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(' + (mine ? -14 : 14) + 'px)' }, { transform: 'translateY(0)' }], { duration: ms(700) });
+          later(() => col.remove(), ms(950));
+        }, ms(450));
+        later(() => { [ring, glyphs].forEach((e) => e.animate([{ opacity: 1 }, { opacity: 0 }], { duration: ms(300), fill: 'forwards' })); }, ms(1200));
+        later(() => { ring.remove(); glyphs.remove(); resolve(); }, ms(1550));
+      } catch (e) { resolve(); }
+    });
+  }
+
+  window.BFX2 = { heroPower, kindOf, playOnCard, cycle: cyc, auraOn, auraOff, syncAuras, colors: COL };
 })();

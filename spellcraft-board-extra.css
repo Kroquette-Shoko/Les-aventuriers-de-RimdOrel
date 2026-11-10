@@ -161,7 +161,11 @@
   .hero-indicator.ready{animation:heroIndPulse 1.4s ease-in-out infinite;}
   @keyframes heroIndPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.18);}}
   @media (prefers-reduced-motion: reduce){.hero-indicator.ready{animation:none;}}
-  .hero-portrait-big.can-activate{border-color:var(--green, #4a9d6b);box-shadow:0 0 14px rgba(74,157,107,.6);}
+  .hero-portrait-big.can-activate{border-color:var(--gold);box-shadow:0 0 16px rgba(255,211,74,.5);}
+  /* Pouvoir prêt : cercle de runes tournant (voir heroRunesHtml) */
+  .hero-runes{position:absolute;inset:-26px;border-radius:50%;border:2px dashed rgba(255,211,74,.8);pointer-events:none;animation:hero-runes-spin 10s linear infinite;}
+  .hero-runes i{position:absolute;width:10px;height:10px;background:#ffd34a;transform:rotate(45deg);box-shadow:0 0 10px #ffd34a;}
+  @keyframes hero-runes-spin{to{transform:rotate(360deg);}}
   .hero-portrait-big.targetable{border-color:var(--gold);box-shadow:0 0 16px rgba(212,175,55,.75);cursor:crosshair;}
   .card.targetable{outline:3px solid var(--gold);outline-offset:2px;cursor:crosshair;}
   .hp-badge-big{position:absolute;bottom:-12px;right:-17px;min-width:62px;height:62px;padding:0 8px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#e85858,#8a1f1f);border:3px solid #4a0f0f;color:#fff;font-family:'Cinzel',serif;font-weight:700;font-size:28px;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(0,0,0,.65);z-index:2;pointer-events:none;}

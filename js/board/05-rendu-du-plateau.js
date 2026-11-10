@@ -343,6 +343,13 @@ function heroIndicatorsHtml(key, hero, slot){
   return '';
 }
 
+// Pouvoir prêt : cercle de runes qui tourne lentement autour du portrait (6 glyphes).
+// Le décalage d'animation suit l'horloge : la rotation ne repart pas de zéro à chaque rendu.
+function heroRunesHtml(){
+  let gl = '';
+  for(let i=0;i<6;i++){ const a = i*Math.PI/3; gl += `<i style="left:calc(50% + ${(Math.cos(a)*50).toFixed(2)}% - 5px);top:calc(50% + ${(Math.sin(a)*50).toFixed(2)}% - 5px)"></i>`; }
+  return `<span class="hero-runes" aria-hidden="true" style="animation-delay:-${Date.now()%10000}ms">${gl}</span>`;
+}
 function renderHeroFrame(key, slot){
   const p = S[key];
   const el = document.getElementById(`hero-frame-${slot}`);
@@ -357,6 +364,7 @@ function renderHeroFrame(key, slot){
   el.innerHTML = `
     <button class="hero-portrait-big ${canActivate?'can-activate':''} ${isPendingTarget?'targetable':''}" id="hero-portrait-${slot}" style="${heroPortraitStyle}" ${clickable?'':'disabled'}>
       ${hero.image ? '' : (heroName[0]||'?')}
+      ${canActivate ? heroRunesHtml() : ''}
       <span class="hp-badge-big">${p.hp}</span>
     </button>
     ${(()=>{ const h = heroIndicatorsHtml(key, hero, slot); return h ? `<div class="hero-indicators">${h}</div>` : ''; })()}

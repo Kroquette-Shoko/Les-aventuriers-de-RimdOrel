@@ -621,6 +621,11 @@ function renderGameLog(){
           queueCombatAnim(()=>BFX2.playOnCard(__fxKind, __fxId));
         }
       }
+      // Pouvoir de héros activé : invocation runique autour du portrait du héros
+      if(window.BFX2 && entry.kind==='hero_activate' && !combatInstant()){
+        const __hMine = entry.ownerKey===MY_KEY;
+        queueCombatAnim(()=>BFX2.heroPower(document.getElementById(`hero-portrait-${__hMine?'p1':'p2'}`), __hMine));
+      }
 
       // Artefact utilisé : rouage qui s'emballe, éclats et reflet sur l'artefact
       if(entry.kind==='artifact_activate' && window.BFX){
