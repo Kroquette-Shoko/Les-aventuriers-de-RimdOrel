@@ -29,7 +29,7 @@ main{width:100%;max-width:1000px;display:grid;grid-template-columns:290px minmax
 /* ---------- Bandeau du jour ---------- */
 #cal-head{display:flex;flex-direction:column;gap:14px;}
 .head-line{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
-.ticket-badge{min-width:80px;height:80px;padding:0 10px;border-radius:50%;border:3px solid var(--gold);display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg-panel-3);flex-shrink:0;}
+.ticket-badge{box-sizing:border-box;width:88px;height:88px;min-width:88px;padding:0 8px;overflow:hidden;border-radius:50%;border:3px solid var(--gold);display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg-panel-3);flex-shrink:0;}
 .ticket-badge.has{box-shadow:0 0 18px rgba(242,201,76,.45);}
 .ticket-badge small{font-size:8.5px;color:var(--parchment-dim);letter-spacing:.8px;text-transform:uppercase;text-align:center;line-height:1.2;}
 .ticket-badge b{font-family:'Cinzel',serif;font-size:28px;color:var(--gold);line-height:1;}
