@@ -176,6 +176,8 @@ function playCardDeathAnim(instId){
   const liveEl = document.querySelector(`[data-instid="${instId}"]`);
   if(liveEl) liveEl.style.visibility = 'hidden';
   const { rect, clone } = snap;
+  // carte à effet continu qui part : son aura se replie
+  try{ if(window.BFX2 && clone.classList && clone.classList.contains('bfx-aura-card')) BFX2.auraOff(rect); }catch(e){ /* ignoré */ }
   clone.style.position = 'fixed';
   clone.style.left = rect.left+'px';
   clone.style.top = rect.top+'px';

@@ -218,6 +218,8 @@ function cardEl(card, opts={}){
   const effectiveCost = (!inPlay && !opts.isPreview && S && S[MY_KEY]) ? getEffectiveCostClient(S[MY_KEY], card) : undefined;
   const el = buildNewCardEl(card, size, effectiveCost, {liveStats: inPlay || (!opts.isPreview && !!card.instId)});
   if(card.instId) el.dataset.instid = card.instId;
+  // carte à effet continu (aura) : BFX2.syncAuras lui pose un halo bleu quand elle est en jeu
+  if(inPlay && (card.abilities||[]).some(a=>a && a.kind==='continuous')) el.classList.add('bfx-aura-card');
   requestAnimationFrame(()=>fitNewCard(el));
 
   if(opts.attacking) el.classList.add('attacking');

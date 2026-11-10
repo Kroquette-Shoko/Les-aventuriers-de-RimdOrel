@@ -453,6 +453,8 @@ function renderGameLog(){
   const newCombatEvents = getNewCombatEvents();
   const __batchEntries = getNewGameLogEntries();
   const __batchDeadIds = collectBatchDeadIds(__batchEntries);
+  // Cartes qui retournent dans le deck (Cycle) : leur spirale remplace la dissolution de mort
+  const __batchCycleIds = new Set(__batchEntries.filter(e=>e && e.kind==='cycle' && e.sourceInstId).map(e=>e.sourceInstId));
   __batchEntries.forEach(entry=>{
     flushAwaitingStrikes(entry.seq, newCombatEvents);
     if(entry.raw){
@@ -541,7 +543,14 @@ function renderGameLog(){
       // serveur) — cas à part : ni son de carte jouée, ni flèche
       // d'effet, juste l'animation de dissolution.
       if(combatInstant()) playSfx('card-death'); // mode instantané : le son seul, sans file
-      else queueCombatAnim(()=>playCardDeathAnim(entry.deadInstId));
+      else if(!__batchCycleIds.has(entry.deadInstId)) queueCombatAnim(()=>playCardDeathAnim(entry.deadInstId));
+    } else if(entry.kind==='cycle'){
+      // Cycle : la carte retourne mélangée dans le deck (spirale verte vers la pioche de son propriétaire)
+      playSfx('cardPlay');
+      if(window.BFX2 && !combatInstant()){
+        const __deck = document.getElementById(`deck-zone-${entry.ownerKey===MY_KEY?'p1':'p2'}`);
+        queueCombatAnim(()=>BFX2.cycle(entry.sourceInstId, __deck));
+      }
     } else if(entry.cardName){
       const full = entry.cardId ? JOURNAL_CARD_LOOKUP[entry.cardId] : null;
       if(entry.kind==='trap'){
@@ -599,6 +608,18 @@ function renderGameLog(){
           const fc = __fCardId ? JOURNAL_CARD_LOOKUP[__fCardId] : null;
           return fc ? playFailleRift(fc, {fxMine: __fMine}) : Promise.resolve();
         });
+      }
+
+      // Effets de capacité des créatures et artefacts (panoplie BFX2) : déclenchement (or),
+      // Arrivée (cyan), Assaut (rouge), Final (violet). Les sorts gardent leur orbe, les pièges leur éclat.
+      if(window.BFX2 && entry.trigger && entry.sourceInstId && !combatInstant()
+         && (entry.kind==='creature_trigger' || entry.kind==='artifact_trigger'
+             || (entry.kind==='play' && full && full.type!=='Sortilège' && full.type!=='Piège'))){
+        const __fxKind = BFX2.kindOf(entry.trigger);
+        if(__fxKind){
+          const __fxId = entry.sourceInstId;
+          queueCombatAnim(()=>BFX2.playOnCard(__fxKind, __fxId));
+        }
       }
 
       // Artefact utilisé : rouage qui s'emballe, éclats et reflet sur l'artefact

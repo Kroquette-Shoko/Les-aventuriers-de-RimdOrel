@@ -513,15 +513,18 @@ body.bfx-hero-dead-p1 #hero-frame-p1, body.bfx-hero-dead-p2 #hero-frame-p2{visib
           const cr = (S[k].board || []).find((c) => c && c.instId === id) || {};
           const power = Number(cr.curAtk != null ? cr.curAtk : cr.atk) || 0;
           if (el) later(() => { if (!claimed.has(id)) bfxCreatureArrive(el, mine, power); }, i * 120);
+          if (el && el.classList && el.classList.contains('bfx-aura-card') && window.BFX2 && !off()) later(() => window.BFX2.auraOn(el), 700 + i * 120);
         });
         const oldR = new Set(prevR[k] || []);
         nowR[k].filter((id) => !oldR.has(id)).slice(0, 2).forEach((id, i) => {
           const holder = document.getElementById(mine ? 'artifacts-p1' : 'artifacts-p2');
           const el = holder && holder.querySelector('[data-instid="' + id + '"]');
           if (el) later(() => bfxArtifactArrive(el.closest('.relic-slot') || el, mine), i * 150);
+          if (el && el.classList && el.classList.contains('bfx-aura-card') && window.BFX2 && !off()) later(() => window.BFX2.auraOn(el), 1000 + i * 150);
         });
       });
     } catch (e) { /* ne casse jamais le rendu */ }
+    try { if (window.BFX2) window.BFX2.syncAuras(); } catch (e) { /* ignoré */ }
   }
 
 
