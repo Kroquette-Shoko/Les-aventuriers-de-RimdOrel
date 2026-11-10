@@ -586,6 +586,138 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 .qcost{min-width:36px;height:36px;border-radius:50%;border:1.5px solid var(--line);background:var(--bg-panel-2);color:var(--parchment);font-weight:700;font-size:15px;cursor:pointer;}
 .qcost:hover{border-color:var(--gold);}
 .qcost.on{background:var(--gold);color:#241a02;border-color:var(--gold);}
+
+/* ============================================================
+   MODÈLE B1 — filtres à gauche, galerie à 3 cartes par ligne,
+   inspecteur + deck à droite
+   ============================================================ */
+.db-shell{max-width:1640px !important;}
+.db-main{gap:16px;align-items:flex-start;}
+.db-toolbar-col{width:260px;position:sticky;top:76px;}
+.db-collection-col{flex:1 1 0;min-width:0;align-items:stretch;gap:10px;position:sticky;top:76px;height:calc(100vh - 96px);min-height:560px;}
+.db-deck-col{width:340px;position:sticky;top:76px;display:flex;flex-direction:column;gap:12px;max-height:calc(100vh - 96px);}
+#deck-col{position:static;max-height:none;flex:1 1 auto;min-height:0;}
+
+/* ----- panneau de gauche ----- */
+#left-toolbar{padding:12px 14px;gap:0;max-height:calc(100vh - 96px);overflow-y:auto;scrollbar-width:thin;}
+#lp-toggle{display:none;}
+.lp-body{display:flex;flex-direction:column;gap:14px;}
+.lp-sec{display:flex;flex-direction:column;gap:6px;}
+.lp-title{font-family:'Cinzel',serif;font-size:13px;color:var(--parchment-dim);text-transform:uppercase;letter-spacing:.8px;}
+#left-toolbar.view-other .lp-cardsonly{display:none;}
+#quick-search{flex:none;width:100%;height:auto;background:var(--bg-void);border:1px solid var(--line);color:var(--parchment);border-radius:8px;padding:9px 12px;font-size:15px;font-family:inherit;}
+#quick-search:focus{outline:2px solid var(--gold);outline-offset:1px;}
+.lp-list{display:flex;flex-direction:column;gap:5px;}
+.lp-row{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;text-align:left;background:var(--bg-panel-2);border:1px solid var(--line);color:var(--parchment);border-radius:8px;padding:7px 10px;font-size:14px;cursor:pointer;}
+.lp-row:hover{border-color:var(--gold);}
+.lp-row.on{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 20%,var(--bg-panel-2));color:var(--gold);}
+.lp-row .n{font-family:'Inter',sans-serif;font-size:12.5px;opacity:.75;flex:none;}
+.lp-chips{display:flex;flex-wrap:wrap;gap:5px;}
+.lp-chips.scroll{max-height:132px;overflow-y:auto;scrollbar-width:thin;padding-right:2px;}
+.lp-chip{display:inline-flex;align-items:center;gap:6px;background:var(--bg-panel-2);border:1px solid var(--line);color:var(--parchment);border-radius:999px;padding:4px 11px;font-size:13px;cursor:pointer;white-space:nowrap;}
+.lp-chip:hover{border-color:var(--gold);}
+.lp-chip.on{border-color:var(--gold);background:color-mix(in srgb,var(--gold) 22%,var(--bg-panel-2));color:var(--gold);font-weight:700;}
+.lp-chip .dot{width:10px;height:10px;border-radius:50%;background:var(--qc,var(--gold));flex:none;box-shadow:0 0 5px var(--qc,transparent);}
+.lp-chip.src.on{background:var(--qc);border-color:var(--qc);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.6);}
+.lp-chip.src.on .dot{background:#fff;box-shadow:none;}
+.lp-chip .gem{width:9px;height:9px;transform:rotate(45deg);border-radius:2px;background:var(--rc);flex:none;}
+.lp-stat{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--parchment-dim);}
+.lp-stat span{width:70px;flex:none;}
+.lp-stat select{flex:1;min-width:0;padding:5px 6px;font-size:13px;}
+.lp-stat input{width:46px;flex:none;background:var(--bg-void);border:1px solid var(--line);color:var(--parchment);border-radius:6px;padding:5px 6px;font-size:14px;text-align:center;}
+#left-toolbar .btn{font-size:14px;padding:9px 12px;}
+#fragments-bar{margin-bottom:2px;}
+
+/* ----- en-tête : onglets ou étapes du deck ----- */
+#coll-head{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;flex:none;}
+#coll-tabs{display:flex;gap:8px;flex-wrap:wrap;}
+#coll-tabs .btn{font-size:15px;padding:9px 16px;border-radius:999px;}
+#coll-tabs .btn.nav-active{background:linear-gradient(180deg,var(--gold),#b8891f);border-color:var(--gold);color:#2a1c05;font-weight:700;}
+.coll-head-right{margin-left:auto;display:flex;align-items:center;gap:12px;}
+#deck-stepper{display:none;gap:8px;flex:1 1 340px;min-width:0;}
+.stp{flex:1 1 0;min-width:0;text-align:left;cursor:pointer;border-radius:10px;border:1px solid var(--line);background:var(--bg-panel-2);color:var(--parchment);padding:5px 12px;line-height:1.25;font-family:'Cinzel',serif;}
+.stp:hover{border-color:var(--gold);}
+.stp b{display:block;font-size:14px;}
+.stp small{display:block;font-size:12px;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-family:'Inter',sans-serif;}
+.stp.done{border-color:var(--green);background:color-mix(in srgb,var(--green) 18%,var(--bg-panel-2));}
+.stp.cur{background:linear-gradient(180deg,var(--gold),#b8891f);border-color:var(--gold);color:#2a1c05;}
+.stp.cur small{opacity:.9;}
+.stp.back{flex:0 1 112px;}
+#sort-select{max-width:232px;}
+.lp-chip.dim{opacity:.32;}
+#step-hint{display:none;width:100%;font-size:14px;color:var(--gold);}
+
+/* ----- barre du haut ----- */
+#quick-bar{gap:8px;padding:10px 12px;flex:none;}
+.qb-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px;}
+.qb-lbl{font-family:'Cinzel',serif;font-size:13px;color:var(--parchment-dim);min-width:46px;}
+.qcost{min-width:32px;height:32px;font-size:14px;}
+.achip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;border:1px solid var(--c,var(--gold));background:color-mix(in srgb,var(--c,var(--gold)) 22%,var(--bg-panel-2));color:var(--parchment);padding:3px 10px;font-size:13px;cursor:pointer;}
+.achip span{opacity:.7;font-size:12px;}
+.achip:hover span{opacity:1;}
+.aclear{margin-left:auto;background:none;border:1px solid var(--blood,#c23b3b);color:var(--blood,#e06666);border-radius:999px;padding:3px 10px;font-size:13px;cursor:pointer;}
+#quick-hint{font-size:13px;}
+
+/* ----- galerie ----- */
+#binder-frame{flex:1 1 auto;min-height:0;display:block;overflow-y:auto;scrollbar-width:thin;padding:22px 18px 18px;}
+#binder-pages{display:grid;grid-template-columns:repeat(var(--cols,3),calc(300px * var(--cs,.6667)));gap:calc(var(--gap,28px) + 14px) var(--gap,28px);justify-content:center;width:100%;}
+#binder-pages.hero-grid-area{grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px;max-width:none;align-items:stretch;}
+#binder-pages.hero-grid-area .hero-select-tile{height:auto;}
+.binder-slot{width:calc(300px * var(--cs,.6667));}
+.binder-slot .ncard{transform:scale(var(--cs,.6667));}
+.binder-slot .ncard:hover{transform:scale(var(--cs,.6667));}
+#binder-pages > .empty-state{grid-column:1/-1;}
+#gallery-more{display:none;margin:18px auto 4px;}
+#gallery-more.show{display:block;}
+#binder-nav{display:none !important;}
+.empty-state .btn{margin-top:10px;}
+
+/* ----- inspecteur ----- */
+#insp{display:none;flex:none;gap:8px 12px;flex-wrap:wrap;background:linear-gradient(180deg,var(--bg-panel-2) 0%,var(--bg-panel) 100%);border:1px solid var(--gold);border-radius:var(--radius-md,12px);padding:12px;box-shadow:var(--shadow-panel,0 14px 32px rgba(0,0,0,.45));}
+#insp.on{display:flex;}
+.insp-empty{width:100%;text-align:center;color:var(--parchment-dim);font-size:14px;padding:26px 8px;line-height:1.5;}
+.insp-card{flex:none;width:150px;height:212px;position:relative;}
+.insp-card .ncard{position:absolute;top:0;left:0;transform-origin:top left;width:300px !important;height:423.2px !important;transform:scale(.5);}
+.insp-info{flex:1;min-width:0;font-size:14px;display:flex;flex-direction:column;gap:5px;}
+.insp-name{font-family:'Cinzel',serif;font-weight:700;font-size:16px;line-height:1.2;color:var(--gold);}
+.insp-type{color:var(--parchment-dim);font-size:13px;}
+.insp-line{font-size:13px;color:var(--parchment);}
+.insp-line b{color:var(--gold);}
+.insp-kws{width:100%;display:flex;flex-wrap:wrap;gap:5px;}
+.insp-kw{background:var(--bg-void);border:1px solid var(--line);border-radius:999px;padding:2px 9px;font-size:12px;color:var(--frost,#8fd3ff);cursor:help;}
+.insp-hint{width:100%;font-size:12px;color:var(--parchment-dim);}
+
+/* Les 3 emplacements Héros / Région / Dos sont déjà dans les étapes en haut : on gagne de la place pour la liste du deck (grand écran). */
+@media (min-width:901px){
+  #hero-slot,#region-slot,#back-slot{display:none !important;}
+  #dk-top{padding:8px 12px 0;}
+  #dk-title{font-size:18px;}
+  #dk-close{width:30px;height:30px;font-size:15px;}
+  #deck-header{padding-bottom:2px;}
+  #mana-curve{height:44px;padding:6px 14px;}
+  #deck-footer{flex-direction:row;padding:8px 12px;}
+  #deck-footer .btn{font-size:14px;padding:8px 6px;}
+  #deck-col{min-height:440px;flex:1 1 0;}
+  .db-deck-col{overflow-y:auto;scrollbar-width:thin;}
+  #deck-list{min-height:150px;}
+}
+@media (max-width:900px){
+  .db-toolbar-col,.db-collection-col,.db-deck-col{position:static;width:100%;height:auto;min-height:0;max-height:none;flex:none;}
+  #left-toolbar{max-height:none;overflow:visible;}
+  #lp-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;background:none;border:none;color:var(--gold);font-family:'Cinzel',serif;font-size:16px;font-weight:700;cursor:pointer;padding:2px 0;}
+  #lp-col.collapsed .lp-body{display:none;}
+  #lp-col:not(.collapsed) #lp-toggle .lp-arrow{transform:rotate(180deg);}
+  #lp-col:not(.collapsed) #lp-toggle{margin-bottom:12px;}
+  #binder-frame{overflow:visible;padding:14px 8px;}
+  #insp,#insp.on{display:none;}
+  #deck-col{max-height:none;}
+}
+@media (max-width:640px){
+  #coll-tabs .btn{font-size:13px;padding:7px 11px;}
+  .coll-head-right{width:100%;justify-content:space-between;margin-left:0;}
+  .stp{padding:4px 8px;}
+  .stp b{font-size:13px;}
+}
 </style>
 <script src="spellcraft-premium.js?v=20261020a"></script>
 <script src="spellcraft-card-render.js?v=20261101b"></script>
@@ -610,48 +742,64 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 
   <div class="sc-container db-shell" style="padding-top:20px;">
     <div class="db-main">
-      <div class="db-toolbar-col">
+      <div class="db-toolbar-col collapsed" id="lp-col">
         <div id="left-toolbar">
-          <div class="tb-title">Parcourir</div>
-          <button class="btn" id="nav-cards" onclick="jumpToBinderStart()">📖 Voir les cartes</button>
-          <button class="btn" id="nav-heroes" onclick="jumpToHeroPage()">🦸 Voir les héros</button>
-          <button class="btn" id="nav-backs" onclick="jumpToCardBackPage()">🎴 Voir les dos de carte</button>
-          <div class="tb-sep"></div>
-          <div class="dropdown-wrap">
-            <button class="btn small" onclick="toggleFilterPanel()">🔎 Filtres avancés</button>
-            <div class="dropdown-panel" id="filter-panel"></div>
+          <button type="button" id="lp-toggle" onclick="toggleLeftPanel()"><span>🔎 Filtres <span id="lp-count"></span></span><span class="lp-arrow">▾</span></button>
+          <div class="lp-body">
+            <div class="lp-sec">
+              <div class="lp-title">Nom</div>
+              <input type="search" id="quick-search" placeholder="Nom, texte ou coût (3, 5+, 2-)" autocomplete="off" oninput="onQuickInput(this.value)">
+            </div>
+            <div class="lp-sec lp-cardsonly"><div class="lp-title">Extension</div><div id="lp-ext" class="lp-list"></div></div>
+            <div class="lp-sec lp-cardsonly"><div class="lp-title">Sous-type</div><div id="lp-sub" class="lp-chips scroll"></div></div>
+            <div class="lp-sec lp-cardsonly"><div class="lp-title">Rareté</div><div id="lp-rar" class="lp-chips"></div></div>
+            <div class="lp-sec lp-cardsonly"><div class="lp-title">Mots-clés</div><div id="lp-kw" class="lp-chips scroll"></div></div>
+            <div class="lp-sec lp-cardsonly">
+              <div class="lp-title">Force / Endurance</div>
+              <div class="lp-stat"><span>Force</span>
+                <select class="select-mini" id="ff-power-mode" onchange="applyStats()"><option value="eq">=</option><option value="gt">&gt;</option><option value="lt">&lt;</option></select>
+                <input type="text" id="ff-power-value" inputmode="numeric" placeholder="–" oninput="applyStatsSoon()"></div>
+              <div class="lp-stat"><span>Endurance</span>
+                <select class="select-mini" id="ff-toughness-mode" onchange="applyStats()"><option value="eq">=</option><option value="gt">&gt;</option><option value="lt">&lt;</option></select>
+                <input type="text" id="ff-toughness-value" inputmode="numeric" placeholder="–" oninput="applyStatsSoon()"></div>
+            </div>
+            <div class="lp-sec lp-cardsonly"><div class="lp-title">Options</div><div id="lp-opt" class="lp-chips"></div></div>
+            <div class="lp-sec">
+              <div class="lp-title">Mes fragments</div>
+              <div id="fragments-bar"></div>
+              <button class="btn small" id="craftable-toggle" onclick="toggleCraftableOnly()" title="Affiche les cartes que tu peux fabriquer avec tes fragments (uniquement dans « Cartes »)">🔨 Fabriquer des cartes</button>
+              <button class="btn small" id="bulk-disenchant-toggle" onclick="openMassDisenchant()">♻️ Désassembler en masse</button>
+            </div>
           </div>
-          <select class="select-mini" id="sort-select" onchange="onFilterChange()">
-            <option value="class-cost-name">Tri : Source → Coût → Alphabétique</option>
-            <option value="name-asc">Nom (A → Z)</option>
-            <option value="name-desc">Nom (Z → A)</option>
-            <option value="cost-asc">Coût (croissant)</option>
-            <option value="cost-desc">Coût (décroissant)</option>
-            <option value="class">Source</option>
-            <option value="rarity">Rareté</option>
-          </select>
-          <span class="results-count" id="results-count"></span>
-          <div class="tb-sep"></div>
-          <div class="tb-title">Mes fragments</div>
-          <div id="fragments-bar"></div>
-          <div class="tb-sep"></div>
-          <button class="btn small" id="craftable-toggle" onclick="toggleCraftableOnly()" title="Affiche les cartes que tu peux fabriquer avec tes fragments (uniquement dans « Voir les cartes »)">🔨 Fabriquer des cartes</button>
-          <button class="btn small" id="bulk-disenchant-toggle" onclick="openMassDisenchant()">♻️ Désassembler en masse</button>
         </div>
-
       </div>
 
       <div class="db-collection-col">
-        <div id="quick-bar">
-          <div id="quick-tabs"></div>
-          <div id="quick-hint">Clic gauche : ajouter au deck · <b>Clic droit : agrandir la carte</b></div>
-          <div id="quick-row">
-            <input type="search" id="quick-search" placeholder="Nom de carte, ou coût (3, 5+, 2-)" autocomplete="off" oninput="onQuickInput(this.value)">
-            <div id="quick-costs"></div>
+        <div id="coll-head">
+          <div id="coll-tabs">
+            <button class="btn" id="nav-cards" onclick="jumpToBinderStart()">📖 Cartes</button>
+            <button class="btn" id="nav-heroes" onclick="jumpToHeroPage()">🦸 Héros</button>
+            <button class="btn" id="nav-backs" onclick="jumpToCardBackPage()">🎴 Dos de carte</button>
           </div>
+          <div id="deck-stepper"></div>
+          <div class="coll-head-right">
+            <span class="results-count" id="results-count"></span>
+            <select class="select-mini" id="sort-select" onchange="onFilterChange()">
+              <option value="class-cost-name">Tri : Source → Coût → Nom</option>
+              <option value="name-asc">Nom (A → Z)</option>
+              <option value="name-desc">Nom (Z → A)</option>
+              <option value="cost-asc">Coût (croissant)</option>
+              <option value="cost-desc">Coût (décroissant)</option>
+              <option value="class">Source</option>
+              <option value="rarity">Rareté</option>
+            </select>
+          </div>
+          <div id="step-hint"></div>
         </div>
+        <div id="quick-bar"></div>
         <div id="binder-frame">
           <div id="binder-pages"></div>
+          <button type="button" class="btn" id="gallery-more" onclick="loadMoreGallery()">Afficher plus de cartes</button>
         </div>
         <div id="binder-nav">
           <button class="nav-arrow" id="prev-page" onclick="changePage(-1)">‹</button>
@@ -661,6 +809,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
       </div>
 
       <div class="db-deck-col">
+        <div id="insp"><div class="insp-empty">Survole une carte pour la voir en grand ici.</div></div>
         <div id="deck-col">
           <div id="deck-empty-state">
             <p>Aucun deck actif.</p>
@@ -834,7 +983,7 @@ let allCardsCache = []; // toutes les cartes du catalogue, possédées ou non (p
 let currentPage = 0;
 let deckBuildStep = null; // null | 'hero' | 'region' | 'cards'
 let filters = {
-  search:'', setId:'', classes:new Set(), classMode:'any', types:new Set(), rarities:new Set(), keywords:new Set(),
+  search:'', setId:'', classes:new Set(), classMode:'any', types:new Set(), rarities:new Set(), keywords:new Set(), subtypes:new Set(),
   costMode:'eq', costValue:'', powerMode:'eq', powerValue:'', toughnessMode:'eq', toughnessValue:'',
   showFoils:true, showUnowned:false, hideOwned:false, craftableOnly:false, multiOnly:false, foilOnly:false, newOnly:false
 };
@@ -1079,165 +1228,67 @@ function showDeckSavedPopup(msg, isError){
 /* ============================================================
    FILTRES
    ============================================================ */
-function buildFilterDropdowns(){ renderFilterPanel(); }
-
-function renderFilterPanel(){
-  const el = document.getElementById('filter-panel');
-  if(!el) return;
-  const setNames = [...new Set(allCardsCache.map(c=>c.set).filter(Boolean))].sort();
-
-  el.innerHTML = `
-    <div class="ff-group">
-      <label>Rechercher</label>
-      <input type="text" id="ff-search" value="${escapeHtml(filters.search)}" placeholder="Ex : élémentaire">
-    </div>
-    <div class="ff-group">
-      <label>Set / Édition</label>
-      <select id="ff-set">
-        <option value="">Tous les sets</option>
-        ${setNames.map(s=>`<option value="${escapeHtml(s)}" ${filters.setId===s?'selected':''}>${escapeHtml(s)}</option>`).join('')}
-      </select>
-    </div>
-    <div class="ff-group">
-      <label>Type de carte</label>
-      <div class="ff-checks" id="ff-types"></div>
-    </div>
-    <div class="ff-group">
-      <label>Source</label>
-      <div class="ff-checks" id="ff-classes"></div>
-      <select id="ff-class-mode" style="margin-top:6px;">
-        <option value="any" ${filters.classMode==='any'?'selected':''}>Doit avoir une des sources cochées</option>
-        <option value="all" ${filters.classMode==='all'?'selected':''}>Doit avoir toutes les sources cochées</option>
-      </select>
-    </div>
-    <div class="ff-group">
-      <label>Rareté</label>
-      <div class="ff-checks" id="ff-rarities"></div>
-    </div>
-    <div class="ff-group">
-      <label>Mots-clés</label>
-      <div class="ff-checks" id="ff-keywords"></div>
-    </div>
-    <div class="ff-group">
-      <label>Coût</label>
-      <div class="ff-row">
-        <select id="ff-cost-mode">
-          <option value="eq" ${filters.costMode==='eq'?'selected':''}>Égal à</option>
-          <option value="gt" ${filters.costMode==='gt'?'selected':''}>Supérieur à</option>
-          <option value="lt" ${filters.costMode==='lt'?'selected':''}>Inférieur à</option>
-        </select>
-        <input type="text" id="ff-cost-value" value="${escapeHtml(filters.costValue)}" placeholder="Ex : 3">
-      </div>
-    </div>
-    <div class="ff-group">
-      <label>Force</label>
-      <div class="ff-row">
-        <select id="ff-power-mode">
-          <option value="eq" ${filters.powerMode==='eq'?'selected':''}>Égal à</option>
-          <option value="gt" ${filters.powerMode==='gt'?'selected':''}>Supérieur à</option>
-          <option value="lt" ${filters.powerMode==='lt'?'selected':''}>Inférieur à</option>
-        </select>
-        <input type="text" id="ff-power-value" value="${escapeHtml(filters.powerValue)}" placeholder="Ex : 4">
-      </div>
-    </div>
-    <div class="ff-group">
-      <label>Endurance</label>
-      <div class="ff-row">
-        <select id="ff-toughness-mode">
-          <option value="eq" ${filters.toughnessMode==='eq'?'selected':''}>Égal à</option>
-          <option value="gt" ${filters.toughnessMode==='gt'?'selected':''}>Supérieur à</option>
-          <option value="lt" ${filters.toughnessMode==='lt'?'selected':''}>Inférieur à</option>
-        </select>
-        <input type="text" id="ff-toughness-value" value="${escapeHtml(filters.toughnessValue)}" placeholder="Ex : 4">
-      </div>
-    </div>
-    <div class="ff-group">
-      <div class="ff-toggle">
-        <span>Afficher les exemplaires Foil</span>
-        <label class="ff-check"><input type="checkbox" id="ff-show-foils" ${filters.showFoils?'checked':''}> Oui</label>
-      </div>
-      <div class="ff-toggle">
-        <span>Afficher les cartes non possédées</span>
-        <label class="ff-check"><input type="checkbox" id="ff-show-unowned" ${filters.showUnowned?'checked':''}> Oui</label>
-      </div>
-      <div class="ff-toggle">
-        <span>Cacher les cartes possédées</span>
-        <label class="ff-check"><input type="checkbox" id="ff-hide-owned" ${filters.hideOwned?'checked':''}> Oui</label>
-      </div>
-    </div>
-    <div class="ff-actions">
-      <button class="btn small primary" onclick="applyFilterPanel()" style="flex:1;">Appliquer</button>
-      <button class="btn small" onclick="resetFilterPanel()">Réinitialiser</button>
-    </div>
-  `;
-  fillCheckGroup('ff-types', CARD_TYPES.filter(t=>t!=='Héros'), filters.types);
-  fillCheckGroup('ff-classes', [...CLASSES.slice(0,5), 'Multi-source', 'Neutre'], filters.classes);
-  fillCheckGroup('ff-rarities', RARITIES, filters.rarities);
-  fillCheckGroup('ff-keywords', KEYWORDS.map(k=>k.label), filters.keywords, KEYWORDS.map(k=>k.key));
+/* ---------- Panneau de gauche (modèle B1) : même objet « filters » qu'avant ---------- */
+let leftPanelBuilt = false;
+const $id = id => document.getElementById(id);
+const RAR_COLOR = {Basique:'#9aa0a8',Commune:'#e8e8e8',Rare:'#3fd0e0',Épique:'#b05cff',Mythique:'#ffb02e'};
+const TYPE_EMOJI = {'Créature':'🐾','Sortilège':'✨','Artefact':'⚙️','Piège':'🪤','Rituel':'🕯️','Région':'🏞️'};
+const OPTION_TOGGLES = [
+  ['multiOnly','Multi-source','Affiche seulement les cartes de 2 sources'],
+  ['foilOnly','✨ Foil','Affiche seulement les cartes que tu possèdes en foil'],
+  ['showUnowned','👁 Non possédées','Affiche aussi les cartes que tu ne possèdes pas'],
+  ['hideOwned','🙈 Cacher les possédées','Retire les cartes que tu as déjà'],
+  ['newOnly','🆕 Nouvelles','Affiche seulement les cartes obtenues récemment (qui ont encore la mention Nouveau)']
+];
+function buildLeftPanel(){
+  if(leftPanelBuilt) return;
+  leftPanelBuilt = true;
+  $id('lp-rar').innerHTML = RARITIES.map(r=>`<button type="button" class="lp-chip" data-lp="rarities" data-k="${escapeHtml(r)}" style="--rc:${RAR_COLOR[r]||'#999'}"><i class="gem"></i>${escapeHtml(r)}</button>`).join('');
+  $id('lp-kw').innerHTML = KEYWORDS.map(k=>`<button type="button" class="lp-chip" data-lp="keywords" data-k="${escapeHtml(k.key)}" title="${escapeHtml(k.desc||'')}">${escapeHtml(k.label)}</button>`).join('');
+  $id('lp-opt').innerHTML = OPTION_TOGGLES.map(([k,label,tip])=>`<button type="button" class="lp-chip" data-lp="tog" data-k="${k}" title="${escapeHtml(tip)}">${escapeHtml(label)}</button>`).join('');
 }
+function buildFilterDropdowns(){ buildLeftPanel(); }
+function toggleLeftPanel(){ $id('lp-col').classList.toggle('collapsed'); }
 
-function fillCheckGroup(containerId, labels, setRef, keys){
-  const el = document.getElementById(containerId);
-  if(!el) return;
-  el.innerHTML = labels.map((label,i)=>{
-    const key = keys ? keys[i] : label;
-    const checked = setRef.has(key);
-    return `<label class="ff-check"><input type="checkbox" data-key="${escapeHtml(key)}" ${checked?'checked':''}> ${escapeHtml(label)}</label>`;
-  }).join('');
-}
-
-function readCheckGroup(containerId){
-  const set = new Set();
-  document.querySelectorAll(`#${containerId} input:checked`).forEach(inp=>set.add(inp.dataset.key));
-  return set;
-}
-
-function toggleFilterPanel(){
-  const panel = document.getElementById('filter-panel');
-  const wasOpen = panel.classList.contains('show');
-  document.querySelectorAll('.dropdown-panel').forEach(p=>p.classList.remove('show'));
-  if(!wasOpen){ renderFilterPanel(); panel.classList.add('show'); }
-}
-document.addEventListener('click', (e)=>{
-  if(!e.target.closest('.dropdown-wrap')){
-    document.querySelectorAll('.dropdown-panel').forEach(p=>p.classList.remove('show'));
-  }
-});
-
-function applyFilterPanel(){
-  filters.search = document.getElementById('ff-search').value.trim().toLowerCase();
-  filters.setId = document.getElementById('ff-set').value;
-  filters.types = readCheckGroup('ff-types');
-  filters.classes = readCheckGroup('ff-classes');
-  filters.classMode = document.getElementById('ff-class-mode').value;
-  filters.rarities = readCheckGroup('ff-rarities');
-  filters.keywords = readCheckGroup('ff-keywords');
-  filters.costMode = document.getElementById('ff-cost-mode').value;
-  filters.costValue = document.getElementById('ff-cost-value').value.trim();
-  filters.powerMode = document.getElementById('ff-power-mode').value;
-  filters.powerValue = document.getElementById('ff-power-value').value.trim();
-  filters.toughnessMode = document.getElementById('ff-toughness-mode').value;
-  filters.toughnessValue = document.getElementById('ff-toughness-value').value.trim();
-  filters.showFoils = document.getElementById('ff-show-foils').checked;
-  filters.showUnowned = document.getElementById('ff-show-unowned').checked;
-  filters.hideOwned = document.getElementById('ff-hide-owned').checked;
-  if(filters.hideOwned && filters.craftableOnly){
-    filters.craftableOnly = false;
-    document.getElementById('craftable-toggle').classList.remove('active');
+/* Un clic sur n'importe quelle pastille de filtre (panneau de gauche ou barre du haut). */
+function lpToggle(group, k){
+  if(group==='setId'){ filters.setId = filters.setId===k ? '' : k; }
+  else if(group==='tog'){ quickToggle(k); return; }
+  else if(filters[group] instanceof Set){
+    const s = filters[group];
+    if(s.has(k)) s.delete(k); else s.add(k);
+    if(group==='classes') filters.classMode = 'any';
   }
   currentPage = 0;
-  document.getElementById('filter-panel').classList.remove('show');
+  renderBinder();
+}
+document.addEventListener('click', (e)=>{
+  const b = e.target.closest('[data-lp]');
+  if(b) lpToggle(b.dataset.lp, b.dataset.k);
+});
+
+let statsTimer = null;
+function applyStatsSoon(){ clearTimeout(statsTimer); statsTimer = setTimeout(applyStats, 350); }
+function clearStatInputs(){ ['ff-power-value','ff-toughness-value'].forEach(id=>{ const e=$id(id); if(e) e.value=''; }); }
+function applyStats(){
+  filters.powerMode = $id('ff-power-mode').value;
+  filters.powerValue = $id('ff-power-value').value.trim();
+  filters.toughnessMode = $id('ff-toughness-mode').value;
+  filters.toughnessValue = $id('ff-toughness-value').value.trim();
+  currentPage = 0;
   renderBinder();
 }
 
 function resetFilterPanel(){
   filters = {
-    search:'', setId:'', classes:new Set(), classMode:'any', types:new Set(), rarities:new Set(), keywords:new Set(),
+    search:'', setId:'', classes:new Set(), classMode:'any', types:new Set(), rarities:new Set(), keywords:new Set(), subtypes:new Set(),
     costMode:'eq', costValue:'', powerMode:'eq', powerValue:'', toughnessMode:'eq', toughnessValue:'',
     showFoils:true, showUnowned:false, hideOwned:false, craftableOnly:false, multiOnly:false, foilOnly:false, newOnly:false
   };
+  const ct = $id('craftable-toggle'); if(ct) ct.classList.remove('active');
+  const qs = $id('quick-search'); if(qs) qs.value = '';
+  clearStatInputs();
   currentPage = 0;
-  renderFilterPanel();
   renderBinder();
 }
 
@@ -1306,82 +1357,95 @@ function jumpToBinderStart(){
     if(!currentDeck.heroId && !currentDeck.taverne){ scAlert("Choisis d'abord un héros pour voir les cartes que ton deck peut jouer."); openDeckHeroPage(); return; }
     openDeckCardsPage(); return;
   }
-  if(currentPage===0 && !browsingHeroesStandalone && !browsingCardBacksStandalone){ flashSaved('Déjà au début du classeur.'); return; }
+  if(!browsingHeroesStandalone && !browsingCardBacksStandalone){ const fr=document.getElementById('binder-frame'); if(fr) fr.scrollTo({top:0,behavior:'smooth'}); return; }
   browsingHeroesStandalone = false;
   browsingCardBacksStandalone = false;
   currentPage = 0;
   renderBinder('spread');
 }
 
+/* La liste de départ : toutes les cartes du catalogue si on veut voir les non possédées / fabricables, sinon la collection. */
+function facetSource(){
+  return ((!currentDeck || deckBuildStep==='cards') && (filters.showUnowned || filters.craftableOnly)) ? allCardsCache : collection;
+}
+/* Une carte passe-t-elle tous les filtres ? `ignore` permet de calculer les compteurs
+   d'une famille de filtres (ex. combien de cartes par extension) sans tenir compte de celle-ci. */
+function cardPasses(c, ignore){
+  if((c.subtypes||[]).some(s=>s.trim().toLowerCase()==='conjuration')) return false;
+  if(c.type==='Héros') return false; // les héros ont leur propre onglet
+
+  if(currentDeck && deckBuildStep){
+    if(deckBuildStep==='region'){
+      if(c.type!=='Région') return false;
+      return isRegionValidForHero(c, deckHeroCard());
+    }
+    if(deckBuildStep==='cards'){
+      if(c.type==='Héros' || c.type==='Région') return false;
+      if(!classAllowedByDeck(c)) return false;
+    }
+  }
+
+  if(filters.hideOwned && (ownedCollection[c.id]||0) > 0) return false;
+  if(filters.newOnly && !newCardIds.has(c.id)) return false;
+  if(filters.multiOnly && !c.classSecondary) return false;
+  if(filters.foilOnly){
+    const d = ownedDetail[c.id];
+    if(!d || !((d.foil||0) > 0 || (d.premiumFoil||0) > 0)) return false;
+  }
+
+  if(filters.craftableOnly){
+    const maxCopies = c.isLegendary ? 1 : MAX_COPIES;
+    const ownedQty = ownedCollection[c.id] || 0;
+    const craftCost = CRAFT_COST_BY_RARITY[c.rarity];
+    // Fabricable = il manque au moins un exemplaire ET cette rareté peut
+    // effectivement être fabriquée (les cartes Basique, par exemple, ne
+    // le peuvent pas — voir renderCraftAction).
+    if(!(ownedQty < maxCopies && craftCost)) return false;
+  }
+
+  if(filters.search){
+    const inName = c.name.toLowerCase().includes(filters.search);
+    const inText = (c.text||'').toLowerCase().includes(filters.search);
+    const inSubtypes = (c.subtypes||[]).some(s=>s.toLowerCase().includes(filters.search));
+    if(!inName && !inText && !inSubtypes) return false;
+  }
+  if(ignore!=='setId' && filters.setId && c.set!==filters.setId) return false;
+  if(rewardHiddenSetNames.has(c.set) && (ownedCollection[c.id]||0) === 0) return false;
+  if(hiddenSetNames.has(c.set) && (ownedCollection[c.id]||0) === 0) return false; // set masqué : introuvable (même via le filtre de set) et non fabricable tant qu'on n'a aucun exemplaire
+  if(ignore!=='subtypes' && filters.subtypes.size){
+    const cs = (c.subtypes||[]).map(s=>s.trim().toLowerCase());
+    let ok = false;
+    filters.subtypes.forEach(s=>{ if(cs.includes(s.toLowerCase())) ok = true; });
+    if(!ok) return false;
+  }
+  if(filters.classes.size){
+    const realClasses = [...filters.classes].filter(k=>k!=='Multi-source');
+    const wantsMulti = filters.classes.has('Multi-source');
+    const cardClasses = cardSources(c);
+    let matches;
+    if(filters.classMode==='all'){
+      matches = realClasses.every(k=>cardClasses.includes(k)) && (!wantsMulti || !!c.classSecondary);
+    } else {
+      matches = realClasses.some(k=>cardClasses.includes(k)) || (wantsMulti && !!c.classSecondary);
+    }
+    if(!matches) return false;
+  }
+  if(filters.types.size && !filters.types.has(c.type)) return false;
+  if(filters.rarities.size && !filters.rarities.has(c.rarity)) return false;
+  if(filters.keywords.size){
+    const ck = c.keywords||[];
+    let hasAny = false;
+    filters.keywords.forEach(k=>{ if(ck.includes(k)) hasAny = true; });
+    if(!hasAny) return false;
+  }
+  if(filters.costValue!=='' && !matchesComparator(c.cost, filters.costMode, filters.costValue)) return false;
+  if(filters.powerValue!=='' && !matchesComparator(c.atk, filters.powerMode, filters.powerValue)) return false;
+  if(filters.toughnessValue!=='' && !matchesComparator(c.hp, filters.toughnessMode, filters.toughnessValue)) return false;
+  return true;
+}
+
 function getFilteredSortedCollection(){
-  const sourceList = ((!currentDeck || deckBuildStep==='cards') && (filters.showUnowned || filters.craftableOnly)) ? allCardsCache : collection;
-  let list = sourceList.filter(c=>{
-    if((c.subtypes||[]).some(s=>s.trim().toLowerCase()==='conjuration')) return false;
-    if(c.type==='Héros') return false; // les héros ont leur propre page dédiée à la fin du classeur
-
-    if(currentDeck && deckBuildStep){
-      if(deckBuildStep==='region'){
-        if(c.type!=='Région') return false;
-        return isRegionValidForHero(c, deckHeroCard());
-      }
-      if(deckBuildStep==='cards'){
-        if(c.type==='Héros' || c.type==='Région') return false;
-        if(!classAllowedByDeck(c)) return false;
-      }
-    }
-
-    if(filters.hideOwned && (ownedCollection[c.id]||0) > 0) return false;
-    if(filters.newOnly && !newCardIds.has(c.id)) return false;
-    if(filters.multiOnly && !c.classSecondary) return false;
-    if(filters.foilOnly){
-      const d = ownedDetail[c.id];
-      if(!d || !((d.foil||0) > 0 || (d.premiumFoil||0) > 0)) return false;
-    }
-
-    if(filters.craftableOnly){
-      const maxCopies = c.isLegendary ? 1 : MAX_COPIES;
-      const ownedQty = ownedCollection[c.id] || 0;
-      const craftCost = CRAFT_COST_BY_RARITY[c.rarity];
-      // Fabricable = il manque au moins un exemplaire ET cette rareté peut
-      // effectivement être fabriquée (les cartes Basique, par exemple, ne
-      // le peuvent pas — voir renderCraftAction).
-      if(!(ownedQty < maxCopies && craftCost)) return false;
-    }
-
-    if(filters.search){
-      const inName = c.name.toLowerCase().includes(filters.search);
-      const inText = (c.text||'').toLowerCase().includes(filters.search);
-      const inSubtypes = (c.subtypes||[]).some(s=>s.toLowerCase().includes(filters.search));
-      if(!inName && !inText && !inSubtypes) return false;
-    }
-    if(filters.setId && c.set!==filters.setId) return false;
-    if(rewardHiddenSetNames.has(c.set) && (ownedCollection[c.id]||0) === 0) return false;
-    if(hiddenSetNames.has(c.set) && (ownedCollection[c.id]||0) === 0) return false; // set masqué : introuvable (même via le filtre de set) et non fabricable tant qu'on n'a aucun exemplaire
-    if(filters.classes.size){
-      const realClasses = [...filters.classes].filter(k=>k!=='Multi-source');
-      const wantsMulti = filters.classes.has('Multi-source');
-      const cardClasses = cardSources(c);
-      let matches;
-      if(filters.classMode==='all'){
-        matches = realClasses.every(k=>cardClasses.includes(k)) && (!wantsMulti || !!c.classSecondary);
-      } else {
-        matches = realClasses.some(k=>cardClasses.includes(k)) || (wantsMulti && !!c.classSecondary);
-      }
-      if(!matches) return false;
-    }
-    if(filters.types.size && !filters.types.has(c.type)) return false;
-    if(filters.rarities.size && !filters.rarities.has(c.rarity)) return false;
-    if(filters.keywords.size){
-      const ck = c.keywords||[];
-      let hasAny = false;
-      filters.keywords.forEach(k=>{ if(ck.includes(k)) hasAny = true; });
-      if(!hasAny) return false;
-    }
-    if(filters.costValue!=='' && !matchesComparator(c.cost, filters.costMode, filters.costValue)) return false;
-    if(filters.powerValue!=='' && !matchesComparator(c.atk, filters.powerMode, filters.powerValue)) return false;
-    if(filters.toughnessValue!=='' && !matchesComparator(c.hp, filters.toughnessMode, filters.toughnessValue)) return false;
-    return true;
-  });
+  let list = facetSource().filter(c=>cardPasses(c));
 
   const costOf = c => c.cost===null || c.cost===undefined ? -1 : c.cost;
   // Ordre de tri par classe : les 5 couleurs, puis les cartes multiclasse
@@ -1876,159 +1940,94 @@ function renderCardBackGrid(animate){
   const BASE_BACK = { id:'base', name:'Dos de base', image_url:'images/card/back/dos-de-carte-base.png' };
   const allBacks = (currentDeck && !ownedCardBacksCache.some(b=>b.id==='base')) ? [BASE_BACK, ...ownedCardBacksCache] : ownedCardBacksCache;
   const filtered = filters.search ? allBacks.filter(cb=>cb.name.toLowerCase().includes(filters.search)) : allBacks;
-  const totalPages = Math.max(1, Math.ceil(filtered.length / SPREAD_SIZE));
-  if(currentPage >= totalPages) currentPage = totalPages - 1;
-  if(currentPage < 0) currentPage = 0;
 
   document.getElementById('results-count').textContent = `${filtered.length} dos de carte`;
-  document.getElementById('page-indicator').textContent = `Feuillet ${currentPage+1} / ${totalPages}`;
-  document.getElementById('prev-page').disabled = currentPage<=0;
-  document.getElementById('next-page').disabled = currentPage>=totalPages-1;
-
-  const buildCardBackHalf = (backs, side)=>{
-    const half = document.createElement('div');
-    half.className = 'binder-page-half ' + side;
-    for(let i=0;i<PAGE_SIZE;i++){
-      const slot = document.createElement('div');
-      slot.className = 'binder-slot';
-      if(backs[i]){
-        const cb = backs[i];
-        const inDeck = !!currentDeck;
-        const isEquipped = inDeck ? ((currentDeck.cardBackId || 'base') === cb.id) : (equippedCardBackId === cb.id);
-        slot.style.position = 'relative';
-        const tile = document.createElement('div');
-        tile.className = 'cardback-select-tile' + (isEquipped ? ' equipped' : '');
-        const bgUrl = cb.image_url || (cb.id==='base' ? 'images/card/back/dos-de-carte-base.png' : '');
-        tile.innerHTML = `
-          <div class="cardback-visual" style="${bgUrl?`background-image:url('${bgUrl.replace(/'/g,"")}');`:''}"></div>
-          <div class="cardback-status">${escapeHtml(cb.name||'')}${isEquipped ? (inDeck ? ' — choisi ✓' : ' — équipé ✓') : ''}</div>
-        `;
-        tile.addEventListener('mouseenter', (ev)=>showCardBackPreview(cb, ev.clientX, ev.clientY));
-        tile.addEventListener('mouseleave', hidePreview);
-        if(inDeck){
-          tile.onclick = ()=>{
-            currentDeck.cardBackId = (cb.id==='base') ? null : cb.id;
-            flashSaved('✓ Dos « ' + (cb.name||'') + ' » choisi pour ce deck');
-            renderDeckPanel(); renderCardBackGrid(false);
-          };
-        } else if(!isEquipped) tile.onclick = async ()=>{
-          const { data, error } = await sb.rpc('equip_card_back', { p_card_back_id: cb.id });
-          if(error){ flashError('Erreur : ' + error.message); return; }
-          if(data.error){ flashError(data.error==='not-owned' ? "Tu ne possèdes pas ce dos de carte." : data.error); return; }
-          equippedCardBackId = cb.id;
-          renderCardBackGrid(false);
-        };
-        slot.appendChild(tile);
-      } else {
-        slot.innerHTML = '<div class="binder-slot-empty"></div>';
-      }
-      half.appendChild(slot);
-    }
-    return half;
-  };
-
-  const doRender = ()=>{
-    const pages = document.getElementById('binder-pages');
-    pages.innerHTML = '';
-    pages.className = '';
-    const start = currentPage*SPREAD_SIZE;
-    const spread = filtered.slice(start, start+SPREAD_SIZE);
-    if(spread.length===0){
-      pages.innerHTML = `<div class="empty-state">Tu ne possèdes encore aucun dos de carte — direction la Boutique !</div>`;
-      return;
-    }
-    pages.appendChild(buildCardBackHalf(spread.slice(0, PAGE_SIZE), 'left'));
-    pages.appendChild(buildCardBackHalf(spread.slice(PAGE_SIZE, SPREAD_SIZE), 'right'));
-  };
-
-  if(!animate){ doRender(); return; }
+  fitBinderToWidth();
   const pages = document.getElementById('binder-pages');
-  pages.style.transformOrigin = 'center center';
-  pages.style.transition = 'transform .2s ease-in, opacity .2s ease-in';
-  pages.style.transform = 'perspective(1400px) rotateY(-90deg)';
-  pages.style.opacity = '0.35';
-  setTimeout(()=>{
-    doRender();
-    const pages2 = document.getElementById('binder-pages');
-    pages2.style.transition = 'none';
-    pages2.style.transform = 'perspective(1400px) rotateY(90deg)';
-    pages2.style.opacity = '0.35';
-    requestAnimationFrame(()=>{
-      pages2.style.transition = 'transform .2s ease-out, opacity .2s ease-out';
-      pages2.style.transform = 'perspective(1400px) rotateY(0deg)';
-      pages2.style.opacity = '1';
-    });
-  }, 200);
+  pages.innerHTML = '';
+  pages.className = '';
+  galleryCards = null; setGalleryMore();
+  if(filtered.length===0){
+    pages.innerHTML = `<div class="empty-state">Tu ne possèdes encore aucun dos de carte — direction la Boutique !</div>`;
+    return;
+  }
+  filtered.forEach(cb=>{
+    const inDeck = !!currentDeck;
+    const isEquipped = inDeck ? ((currentDeck.cardBackId || 'base') === cb.id) : (equippedCardBackId === cb.id);
+    const slot = document.createElement('div');
+    slot.className = 'binder-slot';
+    slot.style.position = 'relative';
+    const tile = document.createElement('div');
+    tile.className = 'cardback-select-tile' + (isEquipped ? ' equipped' : '');
+    const bgUrl = cb.image_url || (cb.id==='base' ? 'images/card/back/dos-de-carte-base.png' : '');
+    tile.innerHTML = `
+      <div class="cardback-visual" style="${bgUrl?`background-image:url('${bgUrl.replace(/'/g,"")}');`:''}"></div>
+      <div class="cardback-status">${escapeHtml(cb.name||'')}${isEquipped ? (inDeck ? ' — choisi ✓' : ' — équipé ✓') : ''}</div>
+    `;
+    tile.addEventListener('mouseenter', (ev)=>showCardBackPreview(cb, ev.clientX, ev.clientY));
+    tile.addEventListener('mouseleave', hidePreview);
+    if(inDeck){
+      tile.onclick = ()=>{
+        currentDeck.cardBackId = (cb.id==='base') ? null : cb.id;
+        flashSaved('✓ Dos « ' + (cb.name||'') + ' » choisi pour ce deck');
+        renderDeckPanel(); renderCardBackGrid(false);
+      };
+    } else if(!isEquipped) tile.onclick = async ()=>{
+      const { data, error } = await sb.rpc('equip_card_back', { p_card_back_id: cb.id });
+      if(error){ flashError('Erreur : ' + error.message); return; }
+      if(data.error){ flashError(data.error==='not-owned' ? "Tu ne possèdes pas ce dos de carte." : data.error); return; }
+      equippedCardBackId = cb.id;
+      renderCardBackGrid(false);
+    };
+    slot.appendChild(tile);
+    pages.appendChild(slot);
+  });
 }
 
 function renderHeroSelectionGrid(animate){
   const heroes = collection.filter(c=>c.type==='Héros' && !(c.subtypes||[]).some(s=>s.trim().toLowerCase()==='conjuration'));
   const filtered = filters.search ? heroes.filter(h=>h.name.toLowerCase().includes(filters.search)) : heroes;
-  const totalPages = Math.max(1, Math.ceil(filtered.length / HERO_PAGE_SIZE));
-  if(currentPage >= totalPages) currentPage = totalPages - 1;
-  if(currentPage < 0) currentPage = 0;
 
   document.getElementById('results-count').textContent = `${filtered.length} héros`;
-  document.getElementById('page-indicator').textContent = `Page ${currentPage+1} / ${totalPages}`;
-  document.getElementById('prev-page').disabled = currentPage<=0;
-  document.getElementById('next-page').disabled = currentPage>=totalPages-1;
-
-  const doRender = ()=>{
-    const pages = document.getElementById('binder-pages');
-    pages.innerHTML = '';
-    pages.className = 'hero-grid-area';
-    const start = currentPage*HERO_PAGE_SIZE;
-    const pageHeroes = filtered.slice(start, start+HERO_PAGE_SIZE);
-    if(pageHeroes.length===0){
-      pages.innerHTML = `<div class="empty-state">Aucun héros dans la collection. Crée-en un dans l'éditeur de cartes !</div>`;
-      return;
-    }
-    pageHeroes.forEach(h=>{
-      const tile = document.createElement('div');
-      tile.className = 'hero-select-tile';
-      fillHeroProfileContent(tile, h);
-      tile.onclick = ()=>onCardClick(h);
-      pages.appendChild(tile);
-    });
-  };
-
-  if(!animate){ doRender(); return; }
+  fitBinderToWidth();
   const pages = document.getElementById('binder-pages');
-  pages.style.transformOrigin = 'center center';
-  pages.style.transition = 'transform .2s ease-in, opacity .2s ease-in';
-  pages.style.transform = 'perspective(1400px) rotateY(-90deg)';
-  pages.style.opacity = '0.35';
-  setTimeout(()=>{
-    doRender();
-    const pages2 = document.getElementById('binder-pages');
-    pages2.style.transition = 'none';
-    pages2.style.transform = 'perspective(1400px) rotateY(90deg)';
-    pages2.style.opacity = '0.35';
-    requestAnimationFrame(()=>{
-      pages2.style.transition = 'transform .2s ease-out, opacity .2s ease-out';
-      pages2.style.transform = 'perspective(1400px) rotateY(0deg)';
-      pages2.style.opacity = '1';
-    });
-  }, 200);
+  pages.innerHTML = '';
+  pages.className = 'hero-grid-area';
+  galleryCards = null; setGalleryMore();
+  if(filtered.length===0){
+    pages.innerHTML = `<div class="empty-state">Aucun héros dans la collection. Crée-en un dans l'éditeur de cartes !</div>`;
+    return;
+  }
+  filtered.forEach(h=>{
+    const tile = document.createElement('div');
+    tile.className = 'hero-select-tile';
+    fillHeroProfileContent(tile, h);
+    tile.onclick = ()=>onCardClick(h);
+    pages.appendChild(tile);
+  });
 }
 
-/* Garde la colonne deck à droite du classeur : si l'écran est trop étroit,
-   on réduit le classeur (zoom) au lieu de faire passer le deck dessous. */
+/* La galerie s'adapte à la largeur disponible : 3 cartes par ligne (2 sur téléphone),
+   aussi grandes que la place le permet (jusqu'à 240 px de large). */
 function fitBinderToWidth(){
   const frame = document.getElementById('binder-frame');
-  const main = document.querySelector('.db-main');
-  if(!frame || !main) return;
-  frame.style.zoom = '';
-  if(window.innerWidth <= 900) return;
-  const tb = main.querySelector('.db-toolbar-col'), dk = main.querySelector('.db-deck-col');
-  const used = (tb?tb.offsetWidth:0) + (dk && getComputedStyle(dk).display!=='none' ? dk.offsetWidth : 0) + 36;
-  const avail = main.clientWidth - used - 8; // marge anti-arrondi
-  const natural = frame.offsetWidth;
-  if(natural > avail && avail > 0){
-    frame.style.zoom = Math.max(.45, Math.min(1, avail/natural)).toFixed(3);
-  }
+  const pages = document.getElementById('binder-pages');
+  if(!frame || !pages) return;
+  const cs = getComputedStyle(frame);
+  const avail = frame.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  if(avail <= 0) return;
+  const phone = window.innerWidth <= 640;
+  const cols = phone ? 2 : 3, gap = phone ? 14 : 28, maxW = phone ? 190 : 240;
+  const cw = Math.max(90, Math.min(maxW, (avail - (cols-1)*gap - 2) / cols));
+  pages.style.setProperty('--cs', (cw/300).toFixed(4));
+  pages.style.setProperty('--cols', cols);
+  pages.style.setProperty('--gap', gap + 'px');
 }
-window.addEventListener('resize', fitBinderToWidth);
+window.addEventListener('resize', ()=>{ fitBinderToWidth(); maybeLoadMore(); });
+if(window.ResizeObserver){
+  const fr = document.getElementById('binder-frame');
+  if(fr) new ResizeObserver(()=>{ fitBinderToWidth(); }).observe(fr);
+}
 
 /* Plus de page qui tourne : un fondu très court suffit (et ne casse jamais l'affichage). */
 function renderBinder(animate){
@@ -2037,6 +2036,7 @@ function renderBinder(animate){
   if(bp && animate){ bp.classList.remove('bp-fade'); void bp.offsetWidth; bp.classList.add('bp-fade'); }
   updateNavActive();
   syncQuickBar();
+  if(currentView()==='cards' || currentView()==='region') refreshInspector();
   requestAnimationFrame(fitBinderToWidth);
 }
 function currentView(){
@@ -2059,36 +2059,33 @@ function updateNavActive(){
   }
 }
 
-/* ---------- Barre rapide : onglets de source + recherche nom / coût ---------- */
+/* ---------- Barre du haut : source / coût / type + filtres actifs ---------- */
 const QUICK_CLASSES = ['Aube','Crépuscule','Prima','Volonté','Arcane','Neutre'];
 function buildQuickBar(){
-  const tabs = document.getElementById('quick-tabs');
-  const costs = document.getElementById('quick-costs');
-  if(!tabs || tabs.dataset.built) return;
-  tabs.dataset.built = '1';
-  tabs.innerHTML = `<button type="button" class="qtab" data-k="">Toutes</button>` +
-    QUICK_CLASSES.map(k=>`<button type="button" class="qtab" data-k="${escapeHtml(k)}" style="--qc:${getClassColor(k)}">${escapeHtml(k)}</button>`).join('');
-  tabs.querySelectorAll('.qtab').forEach(b=>b.onclick = ()=>quickTab(b.dataset.k));
-  const TOG = [['multiOnly','Multi-source','Affiche seulement les cartes de 2 sources'],['foilOnly','✨','Foils : affiche seulement les cartes que tu possèdes en foil'],['showUnowned','👁','Non possédées : affiche aussi les cartes que tu ne possèdes pas'],['hideOwned','🙈','Cacher les possédées : retire les cartes que tu as déjà'],['newOnly','🆕','Nouvelles : affiche seulement les cartes obtenues récemment (qui ont encore la mention Nouveau)']];
-  TOG.forEach(([k,label,tip],i)=>{
-    const b = document.createElement('button');
-    b.type='button'; b.className='qtab qtog'; b.dataset.tog=k; b.textContent=label; b.title=tip; b.setAttribute('aria-label',tip); if(k!=='multiOnly') b.classList.add('qico');
-    if(i===0) b.style.marginLeft='8px';
-    b.onclick = ()=>quickToggle(k);
-    tabs.appendChild(b);
-  });
-  costs.innerHTML = `<span class="qcost-label">Coût</span>` +
-    [0,1,2,3,4,5,6,7].map(n=>`<button type="button" class="qcost" data-n="${n}">${n===7?'7+':n}</button>`).join('');
-  costs.querySelectorAll('.qcost').forEach(b=>b.onclick = ()=>quickCost(+b.dataset.n));
+  const bar = $id('quick-bar');
+  if(!bar || bar.dataset.built) return;
+  bar.dataset.built = '1';
+  bar.innerHTML = `
+    <div class="qb-row" id="qb-src"><span class="qb-lbl">Source</span>${
+      QUICK_CLASSES.map(k=>`<button type="button" class="lp-chip src" data-lp="classes" data-k="${escapeHtml(k)}" style="--qc:${getClassColor(k)}"><i class="dot"></i>${escapeHtml(k)}</button>`).join('')
+    }</div>
+    <div class="qb-row" id="qb-cost"><span class="qb-lbl">Coût</span>${
+      [0,1,2,3,4,5,6,7].map(n=>`<button type="button" class="qcost" data-n="${n}" onclick="quickCost(${n})">${n===7?'7+':n}</button>`).join('')
+    }</div>
+    <div class="qb-row" id="qb-types"><span class="qb-lbl">Type</span><span id="qb-types-list" style="display:contents"></span></div>
+    <div class="qb-row" id="qb-active"></div>
+    <div id="quick-hint">Clic gauche : ajouter au deck · <b>Clic droit : agrandir la carte</b> · Survol : détails à droite</div>`;
 }
 function quickToggle(k){
   filters[k] = !filters[k];
-  if(k==='hideOwned' && filters.hideOwned){ filters.craftableOnly = false; const ct=document.getElementById('craftable-toggle'); if(ct) ct.classList.remove('active'); }
+  if(k==='hideOwned' && filters.hideOwned){ filters.craftableOnly = false; const ct=$id('craftable-toggle'); if(ct) ct.classList.remove('active'); }
   currentPage = 0;
   renderBinder();
 }
 function quickTab(k){
-  filters.classes = k ? new Set([k]) : new Set();
+  if(!k) filters.classes = new Set();
+  else if(filters.classes.has(k)) filters.classes.delete(k);
+  else filters.classes.add(k);
   filters.classMode = 'any';
   currentPage = 0;
   renderBinder();
@@ -2121,48 +2118,311 @@ function onQuickInput(v){
     renderBinder();
   }, 150);
 }
+
+/* Liste des filtres actifs (pour les pastilles « ✕ » de la barre du haut). */
+function activeChips(){
+  const L = [];
+  const chg = fn => ()=>{ fn(); currentPage = 0; renderBinder(); };
+  if(filters.search) L.push({t:'🔎 « '+filters.search+' »', c:'#8a8fb0', rm:chg(()=>{ filters.search=''; const q=$id('quick-search'); if(q) q.value=''; })});
+  if(filters.setId) L.push({t:'📚 '+filters.setId, c:'#8a8fb0', rm:chg(()=>{ filters.setId=''; })});
+  filters.subtypes.forEach(v=>L.push({t:v, c:'#8a8fb0', rm:chg(()=>filters.subtypes.delete(v))}));
+  filters.classes.forEach(v=>L.push({t:v, c:getClassColor(v), rm:chg(()=>filters.classes.delete(v))}));
+  filters.types.forEach(v=>L.push({t:(TYPE_EMOJI[v]||'')+' '+v, c:'#6a5cff', rm:chg(()=>filters.types.delete(v))}));
+  filters.rarities.forEach(v=>L.push({t:'◆ '+v, c:RAR_COLOR[v]||'#999', rm:chg(()=>filters.rarities.delete(v))}));
+  filters.keywords.forEach(v=>{ const kw = KEYWORDS.find(x=>x.key===v); L.push({t:kw?kw.label:v, c:'#3fb8a8', rm:chg(()=>filters.keywords.delete(v))}); });
+  const sym = {eq:'=', gt:'>', lt:'<'};
+  if(filters.costValue!==''){
+    const cs = quickCostState();
+    L.push({t:'Coût '+(cs===7 ? '7+' : sym[filters.costMode]+' '+filters.costValue), c:'#d4af37', rm:chg(()=>{ filters.costValue=''; })});
+  }
+  if(filters.powerValue!=='') L.push({t:'Force '+sym[filters.powerMode]+' '+filters.powerValue, c:'#d4af37', rm:chg(()=>{ filters.powerValue=''; clearStatInputs(); })});
+  if(filters.toughnessValue!=='') L.push({t:'Endurance '+sym[filters.toughnessMode]+' '+filters.toughnessValue, c:'#d4af37', rm:chg(()=>{ filters.toughnessValue=''; clearStatInputs(); })});
+  OPTION_TOGGLES.forEach(([k,label])=>{ if(filters[k]) L.push({t:label, c:'#9a9ab0', rm:chg(()=>{ filters[k]=false; })}); });
+  if(filters.craftableOnly) L.push({t:'🔨 Fabricables', c:'#9a9ab0', rm:chg(()=>{ filters.craftableOnly=false; const ct=$id('craftable-toggle'); if(ct) ct.classList.remove('active'); })});
+  return L;
+}
+
 function syncQuickBar(){
-  const bar = document.getElementById('quick-bar');
-  if(!bar) return;
   buildQuickBar();
-  const show = currentView() === 'cards';
-  bar.classList.toggle('show', show);
-  if(!show) return;
-  const one = filters.classes.size === 1 ? [...filters.classes][0] : null;
-  document.querySelectorAll('#quick-tabs .qtab').forEach(b=>{
-    const k = b.dataset.k;
-    if(b.classList.contains('qtog')) return;
-    b.classList.toggle('on', k ? one === k : filters.classes.size === 0);
-  });
-  document.querySelectorAll('#quick-tabs .qtog').forEach(b=>b.classList.toggle('on', !!filters[b.dataset.tog]));
+  buildLeftPanel();
+  const view = currentView();
+  const cardsLike = view==='cards' || view==='region';
+  const bar = $id('quick-bar');
+  bar.classList.toggle('show', cardsLike);
+  const insp = $id('insp'); if(insp) insp.classList.toggle('on', cardsLike);
+  const inp = $id('quick-search');
   const cs = quickCostState();
-  document.querySelectorAll('#quick-costs .qcost').forEach(b=>b.classList.toggle('on', cs === +b.dataset.n));
-  const inp = document.getElementById('quick-search');
   if(inp && document.activeElement !== inp){
     const typedCost = filters.search === '' && filters.costValue !== '' && cs === null
       ? (filters.costMode==='gt' ? (parseInt(filters.costValue,10)+1)+'+' : filters.costMode==='lt' ? (parseInt(filters.costValue,10)-1)+'-' : '')
       : '';
     inp.value = filters.search || typedCost;
   }
+  const chips = activeChips();
+  const cnt = $id('lp-count'); if(cnt) cnt.textContent = chips.length ? '('+chips.length+')' : '';
+  syncLeftPanel(cardsLike);
+  renderStepper();
+  if(!cardsLike) return;
+  const limited = !!currentDeck && !currentDeck.taverne && deckBuildStep==='cards';
+  bar.querySelectorAll('[data-lp="classes"]').forEach(b=>{
+    b.classList.toggle('on', filters.classes.has(b.dataset.k));
+    const k = b.dataset.k;
+    const usable = !limited || k==='Neutre' || allCardsCache.some(c=>cardSources(c).includes(k) && c.type!=='Héros' && c.type!=='Région' && classAllowedByDeck(c));
+    b.classList.toggle('dim', !usable);
+    b.title = usable ? '' : 'Source non disponible avec ce héros';
+  });
+  bar.querySelectorAll('.qcost').forEach(b=>b.classList.toggle('on', cs === +b.dataset.n));
+  const types = CARD_TYPES.filter(t=>t!=='Héros' && (t!=='Région' || !currentDeck));
+  $id('qb-types-list').innerHTML = types.map(t=>`<button type="button" class="lp-chip${filters.types.has(t)?' on':''}" data-lp="types" data-k="${escapeHtml(t)}">${TYPE_EMOJI[t]||''} ${escapeHtml(t)}</button>`).join('');
+  $id('qb-types').style.display = view==='region' ? 'none' : '';
+  const hintEl = $id('quick-hint'); if(hintEl) hintEl.style.display = currentDeck ? 'none' : '';
+  const act = $id('qb-active');
+  act.style.display = chips.length ? '' : 'none';
+  act.innerHTML = `<span class="qb-lbl">Actifs</span>` + chips.map((c,i)=>`<button type="button" class="achip" data-i="${i}" style="--c:${c.c}">${escapeHtml(c.t)} <span>✕</span></button>`).join('') + `<button type="button" class="aclear" data-clear="1">Tout effacer</button>`;
+  act.onclick = (e)=>{
+    const b = e.target.closest('[data-i]');
+    if(b){ chips[+b.dataset.i].rm(); return; }
+    if(e.target.closest('[data-clear]')) resetFilterPanel();
+  };
+}
+
+/* Panneau de gauche : pastilles allumées + compteurs par extension / sous-type. */
+function syncLeftPanel(cardsLike){
+  const lp = $id('left-toolbar');
+  if(!lp) return;
+  lp.classList.toggle('view-other', !cardsLike);
+  if(!cardsLike) return;
+  const src = facetSource();
+  // Extensions : seulement celles qui contiennent quelque chose (ou celle qui est choisie)
+  const counts = {};
+  src.forEach(c=>{ if(c.set && cardPasses(c,'setId')) counts[c.set] = (counts[c.set]||0) + 1; });
+  const sets = Object.keys(counts);
+  if(filters.setId && !counts[filters.setId]) sets.push(filters.setId);
+  sets.sort((a,b)=>a.localeCompare(b));
+  $id('lp-ext').innerHTML = sets.length
+    ? sets.map(s=>`<button type="button" class="lp-row${filters.setId===s?' on':''}" data-lp="setId" data-k="${escapeHtml(s)}"><span>${escapeHtml(s)}</span><span class="n">${counts[s]||0}</span></button>`).join('')
+    : `<div class="tag" style="color:var(--parchment-dim);font-size:13px">Aucune extension.</div>`;
+  // Sous-types
+  const subs = new Map();
+  src.forEach(c=>{
+    if(!cardPasses(c,'subtypes')) return;
+    (c.subtypes||[]).forEach(s=>{ const t = s.trim(); if(t && t.toLowerCase()!=='conjuration' && !subs.has(t.toLowerCase())) subs.set(t.toLowerCase(), t); });
+  });
+  filters.subtypes.forEach(s=>{ if(!subs.has(s.toLowerCase())) subs.set(s.toLowerCase(), s); });
+  const subList = [...subs.values()].sort((a,b)=>a.localeCompare(b));
+  $id('lp-sub').innerHTML = subList.length
+    ? subList.map(s=>`<button type="button" class="lp-chip${filters.subtypes.has(s)?' on':''}" data-lp="subtypes" data-k="${escapeHtml(s)}">${escapeHtml(s)}</button>`).join('')
+    : `<span style="color:var(--parchment-dim);font-size:13px">Aucun sous-type.</span>`;
+  lp.querySelectorAll('[data-lp="rarities"]').forEach(b=>b.classList.toggle('on', filters.rarities.has(b.dataset.k)));
+  lp.querySelectorAll('[data-lp="keywords"]').forEach(b=>b.classList.toggle('on', filters.keywords.has(b.dataset.k)));
+  lp.querySelectorAll('[data-lp="tog"]').forEach(b=>b.classList.toggle('on', !!filters[b.dataset.k]));
+  const sync = (id, v)=>{ const e = $id(id); if(e && document.activeElement !== e) e.value = v; };
+  sync('ff-power-mode', filters.powerMode); sync('ff-power-value', filters.powerValue);
+  sync('ff-toughness-mode', filters.toughnessMode); sync('ff-toughness-value', filters.toughnessValue);
+}
+
+/* ---------- En-tête : onglets (hors deck) ou les 3 étapes du deck ---------- */
+function renderStepper(){
+  const box = $id('deck-stepper'), tabs = $id('coll-tabs'), hint = $id('step-hint');
+  if(!box || !tabs) return;
+  if(!currentDeck){
+    box.style.display = 'none'; tabs.style.display = ''; hint.style.display = 'none';
+    return;
+  }
+  tabs.style.display = 'none'; box.style.display = 'flex';
+  const v = currentView();
+  const hero = deckHeroCard();
+  const reg = currentDeck.regionId ? (cardById(currentDeck.regionId) || allCardsCache.find(c=>c.id===currentDeck.regionId)) : null;
+  const regionOk = !!reg && isRegionValidForHero(reg, hero);
+  const total = totalDeckCount();
+  const backId = currentDeck.cardBackId || 'base';
+  const backObj = ownedCardBacksCache.find(b=>b.id===backId);
+  const backName = backId==='base' ? 'Dos de base' : (backObj ? backObj.name : 'Dos choisi');
+  const P = [];
+  if(!currentDeck.taverne){
+    P.push({n:'1',t:'Héros', s:hero?hero.name:'à choisir', done:!!hero, cur:v==='heroes', fn:'openDeckHeroPage()'});
+    P.push({n:'2',t:'Région', s:regionOk?reg.name:'à choisir', done:regionOk, cur:v==='region', fn:'openDeckRegionPage()'});
+  }
+  P.push({n:currentDeck.taverne?'1':'3',t:'Cartes', s:`${total} / ${DECK_MAX}`, done:total>=DECK_MIN, cur:v==='cards', fn:'jumpToBinderStart()'});
+  P.push({n:'✦',t:'Dos', s:backName, done:false, cur:v==='backs', fn:'openDeckBackPage()', cls:' back'});
+  box.innerHTML = P.map(p=>`<button type="button" class="stp${p.cur?' cur':p.done?' done':''}${p.cls||''}" onclick="${p.fn}"><b>${p.done&&!p.cur?'✓':p.n} ${p.t}</b><small>${escapeHtml(p.s)}</small></button>`).join('');
+  const tot = currentDeck.taverne ? 1 : 3;
+  const H = {
+    heroes: 'Étape 1 sur 3 · Choisis ton héros : il fixe la source de ton deck. Clique sur un héros.',
+    region: 'Étape 2 sur 3 · Choisis ta région (de ta source, ou Neutre). Clique sur une région.',
+    cards: currentDeck.taverne ? 'Ajoute entre 30 et 45 cartes (3 couleurs maximum).' : 'Étape 3 sur 3 · Ajoute entre 30 et 45 cartes, selon la source de ton héros (+ Neutre).',
+    backs: 'Choisis le dos de carte de ce deck.'
+  };
+  hint.textContent = H[v] || '';
+  hint.style.display = H[v] ? 'block' : 'none';
+}
+
+/* ---------- Inspecteur : la carte survolée, en grand, dans la colonne de droite ---------- */
+let inspCard = null;
+function showInspector(card){
+  const box = $id('insp');
+  if(!box || !card) return;
+  inspCard = card;
+  box.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.className = 'insp-card';
+  wrap.appendChild(buildCardEl(binderCardView(card), {isPreview:true}));
+  box.appendChild(wrap);
+  const subs = (card.subtypes||[]).filter(s=>s.trim().toLowerCase()!=='conjuration');
+  const srcs = cardSources(card);
+  const owned = ownedCollection[card.id] || 0;
+  const od = ownedDetail[card.id];
+  const bits = [];
+  if(od){ if(od.foil) bits.push(od.foil+' foil'); if(od.premiumNormal+od.premiumFoil) bits.push((od.premiumNormal+od.premiumFoil)+' premium'); }
+  const inDeck = deckCountFor(card.id);
+  const kws = (card.keywords||[]).map(k=>KEYWORDS.find(x=>x.key===k)).filter(Boolean);
+  const info = document.createElement('div');
+  info.className = 'insp-info';
+  info.innerHTML = `
+    <div class="insp-name">${escapeHtml(card.name)}</div>
+    <div class="insp-type">${escapeHtml(card.type)}${subs.length?' — '+escapeHtml(subs.join(', ')):''}</div>
+    ${srcs.length?`<div class="insp-line">${srcs.map(s=>`<span style="color:${getClassColor(s)}">●</span> ${escapeHtml(s)}`).join(' / ')}</div>`:''}
+    <div class="insp-line"><span style="color:${RAR_COLOR[card.rarity]||'#999'}">◆</span> ${escapeHtml(card.rarity||'')}${card.isLegendary?' ✦':''}</div>
+    ${card.set?`<div class="insp-line">📚 ${escapeHtml(card.set)}</div>`:''}
+    <div class="insp-line">Possédées : <b>${owned}</b>${bits.length?' <small>('+bits.join(', ')+')</small>':''}</div>
+    ${currentDeck?`<div class="insp-line">Dans le deck : <b>${inDeck}</b></div>`:''}`;
+  box.appendChild(info);
+  if(kws.length){
+    const k = document.createElement('div');
+    k.className = 'insp-kws';
+    k.innerHTML = kws.map(x=>`<span class="insp-kw" title="${escapeHtml(x.desc||'')}">${escapeHtml(x.label)}</span>`).join('');
+    box.appendChild(k);
+  }
+  const h = document.createElement('div');
+  h.className = 'insp-hint';
+  h.textContent = 'Clic gauche : ajouter · Clic droit : agrandir';
+  box.appendChild(h);
+}
+function refreshInspector(){
+  if(!inspCard) return;
+  const fresh = allCardsCache.find(c=>c.id===inspCard.id) || inspCard;
+  showInspector(fresh);
+}
+
+/* ---------- Galerie : défile, charge les cartes par paquets ---------- */
+const GALLERY_CHUNK = 30;
+let galleryCards = null, galleryLimit = GALLERY_CHUNK, lastGallerySig = null;
+function gallerySignature(){
+  return JSON.stringify([currentView(), deckBuildStep, currentDeck ? currentDeck.heroId : null, sortMode, filters], (k,v)=> v instanceof Set ? [...v] : v);
+}
+function setGalleryMore(){
+  const b = $id('gallery-more');
+  if(!b) return;
+  const left = galleryCards ? galleryCards.length - galleryLimit : 0;
+  b.classList.toggle('show', left > 0);
+  if(left > 0) b.textContent = `Afficher plus de cartes (${left} restante${left>1?'s':''})`;
+}
+function loadMoreGallery(){
+  if(!galleryCards || galleryLimit >= galleryCards.length) return;
+  const pages = $id('binder-pages');
+  const from = galleryLimit;
+  galleryLimit = Math.min(galleryCards.length, galleryLimit + GALLERY_CHUNK);
+  for(let i=from; i<galleryLimit; i++) pages.appendChild(buildCardSlot(galleryCards[i]));
+  setGalleryMore();
+}
+function maybeLoadMore(){
+  if(!galleryCards || galleryLimit >= galleryCards.length) return;
+  const more = $id('gallery-more'), frame = $id('binder-frame');
+  if(!more || !frame || more.offsetParent === null) return;
+  const limit = Math.min(frame.getBoundingClientRect().bottom, window.innerHeight);
+  if(more.getBoundingClientRect().top < limit + 400){
+    loadMoreGallery();
+    requestAnimationFrame(maybeLoadMore);
+  }
+}
+(function(){
+  const fr = $id('binder-frame');
+  if(fr) fr.addEventListener('scroll', maybeLoadMore, {passive:true});
+  window.addEventListener('scroll', maybeLoadMore, {passive:true});
+})();
+
+/* Un emplacement de la galerie : la carte + ses pastilles (étoile des versions, marteau, badges). */
+function buildCardSlot(card){
+  const slot = document.createElement('div');
+  slot.className = 'binder-slot';
+  slot.style.position = 'relative';
+  const el = buildCardEl(binderCardView(card));
+  el.onclick = ()=>onCardClick(card);
+  el.oncontextmenu = (ev)=>{ ev.preventDefault(); showCraftModal(card); };   // clic droit : agrandir
+  slot.appendChild(el);
+  slot.addEventListener('mouseenter', ()=>showInspector(card));
+  if(versionChoices(card.id).length > 1){
+    const star = document.createElement('button');
+    star.type = 'button';
+    star.className = 'card-version-star';
+    star.title = 'Choisir la version (foil, premium, illustration) pour le deck';
+    star.textContent = '★';
+    const inDeck = currentDeck && currentDeck.cards.find(c=>c.cardId===card.id);
+    if(inDeck && (inDeck.finish || inDeck.variantId)) star.classList.add('set');
+    star.onclick = (ev)=>{ ev.stopPropagation(); openVariantModal(card.id); };
+    slot.appendChild(star);
+  }
+  if((ownedCollection[card.id]||0)>0 && card.type!=='Héros' && card.type!=='Région' && CRAFT_COST_BY_RARITY[card.rarity]){
+    const fb = document.createElement('button');
+    fb.type = 'button';
+    fb.className = 'card-craft-btn';
+    fb.title = 'Fabriquer cette carte en foil / premium / premium foil';
+    fb.textContent = '🔨';
+    fb.onclick = (ev)=>{ ev.stopPropagation(); showCraftModal(card); };
+    slot.appendChild(fb);
+  }
+
+  const count = deckCountFor(card.id);
+  const isChosenHero = currentDeck && currentDeck.heroId===card.id;
+  const isChosenRegion = currentDeck && currentDeck.regionId===card.id;
+  if(count>0 || isChosenHero || isChosenRegion){
+    const badge = document.createElement('div');
+    badge.className='card-add-badge';
+    badge.textContent = isChosenHero ? '★ héros' : isChosenRegion ? '★ région' : `x${count}`;
+    slot.appendChild(badge);
+  }
+  const owned = ownedCollection[card.id];
+  const isOwned = owned!==undefined && owned>0;
+  if(!isOwned && card.type!=='Héros' && card.type!=='Région'){
+    el.style.filter = 'grayscale(85%) brightness(.6)';
+    el.title = currentDeck ? 'Tu ne la possèdes pas : clique pour la fabriquer' : 'Tu ne possèdes pas encore cette carte';
+  }
+  if(isOwned && newCardIds.has(card.id)){
+    const nb = document.createElement('div');
+    nb.className = 'card-new-badge';
+    nb.textContent = 'Nouveau';
+    slot.appendChild(nb);
+    const seen = ()=>markCardSeen(card.id, nb);
+    slot.addEventListener('mouseenter', seen, { once:true });
+    slot.addEventListener('touchstart', seen, { once:true, passive:true });
+  }
+  if(owned!==undefined && card.type!=='Héros' && card.type!=='Région'){
+    const ownedBadge = document.createElement('div');
+    ownedBadge.className='card-owned-badge';
+    ownedBadge.textContent = `poss. x${owned}`;
+    const od = ownedDetail[card.id];
+    if(od && (od.foil || od.premiumNormal || od.premiumFoil)){
+      const bits = [];
+      if(od.foil) bits.push(od.foil + ' foil');
+      if(od.premiumNormal + od.premiumFoil) bits.push((od.premiumNormal + od.premiumFoil) + ' premium');
+      ownedBadge.title = 'dont ' + bits.join(', ');
+    }
+    slot.appendChild(ownedBadge);
+  }
+  return slot;
 }
 
 function renderBinderInner(animate){
-  animate = false;
-  if(browsingCardBacksStandalone){ renderCardBackGrid(animate); return; }
-  if((currentDeck && deckBuildStep==='hero') || browsingHeroesStandalone){ renderHeroSelectionGrid(animate); return; }
+  if(browsingCardBacksStandalone){ renderCardBackGrid(false); return; }
+  if((currentDeck && deckBuildStep==='hero') || browsingHeroesStandalone){ renderHeroSelectionGrid(false); return; }
   browsingHeroesStandalone = false;
-  document.getElementById('binder-pages').className = '';
-  document.getElementById('binder-pages').style.position = '';
-  document.getElementById('binder-pages').style.display = '';
-  document.getElementById('binder-pages').style.gridTemplateColumns = '';
-  document.getElementById('binder-pages').style.gap = '';
+  const pages = $id('binder-pages');
+  pages.className = '';
+  fitBinderToWidth();
 
   if(collection.length===0 && !filters.showUnowned){
-    document.getElementById('results-count').textContent = '0 carte';
-    document.getElementById('page-indicator').textContent = '—';
-    document.getElementById('prev-page').disabled = true;
-    document.getElementById('next-page').disabled = true;
-    const pages = document.getElementById('binder-pages');
+    $id('results-count').textContent = '0 carte';
+    galleryCards = null; setGalleryMore();
     pages.innerHTML = isLoggedInCache
       ? `<div class="empty-state">Ta collection est vide pour l'instant. Reviens quand des cartes t'auront été attribuées !</div>`
       : `<div class="empty-state">🔒 Connecte-toi (en haut à droite) pour voir ta collection de cartes.</div>`;
@@ -2170,199 +2430,29 @@ function renderBinderInner(animate){
   }
 
   const list = getFilteredSortedCollection();
-  const heroList = collection.filter(c=>c.type==='Héros' && !(c.subtypes||[]).some(s=>s.trim().toLowerCase()==='conjuration'));
-  const hasHeroPage = heroList.length>0;
-  const normalPages = Math.max(1, Math.ceil(list.length / SPREAD_SIZE));
-  const totalPages = normalPages + (hasHeroPage ? 1 : 0);
-  if(currentPage >= totalPages) currentPage = totalPages - 1;
-  if(currentPage < 0) currentPage = 0;
-  const onHeroPage = hasHeroPage && currentPage===normalPages;
+  $id('results-count').textContent = `${list.length} carte${list.length!==1?'s':''}`;
 
-  document.getElementById('results-count').textContent = onHeroPage ? `${heroList.length} héros` : `${list.length} carte${list.length!==1?'s':''}`;
-  document.getElementById('page-indicator').textContent = onHeroPage ? `Page des héros` : `Feuillet ${currentPage+1} / ${normalPages}`;
-  document.getElementById('prev-page').disabled = currentPage<=0;
-  document.getElementById('next-page').disabled = currentPage>=totalPages-1;
+  // Même filtres qu'au dernier affichage (ex. on vient d'ajouter une carte au deck) : on garde la position.
+  const frame = $id('binder-frame');
+  const sig = gallerySignature();
+  const same = sig === lastGallerySig;
+  const prevTop = same ? frame.scrollTop : 0;
+  if(!same) galleryLimit = GALLERY_CHUNK;
+  lastGallerySig = sig;
+  galleryCards = list;
+  galleryLimit = Math.min(Math.max(galleryLimit, GALLERY_CHUNK), list.length);
 
-  if(onHeroPage){
-    document.getElementById('binder-pages').style.display = 'grid';
-    document.getElementById('binder-pages').style.gridTemplateColumns = 'repeat(3, 300px)';
-    document.getElementById('binder-pages').style.gap = '18px';
-    const doRenderHeroPage = ()=>{
-      const pages = document.getElementById('binder-pages');
-      pages.innerHTML = '';
-      heroList.forEach(h=>{
-        const tile = document.createElement('div');
-        tile.className = 'hero-select-tile';
-        fillHeroProfileContent(tile, h);
-        tile.onclick = ()=>onCardClick(h);
-        pages.appendChild(tile);
-      });
-    };
-    if(!animate){ doRenderHeroPage(); return; }
-    const pages = document.getElementById('binder-pages');
-    pages.style.transformOrigin = 'center center';
-    pages.style.transition = 'transform .2s ease-in, opacity .2s ease-in';
-    pages.style.transform = 'perspective(1400px) rotateY(-90deg)';
-    pages.style.opacity = '0.35';
-    setTimeout(()=>{
-      doRenderHeroPage();
-      const pages2 = document.getElementById('binder-pages');
-      pages2.style.transition = 'none';
-      pages2.style.transform = 'perspective(1400px) rotateY(90deg)';
-      pages2.style.opacity = '0.35';
-      requestAnimationFrame(()=>{
-        pages2.style.transition = 'transform .2s ease-out, opacity .2s ease-out';
-        pages2.style.transform = 'perspective(1400px) rotateY(0deg)';
-        pages2.style.opacity = '1';
-      });
-    }, 200);
+  pages.innerHTML = '';
+  if(list.length===0){
+    pages.innerHTML = `<div class="empty-state">Aucune carte ne correspond à ces filtres.<br><button type="button" class="btn small" onclick="resetFilterPanel()">Tout effacer</button></div>`;
+    setGalleryMore();
+    frame.scrollTop = 0;
     return;
   }
-
-  const buildHalf = (cards, side)=>{
-    const half = document.createElement('div');
-    half.className = 'binder-page-half ' + side;
-    for(let i=0;i<PAGE_SIZE;i++){
-      const slot = document.createElement('div');
-      slot.className = 'binder-slot';
-      if(cards[i]){
-        const card = cards[i];
-        slot.style.position='relative';
-        const el = buildCardEl(binderCardView(card));
-        el.onclick = ()=>onCardClick(card);
-        el.oncontextmenu = (ev)=>{ ev.preventDefault(); showCraftModal(card); };   // clic droit : agrandir
-        slot.appendChild(el);
-        if(versionChoices(card.id).length > 1){
-          const star = document.createElement('button');
-          star.type = 'button';
-          star.className = 'card-version-star';
-          star.title = 'Choisir la version (foil, premium, illustration) pour le deck';
-          star.textContent = '★';
-          const inDeck = currentDeck && currentDeck.cards.find(c=>c.cardId===card.id);
-          if(inDeck && (inDeck.finish || inDeck.variantId)) star.classList.add('set');
-          star.onclick = (ev)=>{ ev.stopPropagation(); openVariantModal(card.id); };
-          slot.appendChild(star);
-        }
-        if((ownedCollection[card.id]||0)>0 && card.type!=='Héros' && card.type!=='Région' && CRAFT_COST_BY_RARITY[card.rarity]){
-          const fb = document.createElement('button');
-          fb.type = 'button';
-          fb.className = 'card-craft-btn';
-          fb.title = 'Fabriquer cette carte en foil / premium / premium foil';
-          fb.textContent = '🔨';
-          fb.onclick = (ev)=>{ ev.stopPropagation(); showCraftModal(card); };
-          slot.appendChild(fb);
-        }
-
-        const count = deckCountFor(card.id);
-        const isChosenHero = currentDeck && currentDeck.heroId===card.id;
-        const isChosenRegion = currentDeck && currentDeck.regionId===card.id;
-        if(count>0 || isChosenHero || isChosenRegion){
-          const badge = document.createElement('div');
-          badge.className='card-add-badge';
-          badge.textContent = isChosenHero ? '★ héros' : isChosenRegion ? '★ région' : `x${count}`;
-          slot.appendChild(badge);
-        }
-        const owned = ownedCollection[card.id];
-        const isOwned = owned!==undefined && owned>0;
-        if(!isOwned && card.type!=='Héros' && card.type!=='Région'){
-          el.style.filter = 'grayscale(85%) brightness(.6)';
-          el.title = currentDeck ? 'Tu ne la possèdes pas : clique pour la fabriquer' : 'Tu ne possèdes pas encore cette carte';
-        }
-        if(isOwned && newCardIds.has(card.id)){
-          const nb = document.createElement('div');
-          nb.className = 'card-new-badge';
-          nb.textContent = 'Nouveau';
-          slot.appendChild(nb);
-          const seen = ()=>markCardSeen(card.id, nb);
-          slot.addEventListener('mouseenter', seen, { once:true });
-          slot.addEventListener('touchstart', seen, { once:true, passive:true });
-        }
-        if(owned!==undefined && card.type!=='Héros' && card.type!=='Région'){
-          const ownedBadge = document.createElement('div');
-          ownedBadge.className='card-owned-badge';
-          ownedBadge.textContent = `poss. x${owned}`;
-          const od = ownedDetail[card.id];
-          if(od && (od.foil || od.premiumNormal || od.premiumFoil)){
-            const bits = [];
-            if(od.foil) bits.push(od.foil + ' foil');
-            if(od.premiumNormal + od.premiumFoil) bits.push((od.premiumNormal + od.premiumFoil) + ' premium');
-            ownedBadge.title = 'dont ' + bits.join(', ');
-          }
-          slot.appendChild(ownedBadge);
-        }
-      } else {
-        slot.innerHTML = '<div class="binder-slot-empty"></div>';
-      }
-      half.appendChild(slot);
-    }
-    return half;
-  };
-
-  const doRender = ()=>{
-    const pages = document.getElementById('binder-pages');
-    pages.innerHTML = '';
-    pages.style.position = '';
-    pages.style.display = '';
-    pages.style.gridTemplateColumns = '';
-    pages.style.gap = '';
-    const start = currentPage * SPREAD_SIZE;
-    const spreadCards = list.slice(start, start+SPREAD_SIZE);
-    pages.appendChild(buildHalf(spreadCards.slice(0, PAGE_SIZE), 'left'));
-    const spine = document.createElement('div');
-    spine.className = 'binder-spine';
-    pages.appendChild(spine);
-    pages.appendChild(buildHalf(spreadCards.slice(PAGE_SIZE, SPREAD_SIZE), 'right'));
-  };
-
-  if(!animate){ doRender(); return; }
-
-  const pages = document.getElementById('binder-pages');
-
-  if(animate==='spread'){
-    pages.style.transformOrigin = 'center center';
-    pages.style.transition = 'transform .2s ease-in, opacity .2s ease-in';
-    pages.style.transform = 'perspective(1400px) rotateY(-90deg)';
-    pages.style.opacity = '0.35';
-    setTimeout(()=>{
-      doRender();
-      const pages2 = document.getElementById('binder-pages');
-      pages2.style.transition = 'none';
-      pages2.style.transform = 'perspective(1400px) rotateY(90deg)';
-      pages2.style.opacity = '0.35';
-      requestAnimationFrame(()=>{
-        pages2.style.transition = 'transform .2s ease-out, opacity .2s ease-out';
-        pages2.style.transform = 'perspective(1400px) rotateY(0deg)';
-        pages2.style.opacity = '1';
-      });
-    }, 200);
-    return;
-  }
-
-  const halves = pages.querySelectorAll('.binder-page-half');
-  const flipping = animate>0 ? halves[1] : halves[0]; // page droite pour "suivant", page gauche pour "précédent"
-  if(!flipping){ doRender(); return; }
-  const origin = animate>0 ? 'left center' : 'right center';
-  flipping.style.transformOrigin = origin;
-  flipping.style.transition = 'transform .22s ease-in, box-shadow .22s ease-in';
-  flipping.style.boxShadow = '0 0 26px rgba(0,0,0,.65)';
-  flipping.style.transform = `perspective(1200px) rotateY(${animate>0?'-95':'95'}deg)`;
-
-  setTimeout(()=>{
-    doRender();
-    const newHalves = document.getElementById('binder-pages').querySelectorAll('.binder-page-half');
-    const newFlipping = animate>0 ? newHalves[1] : newHalves[0];
-    if(newFlipping){
-      newFlipping.style.transformOrigin = origin;
-      newFlipping.style.transition = 'none';
-      newFlipping.style.boxShadow = '0 0 26px rgba(0,0,0,.65)';
-      newFlipping.style.transform = `perspective(1200px) rotateY(${animate>0?'95':'-95'}deg)`;
-      requestAnimationFrame(()=>{
-        newFlipping.style.transition = 'transform .22s ease-out, box-shadow .22s ease-out';
-        newFlipping.style.transform = 'perspective(1200px) rotateY(0deg)';
-        newFlipping.style.boxShadow = 'none';
-      });
-    }
-  }, 220);
+  for(let i=0; i<galleryLimit; i++) pages.appendChild(buildCardSlot(list[i]));
+  setGalleryMore();
+  frame.scrollTop = prevTop;
+  requestAnimationFrame(maybeLoadMore);
 }
 
 function changePage(dir){
@@ -2655,8 +2745,6 @@ function toggleCraftableOnly(){
   // n'aurait aucun sens, donc on désactive l'autre au passage.
   if(filters.craftableOnly && filters.hideOwned){
     filters.hideOwned = false;
-    const hideOwnedCheckbox = document.getElementById('ff-hide-owned');
-    if(hideOwnedCheckbox) hideOwnedCheckbox.checked = false;
   }
   renderAll();
 }
@@ -3207,6 +3295,10 @@ async function deleteDeck(deckId, ev){
 function cardById(id){ return collection.find(c=>c.id===id); }
 
 function renderDeckPanel(){
+  renderDeckPanelCore();
+  try{ renderStepper(); }catch(e){}
+}
+function renderDeckPanelCore(){
   const emptyState = document.getElementById('deck-empty-state');
   const editor = document.getElementById('deck-editor');
   if(!currentDeck){
