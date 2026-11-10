@@ -25,22 +25,45 @@ const ANIM_ARROW_LEAD_MS = 200;    // la flèche attaquant -> cible s'affiche se
 // .block-arrow-line / .block-arrow-head. La pointe s'arrête avant le centre
 // de la cible pour ne pas la masquer.
 function appendArrowShape(parent, x1, y1, x2, y2){
-  const angle = Math.atan2(y2-y1, x2-x1);
-  const shorten = 44;
-  const ex = x2 - Math.cos(angle)*shorten, ey = y2 - Math.sin(angle)*shorten;
-
-  const line = document.createElementNS('http://www.w3.org/2000/svg','line');
-  line.setAttribute('x1', x1); line.setAttribute('y1', y1);
-  line.setAttribute('x2', ex); line.setAttribute('y2', ey);
-  line.setAttribute('class', 'block-arrow-line');
-  parent.appendChild(line);
-
-  const backX = x2 - Math.cos(angle)*32, backY = y2 - Math.sin(angle)*32;
-  const perpX = Math.cos(angle+Math.PI/2)*13, perpY = Math.sin(angle+Math.PI/2)*13;
-  const arrow = document.createElementNS('http://www.w3.org/2000/svg','polygon');
-  arrow.setAttribute('points', `${ex+Math.cos(angle)*32},${ey+Math.sin(angle)*32} ${backX+perpX},${backY+perpY} ${backX-perpX},${backY-perpY}`);
-  arrow.setAttribute('class', 'block-arrow-head');
-  parent.appendChild(arrow);
+  const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+  g.setAttribute('class', 'chev-arrow chev-block');
+  parent.appendChild(g);
+  chevronArrowSet(g, x1, y1, x2, y2, 44);
+  return g;
+}
+// ---- Flèche « Chevrons » : une file de chevrons (>) qui défilent de la source vers
+// la cible. Utilisée par toutes les flèches de ciblage (choix de la cible, cibles déjà
+// choisies, visée du combat). Le défilement dépend de l'horloge (pas d'une animation
+// CSS) : on peut donc redessiner le groupe à chaque mouvement de souris sans saccade.
+// Un seul rAF anime tous les groupes encore présents dans la page.
+const CHEV_SPACING = 28;
+const CHEV_ARROWS = new Map(); // <g> -> {x1,y1,x2,y2,shorten}
+let __chevRaf = 0;
+function chevronArrowSet(g, x1, y1, x2, y2, shorten){
+  CHEV_ARROWS.set(g, { x1, y1, x2, y2, shorten: shorten==null ? 30 : shorten });
+  renderChevronArrow(g, CHEV_ARROWS.get(g));
+  if(!__chevRaf) __chevRaf = requestAnimationFrame(chevLoop);
+}
+function chevronArrowClear(g){ if(g){ CHEV_ARROWS.delete(g); g.innerHTML = ''; } }
+function chevLoop(){
+  __chevRaf = 0;
+  CHEV_ARROWS.forEach((v, g)=>{ if(!g.isConnected) CHEV_ARROWS.delete(g); else renderChevronArrow(g, v); });
+  if(CHEV_ARROWS.size) __chevRaf = requestAnimationFrame(chevLoop);
+}
+function renderChevronArrow(g, v){
+  const NS = 'http://www.w3.org/2000/svg';
+  const dx = v.x2 - v.x1, dy = v.y2 - v.y1, full = Math.hypot(dx, dy);
+  const len = Math.max(0, full - v.shorten);
+  const ang = Math.atan2(dy, dx), deg = ang*180/Math.PI;
+  const ux = Math.cos(ang), uy = Math.sin(ang);
+  const sp = CHEV_SPACING;
+  const off = combatInstant() ? 0 : (performance.now()/22) % sp;
+  let html = `<circle cx="${v.x1}" cy="${v.y1}" r="5" stroke-width="6"/>`;
+  for(let d = off; d < len - 10; d += sp){
+    const t = len ? d/len : 1;
+    html += `<path d="M-7,-10 L5,0 L-7,10" stroke-width="5" opacity="${(.25+.75*t).toFixed(2)}" transform="translate(${(v.x1+ux*d).toFixed(1)},${(v.y1+uy*d).toFixed(1)}) rotate(${deg.toFixed(1)})"/>`;
+  }
+  g.innerHTML = html;
 }
 // Ancienne version : dessine bloqueur -> attaquant d'après UI.pendingBlockAssignments
 // (jamais alimenté aujourd'hui, donc sans effet) ; garde la même géométrie via

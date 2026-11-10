@@ -375,18 +375,10 @@ function drawFixedTargets(){
     if(!el) return;
     const {x:x2,y:y2} = elCenter(el);
     const {x:x1,y:y1} = targetSource;
-    const angle = Math.atan2(y2-y1, x2-x1);
-    const ln = document.createElementNS(NS, 'line');
-    ln.setAttribute('class', 'target-fixed-line');
-    ln.setAttribute('x1', x1); ln.setAttribute('y1', y1);
-    ln.setAttribute('x2', x2 - Math.cos(angle)*22); ln.setAttribute('y2', y2 - Math.sin(angle)*22);
-    g.appendChild(ln);
-    const backX = x2 - Math.cos(angle)*26, backY = y2 - Math.sin(angle)*26;
-    const perpX = Math.cos(angle+Math.PI/2)*12, perpY = Math.sin(angle+Math.PI/2)*12;
-    const hd = document.createElementNS(NS, 'polygon');
-    hd.setAttribute('class', 'target-fixed-head');
-    hd.setAttribute('points', `${x2},${y2} ${backX+perpX},${backY+perpY} ${backX-perpX},${backY-perpY}`);
-    g.appendChild(hd);
+    const cg = document.createElementNS(NS, 'g');
+    cg.setAttribute('class', 'chev-arrow chev-fixed');
+    g.appendChild(cg);
+    chevronArrowSet(cg, x1, y1, x2, y2, 30);
   });
 }
 function endTargeting(){
@@ -397,27 +389,22 @@ function endTargeting(){
   document.getElementById('target-line').style.display='none';
   document.getElementById('target-origin').style.display='none';
   document.getElementById('target-arrow').style.display='none';
+  const lg = document.getElementById('target-chev'); if(lg) chevronArrowClear(lg);
 }
 function drawTargetLine(){
   if(!targetSource || !targetMouse) return;
   const {x:x1,y:y1} = targetSource;
   const {x:x2,y:y2} = targetMouse;
   drawFixedTargets();
-  const line = document.getElementById('target-line');
-  const origin = document.getElementById('target-origin');
-  const arrow = document.getElementById('target-arrow');
-  const angle = Math.atan2(y2-y1, x2-x1);
-  const shorten = 22;
-  const ex = x2 - Math.cos(angle)*shorten, ey = y2 - Math.sin(angle)*shorten;
-  line.setAttribute('x1', x1); line.setAttribute('y1', y1);
-  line.setAttribute('x2', ex); line.setAttribute('y2', ey);
-  line.style.display='block';
-  origin.setAttribute('cx', x1); origin.setAttribute('cy', y1);
-  origin.style.display='block';
-  const backX = x2 - Math.cos(angle)*26, backY = y2 - Math.sin(angle)*26;
-  const perpX = Math.cos(angle+Math.PI/2)*12, perpY = Math.sin(angle+Math.PI/2)*12;
-  arrow.setAttribute('points', `${x2},${y2} ${backX+perpX},${backY+perpY} ${backX-perpX},${backY-perpY}`);
-  arrow.style.display='block';
+  // Flèche « Chevrons » (les anciens éléments #target-line / -origin / -arrow restent masqués)
+  let lg = document.getElementById('target-chev');
+  if(!lg){
+    lg = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    lg.id = 'target-chev';
+    lg.setAttribute('class', 'chev-arrow chev-live');
+    document.getElementById('targeting-layer').appendChild(lg);
+  }
+  chevronArrowSet(lg, x1, y1, x2, y2, 30);
 }
 document.addEventListener('mousemove', (e)=>{
   lastMousePos = {x:e.clientX, y:e.clientY};

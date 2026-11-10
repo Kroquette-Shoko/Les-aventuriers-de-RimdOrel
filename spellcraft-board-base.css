@@ -818,3 +818,9 @@ body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out 
   box-shadow:0 0 30px rgba(var(--fx-rgb),.9),inset 0 0 20px rgba(var(--fx-rgb),.8);}
 .spell-hit-shake{animation:spell-hit-shake .4s ease-out;}
 @keyframes spell-hit-shake{0%,100%{translate:0 0;}20%{translate:-5px 2px;}40%{translate:5px -2px;}60%{translate:-3px 1px;}}
+
+/* Flèches de ciblage « Chevrons » (voir chevronArrowSet) */
+.chev-arrow{fill:none;stroke-linecap:round;stroke-linejoin:round;}
+.chev-live,.chev-fixed{stroke:var(--arcane);filter:drop-shadow(0 0 8px var(--arcane)) drop-shadow(0 0 16px var(--arcane));}
+.chev-block{stroke:var(--blood);filter:drop-shadow(0 0 8px var(--blood)) drop-shadow(0 0 16px var(--blood));}
+body.block-targeting .chev-live{animation:block-target-line 1.2s ease-in-out infinite;}
