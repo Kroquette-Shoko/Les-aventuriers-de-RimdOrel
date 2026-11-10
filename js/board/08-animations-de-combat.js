@@ -688,6 +688,138 @@ function planCreatureLanding(entry, card, opts){
   });
 }
 
+/* ============================================================
+   ORBE DE SORT — la carte du sort se condense en orbe d'énergie qui part
+   vers chaque cible (1 à 3 cibles : un orbe par cible, en éventail ; 4 ou
+   plus : une onde balaie tout le camp visé). Le cœur de l'orbe indique
+   l'effet (dégâts / soin / bonus), le halo indique qui lance le sort
+   (classes .fx-mine / .fx-enemy). Les cibles qui meurent ne sont pas gérées
+   ici : leur animation de mort reste jouée par le journal, juste après.
+   ============================================================ */
+// Cibles « orbe » d'une entrée de journal de sort : [{id, type}] sans doublon,
+// hors cibles détruites (animation de mort) et hors la carte elle-même.
+function planSpellOrbTargets(entry){
+  const out = [], seen = new Set();
+  (entry.effects||[]).forEach(eff=>{
+    const text = eff.text||'';
+    if(/meurt au combat|est détruite|^détruit "|^sacrifie "/i.test(text)) return;
+    const type = /soign|regagne|récupèr/i.test(text) ? 'heal'
+               : /[+]\d+\/[+]\d+|gagne [+]/i.test(text) ? 'buff' : 'dmg';
+    (eff.targetInstIds||[]).forEach(id=>{
+      if(!id || id===entry.sourceInstId) return;
+      const key = id+'|'+type;
+      if(seen.has(key)) return; seen.add(key);
+      out.push({id, type});
+    });
+  });
+  return out;
+}
+const SPELL_ORB_CORE = { dmg:'#ff8a2b', heal:'#5fe08a', buff:'#ffd34a' };
+function spellOrbImpact(item, fxCls){
+  const el = item.el, r = el.getBoundingClientRect();
+  const x = r.left+r.width/2, y = r.top+r.height/2;
+  const f = document.createElement('div');
+  f.className = 'spell-impact ' + fxCls;
+  f.style.left = x+'px'; f.style.top = y+'px';
+  f.style.setProperty('--core', SPELL_ORB_CORE[item.type]||SPELL_ORB_CORE.dmg);
+  document.body.appendChild(f);
+  setTimeout(()=>f.remove(), 620);
+  flashImpact(el, fxCls==='fx-enemy' ? false : true);
+  if(item.type==='dmg'){
+    el.classList.add('spell-hit-shake');
+    setTimeout(()=>{ if(el.classList) el.classList.remove('spell-hit-shake'); }, 420);
+    if((el.id||'').indexOf('hero-frame')===0 && typeof shakeScreen==='function'){
+      try{ shakeScreen('hitMedium'); }catch(e){ /* ignoré */ }
+    }
+  }
+}
+// Renvoie une promesse (résolue au dernier impact) ou null si aucune cible n'est
+// à l'écran : l'appelant retombe alors sur l'ancienne consumation de la carte.
+// onLaunch() est appelé quand l'orbe quitte la carte (on ferme alors la révélation).
+function playSpellOrb(flipEl, targets, fxMine, onLaunch){
+  if(!flipEl || !flipEl.animate) return null;
+  const items = (targets||[]).map(t=>({ el: resolveLogTargetEl(t.id), type: t.type })).filter(t=>t.el);
+  if(!items.length) return null;
+  const fxCls = fxMine===false ? 'fx-enemy' : 'fx-mine';
+  return new Promise(resolve=>{
+    if(!cms(1000)){ // mode instantané : pas d'orbe, juste les impacts
+      if(onLaunch) onLaunch();
+      items.forEach(it=>spellOrbImpact(it, fxCls));
+      resolve(); return;
+    }
+    const r = flipEl.getBoundingClientRect();
+    const x0 = r.left+r.width/2, y0 = r.top+r.height/2;
+    const condense = cms(450);
+    flipEl.animate([
+      { transform:'scale(1)', filter:'brightness(1)' },
+      { transform:'scale(.2)', filter:'brightness(2.4)', offset:.8 },
+      { transform:'scale(.2)', filter:'brightness(2.4)', opacity:0 }
+    ], { duration: condense, easing:'ease-in', fill:'forwards' });
+    let last = 0;
+    const ends = [];
+    setTimeout(()=>{
+      if(onLaunch) onLaunch();
+      const wave = items.length >= 4;
+      if(wave){
+        const w = document.createElement('div');
+        w.className = 'spell-wave ' + fxCls;
+        w.style.left = x0+'px'; w.style.top = y0+'px';
+        w.style.setProperty('--core', SPELL_ORB_CORE[items[0].type]);
+        document.body.appendChild(w);
+        const dur = cms(800);
+        w.animate([
+          { transform:'translate(-50%,-50%) scale(.3)', opacity:1 },
+          { transform:'translate(-50%,-50%) scale(9,3)', opacity:.9, offset:.7 },
+          { transform:'translate(-50%,-50%) scale(12,3.4)', opacity:0 }
+        ], { duration: dur, easing:'ease-in', fill:'forwards' });
+        setTimeout(()=>w.remove(), dur+50);
+        items.forEach(it=>{
+          const b = it.el.getBoundingClientRect();
+          const d = cms(300) + cms(Math.hypot(b.left+b.width/2-x0, b.top+b.height/2-y0) * 0.9);
+          setTimeout(()=>spellOrbImpact(it, fxCls), d);
+          last = Math.max(last, d);
+        });
+        setTimeout(resolve, last + cms(450));
+        return;
+      }
+      const n = items.length, dur = cms(580);
+      items.forEach((it, i)=>{
+        const b = it.el.getBoundingClientRect();
+        const dx = b.left+b.width/2-x0, dy = b.top+b.height/2-y0;
+        const arc = n>1 ? (i-(n-1)/2)*34 : (dx>=0 ? -40 : 40);
+        const delay = cms(90)*i;
+        const o = document.createElement('div');
+        o.className = 'spell-orb ' + fxCls;
+        o.style.left = x0+'px'; o.style.top = y0+'px';
+        o.style.setProperty('--core', SPELL_ORB_CORE[it.type]||SPELL_ORB_CORE.dmg);
+        o.style.opacity = '0';
+        document.body.appendChild(o);
+        const kf = [];
+        for(let k=0;k<=10;k++){
+          const f = k/10;
+          kf.push({ transform:`translate(${dx*f+arc*Math.sin(Math.PI*f)}px,${dy*f}px) scale(${1+.3*Math.sin(Math.PI*f)})`, opacity: 1 });
+        }
+        o.animate(kf, { duration: dur, delay, easing:'cubic-bezier(.4,0,.8,.6)', fill:'both' });
+        for(let k=0;k<14;k++){
+          const f = k/14;
+          setTimeout(()=>{
+            const t = document.createElement('div');
+            t.className = 'spell-trail ' + fxCls;
+            t.style.left = (x0+dx*f*f+arc*Math.sin(Math.PI*f*f))+'px';
+            t.style.top = (y0+dy*f*f)+'px';
+            document.body.appendChild(t);
+            t.animate([{opacity:.9,transform:'scale(1)'},{opacity:0,transform:'scale(.2)'}], {duration:cms(380), fill:'both'});
+            setTimeout(()=>t.remove(), cms(380)+30);
+          }, delay + f*dur);
+        }
+        setTimeout(()=>{ o.remove(); spellOrbImpact(it, fxCls); }, delay+dur);
+        last = Math.max(last, delay+dur);
+      });
+      setTimeout(resolve, last + cms(450));
+    }, condense);
+  });
+}
+
 function playCardFlipReveal(card, opts={}){
   return new Promise(resolve=>{
     if(!card){ resolve(); return; }
@@ -732,7 +864,12 @@ function playCardFlipReveal(card, opts={}){
     const finish = ()=>{
       if(done) return; done = true;
       // un sort ne disparaît pas en fondu : la carte se consume
-      if(opts.isSpell && window.BFX) BFX.burnReveal(flip).then(close);
+      // un sort avec cibles visibles : la carte devient un orbe qui part vers elles
+      const orb = (opts.isSpell && opts.orbTargets && opts.orbTargets.length)
+        ? playSpellOrb(flip, opts.orbTargets, opts.fxMine, ()=>{ overlay.classList.remove('show'); overlay.classList.add('closing'); })
+        : null;
+      if(orb) orb.then(()=>{ overlay.remove(); resolve(); });
+      else if(opts.isSpell && window.BFX) BFX.burnReveal(flip).then(close);
       else close();
     };
     // Un clic sur l'overlay permet d'écourter — utile pour un joueur qui

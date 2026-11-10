@@ -799,3 +799,17 @@ body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out 
   0%,100%{box-shadow:none;}
   30%{box-shadow:0 0 0 4px var(--fx), 0 0 26px var(--fx);}
 }
+
+/* Orbe de sort : cœur = effet (--core), halo = qui lance le sort (.fx-mine / .fx-enemy) */
+.spell-orb{position:fixed;z-index:9996;left:0;top:0;width:28px;height:28px;margin:-14px 0 0 -14px;border-radius:50%;pointer-events:none;
+  background:radial-gradient(#fff,var(--core,#ff8a2b) 50%,transparent);
+  box-shadow:0 0 0 3px rgba(var(--fx-rgb),.7),0 0 22px 8px rgba(var(--fx-rgb),.9);}
+.spell-trail{position:fixed;z-index:9995;width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;pointer-events:none;
+  background:rgb(var(--fx-rgb));box-shadow:0 0 8px rgb(var(--fx-rgb));}
+.spell-impact{position:fixed;z-index:9996;width:96px;height:96px;margin:-48px 0 0 -48px;border-radius:50%;pointer-events:none;
+  background:radial-gradient(#fff,var(--core,#ff8a2b) 40%,transparent 70%);animation:spell-impact-pop .55s ease-out forwards;}
+@keyframes spell-impact-pop{0%{opacity:0;transform:scale(.3);}30%{opacity:1;}100%{opacity:0;transform:scale(1.8);}}
+.spell-wave{position:fixed;z-index:9996;width:60px;height:60px;border-radius:50%;pointer-events:none;border:5px solid var(--core,#ff8a2b);
+  box-shadow:0 0 30px rgba(var(--fx-rgb),.9),inset 0 0 20px rgba(var(--fx-rgb),.8);}
+.spell-hit-shake{animation:spell-hit-shake .4s ease-out;}
+@keyframes spell-hit-shake{0%,100%{translate:0 0;}20%{translate:-5px 2px;}40%{translate:5px -2px;}60%{translate:-3px 1px;}}

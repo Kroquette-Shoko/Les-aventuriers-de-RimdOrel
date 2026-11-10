@@ -561,6 +561,11 @@ function renderGameLog(){
       // s'exécute réellement (dans la file, donc après un léger délai qui
       // laisse largement le temps au chargement de se terminer).
       // Créature posée (déjà sur le plateau) : pose animée petite, sans grande carte au milieu
+      // Sort avec cibles visibles : la carte devient un orbe qui part vers elles (voir
+      // playSpellOrb). Les flèches de capacité vers ces mêmes cibles ne sont alors pas rejouées.
+      const spellOrbTargets = (entry.kind==='play' && full && full.type==='Sortilège' && window.BFX && !entry.faille)
+        ? planSpellOrbTargets(entry) : [];
+      const spellOrbIds = new Set(spellOrbTargets.map(t=>t.id));
       let landed = false;
       if(entry.kind==='play' && entry.sourceInstId && window.BFX && !combatInstant()
          && (document.querySelector(`.lane .card-slot[data-inst-id="${entry.sourceInstId}"]`) || __boardRenderFrozen)){
@@ -580,7 +585,7 @@ function renderGameLog(){
         queueCombatAnim(()=>{
           const fullAtAnimTime = cardId ? JOURNAL_CARD_LOOKUP[cardId] : null;
           if(!fullAtAnimTime) return Promise.resolve(); // carte vraiment introuvable (cas rarissime) : on ne bloque pas la file pour autant
-          return playCardFlipReveal(fullAtAnimTime, {isTrap: entry.kind==='trap', isSpell: fullAtAnimTime.type==='Sortilège', backUrl: ownerBackUrl, fxMine: entry.ownerKey===MY_KEY}).then(()=>{
+          return playCardFlipReveal(fullAtAnimTime, {isTrap: entry.kind==='trap', isSpell: fullAtAnimTime.type==='Sortilège', backUrl: ownerBackUrl, fxMine: entry.ownerKey===MY_KEY, orbTargets: spellOrbTargets}).then(()=>{
             // (le tremblement des créatures de 10 de force ou plus est joué par BFX à leur arrivée sur le plateau)
           });
         });
@@ -609,6 +614,7 @@ function renderGameLog(){
       (entry.effects||[]).forEach(eff=>{
         const isDeath = /meurt au combat|est détruite|^détruit "|^sacrifie "/i.test(eff.text||'');
         (eff.targetInstIds||[]).forEach(targetInstId=>{
+          if(!isDeath && spellOrbIds.has(targetInstId)) return; // déjà atteinte par l'orbe du sort
           queueCombatAnim(()=>{
             if(isDeath) return playCardDeathAnim(targetInstId);
             const sourceEl = resolveLogSourceEl(entry);
