@@ -187,22 +187,49 @@ function playCardDeathAnim(instId){
   clone.style.zIndex = '9992';
   clone.style.pointerEvents = 'none';
   document.body.appendChild(clone);
-  const deathDur = cms(640);
-  const cleanDeath = ()=>{ clone.remove(); };
+  // « Poussière » : la carte devient pierre grise, puis se défait en fines bandes
+  // verticales qui partent en poussière vers la droite, emportées par le vent.
+  const GRAY_MS = cms(260), STRIP_MS = cms(650), STAGGER = cms(40), N = 12;
+  const deathDur = GRAY_MS + STRIP_MS + STAGGER*N;
+  const extras = [];
+  const cleanDeath = ()=>{ clone.remove(); extras.forEach(e=>e.remove()); };
   registerCombatCleanup(cleanDeath);
   return new Promise(resolve=>{
-    const finish = ()=>{ clone.remove(); resolve(); };
-    if(clone.animate){
-      const anim = clone.animate([
-        { transform:'scale(1) rotate(0deg)', opacity:1, filter:'brightness(1) saturate(1)' },
-        { transform:'scale(1.08) rotate(-3deg)', opacity:1, filter:'brightness(1.8) saturate(0.2)', offset:0.22 },
-        { transform:'scale(0.8) rotate(6deg) translateY(26px)', opacity:0, filter:'brightness(0.3) saturate(0)' }
-      ], { duration: deathDur, easing:'ease-in' });
-      anim.onfinish = finish;
-      anim.oncancel = finish;
-    } else {
-      setTimeout(finish, deathDur);
-    }
+    let done = false;
+    const finish = ()=>{ if(done) return; done = true; cleanDeath(); resolve(); };
+    if(!clone.animate){ setTimeout(finish, cms(640)); return; }
+    const gray = clone.animate([
+      { filter:'none' },
+      { filter:'grayscale(1) contrast(1.2) brightness(.9)' }
+    ], { duration: GRAY_MS, fill:'forwards' });
+    gray.onfinish = ()=>{
+      // les bandes remplacent le clone (même position, même contenu)
+      clone.style.visibility = 'hidden';
+      for(let i=0;i<N;i++){
+        const st = clone.cloneNode(true);
+        st.style.visibility = 'visible';
+        st.style.filter = 'grayscale(1) contrast(1.2) brightness(.9)';
+        st.style.clipPath = `inset(0 ${100-(i+1)/N*100}% 0 ${i/N*100}%)`;
+        document.body.appendChild(st); extras.push(st);
+        const dx = 60 + Math.random()*60, dy = -20 - Math.random()*50;
+        st.animate([
+          { transform:'translate(0,0)', opacity:1, filter:'grayscale(1) blur(0px)' },
+          { transform:`translate(${dx}px,${dy}px) rotate(${Math.random()*14}deg)`, opacity:0, filter:'grayscale(1) blur(4px)' }
+        ], { duration: STRIP_MS, delay: i*STAGGER, easing:'ease-in', fill:'forwards' });
+      }
+      for(let i=0;i<20;i++){
+        const pt = document.createElement('div');
+        pt.style.cssText = `position:fixed;z-index:9992;pointer-events:none;width:4px;height:4px;border-radius:50%;background:#b9b2a4;left:${rect.left+Math.random()*rect.width}px;top:${rect.top+Math.random()*rect.height}px`;
+        document.body.appendChild(pt); extras.push(pt);
+        pt.animate([
+          { opacity:0, transform:'translate(0,0)' },
+          { opacity:.9, offset:.2 },
+          { opacity:0, transform:`translate(${80+Math.random()*80}px,${-30-Math.random()*40}px)` }
+        ], { duration: STRIP_MS, delay: Math.random()*STRIP_MS*.5, fill:'forwards' });
+      }
+      setTimeout(finish, STRIP_MS + STAGGER*N);
+    };
+    gray.oncancel = finish;
   });
 }
 
