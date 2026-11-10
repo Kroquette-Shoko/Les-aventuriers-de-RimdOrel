@@ -824,3 +824,10 @@ body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out 
 .chev-live,.chev-fixed{stroke:var(--arcane);filter:drop-shadow(0 0 8px var(--arcane)) drop-shadow(0 0 16px var(--arcane));}
 .chev-block{stroke:var(--blood);filter:drop-shadow(0 0 8px var(--blood)) drop-shadow(0 0 16px var(--blood));}
 body.block-targeting .chev-live{animation:block-target-line 1.2s ease-in-out infinite;}
+
+/* Flèches d'attaque (phase de blocage) : couleur selon le camp et l'état bloqué */
+#attack-chevrons-layer{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:9996;}
+.chev-atk-enemy{stroke:#ff5a4a;filter:drop-shadow(0 0 6px #ff3a2a);}
+.chev-atk-enemy-blocked{stroke:#ff9a3a;filter:drop-shadow(0 0 6px #ff7a1a);}
+.chev-atk-mine{stroke:#7fdcff;filter:drop-shadow(0 0 6px #4ac8ff);}
+.chev-atk-mine-blocked{stroke:#3a6fff;filter:drop-shadow(0 0 6px #5a8aff);}

@@ -64,7 +64,9 @@ function isDeclaredAttacker(c, ctx){
 // En retrait : attaquant bloqué (un survivant le reste jusqu'à la fin du tour) ou bloqueur ayant bloqué.
 function isWithdrawn(c, ctx){
   if(!c) return false;
-  return c.hasBlockedThisTurn === true || wasBlockedThisTurn(c, ctx);
+  // Seul un bloqueur qui a déjà bloqué recule. Un attaquant bloqué reste en place : il peut encore
+  // être bloqué par d'autres créatures, et sa flèche (teinte « bloqué ») continue vers sa cible.
+  return c.hasBlockedThisTurn === true;
 }
 // Flèche rouge : attaquant déclaré du combat en cours, pas (encore) bloqué.
 function showAttackerArrow(c, ctx){
@@ -146,7 +148,7 @@ function renderLane(key, slot){
     // Posture de combat (état, recalculé à chaque rendu) : retrait des créatures
     // bloquées / bloqueuses + flèche rouge sur les attaquants encore dangereux.
     applyWithdrawState(el2, c.instId, isWithdrawn(c, postureCtx), isMine);
-    if(showAttackerArrow(c, postureCtx)) el2.appendChild(buildAttackerArrowEl(isMine));
+    // (la flèche d'attaquant est désormais une file de chevrons vers la cible : voir renderAttackChevrons)
 
     // Bloqueur ayant bloqué : le retrait porte maintenant l'information, on ne
     // l'atténue plus (ancienne opacité .5) ; la pastille 🛡 reste, pour les deux camps.
@@ -617,3 +619,56 @@ function onBoardCreatureClick(key, c){
   }
 }
 
+
+
+// ---------------- Flèches d'attaque (chevrons) ----------------
+// Pendant la phase de blocage, chaque attaquant déclaré a une file de chevrons qui part de sa carte
+// et va jusqu'à sa cible : le héros adverse ou un Édifice (S[camp].__attackTargets). Elle reste
+// affichée même une fois l'attaquant bloqué (il peut l'être encore) ; seule la teinte change :
+//   adversaire : rouge -> orange (bloqué)     nous : bleu clair -> bleu foncé (bloqué)
+function attackChevronsLayer(){
+  let l = document.getElementById('attack-chevrons-layer');
+  if(!l){
+    l = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    l.id = 'attack-chevrons-layer';
+    document.body.appendChild(l);
+  }
+  return l;
+}
+// Point où la ligne centre -> (tx,ty) sort du rectangle de l'élément (marge `pad`)
+function rectEdgePoint(r, tx, ty, pad){
+  const cx = r.left+r.width/2, cy = r.top+r.height/2, dx = tx-cx, dy = ty-cy, L = Math.hypot(dx,dy) || 1;
+  const ux = dx/L, uy = dy/L;
+  const t = Math.min(ux ? (r.width/2)/Math.abs(ux) : Infinity, uy ? (r.height/2)/Math.abs(uy) : Infinity);
+  return { x: cx+ux*(t+pad), y: cy+uy*(t+pad) };
+}
+function renderAttackChevrons(){
+  try{
+    const layer = attackChevronsLayer();
+    const active = (typeof S!=='undefined' && S) ? S.active : null;
+    const show = !!S && S.phase==='declareBlockersMe' && active && S[active];
+    if(!show){ if(layer.firstChild) layer.innerHTML = ''; return; }
+    const owner = S[active], mine = active===MY_KEY;
+    const defSlot = mine ? 'p2' : 'p1';
+    const ctx = combatPostureCtx(S, active);
+    const tgtMap = owner.__attackTargets || {};
+    layer.innerHTML = '';
+    (owner.attackers||[]).forEach(id=>{
+      const c = (owner.board||[]).find(x=>x && x.instId===id);
+      if(!c) return;
+      const srcEl = document.querySelector(`[data-instid="${id}"]`);
+      const edId = tgtMap[id];
+      const tgtEl = (edId && document.querySelector(`[data-instid="${edId}"]`)) || document.getElementById(`hero-portrait-${defSlot}`);
+      if(!srcEl || !tgtEl) return;
+      const sr = persRect(srcEl), tr = persRect(tgtEl);
+      const tx = tr.left+tr.width/2, ty = tr.top+tr.height/2, sx = sr.left+sr.width/2, sy = sr.top+sr.height/2;
+      const a = rectEdgePoint(sr, tx, ty, 2);
+      const b = rectEdgePoint(tr, sx, sy, 8);
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('class', 'chev-arrow chev-atk-' + (mine ? 'mine' : 'enemy') + (wasBlockedThisTurn(c, ctx) ? '-blocked' : ''));
+      layer.appendChild(g);
+      chevronArrowSet(g, a.x, a.y, b.x, b.y, 0);
+    });
+  }catch(e){ /* l'affichage des flèches ne doit jamais gêner le jeu */ }
+}
+setInterval(renderAttackChevrons, 200);
