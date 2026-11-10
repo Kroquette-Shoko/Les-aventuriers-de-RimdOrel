@@ -13,10 +13,10 @@
 //  2. (hook plateau) tremblement d'écran à la pose d'une créature de 10 de force ou plus.
 //  3. bfxSyncArrivals : arrivée d'une créature (chute + onde de choc + poussière).
 //  4. bfxKeywordTrail : lueur qui fait le tour de la carte quand elle gagne un mot-clé.
-//  5. bfxArtifactUse : activation d'un artefact (rouage + éclats + reflet).
+//  5. bfxArtifactUse : activation d'un artefact (pièce retournée : tour sur elle-même, éclat, pastille d'usure).
 //  6. bfxDrawFly : la carte piochée voyage du paquet jusqu'à la main.
 //  7. bfxBurnReveal : un sort se joue en éclair lumineux, puis la carte se consume.
-//  8. bfxSyncArrivals : arrivée d'un artefact (rouages qui tournent autour de la carte).
+//  8. bfxSyncArrivals : arrivée d'un artefact (assemblage : quatre morceaux qui s'emboîtent).
 //  9. bfxTrapSnap : un piège se déclenche (éclat en étoile, claquement).
 // 10. bfxHeroDeath : le cadre du héros vaincu explose en morceaux (résumé + musique juste après).
 //
@@ -265,76 +265,103 @@ body.bfx-hero-dead-p1 #hero-frame-p1, body.bfx-hero-dead-p2 #hero-frame-p2{visib
   }
 
   // ---------- 8. Arrivée d'un artefact : rouages ----------
+  // Pose d'un artefact : « Assemblage ». Quatre morceaux de la carte convergent de tous
+  // côtés et s'emboîtent avec de petites étincelles, puis un flash scelle la carte.
+  const ART_COL = '#e0a050';
+  function artFixed(css) {
+    const e = document.createElement('div');
+    e.style.cssText = 'position:fixed;pointer-events:none;z-index:9993;' + css;
+    document.body.appendChild(e);
+    return e;
+  }
+  function artRing(r, delay) {
+    const w = r.width * 1.1, h = w * 0.3;
+    const e = artFixed('left:' + (r.left + r.width / 2 - w / 2) + 'px;top:' + (r.bottom - h / 2) + 'px;width:' + w + 'px;height:' + h + 'px;border-radius:50%;border:3px solid ' + ART_COL + ';box-shadow:0 0 14px ' + ART_COL);
+    e.animate([{ opacity: 0, transform: 'scale(.4)' }, { opacity: 1, offset: 0.15 }, { opacity: 0, transform: 'scale(2.2)' }], { duration: ms(750), delay: ms(delay), fill: 'both', easing: 'ease-out' });
+    later(() => e.remove(), ms(delay) + ms(750) + 50);
+  }
+  function artSpark(x, y, sz, dx, dy, dur, delay) {
+    const e = artFixed('left:' + (x - sz / 2) + 'px;top:' + (y - sz / 2) + 'px;width:' + sz + 'px;height:' + sz + 'px;border-radius:50%;background:#fff;box-shadow:0 0 ' + (sz * 2) + 'px ' + ART_COL);
+    e.animate([{ opacity: 0, transform: 'none' }, { opacity: 1, offset: 0.15 }, { opacity: 0, transform: 'translate(' + dx + 'px,' + dy + 'px) scale(.3)' }], { duration: ms(dur), delay: ms(delay || 0), fill: 'both', easing: 'ease-out' });
+    later(() => e.remove(), ms(dur) + ms(delay || 0) + 50);
+  }
+  function artGlow(el, dur, k) {
+    try { el.animate([{ boxShadow: '0 0 0 0 ' + ART_COL + '00' }, { boxShadow: '0 0 ' + k + 'px ' + (k / 4) + 'px ' + ART_COL, offset: 0.35 }, { boxShadow: '0 0 0 0 ' + ART_COL + '00' }], { duration: ms(dur) }); } catch (e) { /* ignoré */ }
+  }
   function bfxArtifactArrive(relicEl, mine) {
     if (!relicEl || off()) return;
-    hold(ms(1000));
-    const { o, r } = overlayAt(relicEl, 0);
-    o.style.setProperty('--bfx-rgb', rgbOf(mine));
-    const size = Math.min(r.width, r.height);
-    // 3 rouages en orbite autour de la carte
-    const orbit = document.createElement('div');
-    orbit.className = 'bfx-orbit';
-    orbit.style.setProperty('--bfx-orbit', ms(2200) + 'ms');
-    [[0, 0.34, 'cw', 10], [120, 0.26, 'ccw', 8], [240, 0.30, 'cw', 9]].forEach(([deg, k, dir, teeth]) => {
-      const g = document.createElement('div');
-      g.className = 'bfx-gear ' + dir;
-      const gs = size * k;
-      g.style.width = g.style.height = gs + 'px';
-      const rad = deg * Math.PI / 180, R = Math.max(r.width, r.height) * 0.62;
-      g.style.left = (r.width / 2 + Math.cos(rad) * R - gs / 2) + 'px';
-      g.style.top = (r.height / 2 + Math.sin(rad) * R - gs / 2) + 'px';
-      g.innerHTML = gearSvg(teeth);
-      orbit.appendChild(g);
+    const card = relicEl.firstElementChild || relicEl;
+    const r = card.getBoundingClientRect();
+    if (!r.width || !r.height || !card.animate) return;
+    hold(ms(1250));
+    const prevVis = card.style.visibility;
+    card.style.visibility = 'hidden';
+    const layers = [];
+    const quarters = [[0, 0], [0.5, 0], [0, 0.5], [0.5, 0.5]];
+    quarters.forEach(([px, py], i) => {
+      const q = card.cloneNode(true);
+      q.removeAttribute('id'); q.removeAttribute('data-instid');
+      q.querySelectorAll('[id]').forEach((n) => n.removeAttribute('id'));
+      q.querySelectorAll('[data-instid]').forEach((n) => n.removeAttribute('data-instid'));
+      q.style.cssText += ';position:fixed;left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px;margin:0;visibility:visible;pointer-events:none;z-index:9992;' +
+        'clip-path:polygon(' + (px * 100) + '% ' + (py * 100) + '%,' + ((px + 0.5) * 100) + '% ' + (py * 100) + '%,' + ((px + 0.5) * 100) + '% ' + ((py + 0.5) * 100) + '%,' + (px * 100) + '% ' + ((py + 0.5) * 100) + '%);';
+      document.body.appendChild(q); layers.push(q);
+      const a = i / 4 * 6.283 + 0.8, d = 110 + i * 12;
+      q.animate([
+        { transform: 'translate(' + (Math.cos(a) * d) + 'px,' + (Math.sin(a) * d) + 'px) rotate(' + ((i - 1.5) * 50) + 'deg) scale(.6)', opacity: 0 },
+        { opacity: 1, offset: 0.25 },
+        { transform: 'translate(0,0) rotate(0) scale(1.06)', offset: 0.8 },
+        { transform: 'none' }
+      ], { duration: ms(700), delay: ms(i * 90), easing: 'cubic-bezier(.5,0,.3,1)', fill: 'both' });
+      later(() => {
+        for (let k = 0; k < 4; k++) artSpark(r.left + r.width / 2 + (px - 0.25) * r.width, r.top + r.height / 2 + (py - 0.25) * r.height, 3, (Math.random() - 0.5) * 40, (Math.random() - 0.5) * 40, 350);
+      }, ms(i * 90 + 600));
     });
-    o.appendChild(orbit);
-    const sweep = document.createElement('div');
-    sweep.className = 'bfx-sweep';
-    sweep.style.setProperty('--bfx-sweep-delay', ms(700) + 'ms');
-    o.appendChild(sweep);
-    const pulse = document.createElement('div');
-    pulse.className = 'bfx-pulse';
-    pulse.style.animationDelay = ms(900) + 'ms';
-    o.appendChild(pulse);
-    o.style.opacity = '0';
-    o.style.transition = 'opacity .25s';
-    requestAnimationFrame(() => { o.style.opacity = '1'; });
-    later(() => { o.style.opacity = '0'; }, ms(1500));
-    later(() => o.remove(), ms(1500) + 320);
+    later(() => {
+      layers.forEach((n) => n.remove());
+      card.style.visibility = prevVis;
+      artGlow(card, 700, 34);
+      artRing(r, 0);
+      const f = artFixed('left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px;border-radius:9px;background:#fff');
+      f.animate([{ opacity: 0.8 }, { opacity: 0 }], { duration: ms(400), fill: 'both' });
+      later(() => f.remove(), ms(450));
+    }, ms(1050));
+    // garde-fou : la carte redevient visible quoi qu'il arrive
+    later(() => { layers.forEach((n) => n.remove()); card.style.visibility = prevVis; }, ms(1500));
   }
 
   // ---------- 5. Activation d'un artefact ----------
   function bfxArtifactUse(el, mine) {
-    if (!el || off()) return Promise.resolve();
+    if (!el || off() || !el.animate) return Promise.resolve();
     hold(ms(1000));
+    const r = el.getBoundingClientRect();
+    // Pièce retournée : un tour complet sur elle-même, un éclat, une pastille d'usure qui s'envole
+    el.animate([
+      { transform: 'rotateY(0) scale(1)' },
+      { transform: 'rotateY(360deg) scale(1.12)', offset: 0.6 },
+      { transform: 'rotateY(360deg) scale(1)' }
+    ], { duration: ms(800), easing: 'ease-in-out' });
+    const f = artFixed('left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px;border-radius:9px;background:linear-gradient(90deg,#fff0,#fffc,#fff0)');
+    f.animate([{ opacity: 0 }, { opacity: 0.9, offset: 0.35 }, { opacity: 0, offset: 0.7 }], { duration: ms(800), fill: 'both' });
+    later(() => f.remove(), ms(850));
     return new Promise((resolve) => {
-      const { o, r } = overlayAt(el, 0);
-      o.style.setProperty('--bfx-rgb', rgbOf(mine));
-      const size = Math.min(r.width, r.height);
-      // un gros rouage qui s'emballe au centre, translucide
-      const g = document.createElement('div');
-      g.className = 'bfx-gear cw';
-      g.style.width = g.style.height = (size * 0.7) + 'px';
-      g.style.left = (r.width / 2 - size * 0.35) + 'px';
-      g.style.top = (r.height / 2 - size * 0.35) + 'px';
-      g.style.opacity = '.75';
-      g.style.animationDuration = '.55s';
-      g.innerHTML = gearSvg(12);
-      o.appendChild(g);
-      const sweep = document.createElement('div'); sweep.className = 'bfx-sweep'; o.appendChild(sweep);
-      const pulse = document.createElement('div'); pulse.className = 'bfx-pulse'; o.appendChild(pulse);
-      for (let i = 0; i < 10; i++) {
-        const a = (i / 10) * Math.PI * 2 + Math.random() * 0.4, dist = size * (0.55 + Math.random() * 0.35);
-        const s = document.createElement('div');
-        s.className = 'bfx-spark';
-        s.style.left = (r.width / 2) + 'px'; s.style.top = (r.height / 2) + 'px';
-        s.style.setProperty('--bfx-dx', (Math.cos(a) * dist) + 'px');
-        s.style.setProperty('--bfx-dy', (Math.sin(a) * dist) + 'px');
-        s.style.animationDelay = (Math.random() * 120) + 'ms';
-        o.appendChild(s);
-      }
-      o.style.transition = 'opacity .2s';
-      later(() => { o.style.opacity = '0'; }, ms(780));
-      later(() => { o.remove(); resolve(); }, ms(780) + 220);
+      later(() => {
+        artGlow(el, 500, 30);
+        const w = r.width * 1.1, h = w * 0.3;
+        const ring = artFixed('left:' + (r.left + r.width / 2 - w / 2) + 'px;top:' + (r.top + r.height / 2 - w / 2) + 'px;width:' + w + 'px;height:' + w + 'px;border-radius:50%;border:3px solid #ff9a3a;box-shadow:0 0 14px #ff9a3a');
+        ring.animate([{ opacity: 0, transform: 'scale(.4)' }, { opacity: 1, offset: 0.15 }, { opacity: 0, transform: 'scale(2.2)' }], { duration: ms(750), fill: 'both', easing: 'ease-out' });
+        later(() => ring.remove(), ms(800));
+        for (let i = 0; i < 10; i++) {
+          const a = i / 10 * 6.283;
+          const sp = artFixed('left:' + (r.left + r.width / 2 - 2) + 'px;top:' + (r.top + r.height / 2 - 2) + 'px;width:4px;height:4px;border-radius:50%;background:#ff9a3a;box-shadow:0 0 8px #ff9a3a');
+          sp.animate([{ opacity: 0, transform: 'none' }, { opacity: 1, offset: 0.15 }, { opacity: 0, transform: 'translate(' + Math.cos(a) * 55 + 'px,' + Math.sin(a) * 55 + 'px) scale(.3)' }], { duration: ms(500), fill: 'both', easing: 'ease-out' });
+          later(() => sp.remove(), ms(550));
+        }
+        const pip = artFixed('left:' + (r.left + r.width / 2 - 9) + 'px;top:' + (r.bottom - 26) + 'px;width:18px;height:18px;border-radius:50%;background:radial-gradient(#fff,#ff9a3a);box-shadow:0 0 14px #ff9a3a');
+        pip.animate([{ opacity: 0, transform: 'scale(.2)' }, { opacity: 1, offset: 0.3, transform: 'scale(1.4)' }, { opacity: 0, transform: 'scale(.4) translateY(-18px)' }], { duration: ms(800), fill: 'both' });
+        later(() => pip.remove(), ms(850));
+      }, ms(480));
+      later(resolve, ms(900));
     });
   }
 
