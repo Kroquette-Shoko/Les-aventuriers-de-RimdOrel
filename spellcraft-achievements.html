@@ -22,41 +22,73 @@
 #app{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:0 20px 60px;}
 #app > .sc-topbar{margin:0 -20px 20px;width:calc(100% + 40px);}
 
-.wrap{width:100%;max-width:1000px;margin:0 auto;padding:10px 0 0;}
-#view-toggle-row{text-align:center;margin-bottom:16px;}
-.summary{text-align:center;margin-bottom:28px;color:var(--parchment-dim);font-size:14px;}
-.summary b{color:var(--gold);}
-.summary-bar-wrap{max-width:420px;margin:10px auto 0;height:16px;border-radius:8px;background:var(--bg-panel-2, hsl(calc(var(--th, 252) + 2.5) calc(var(--ts-n, 1) * 33.3%) 17.1%));border:1px solid var(--line, hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%));overflow:hidden;}
-.summary-bar-fill{height:100%;border-radius:8px 0 0 8px;background:linear-gradient(90deg, #a8842f, var(--gold));transition:width .4s ease;}
-#category-tabs{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:24px;}
-.cat-tab{background:var(--bg-panel);border:1.5px solid var(--line);border-radius:20px;padding:7px 16px;
-  font-family:'Cinzel',serif;font-weight:700;font-size:12px;color:var(--parchment-dim);cursor:pointer;
-  white-space:nowrap;transition:border-color .15s ease,color .15s ease;}
-.cat-tab:hover{border-color:var(--gold);color:var(--parchment);}
-.cat-tab.active{border-color:var(--gold);color:var(--gold);background:var(--bg-panel-3);}
-.cat-tab .cat-count{opacity:.7;font-weight:400;font-size:10.5px;margin-left:4px;}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;align-items:start;}
-.card{background:var(--bg-panel);border:1.5px solid var(--line);border-radius:14px;padding:16px;display:flex;gap:14px;
-  position:relative;transition:border-color .15s ease;}
-.card.completed{border-color:var(--gold);}
-.card.locked{opacity:.55;}
-.badge-img{width:64px;height:64px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--bg-panel-2);
-  border:2.5px solid var(--line);}
-.card.completed .badge-img{border-color:var(--gold);box-shadow:0 0 14px rgba(212,175,55,.5);}
-.badge-placeholder{width:64px;height:64px;border-radius:50%;flex-shrink:0;background:var(--bg-panel-2);
-  border:2.5px solid var(--line);display:flex;align-items:center;justify-content:center;font-size:24px;}
-.card-body{flex:1;min-width:0;display:flex;flex-direction:column;}
-.card-name{font-family:'Cinzel',serif;font-weight:700;font-size:14.5px;color:var(--parchment);}
-.card-desc{font-size:11.5px;color:var(--parchment-dim);margin:4px 0 8px;line-height:1.4;}
-.card-reward{font-size:11px;color:var(--gold);margin:0 0 10px;line-height:1.4;}
-.progress-bar-wrap{height:8px;background:var(--bg-panel-2);border-radius:5px;overflow:hidden;margin-bottom:4px;}
+.wrap{width:100%;max-width:1260px;margin:0 auto;padding:10px 0 0;min-width:0;}
+#ach-head{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:18px;}
+#ach-head .sc-h1{margin:0;flex:1;min-width:180px;text-align:left;}
+#summary{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.ach-chip{display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:999px;border:1px solid var(--line);background:var(--bg-panel);font-size:13.5px;color:var(--parchment);white-space:nowrap;}
+.ach-chip b{color:var(--gold);}
+.ach-chip.todo{border-color:var(--gold);color:var(--gold);}
+#view-toggle-btn{padding:8px 18px;font-size:13.5px;border-radius:999px;min-height:0;border-color:var(--gold);color:var(--gold);}
+#ach-layout{display:flex;gap:18px;align-items:flex-start;min-width:0;}
+#category-tabs{width:392px;flex:none;display:flex;flex-direction:column;gap:8px;position:sticky;top:12px;max-height:calc(100vh - 24px);overflow-y:auto;scrollbar-width:thin;padding-right:2px;}
+.cat-row{background:var(--bg-panel);border:1px solid var(--line);border-radius:13px;padding:10px 12px;cursor:pointer;text-align:left;color:var(--parchment);font:inherit;transition:border-color .15s,background .15s;}
+.cat-row:hover{border-color:var(--gold);}
+.cat-row.active{border-color:var(--gold);background:rgba(212,175,55,.14);}
+.cat-row.has-claim:not(.active){border-color:rgba(212,175,55,.45);}
+.cat-top{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.cat-ico{font-size:15px;}
+.cat-name{flex:1;font-family:'Cinzel',serif;font-weight:700;font-size:12.5px;line-height:1.2;}
+.cat-row.active .cat-name{color:var(--gold);}
+.cat-count{font-size:11px;color:var(--parchment-dim);}
+.path{display:flex;align-items:center;}
+.path-link{flex:1;height:3px;min-width:5px;border-radius:2px;background:var(--line);}
+.path-link.on{background:var(--gold);}
+.medal{position:relative;flex:none;border-radius:50%;}
+.medal svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg);}
+.medal .m-in{position:absolute;inset:13%;border-radius:50%;display:flex;align-items:center;justify-content:center;overflow:hidden;background:radial-gradient(circle at 35% 30%,var(--bg-panel-3),var(--bg-panel-2));}
+.medal .m-in img{width:100%;height:100%;object-fit:cover;}
+.medal .m-in span{line-height:1;}
+.medal.done{filter:drop-shadow(0 0 8px rgba(212,175,55,.55));}
+.medal.done .m-in{background:radial-gradient(circle at 35% 30%,#fff2b0,#d4af37 60%,#7a5a12);}
+.medal.lock .m-in{filter:grayscale(1);opacity:.65;}
+.medal circle.bg{stroke:var(--line);}
+.medal circle.fg{stroke:var(--arcane);transition:stroke-dasharray .4s;}
+.medal.done circle.fg{stroke:var(--gold);}
+#ach-grid{flex:1;min-width:0;display:flex;flex-direction:column;gap:9px;}
+.pane-head{display:flex;align-items:center;gap:12px;margin:0 0 4px;}
+.pane-title{flex:1;font-family:'Cinzel',serif;font-weight:700;font-size:22px;color:var(--gold);}
+.card{background:var(--bg-panel-2);border:1px solid var(--line);border-radius:15px;padding:11px 16px;display:flex;align-items:center;gap:14px;transition:border-color .15s;}
+.card.completed{border-color:rgba(212,175,55,.55);}
+.card.claimable{border-color:var(--gold);animation:achGlow 2s infinite;}
+@keyframes achGlow{50%{box-shadow:0 0 18px rgba(212,175,55,.4)}}
+.card-body{flex:1;min-width:0;}
+.card-name{font-family:'Cinzel',serif;font-weight:700;font-size:15.5px;color:var(--parchment);}
+.card-desc{font-size:12.5px;color:var(--parchment-dim);margin:1px 0 7px;line-height:1.4;}
+.progress-bar-wrap{height:7px;background:var(--bg-panel-3);border-radius:5px;overflow:hidden;}
 .progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--frost),var(--arcane));border-radius:5px;transition:width .3s ease;}
 .card.completed .progress-bar-fill{background:var(--gold);}
-.progress-text{font-size:10.5px;color:var(--parchment-dim);}
-.claim-btn{margin-top:8px;background:var(--gold);color:var(--ink);border:none;border-radius:7px;padding:6px 12px;
-  font-family:'Cinzel',serif;font-weight:700;font-size:11.5px;cursor:pointer;align-self:flex-start;}
+.card-foot{display:flex;justify-content:space-between;gap:10px;margin-top:5px;font-size:12px;flex-wrap:wrap;}
+.progress-text{color:var(--parchment-dim);}
+.card-reward{color:var(--gold);font-weight:600;}
+.card-act{min-width:104px;text-align:center;}
+.claim-btn{background:var(--gold);color:var(--ink);border:none;border-radius:999px;padding:9px 16px;
+  font-family:'Cinzel',serif;font-weight:700;font-size:12.5px;cursor:pointer;white-space:nowrap;}
 .claim-btn:hover{filter:brightness(1.1);}
-.claimed-tag{margin-top:6px;font-size:11px;color:var(--green);font-family:'Cinzel',serif;font-weight:700;}
+.card-act .claim-btn{animation:achPulse 1.6s infinite;}
+@keyframes achPulse{50%{transform:scale(1.05)}}
+.claimed-tag{font-size:12px;color:var(--green);font-family:'Cinzel',serif;font-weight:700;}
+.ach-burst{position:fixed;width:7px;height:7px;border-radius:50%;background:var(--gold);pointer-events:none;z-index:300;transition:transform .9s ease-out,opacity .9s;}
+@media (prefers-reduced-motion:reduce){.card.claimable,.card-act .claim-btn{animation:none;}}
+@media (max-width:860px){
+  #ach-layout{flex-direction:column;}
+  #category-tabs{width:100%;position:static;max-height:none;flex-direction:row;overflow-x:auto;overflow-y:hidden;padding-bottom:6px;}
+  .cat-row{flex:none;width:250px;}
+  #ach-grid{width:100%;}
+  .card{flex-wrap:wrap;}
+  .card-body{flex-basis:calc(100% - 80px);}
+  .card-act{flex-basis:100%;text-align:right;}
+}
 .empty-state{text-align:center;padding:60px 20px;color:var(--parchment-dim);}
 #leaderboard-wrap{max-width:1100px;margin:0 auto;}
 .lb-cols{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:18px;align-items:start;}
@@ -80,7 +112,6 @@
 .lb-rules-mini{line-height:1.5;}
 .lb-row .lb-league{display:none;}
 @media(min-width:520px){.lb-row .lb-league{display:inline-block;}}
-#view-toggle-btn{padding:14px 34px;font-size:17px;border-radius:12px;min-height:52px;border-color:var(--gold);color:var(--gold);}
 .lb-row{display:flex;align-items:center;gap:14px;background:var(--bg-panel);border:1.5px solid var(--line);border-radius:10px;
   padding:10px 16px;margin-bottom:8px;}
 .lb-row .lb-rank{font-family:'Cinzel',serif;font-weight:700;color:var(--gold);font-size:15px;width:32px;text-align:center;flex-shrink:0;}
@@ -127,13 +158,15 @@
   </div>
 
   <div class="wrap">
-    <h1 class="sc-h1" style="text-align:center;margin-bottom:18px;">Hauts faits</h1>
-    <div id="view-toggle-row">
-      <button class="sc-btn sc-btn-ghost" id="view-toggle-btn" onclick="toggleLeaderboardView()">🏆 Voir le classement</button>
+    <div id="ach-head">
+      <h1 class="sc-h1">Hauts faits</h1>
+      <div id="summary"></div>
+      <button class="sc-btn sc-btn-ghost" id="view-toggle-btn" onclick="toggleLeaderboardView()">🏅 Classement</button>
     </div>
-    <div class="summary" id="summary"></div>
-    <div id="category-tabs"></div>
-    <div class="grid" id="ach-grid"></div>
+    <div id="ach-layout">
+      <div id="category-tabs"></div>
+      <div id="ach-grid"></div>
+    </div>
     <div id="leaderboard-wrap" style="display:none;"></div>
   </div>
 </div>
@@ -196,24 +229,45 @@ function renderSummary(){
   const total = achievements.length;
   if(!total){ document.getElementById('summary').innerHTML = ''; return; }
   const pct = Math.round((done/total)*100);
-  document.getElementById('summary').innerHTML = `
-    <div><b>${done}</b> / ${total} succès débloqués (${pct}%)</div>
-    <div class="summary-bar-wrap"><div class="summary-bar-fill" style="width:${pct}%;"></div></div>
-  `;
+  const todo = achievements.filter(a=>a.completed && !a.claimed).length;
+  document.getElementById('summary').innerHTML =
+    `<span class="ach-chip">🏆 <b>${done}</b> / ${total} (${pct}%)</span>` +
+    (todo ? `<span class="ach-chip todo">🎁 ${todo} à réclamer</span>` : '');
 }
 
+function achList(c){
+  return achievements.filter(a=>(a.category||'autre')===c).sort((x,y)=>x.target_count-y.target_count);
+}
+// Médaille ronde : anneau de progression + image du badge (ou emoji de la catégorie)
+function medalHtml(a, size, icon){
+  const done = !!a.completed;
+  const pc = Math.max(0, Math.min(1, a.progress_count / (a.target_count||1)));
+  const lock = !done && !(a.progress_count>0);
+  const r = size/2 - 4, C = 2*Math.PI*r;
+  const inner = a.image_url ? `<img src="${escapeHtml(a.image_url)}" alt="">` : `<span style="font-size:${Math.round(size*.36)}px">${icon}</span>`;
+  return `<div class="medal ${done?'done':''} ${lock?'lock':''}" style="width:${size}px;height:${size}px">
+    <svg viewBox="0 0 ${size} ${size}"><circle class="bg" cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke-width="4"/><circle class="fg" cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke-width="4" stroke-linecap="round" stroke-dasharray="${C*pc} ${C}"/></svg>
+    <div class="m-in">${inner}</div></div>`;
+}
+function catIcon(c){ const l = CATEGORY_LABELS[c] || '🏆'; return l.split(' ')[0]; }
+function catName(c){ const l = CATEGORY_LABELS[c] || 'Autre'; return l.substring(l.indexOf(' ')+1); }
+
+// Colonne de gauche : toutes les catégories avec leurs paliers reliés
 function renderCategoryTabs(){
   const wrap = document.getElementById('category-tabs');
   const present = CATEGORY_ORDER.filter(c=>achievements.some(a=>(a.category||'autre')===c));
   if(achievements.some(a=>!a.category)) present.push('autre');
-  if(present.length<=1){ wrap.innerHTML=''; return; }
+  if(!present.length){ wrap.innerHTML=''; return; }
   wrap.innerHTML = present.map(c=>{
-    const list = achievements.filter(a=>(a.category||'autre')===c);
+    const list = achList(c);
     const done = list.filter(a=>a.completed).length;
-    const label = CATEGORY_LABELS[c] || 'Autre';
-    // « ! » jaune : une récompense de cette catégorie attend d'être réclamée
     const claimable = list.some(a=>a.completed && !a.claimed);
-    return `<button class="cat-tab ${c===activeCategory?'active':''}" onclick="switchCategory('${c}')">${label}<span class="cat-count">${done}/${list.length}</span>${claimable?'<span class="sc-notif sc-notif-inline" aria-label="Récompense à réclamer">!</span>':''}</button>`;
+    const ico = c==='autre' ? '🏆' : catIcon(c);
+    const curIdx = list.findIndex(a=>!a.completed);
+    const path = list.map((a,i)=> (i?`<i class="path-link ${list[i-1].completed?'on':''}"></i>`:'') + medalHtml(a, i===curIdx?38:30, ico)).join('');
+    return `<button class="cat-row ${c===activeCategory?'active':''} ${claimable?'has-claim':''}" onclick="switchCategory('${c}')">
+      <div class="cat-top"><span class="cat-ico">${ico}</span><span class="cat-name">${c==='autre'?'Autre':catName(c)}</span><span class="cat-count">${done}/${list.length}</span>${claimable?'<span class="sc-notif sc-notif-inline" aria-label="Récompense à réclamer">!</span>':''}</div>
+      <div class="path">${path}</div></button>`;
   }).join('');
 }
 
@@ -246,34 +300,33 @@ function renderGrid(){
     grid.innerHTML = `<div class="empty-state">Aucun succès disponible pour l'instant.</div>`;
     return;
   }
-  const visible = achievements.filter(a=>(a.category||'autre')===activeCategory);
+  const visible = achList(activeCategory);
   if(visible.length===0){
     grid.innerHTML = `<div class="empty-state">Aucun succès dans cette catégorie pour l'instant.</div>`;
     return;
   }
-  grid.innerHTML = visible.map(a=>{
+  const ico = activeCategory==='autre' ? '🏆' : catIcon(activeCategory);
+  const nClaim = visible.filter(a=>a.completed && !a.claimed).length;
+  const head = `<div class="pane-head"><span class="pane-title">${ico} ${activeCategory==='autre'?'Autre':escapeHtml(catName(activeCategory))}</span>${nClaim>1?`<button class="claim-btn" onclick="claimAllInCategory(this)">🎁 Tout réclamer (${nClaim})</button>`:''}</div>`;
+  grid.innerHTML = head + visible.map(a=>{
     const pct = Math.min(100, Math.round((a.progress_count / a.target_count) * 100));
-    const stateClass = a.completed ? 'completed' : (a.progress_count>0 ? '' : 'locked');
-    const badge = a.image_url
-      ? `<img class="badge-img" src="${a.image_url}">`
-      : `<div class="badge-placeholder">${a.completed ? '🏆' : '❔'}</div>`;
+    const canClaim = a.completed && !a.claimed;
     let actionHtml = '';
-    if(a.completed && !a.claimed){
-      actionHtml = `<button class="claim-btn" onclick="claimAchievement('${a.user_achievement_id}')">🎁 Réclamer</button>`;
+    if(canClaim){
+      actionHtml = `<button class="claim-btn" onclick="claimAchievement('${a.user_achievement_id}', this)">🎁 Réclamer</button>`;
     } else if(a.claimed){
-      actionHtml = `<div class="claimed-tag">✓ Récompense obtenue</div>`;
+      actionHtml = `<div class="claimed-tag">✓ Obtenue</div>`;
     }
     return `
-      <div class="card ${stateClass}">
-        ${badge}
+      <div class="card ${a.completed?'completed':''} ${canClaim?'claimable':''}">
+        ${medalHtml(a, 58, ico)}
         <div class="card-body">
           <div class="card-name">${escapeHtml(a.name)}</div>
           <div class="card-desc">${escapeHtml(a.description || '')}</div>
-          <div class="card-reward">🎁 ${escapeHtml(describeRewardsPreview(a.rewards))}</div>
           <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%;"></div></div>
-          <div class="progress-text">${a.progress_count} / ${a.target_count}</div>
-          ${actionHtml}
+          <div class="card-foot"><span class="progress-text">${Math.min(a.progress_count,a.target_count)} / ${a.target_count}</span><span class="card-reward">🎁 ${escapeHtml(describeRewardsPreview(a.rewards))}</span></div>
         </div>
+        <div class="card-act">${actionHtml}</div>
       </div>
     `;
   }).join('');
@@ -282,11 +335,10 @@ function renderGrid(){
 let showingLeaderboard = false;
 async function toggleLeaderboardView(){
   showingLeaderboard = !showingLeaderboard;
-  document.getElementById('summary').style.display = showingLeaderboard ? 'none' : 'block';
-  document.getElementById('category-tabs').style.display = showingLeaderboard ? 'none' : 'flex';
-  document.getElementById('ach-grid').style.display = showingLeaderboard ? 'none' : 'grid';
+  document.getElementById('summary').style.display = showingLeaderboard ? 'none' : 'flex';
+  document.getElementById('ach-layout').style.display = showingLeaderboard ? 'none' : 'flex';
   document.getElementById('leaderboard-wrap').style.display = showingLeaderboard ? 'block' : 'none';
-  document.getElementById('view-toggle-btn').textContent = showingLeaderboard ? '🏅 Voir mes succès' : '🏆 Voir le classement';
+  document.getElementById('view-toggle-btn').textContent = showingLeaderboard ? '🏆 Mes succès' : '🏅 Classement';
   if(showingLeaderboard) await loadLeaderboard();
 }
 const CLASS_SLUG_NOACCENT = {'Aube':'aube', 'Crépuscule':'crepuscule', 'Volonté':'volonte', 'Prima':'prima', 'Arcane':'arcane', 'Neutre':'neutre'};
@@ -422,11 +474,44 @@ async function describeGrantedRewards(granted){
   return parts.length ? parts.join(', ') : 'aucune récompense';
 }
 
-async function claimAchievement(id){
+function claimBurst(btn){
+  try{
+    if(!btn || window.matchMedia('(prefers-reduced-motion:reduce)').matches) return;
+    const r = btn.getBoundingClientRect(), cx = r.left+r.width/2, cy = r.top+r.height/2;
+    for(let i=0;i<16;i++){
+      const p = document.createElement('i'); p.className = 'ach-burst';
+      p.style.left = cx+'px'; p.style.top = cy+'px';
+      document.body.appendChild(p);
+      const ang = Math.random()*6.28, d = 30+Math.random()*70;
+      requestAnimationFrame(()=>{ p.style.transform = `translate(${Math.cos(ang)*d}px,${Math.sin(ang)*d-30}px)`; p.style.opacity = '0'; });
+      setTimeout(()=>p.remove(), 1000);
+    }
+  }catch(e){}
+}
+
+async function claimAchievement(id, btn){
+  if(btn){ if(btn.disabled) return; btn.disabled = true; }
   const { data, error } = await sb.rpc('claim_achievement_reward', { p_user_achievement_id: id });
-  if(error || !data || data.error){ showToast('Impossible de réclamer cette récompense.'); return; }
+  if(error || !data || data.error){ if(btn) btn.disabled = false; showToast('Impossible de réclamer cette récompense.'); return; }
+  claimBurst(btn);
   const detail = await describeGrantedRewards(data.granted || []);
   showToast(`Récompense obtenue : ${detail}`);
+  await loadAchievements();
+  sb.rpc('progress_collection_achievements').catch(()=>{});
+}
+
+// Réclame d'un coup toutes les récompenses prêtes de la catégorie affichée.
+async function claimAllInCategory(btn){
+  if(btn){ if(btn.disabled) return; btn.disabled = true; }
+  const todo = achList(activeCategory).filter(a=>a.completed && !a.claimed);
+  const parts = []; let fails = 0;
+  for(const a of todo){
+    const { data, error } = await sb.rpc('claim_achievement_reward', { p_user_achievement_id: a.user_achievement_id });
+    if(error || !data || data.error){ fails++; continue; }
+    parts.push(await describeGrantedRewards(data.granted || []));
+  }
+  claimBurst(btn);
+  showToast(parts.length ? `Récompenses obtenues : ${parts.join(' · ')}${fails?` (${fails} échec${fails>1?'s':''})`:''}` : 'Impossible de réclamer ces récompenses.');
   await loadAchievements();
   sb.rpc('progress_collection_achievements').catch(()=>{});
 }
