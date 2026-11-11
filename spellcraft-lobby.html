@@ -247,6 +247,7 @@
           </div>
           <div id="show-need"></div>
           <button id="show-launch" class="sc-btn sc-btn-primary" type="button"></button>
+          <button id="show-launch2" class="sc-btn sc-btn-gold" type="button" style="display:none;margin-top:10px;min-width:240px;padding:13px 40px;font-family:'Cinzel',serif;font-size:16px;"></button>
           <div id="lobby-error"></div>
         </section>
 
@@ -544,7 +545,6 @@ function lobbyModes(){
     {k:'sp', ic:'👁', t:'Regarder une partie', s:'Parties en cours'},
     {k:'tc', ic:'🍺', t:'La taverne', s:'Mode du week-end'}
   ];
-  if(PORTAIL_OPEN) L.push({k:'pp', ic:'🌀', t:'Portail planaire', s:'Mode temporaire'});
   return L;
 }
 function renderLobbyMenu(){
@@ -570,7 +570,7 @@ const LOBBY_INFO = {
   jn:['Rejoindre une partie','Entre le code que ton ami t\'a donné.','🚪','',''],
   sp:['Regarder une partie','Choisis une partie en cours à suivre en spectateur.','👁','',''],
   pp:['🌀 Portail planaire','Mode temporaire : un héros de ta collection, un deck d\'une seule carte — le Portail planaire. Pas de pioche, pas de mulligan ; on ne meurt pas (1 PV) sauf coup d\'une carte légendaire ou d\'un Jeune poulain / pégase / licorne.','🌀','Entrer dans le Portail planaire','btn-portail'],
-  tc:['🍺 La taverne','Le mode du week-end : un deck sans héros (3 couleurs max), le héros est tiré au hasard à chaque partie.','🍺','Entrer dans la taverne','btn-tavern']
+  tc:['🍺 La taverne','Les modes temporaires : Tri-color (deck sans héros, 3 couleurs max) et, quand il est ouvert, le Portail planaire (un héros, une seule carte).','🍺','🎨 Tri-color','btn-tavern']
 };
 function refreshShowcase(){
   if(!document.getElementById('show')) return;
@@ -598,6 +598,12 @@ function refreshShowcase(){
     need.className = has ? '' : 'warn';
   } else { need.textContent = ''; need.className = ''; }
   const btn = document.getElementById('show-launch');
+  const btn2 = document.getElementById('show-launch2');
+  if(btn2){
+    const showP = (k==='tc' && PORTAIL_OPEN && !TAVERN && !PORTAIL);
+    btn2.style.display = showP ? '' : 'none';
+    if(showP){ btn2.textContent = '🌀 Portail planaire'; btn2.onclick = ()=>{ window.location.href = 'spellcraft-lobby.html?mode=portail'; }; }
+  }
   const target = I[4];
   if(!label || (TAVERN || PORTAIL) && k!=='mm'){ btn.style.display = 'none'; }
   else {
