@@ -441,7 +441,7 @@ function ritualWatch(key, slot, frameEl){
     const accomplished = done > (prev.done||0);
     const anchor = ritualAnchorRect(slot, frameEl);
     const node = accomplished && typeof cardEl==='function' ? cardEl(prev.card) : null;
-    queueCombatAnim(()=> accomplished ? BFX2.ritualComplete(anchor, node, mine) : BFX2.ritualDestroy(anchor));
+    queueCombatAnim(()=>{ if(accomplished){ try{ playSfx('ritual-complete'); }catch(e){} } return accomplished ? BFX2.ritualComplete(anchor, node, mine) : BFX2.ritualDestroy(anchor); });
   } else if(prev.card && cur.card && prev.card===cur.card || (prev.card && cur.card && (prev.card.id||prev.card.name)===(cur.card.id||cur.card.name))){
     if(cur.mana > prev.mana){
       __RIT_HOLD[key] = prev.mana;

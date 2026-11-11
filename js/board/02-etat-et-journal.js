@@ -556,7 +556,7 @@ function renderGameLog(){
       if(entry.kind==='trap'){
         playSfx('trap');
       } else {
-        playSfx(full && full.type==='Sortilège' ? 'cast' : 'cardPlay');
+        playSfx(full && full.type==='Sortilège' ? 'cast' : (full && full.type==='Créature' ? 'creature-arrive' : 'cardPlay'));
       }
 
       // Révélation 3D — uniquement pour une carte qui vient d'être jouée ou

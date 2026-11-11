@@ -304,10 +304,8 @@ async function loadLegacyMonolithicCards(){
    SYSTÈME SONORE — effets sonores (sfx/) et musique de fond (music/)
    ============================================================ */
 const SFX_VARIANTS = {
-  coin: ['coin-1','coin-2','coin-3'],
-  draw: ['draw-1','draw-2'],
-  cardPlay: ['card-play-1','card-play-2','card-play-3','card-play-4'],
-  trap: ['trap-1','trap-2','trap-3','trap-4'],
+  cardPlay: ['card-slide-1','card-slide-2','card-slide-3','card-slide-4','card-slide-5'],
+  trap: ['trap-activation','trap-reveal'],
   hitLight: ['hit-light-1','hit-light-2','hit-light-3'],
   hitMedium: ['hit-medium-1','hit-medium-2','hit-medium-3'],
   hitLarge: ['hit-large-1','hit-large-2','hit-large-3'],
@@ -396,18 +394,19 @@ function scSetShowSkipButton(on){
 
 // Certains sfx sont en .mp3 (premiers ajoutés), les plus récents en .ogg.
 const SFX_OGG_FILES = new Set([
-  'card-play-1','card-play-2','card-play-3','card-play-4',
+  'card-slide-1','card-slide-2','card-slide-3','card-slide-4','card-slide-5',
+  'draw','draw-more','card-take','creature-arrive','turn-start','firsthand','mulligan','rare-drop',
   'clic',
   'epic-drop','mythic-drop',
   'quest-loot',
   'card-death',
-  'trap-1','trap-2','trap-3','trap-4',
+  'trap-activation','trap-reveal',
   'hit-light-1','hit-light-2','hit-light-3',
   'hit-medium-1','hit-medium-2','hit-medium-3',
   'hit-large-1','hit-large-2','hit-large-3',
   'artefact',
   'cast-1','cast-2','cast-3',
-  'attack','pass',
+  'attack','turn-end',
   'mana-empty','pack-tear',
   'phase-reminder',
 ]);

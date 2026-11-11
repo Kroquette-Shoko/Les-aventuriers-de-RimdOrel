@@ -343,6 +343,11 @@ function detectAndPlayManaGainSfx(oldS, newS){
     }
   });
 }
+// Début de MON tour : le tour passe de l'adversaire à moi.
+function detectAndPlayTurnStartSfx(oldS, newS){
+  if(!oldS || !newS || typeof MY_KEY==='undefined') return;
+  if(oldS.active && oldS.active!==MY_KEY && newS.active===MY_KEY) playSfx('turn-start');
+}
 // Préchargement des images : chaque illustration (main, plateau, défausse, héros, région, reliques, dos
 // de cartes, et celles du paquet du joueur envoyées par le serveur) est téléchargée en tâche de fond
 // DÈS qu'on la connaît, pour qu'elle soit déjà prête quand la carte est piochée ou posée.
@@ -410,6 +415,7 @@ function onStateUpdate(state){
   // consigné (voir applyManaGain côté serveur, silencieux). Doit rester
   // AVANT la réaffectation de S ci-dessous.
   detectAndPlayManaGainSfx(S, state);
+  detectAndPlayTurnStartSfx(S, state);
 
   // Instantané des cartes affichées AVANT que render() ne les remplace —
   // voir playCardDeathAnim plus bas, seul moyen d'animer la disparition

@@ -7,6 +7,7 @@ let JOURNAL_CARD_LOOKUP = {}; // id -> carte complète, pour les aperçus au sur
 
 function startCardDrag(ev, handIndex, sourceEl, reorderOnly){
   ev.preventDefault();
+  playSfx('card-take', 0.5);
   const slotEl = sourceEl.parentElement && sourceEl.parentElement.classList.contains('hand-card-slot') ? sourceEl.parentElement : null;
   // Mesure à plat (sans l'inclinaison de l'éventail ni l'effet de survol) pour que le fantôme ait la bonne taille.
   let rect;

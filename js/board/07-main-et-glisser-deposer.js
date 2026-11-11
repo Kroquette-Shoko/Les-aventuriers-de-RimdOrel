@@ -113,7 +113,7 @@ function renderHand(){
   // cartes sont toujours ajoutées à la fin côté serveur.
   const newCount = (PREV_HAND_LENGTH!==null && hand.length>PREV_HAND_LENGTH) ? (hand.length-PREV_HAND_LENGTH) : 0;
   PREV_HAND_LENGTH = hand.length;
-  if(newCount>0) playSfx('draw');
+  if(newCount>0) playSfx(newCount>1 ? 'draw-more' : 'draw');
   const __newDrawn = [];
   // Défausse au choix : une carte à défausser doit être désignée par nous (contour bleu), puis validée
   const pd = (S.pendingDiscard && S.pendingDiscard.playerKey===MY_KEY && GS_ROLE!=='spectator') ? S.pendingDiscard : null;

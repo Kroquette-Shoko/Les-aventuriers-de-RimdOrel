@@ -691,7 +691,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>window.APP_TOPBAR_DISABLED = true;</script>
-<script src="spellcraft-shared.js?v=20261110a"></script>
+<script src="spellcraft-shared.js?v=20261111i"></script>
 <script src="spellcraft-notifs.js"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>
@@ -2022,6 +2022,7 @@ function dealBoosterCards(cardsStage, cardsResult, fullCards, backUrl, actions){
       if(current.banner) current.banner.style.display = 'block';
       if(current.full.rarity==='Épique') playSfx('epic-drop');
       else if(current.full.rarity==='Mythique') playSfx('mythic-drop');
+      else if(current.full.rarity==='Rare') playSfx('rare-drop');
       hintEl.textContent = idx+1 < total ? 'Clique pour passer à la carte suivante' : 'Clique pour voir le récapitulatif';
       return;
     }

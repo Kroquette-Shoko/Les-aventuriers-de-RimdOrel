@@ -44,6 +44,7 @@ function describeActionError(err, label){
 let __actionErrorTimer = null;
 function showActionError(msg){
   console.error(msg);
+  try{ playSfx('illegal-action', 0.5); }catch(e){}
   let box = document.getElementById('action-error-toast');
   if(!box){
     box = document.createElement('div');
@@ -136,8 +137,10 @@ function showMulliganOverlay(){
     cardsEl.appendChild(wrap);
   });
   overlay.classList.add('show');
+  playSfx('firsthand');
 }
 async function confirmMulligan(){
+  if(mulliganMarked.size>0) playSfx('mulligan');
   document.getElementById('mulligan-overlay').classList.remove('show');
   await runAction('Mulligan', ()=>gsMulligan([...mulliganMarked]));
   mulliganOverlayShown = false;
@@ -235,7 +238,7 @@ async function uiSetTrap(i){
   LAST_SACRIFICEABLE_ACTION = { action:'setTrap', handIndex:i };
   await runAction('Poser le piège', ()=>gsSetTrap(i));
 }
-async function uiEndTurn(){ playSfx('pass'); await runAction('Fin de tour', ()=>gsEndTurn()); }
+async function uiEndTurn(){ playSfx('turn-end'); await runAction('Fin de tour', ()=>gsEndTurn()); }
 function uiSelectAllAttackers(){
   const me = S[MY_KEY];
   // Mêmes règles que le serveur et que le clic individuel : canAttackClient()
