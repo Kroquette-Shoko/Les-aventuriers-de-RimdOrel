@@ -735,9 +735,10 @@ body.block-targeting #target-arrow{animation:block-target-fill 1.2s ease-in-out 
 .faille-spark{position:absolute;left:50%;top:50%;width:3px;height:70px;border-radius:2px;background:linear-gradient(#fff,transparent);transform-origin:50% 0;opacity:0;}
 .faille-overlay.show .faille-spark{animation:faille-spark .9s .15s ease-out forwards;}
 @keyframes faille-spark{0%{opacity:0;transform:rotate(var(--a)) translateY(0) scaleY(.2)}30%{opacity:1}100%{opacity:0;transform:rotate(var(--a)) translateY(150px) scaleY(1)}}
-.ability-reveal-overlay{position:fixed;inset:0;z-index:9990;display:flex;align-items:center;justify-content:center;
+.ability-reveal-overlay{position:fixed;inset:0;z-index:9990;display:flex;align-items:center;justify-content:flex-start;padding-left:max(18px,3.2vw);box-sizing:border-box;
   background:rgba(5,4,10,0);opacity:0;pointer-events:none;transition:opacity .28s ease, background .28s ease;}
-.ability-reveal-overlay.show{opacity:1;background:rgba(5,4,10,.58);pointer-events:auto;cursor:pointer;}
+.ability-reveal-overlay.show{opacity:1;background:rgba(5,4,10,0);pointer-events:none;}
+.ability-reveal-overlay.show .ability-reveal-flip{pointer-events:auto;cursor:pointer;filter:drop-shadow(0 8px 22px rgba(0,0,0,.75));}
 .ability-reveal-overlay.closing{opacity:0;background:rgba(5,4,10,0);}
 .ability-reveal-flip{width:260px;height:366px;perspective:1400px;transform:scale(.72);transition:transform .3s cubic-bezier(.34,1.4,.64,1);}
 .ability-reveal-overlay.show .ability-reveal-flip{transform:scale(1);}
