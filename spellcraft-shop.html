@@ -691,7 +691,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>window.APP_TOPBAR_DISABLED = true;</script>
-<script src="spellcraft-shared.js?v=20261111i"></script>
+<script src="spellcraft-shared.js?v=20261111j"></script>
 <script src="spellcraft-notifs.js"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js"></script>
@@ -2031,6 +2031,7 @@ function dealBoosterCards(cardsStage, cardsResult, fullCards, backUrl, actions){
     seen.push({ res:current.res, full:current.full });
     addThumb(current.res, current.full);
     idx++;
+    playSfx('cardSlide', 0.6);
     // La carte vue s'envole vers la gauche ; la suivante est celle de la pioche derrière, qui se met en place.
     const out = current.flip;
     out.style.transition = 'transform .3s ease-in, opacity .3s ease-in';
