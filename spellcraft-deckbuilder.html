@@ -1981,18 +1981,24 @@ function renderHeroSelectionGrid(animate){
   fitBinderToWidth();
   const pages = document.getElementById('binder-pages');
   pages.innerHTML = '';
-  pages.className = 'hero-grid-area';
+  pages.className = '';   // même grille que les autres cartes
   galleryCards = null; setGalleryMore();
   if(filtered.length===0){
     pages.innerHTML = `<div class="empty-state">Aucun héros dans la collection. Crée-en un dans l'éditeur de cartes !</div>`;
     return;
   }
+  // Les héros sont de vraies cartes, comme le reste de la collection : la fiche (capacités, règle de deck, cartes liées) s'affiche au survol.
   filtered.forEach(h=>{
-    const tile = document.createElement('div');
-    tile.className = 'hero-select-tile';
-    fillHeroProfileContent(tile, h);
-    tile.onclick = ()=>onCardClick(h);
-    pages.appendChild(tile);
+    const slot = buildCardSlot(h);
+    slot.addEventListener('mouseenter', ()=>{
+      showHeroProfile(h, 0, 0);
+      const box = document.getElementById('hero-profile'), r = slot.getBoundingClientRect(), bh = box.scrollHeight || 380;
+      const left = (r.right + 16 + 480 < window.innerWidth - 8) ? r.right + 16 : Math.max(8, r.left - 16 - 480);
+      box.style.left = left+'px';
+      box.style.top = Math.max(12, Math.min(r.top + r.height/2 - bh/2, window.innerHeight - bh - 12))+'px';
+    });
+    slot.addEventListener('mouseleave', hidePreview);
+    pages.appendChild(slot);
   });
 }
 
