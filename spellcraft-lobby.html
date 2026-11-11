@@ -269,6 +269,7 @@
     <!-- Boutons d'origine : gardés (masqués) car toute la logique de la page les pilote. Le menu de gauche les déclenche. -->
     <div id="legacy-actions" hidden>
       <button id="btn-matchmaking" class="sc-btn sc-btn-primary" disabled><span class="btn-sub">Trouve un adversaire au hasard</span></button>
+      <button id="btn-portail" class="sc-btn sc-btn-gold"><span class="btn-sub">Mode temporaire : un héros, une seule carte</span></button>
       <button id="btn-tavern" class="sc-btn sc-btn-gold"><span class="btn-sub" id="btn-tavern-sub">Week-end : deck sans héros, héros tiré au hasard</span></button>
       <button id="btn-vs-ai" class="sc-btn" disabled></button>
       <button id="btn-create-private" class="sc-btn sc-btn-ghost" disabled></button>
@@ -291,8 +292,8 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>window.APP_TOPBAR_DISABLED = true;</script>
 <script src="spellcraft-minijeux.js?v=20261020b"></script>
-<script src="spellcraft-shared.js?v=20261111k"></script>
-<script src="spellcraft-catalog.js"></script>
+<script src="spellcraft-shared.js?v=20261112a"></script>
+<script src="spellcraft-catalog.js?v=20261112a"></script>
 <script src="spellcraft-chrono.js"></script>
 <script src="spellcraft-server-client.js"></script>
 <script src="spellcraft-auth.js"></script>
@@ -306,8 +307,10 @@ let DECK_PAGE = 0;
 const DECKS_PER_PAGE = 6; // grille 3 colonnes x 2 lignes
 
 const TAVERN = new URLSearchParams(location.search).get('mode')==='taverne';
+const PORTAIL = new URLSearchParams(location.search).get('mode')==='portail'; // mode temporaire « Portail planaire »
+let PORTAIL_OPEN = false;
 let TAVERN_LOCKED = false; // Baston de taverne fermée (hors week-end, ou autre mode ce week-end) et joueur non autorisé à tester
-const LAST_DECK_STORAGE_KEY = TAVERN ? 'spellcraft-last-used-tavern-deck-id' : 'spellcraft-last-used-deck-id';
+const LAST_DECK_STORAGE_KEY = PORTAIL ? 'spellcraft-last-used-portail-deck-id' : TAVERN ? 'spellcraft-last-used-tavern-deck-id' : 'spellcraft-last-used-deck-id';
 
 function deckSummaryLobby(d, collection){
   if(d.taverne){
@@ -329,9 +332,10 @@ function deckSummaryLobby(d, collection){
 async function initLobby(){
   playMenuMusicRotation(0.35);
   LOADED_COLLECTION = await loadAllCardsAcrossSets();
-  LOADED_DECKS = (await loadUserDecks()).filter(d => TAVERN ? d.taverne : !d.taverne);
-  if(TAVERN) await setupTavernMode();
-  else { setupTavernEntryButton(); }
+  LOADED_DECKS = (await loadUserDecks()).filter(d => PORTAIL ? d.portail : TAVERN ? d.taverne : (!d.taverne && !d.portail));
+  if(PORTAIL) await setupPortailMode();
+  else if(TAVERN) await setupTavernMode();
+  else { setupTavernEntryButton(); PORTAIL_OPEN = (await scPortailAvailable()) || (await isLobbyTester()); refreshShowcase(); }
 
   try{
     const { data: backs } = await sb.from('card_backs').select('id, image_url');
@@ -355,6 +359,7 @@ async function setupTavernEntryButton(){
   }
   document.getElementById('btn-tavern-sub').textContent = sub;
   document.getElementById('btn-tavern').onclick = ()=>{ window.location.href = 'spellcraft-lobby.html?mode=taverne'; };
+  const bp = document.getElementById('btn-portail'); if(bp) bp.onclick = ()=>{ window.location.href = 'spellcraft-lobby.html?mode=portail'; };
   refreshShowcase();
 }
 
@@ -368,7 +373,7 @@ async function setupTavernMode(){
   document.getElementById('lobby-sub').textContent = 'Choisis ton deck de taverne, puis lance-toi.';
   document.getElementById('tavern-build-link').style.display = 'block';
   // Seule la recherche d'adversaire existe dans ce mode.
-  ['btn-tavern','btn-create-private','btn-vs-ai','btn-join','btn-spectate-list'].forEach(id=>{ const el = document.getElementById(id); if(el) el.style.display = 'none'; });
+  ['btn-tavern','btn-portail','btn-create-private','btn-vs-ai','btn-join','btn-spectate-list'].forEach(id=>{ const el = document.getElementById(id); if(el) el.style.display = 'none'; });
   document.querySelector('#btn-matchmaking .btn-sub').textContent = 'Adversaire au hasard, héros tiré au sort';
   document.getElementById('no-decks-msg').innerHTML = 'Aucun deck de taverne — <a href="spellcraft-deckbuilder.html?mode=taverne">construis-en un</a> d\'abord (sans héros, 3 couleurs maximum).';
   let isTester = false;
@@ -380,6 +385,69 @@ async function setupTavernMode(){
   b.innerHTML = open ? '🍺 La taverne est <b>ouverte</b> ! ' + SC_TAVERN_HOURS_LABEL + '.'
     : (isTester ? '🔒 La taverne est fermée (' + SC_TAVERN_HOURS_LABEL + '), mais tu peux la tester.' : '🔒 La taverne est <b>fermée</b>. ' + SC_TAVERN_HOURS_LABEL + '.<br>Tu peux déjà construire ton deck !');
   updateActionButtons();
+}
+
+async function setupPortailMode(){
+  document.getElementById('lobby-title').textContent = '🌀 Portail planaire';
+  document.getElementById('lobby-sub').textContent = 'Choisis un héros et une région : ton deck ne contient que le Portail planaire.';
+  const link = document.getElementById('tavern-build-link');
+  link.style.display = 'block'; link.textContent = '➕ Choisir un héros et une région'; link.href = '#';
+  link.onclick = (e)=>{ e.preventDefault(); openPortailPicker(); };
+  ['btn-tavern','btn-portail','btn-create-private','btn-vs-ai','btn-join','btn-spectate-list'].forEach(id=>{ const el = document.getElementById(id); if(el) el.style.display = 'none'; });
+  document.querySelector('#btn-matchmaking .btn-sub').textContent = 'Adversaire au hasard';
+  document.getElementById('no-decks-msg').innerHTML = 'Aucun héros choisi — <a href="#" id="portail-first">choisis ton héros et ta région</a> pour créer ton deck.';
+  const first = document.getElementById('portail-first');
+  if(first) first.onclick = (e)=>{ e.preventDefault(); openPortailPicker(); };
+  const open = await scPortailAvailable();
+  const tester = await isLobbyTester();
+  TAVERN_LOCKED = !open && !tester;
+  const until = await scPortailUntil();
+  const untilTxt = until && until.getTime() > Date.now() ? ' Ouvert jusqu\'à ' + until.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit', timeZone:'Europe/Paris'}) + '.' : '';
+  const b = document.getElementById('tavern-banner');
+  b.style.display = 'block';
+  b.innerHTML = (open ? '🌀 Le Portail planaire est <b>ouvert</b> !' + untilTxt : (tester ? '🔒 Le Portail planaire est fermé, mais tu peux le tester.' : '🔒 Le Portail planaire est <b>fermé</b>.'))
+    + '<br><small>Règles : deck d\'une seule carte, pas de pioche, pas de mulligan. Un joueur ne meurt pas (il reste à 1 PV) sauf coup d\'une carte légendaire, d\'un Jeune poulain, d\'un Jeune pégase ou d\'une Jeune licorne.</small>';
+  updateActionButtons();
+}
+
+// Choix du héros (parmi ceux de la collection) puis de la région → crée / met à jour le deck « Portail » de ce héros.
+async function openPortailPicker(){
+  const owned = await loadUserCollection();
+  const heroes = LOADED_COLLECTION.filter(c=>c.type==='Héros' && !(c.subtypes||[]).some(s=>String(s).trim().toLowerCase()==='conjuration') && (owned[c.id]||0)>0);
+  const portalCard = LOADED_COLLECTION.find(c=>c.name==='Portail planaire');
+  const ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:9000;background:rgba(5,4,10,.88);display:flex;align-items:center;justify-content:center;padding:20px;';
+  const box = document.createElement('div');
+  box.style.cssText = 'background:#17131f;border:1px solid var(--gold);border-radius:14px;max-width:860px;width:100%;max-height:86vh;overflow:auto;padding:18px;color:#eee;';
+  ov.appendChild(box); document.body.appendChild(ov);
+  const close = ()=>ov.remove();
+  ov.addEventListener('click', e=>{ if(e.target===ov) close(); });
+  const tile = (img, name, sub)=>`<div style="width:130px;cursor:pointer;text-align:center;font-size:12px;"><div style="height:150px;border-radius:10px;border:1px solid rgba(212,175,55,.5);background:#0d0a14 center/cover no-repeat;${img?`background-image:url('${String(img).replace(/'/g,'')}')`:''}"></div><div style="margin-top:4px;font-weight:600;">${escapeHtmlLobby(name)}</div>${sub?`<div style="opacity:.7">${escapeHtmlLobby(sub)}</div>`:''}</div>`;
+  function stepHero(){
+    if(!portalCard){ box.innerHTML = '<p>La carte « Portail planaire » est introuvable.</p><button class="sc-btn" id="pp-x">Fermer</button>'; box.querySelector('#pp-x').onclick = close; return; }
+    box.innerHTML = '<h3 style="margin:0 0 4px;">🌀 Choisis ton héros</h3><p style="margin:0 0 12px;opacity:.8;font-size:13px;">Parmi les héros de ta collection. Ton deck ne contiendra que le Portail planaire.</p><div id="pp-grid" style="display:flex;flex-wrap:wrap;gap:12px;"></div><div style="margin-top:14px;text-align:right;"><button class="sc-btn sc-btn-ghost" id="pp-x">Annuler</button></div>';
+    box.querySelector('#pp-x').onclick = close;
+    const grid = box.querySelector('#pp-grid');
+    if(!heroes.length) grid.innerHTML = '<p>Aucun héros dans ta collection.</p>';
+    heroes.forEach(h=>{ const t = document.createElement('div'); t.innerHTML = tile(h.image, h.name, h.class||''); t.firstChild.onclick = ()=>stepRegion(h); grid.appendChild(t.firstChild); });
+  }
+  function stepRegion(h){
+    const regions = LOADED_COLLECTION.filter(c=>c.type==='Région' && isRegionValidForHero(c, h) && ((owned[c.id]||0)>0 || c.id===DEFAULT_REGION_ID));
+    regions.sort((a,b)=>(a.id===DEFAULT_REGION_ID?-1:0)-(b.id===DEFAULT_REGION_ID?-1:0));
+    box.innerHTML = `<h3 style="margin:0 0 4px;">🌀 ${escapeHtmlLobby(h.name)} — choisis ta région</h3><p style="margin:0 0 12px;opacity:.8;font-size:13px;">Régions de ta collection compatibles avec ce héros.</p><div id="pp-grid" style="display:flex;flex-wrap:wrap;gap:12px;"></div><div style="margin-top:14px;display:flex;justify-content:space-between;"><button class="sc-btn sc-btn-ghost" id="pp-back">← Autre héros</button><span id="pp-err" style="color:#e88;font-size:13px;"></span></div>`;
+    box.querySelector('#pp-back').onclick = stepHero;
+    const grid = box.querySelector('#pp-grid');
+    regions.forEach(r=>{ const t = document.createElement('div'); t.innerHTML = tile(r.image, r.name, r.id===DEFAULT_REGION_ID ? '(défaut)' : (r.class||'')); t.firstChild.onclick = async ()=>{
+      const existing = LOADED_DECKS.find(d=>d.portail && d.heroId===h.id);
+      const res = await saveUserDeck({ id: existing && existing.id, name: 'Portail — ' + h.name, heroId: h.id, regionId: r.id, cards: [{ cardId: portalCard.id, count: 1 }], portail: true });
+      if(res.error){ box.querySelector('#pp-err').textContent = 'Erreur : ' + res.error; return; }
+      LOADED_DECKS = (await loadUserDecks()).filter(d=>d.portail);
+      CHOSEN_DECK_ID = res.id;
+      DECK_PAGE = 0;
+      close(); renderDeckGrid(); updateActionButtons();
+    }; grid.appendChild(t.firstChild); });
+  }
+  stepHero();
 }
 
 function setupLastDeckButton(){
@@ -466,6 +534,7 @@ function escapeHtmlLobby(s){ return (s||'').replace(/[&<>"']/g, m => ({'&':'&amp
 let LOBBY_MODE = 'mm';
 function lobbyModes(){
   const sub = sel => ((document.querySelector(sel)||{}).textContent||'').trim();
+  if(PORTAIL) return [{k:'mm', ic:'🌀', t:'Recherche de partie', s:sub('#btn-matchmaking .btn-sub'), main:1}];
   if(TAVERN) return [{k:'mm', ic:'🍺', t:'Recherche de partie', s:sub('#btn-matchmaking .btn-sub'), main:1}];
   const L = [
     {k:'mm', ic:'⚔️', t:'Recherche de partie', s:'Adversaire au hasard', main:1},
@@ -475,6 +544,7 @@ function lobbyModes(){
     {k:'sp', ic:'👁', t:'Regarder une partie', s:'Parties en cours'},
     {k:'tc', ic:'🍺', t:'La taverne', s:'Mode du week-end'}
   ];
+  if(PORTAIL_OPEN) L.push({k:'pp', ic:'🌀', t:'Portail planaire', s:'Mode temporaire'});
   return L;
 }
 function renderLobbyMenu(){
@@ -499,6 +569,7 @@ const LOBBY_INFO = {
   pv:['Partie privée','Crée une partie et partage le code à 6 caractères avec un ami.','🔑','Créer la partie','btn-create-private'],
   jn:['Rejoindre une partie','Entre le code que ton ami t\'a donné.','🚪','',''],
   sp:['Regarder une partie','Choisis une partie en cours à suivre en spectateur.','👁','',''],
+  pp:['🌀 Portail planaire','Mode temporaire : un héros de ta collection, un deck d\'une seule carte — le Portail planaire. Pas de pioche, pas de mulligan ; on ne meurt pas (1 PV) sauf coup d\'une carte légendaire ou d\'un Jeune poulain / pégase / licorne.','🌀','Entrer dans le Portail planaire','btn-portail'],
   tc:['🍺 La taverne','Le mode du week-end : un deck sans héros (3 couleurs max), le héros est tiré au hasard à chaque partie.','🍺','Entrer dans la taverne','btn-tavern']
 };
 function refreshShowcase(){
@@ -507,7 +578,8 @@ function refreshShowcase(){
   const k = LOBBY_MODE, I = LOBBY_INFO[k]; if(!I) return;
   const has = !!CHOSEN_DECK_ID;
   let title = I[0], desc = I[1], ic = I[2], label = I[3];
-  if(TAVERN){ title = '🍺 La taverne'; desc = 'Un deck sans héros : le héros est tiré au hasard à chaque partie. Adversaire au hasard.'; ic = '🍺'; }
+  if(PORTAIL){ title = '🌀 Portail planaire'; desc = 'Un deck d\'une seule carte, sans pioche ni mulligan. Adversaire au hasard.'; ic = '🌀'; }
+  else if(TAVERN){ title = '🍺 La taverne'; desc = 'Un deck sans héros : le héros est tiré au hasard à chaque partie. Adversaire au hasard.'; ic = '🍺'; }
   document.getElementById('show-title').textContent = title;
   let d = desc;
   if(k==='tc'){ const st = (document.getElementById('btn-tavern-sub')||{}).textContent||''; if(st) d += ' — ' + st; }
@@ -518,7 +590,7 @@ function refreshShowcase(){
   ji.classList.toggle('show', k==='jn');
   document.getElementById('btn-join-confirm').disabled = !has;
   document.getElementById('spectate-list-panel').classList.toggle('show', k==='sp');
-  const needsDeck = !(k==='sp'||k==='tc'||k==='sw');
+  const needsDeck = !(k==='sp'||k==='tc'||k==='sw'||k==='pp');
   const need = document.getElementById('show-need');
   if(needsDeck){
     const dk = LOADED_DECKS.find(x=>x.id===CHOSEN_DECK_ID);
@@ -527,11 +599,11 @@ function refreshShowcase(){
   } else { need.textContent = ''; need.className = ''; }
   const btn = document.getElementById('show-launch');
   const target = I[4];
-  if(!label || TAVERN && k!=='mm'){ btn.style.display = 'none'; }
+  if(!label || (TAVERN || PORTAIL) && k!=='mm'){ btn.style.display = 'none'; }
   else {
     btn.style.display = '';
-    if(TAVERN) { label = 'Lancer la recherche'; }
-    const legacyId = TAVERN ? 'btn-matchmaking' : target;
+    if(TAVERN || PORTAIL) { label = 'Lancer la recherche'; }
+    const legacyId = (TAVERN || PORTAIL) ? 'btn-matchmaking' : target;
     btn.textContent = label;
     const lb = document.getElementById(legacyId);
     btn.disabled = !!(lb && lb.disabled);
@@ -580,7 +652,8 @@ function wireActionButtons(){
   document.getElementById('btn-matchmaking').onclick = async ()=>{
     showLobbyError(''); closeInlinePanels();
     rememberLastDeck(CHOSEN_DECK_ID);
-    const res = await gsJoinMatchmaking(CHOSEN_DECK_ID, TAVERN ? 'taverne' : 'normal');
+    const res = await gsJoinMatchmaking(CHOSEN_DECK_ID, PORTAIL ? 'portail' : TAVERN ? 'taverne' : 'normal');
+    if(res.error==='mode-ferme' && PORTAIL) return showLobbyError('Le Portail planaire est fermé pour le moment.');
     if(res.error==='mode-ferme') return showLobbyError('La taverne est fermée : ' + SC_TAVERN_HOURS_LABEL + '.');
     if(res.error==='taverne-fermee') return showLobbyError('La taverne est fermée : ' + SC_TAVERN_HOURS_LABEL + '.');
     if(res.error) return showLobbyError('Erreur : ' + res.error);

@@ -111,6 +111,11 @@ let mulliganOverlayShown = false; // pour ne pas reconstruire (et perdre la sél
 function showMulliganOverlay(){
   if(mulliganOverlayShown) return;
   mulliganOverlayShown = true;
+  // Mode Portail planaire : pas de mulligan (une seule carte en main) — on garde la main automatiquement.
+  if(S && S.mode==='portail'){
+    runAction('Mulligan', ()=>gsMulligan([])).then(()=>{ mulliganOverlayShown = false; }, ()=>{ mulliganOverlayShown = false; });
+    return;
+  }
   mulliganMarked = new Set();
   const overlay = document.getElementById('mulligan-overlay');
   const cardsEl = document.getElementById('mulligan-cards');

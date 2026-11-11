@@ -725,3 +725,12 @@ Il charge EXACTEMENT les mêmes fichiers que la partie : `spellcraft-board-base.
 - `window.SC_BOARD_LAYOUT` : hauteur réservée à la bande de narration (lue par `updateBoardScale`, fichier 02) ;
 - `spellcraft-tutorial.css` (bande de narration, surbrillance, écran de fin) et `spellcraft-tutorial-engine.js` (scénario scripté qui remplace les appels réseau `gs*()`).
 Toute évolution du plateau est donc automatiquement dans le tutoriel.
+
+## Mode temporaire « Portail planaire » — 12/11/2026
+- **Règles** : un héros de la collection + une région ; deck d'UNE seule carte « Portail planaire » ; pas de pioche (ni au début du tour, ni de défaite par pioche sur deck vide ; une pioche par effet ne marche que si le deck contient au moins une carte) ; pas de mulligan (le client envoie « garder » automatiquement, le serveur ignore les cartes renvoyées) ; le reste est normal.
+- **Mort évitée** : en mode `portail`, `modifyHp` ramène à 1 PV tout héros qui tomberait à 0 ou moins, sauf si la source est une carte `isLegendary` ou « Jeune poulain », « Jeune pégase », « Jeune licorne » (variable `__lethalSrc`, posée par `runNewFormatAbilities` pour les capacités/sorts et par le 6e paramètre de `dealDamageToHero` pour les attaques). Une source inconnue n'est pas exemptée.
+- **Deck** : ligne `user_decks` avec `data.portail = true` (heroId, regionId, cards = [Portail planaire]). `resolveDeck` force la carte « Portail planaire » (cherchée par nom), saute la taille 30-45 ; `loadUserDecks` expose `portail` ; les listes de decks normales (collection, profil, lobby) les excluent.
+- **Accès** : `portailAllowed` (moteur) / `scPortailAvailable` (client) : ligne `app_flags` `portail_until` (value vraie ET `updated_at` = date de fermeture non dépassée), ou mode du week-end = `portail`, ou compte Kroquette. Ouvert jusqu'au 12/11/2026 02:00 (Paris) pour test. Pour rouvrir : `update app_flags set value = true, updated_at = '<date de fin>' where key = 'portail_until'`.
+- **File d'attente** : `matchmaking_queue.mode = 'portail'` ; état de partie `mode: 'portail'` ; `ranked_apply_match` l'ignore ; pas de récompense de booster. Ligne `weekend_modes` `portail` (désactivée : pas tirée au sort).
+- **Client** : lobby `?mode=portail` (choix héros puis région → `openPortailPicker`), entrée « Portail planaire » du menu seulement quand le mode est ouvert. Plateau : `showMulliganOverlay` passe automatiquement en mode portail.
+- Sauvegarde du moteur : table `_backup_game_action_chunks_20261112_portail` (état avant). Moteur v205.

@@ -211,8 +211,8 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>window.APP_TOPBAR_DISABLED = true;</script>
-<script src="spellcraft-shared.js?v=20261111k"></script>
-<script src="spellcraft-catalog.js"></script>
+<script src="spellcraft-shared.js?v=20261112a"></script>
+<script src="spellcraft-catalog.js?v=20261112a"></script>
 <script src="spellcraft-server-client.js"></script>
 <script src="spellcraft-auth.js"></script>
 <script>
@@ -412,7 +412,7 @@ async function secParties(){
 
 async function secDecks(){
   const cards = await pfCards();
-  PF.decks = await loadUserDecks();
+  PF.decks = (await loadUserDecks()).filter(d=>!d.portail);
   const stat = {}; ((PF.ex && PF.ex.decks) || []).forEach(d=>{ stat[d.deck] = d; });
   if(!PF.decks.length) return `<div class="pf-card">${pfHead('Mes decks')}<div class="pf-empty">Tu n'as pas encore construit de deck.</div></div>`;
   const rows = PF.decks.map((d,i)=>{
