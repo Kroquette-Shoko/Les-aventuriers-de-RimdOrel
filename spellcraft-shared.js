@@ -397,7 +397,7 @@ function scSetShowSkipButton(on){
 const SFX_OGG_FILES = new Set([
   'card-play-1','card-play-2','card-play-3','card-play-4',
   'card-slide-1','card-slide-2','card-slide-3','card-slide-4','card-slide-5',
-  'draw','draw-more','card-take','creature-arrive','turn-start','firsthand','mulligan','rare-drop',
+  'card-flip','draw','draw-more','card-take','creature-arrive','turn-start','firsthand','mulligan','rare-drop',
   'clic',
   'epic-drop','mythic-drop',
   'quest-loot',
