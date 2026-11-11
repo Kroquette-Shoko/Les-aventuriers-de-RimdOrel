@@ -471,28 +471,44 @@ async function loadHubWeekend(){
     else { hbSet('hb-mode-name', 'Pas de mode spécial'); hbSet('hb-mode-desc', ''); }
   }catch(e){ hbSet('hb-mode-name', '—'); }
 }
+let __hubQuestUser = null, __hubQuestAt = 0;
 async function loadHubQuest(userId){
+  if(userId) __hubQuestUser = userId;
+  __hubQuestAt = Date.now();
   const box = document.getElementById('hb-quest-title');
   try{
-    const { data: uq } = await sb.from('user_quests').select('quest_id,progress_count,completed,claimed,assigned_at').eq('user_id', userId).eq('claimed', false).order('assigned_at',{ascending:false}).limit(12);
-    if(!uq || !uq.length){ box.textContent = 'Aucune quête en cours'; return; }
-    const { data: defs } = await sb.from('quest_definitions').select('id,title,target_count').in('id', uq.map(q=>q.quest_id));
-    const byId = {}; (defs||[]).forEach(d=>{ byId[d.id] = d; });
-    const rows = uq.map(q=>({ q, d: byId[q.quest_id] })).filter(x=>x.d).map(x=>{
-      const t = Math.max(1, x.d.target_count||1); return { title: x.d.title, p: Math.min(t, x.q.progress_count||0), t, done: !!x.q.completed, ratio: Math.min(1,(x.q.progress_count||0)/t) };
+    // Même source que la page Quêtes : seulement les quêtes de la période en cours (jour / semaine), et attribution du jour si besoin.
+    const { data: res, error } = await sb.rpc('get_active_quests');
+    if(error || !res || !res.ok) throw (error || new Error('quêtes'));
+    const rows = (res.quests || []).filter(q=>!q.claimed).map(q=>{
+      const t = Math.max(1, q.target_count||1), p = Math.min(t, q.progress_count||0);
+      return { title: q.title, p, t, done: !!q.completed || p >= t, ratio: Math.min(1, p/t) };
     });
-    if(!rows.length){ box.textContent = 'Aucune quête en cours'; return; }
-    // Uniquement les quêtes en cours (pas terminées) : on montre la plus avancée
-    const active = rows.filter(r=>!r.done && r.ratio < 1);
-    if(!active.length){ box.textContent = 'Aucune quête en cours'; return; }
-    active.sort((a,b)=> b.ratio - a.ratio);
-    const x = active[0];
+    const active = rows.filter(r=>!r.done);
+    const toClaim = rows.filter(r=>r.done);
     box.innerHTML = '';
-    const a = document.createElement('a'); a.className = 'hb-quest-link'; a.href = 'spellcraft-quests.html'; a.textContent = x.title; box.appendChild(a);
-    document.getElementById('hb-quest-bar').style.width = Math.round(x.ratio*100) + '%';
-    hbSet('hb-quest-prog', x.p + ' / ' + x.t);
-  }catch(e){ box.textContent = '—'; }
+    if(active.length){
+      active.sort((a,b)=> b.ratio - a.ratio);
+      const x = active[0];
+      const a = document.createElement('a'); a.className = 'hb-quest-link'; a.href = 'spellcraft-quests.html'; a.textContent = x.title; box.appendChild(a);
+      document.getElementById('hb-quest-bar').style.width = Math.round(x.ratio*100) + '%';
+      hbSet('hb-quest-prog', x.p + ' / ' + x.t + (toClaim.length ? ' · ' + toClaim.length + ' récompense' + (toClaim.length>1?'s':'') + ' à récupérer' : ''));
+    } else if(toClaim.length){
+      const a = document.createElement('a'); a.className = 'hb-quest-link'; a.href = 'spellcraft-quests.html'; a.textContent = '🎁 ' + toClaim.length + ' récompense' + (toClaim.length>1?'s':'') + ' à récupérer'; box.appendChild(a);
+      document.getElementById('hb-quest-bar').style.width = '100%';
+      hbSet('hb-quest-prog', 'Quêtes terminées');
+    } else {
+      box.textContent = 'Aucune quête en cours';
+      document.getElementById('hb-quest-bar').style.width = '0%';
+      hbSet('hb-quest-prog', '');
+    }
+  }catch(e){ console.error('hub quête', e); box.textContent = '—'; }
 }
+// Remet la quête à jour quand on revient sur le menu (retour depuis une partie ou une autre page, onglet réaffiché).
+function hubQuestRefresh(){ if(__hubQuestUser && Date.now() - __hubQuestAt > 3000) loadHubQuest(); }
+document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) hubQuestRefresh(); });
+window.addEventListener('pageshow', (e)=>{ if(e.persisted) loadHubQuest(); else hubQuestRefresh(); });
+window.addEventListener('focus', hubQuestRefresh);
 // Poussière dorée (désactivée si l'utilisateur préfère moins d'animations)
 (function(){
   const c = document.getElementById('hub-dust'); if(!c) return;
