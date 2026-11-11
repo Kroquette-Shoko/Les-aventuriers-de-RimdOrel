@@ -332,6 +332,24 @@ header .spacer{flex:1;}
 .modal-box textarea{width:100%;flex:1;min-height:260px;background:var(--bg-panel-2);border:1px solid hsl(calc(var(--th, 252) - 1.6) calc(var(--ts-n, 1) * 31.5%) 28.6%);color:var(--parchment);border-radius:8px;padding:12px;font-family:'Menlo',monospace;font-size:12px;resize:vertical;}
 .modal-actions{display:flex;gap:8px;justify-content:flex-end;}
 
+
+/* ---------- Éditeur pas à pas ---------- */
+#ed-workbench{flex-direction:column;}
+#ed-workbench #ed-rail{flex:none;flex-direction:row;gap:0;padding:0;background:none;border-right:none;border-bottom:1px solid hsl(calc(var(--th, 252) + 3) calc(var(--ts-n, 1) * 28%) 19.6%);}
+#ed-workbench #ed-rail .ed-tab{flex:1;justify-content:center;border-radius:0;border:none;border-right:1px solid hsl(calc(var(--th, 252) + 3) calc(var(--ts-n, 1) * 28%) 19.6%);padding:13px 6px;font-family:'Cinzel',serif;font-size:13px;background:var(--bg-panel-2);}
+#ed-workbench #ed-rail .ed-tab:last-child{border-right:none;}
+#ed-workbench #ed-rail .ed-tab.active{background:var(--gold);color:#1a1405;}
+#ed-workbench #ed-rail .ed-tab.done{color:var(--gold);}
+.ed-num{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;border:1px solid currentColor;font-size:11px;font-family:'Inter',sans-serif;}
+#pane-type .type-tabs{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px;margin-bottom:12px;}
+#pane-type .type-tab{padding:18px 8px;border-radius:12px;text-align:center;font-family:'Cinzel',serif;font-size:14px;}
+#pane-type .type-tab .tt-ic{display:block;font-size:30px;margin-bottom:4px;}
+#ed-stepnav{display:flex;gap:8px;justify-content:space-between;margin-top:20px;}
+#resume-box .rs-line{display:flex;gap:10px;padding:7px 0;border-bottom:1px solid hsl(calc(var(--th, 252) + 3) calc(var(--ts-n, 1) * 28%) 19.6%);font-size:13.5px;}
+#resume-box .rs-k{flex:0 0 130px;color:var(--parchment-dim);font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;padding-top:2px;}
+#resume-box .rs-v{flex:1;min-width:0;white-space:pre-wrap;}
+#resume-box .rs-go{color:var(--gold);cursor:pointer;font-size:12px;background:none;border:none;font-family:inherit;}
+
 /* ---------- Nouvelle mise en page de la page Cartes ---------- */
 .hint{font-size:11.5px;color:var(--parchment-dim);line-height:1.45;}
 #body{max-width:1500px;}
@@ -393,15 +411,21 @@ header .spacer{flex:1;}
     <div id="ed-main">
 
       <div class="panel" id="ed-workbench">
-        <nav id="ed-rail" aria-label="Sections de la carte">
-          <button type="button" class="ed-tab active" data-tab="identite"><span class="ed-ic">🪪</span><span>Identité</span></button>
-          <button type="button" class="ed-tab" data-tab="illustration"><span class="ed-ic">🖼️</span><span>Illustration</span></button>
-          <button type="button" class="ed-tab" data-tab="capacites"><span class="ed-ic">⚡</span><span>Capacités</span></button>
+        <nav id="ed-rail" aria-label="Étapes de la carte">
+          <button type="button" class="ed-tab active" data-tab="type"><span class="ed-num">1</span><span>Type</span></button>
+          <button type="button" class="ed-tab" data-tab="identite"><span class="ed-num">2</span><span>Identité</span></button>
+          <button type="button" class="ed-tab" data-tab="illustration"><span class="ed-num">3</span><span>Illustration</span></button>
+          <button type="button" class="ed-tab" data-tab="capacites"><span class="ed-num">4</span><span>Capacités</span></button>
+          <button type="button" class="ed-tab" data-tab="resume"><span class="ed-num">5</span><span>Résumé</span></button>
         </nav>
         <div id="ed-panes">
-          <section class="ed-pane active" id="pane-identite">
-            <h2>Identité</h2>
-<div class="type-tabs" id="type-tabs"></div>
+          <section class="ed-pane active" id="pane-type">
+            <h2>Quel type de carte ?</h2>
+            <div class="type-tabs" id="type-tabs"></div>
+            <div class="hint">Le type change les champs proposés aux étapes suivantes (coût, attaque, PV, capacités…).</div>
+          </section>
+          <section class="ed-pane" id="pane-identite">
+            <h2>Qui est-elle ?</h2>
 <div class="field">
           <label>Nom</label>
           <input type="text" id="f-name" placeholder="Ex : Sentinelle de Pierre" oninput="onFormChange()">
@@ -600,7 +624,7 @@ header .spacer{flex:1;}
         </div>
           </section>
           <section class="ed-pane" id="pane-illustration">
-            <h2>Illustration</h2>
+            <h2>Son illustration</h2>
 <div id="variant-banner" style="display:none;background:hsl(calc(var(--th, 252) + 2.6) calc(var(--ts-n, 1) * 35.9%) 20.2%);border:2px solid var(--gold);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
           <div style="font-family:'Cinzel',serif;color:var(--gold);font-size:13px;margin-bottom:8px;">🎨 Mode variante d'illustration</div>
           <div style="font-size:11.5px;color:var(--parchment-dim);margin-bottom:8px;">Tu modifies <b>uniquement l'illustration et son cadrage</b> (champ Image et curseurs ci-dessous). La carte elle-même n'est pas modifiée, et le bouton « Enregistrer » de la carte est désactivé tant que tu es dans ce mode.</div>
@@ -711,7 +735,7 @@ header .spacer{flex:1;}
     </div>
           </section>
           <section class="ed-pane" id="pane-capacites">
-            <h2>Capacités</h2>
+            <h2>Ses capacités</h2>
 <div class="field" id="f-keywords-wrap" style="display:none">
           <label>Mots-clés</label>
           <div class="keyword-grid" id="keyword-grid"></div>
@@ -775,6 +799,14 @@ header .spacer{flex:1;}
 
     </div>
           </section>
+          <section class="ed-pane" id="pane-resume">
+            <h2>Résumé</h2>
+            <div id="resume-box"></div>
+          </section>
+          <div id="ed-stepnav">
+            <button type="button" class="btn" id="step-prev" onclick="edStep(-1)">‹ Précédent</button>
+            <button type="button" class="btn primary" id="step-next" onclick="edStep(1)">Suivant ›</button>
+          </div>
         </div>
       </div>
 
@@ -1892,7 +1924,8 @@ function buildTypeTabs(){
   CARD_TYPES.forEach(t=>{
     const tab = document.createElement('div');
     tab.className = 'type-tab' + (t===currentType?' active':'');
-    tab.textContent = t;
+    const TT_IC = {'Héros':'🦸','Région':'🏞️','Créature':'🐾','Artefact':'⚙️','Sortilège':'✨','Piège':'🪤','Rituel':'🕯️'};
+    tab.innerHTML = `<span class="tt-ic">${TT_IC[t]||'🃏'}</span>${escapeHtml(t)}`;
     tab.onclick = ()=>{ currentType = t; refreshFormVisibility(); rebuildAbilitiesUI(); onFormChange(); buildTypeTabs(); };
     wrap.appendChild(tab);
   });
@@ -5709,6 +5742,7 @@ function readForm(){
 }
 
 function loadCardIntoForm(card){
+  try{ edTab('identite'); }catch(e){}
   variantMode = null; hideVariantBanner(); setTimeout(refreshVariantsPanel, 0);
   migrateCard(card);
   editingId = card.id;
@@ -5802,6 +5836,7 @@ function loadCardIntoForm(card){
 }
 
 function newCard(){
+  try{ edTab('type'); }catch(e){}
   artReset();
   variantMode = null; hideVariantBanner(); setTimeout(refreshVariantsPanel, 0);
   editingId = null;
@@ -6912,10 +6947,41 @@ async function initEditorData(){
   await loadCards();
 }
 // Barre Atelier + choix de la page (cartes / cadrage des héros) d'après l'adresse (#heros).
+const ED_STEPS = ['type','identite','illustration','capacites','resume'];
+let edStepCur = 'type';
 function edTab(name){
-  document.querySelectorAll('.ed-tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  edStepCur = name;
+  const idx = ED_STEPS.indexOf(name);
+  document.querySelectorAll('.ed-tab').forEach(b=>{
+    b.classList.toggle('active', b.dataset.tab===name);
+    b.classList.toggle('done', ED_STEPS.indexOf(b.dataset.tab) < idx);
+  });
   document.querySelectorAll('.ed-pane').forEach(p=>p.classList.toggle('active', p.id==='pane-'+name));
+  document.getElementById('step-prev').style.visibility = idx===0 ? 'hidden' : 'visible';
+  document.getElementById('step-next').style.visibility = idx===ED_STEPS.length-1 ? 'hidden' : 'visible';
+  if(name==='resume') renderResume();
 }
+function edStep(d){
+  const i = Math.max(0, Math.min(ED_STEPS.length-1, ED_STEPS.indexOf(edStepCur)+d));
+  edTab(ED_STEPS[i]);
+  const w = document.getElementById('ed-workbench'); if(w) w.scrollIntoView({block:'nearest', behavior:'smooth'});
+}
+function renderResume(){
+  const c = readForm();
+  const box = document.getElementById('resume-box');
+  const line = (k, v, step)=>`<div class="rs-line"><div class="rs-k">${k}</div><div class="rs-v">${v}</div>${step?`<button type="button" class="rs-go" onclick="edTab('${step}')">modifier</button>`:''}</div>`;
+  const src = [c.class, c.classSecondary].filter(Boolean).join(' / ');
+  let h = line('Type', escapeHtml(c.type), 'type') + line('Nom', escapeHtml(c.name), 'identite') + line('Source', escapeHtml(src||'—'), 'identite') + line('Rareté', escapeHtml(c.rarity||'—'), 'identite');
+  if(c.cost!=null) h += line('Coût', String(c.cost), 'identite');
+  if(c.type==='Créature') h += line('Attaque / PV', `${c.atk ?? 0} / ${c.hp ?? 0}`, 'identite');
+  else if(c.type==='Héros') h += line('PV', String(c.hp ?? 0), 'identite');
+  if((c.subtypes||[]).length) h += line('Sous-types', escapeHtml(c.subtypes.join(', ')), 'identite');
+  h += line('Illustration', c.image ? 'Image définie' : 'Aucune image', 'illustration');
+  h += line('Texte de la carte', escapeHtml(c.text || '—'), 'capacites');
+  h += '<div class="hint" style="margin-top:12px">Vérifie l\'aperçu à droite, puis clique sur « Enregistrer » en bas.</div>';
+  box.innerHTML = h;
+}
+edTab('type');
 document.getElementById('ed-rail').addEventListener('click', e=>{ const b=e.target.closest('.ed-tab'); if(b) edTab(b.dataset.tab); });
 function applyEditorHash(){
   if(location.hash === '#heros'){ location.replace('spellcraft-atelier-annonce.html'); return; }
