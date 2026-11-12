@@ -67,10 +67,16 @@
     // L'illustration doit bouger DANS la fenêtre découpée par le cadre : on la déplace
     // dans un enfant (le calque garde sa forme et son découpage).
     var art = root.querySelector('.nart-layer');
-    if(!art || art.children.length) return;
+    if(!art || art.querySelector(':scope > .nart-in')) return;
+    var inner = document.createElement('div'); inner.className = 'nart-in';
+    if(art.children.length){
+      // Cadrage libre (éditeur) : l'image est déjà dans un sous-calque (.nart-free) -> on l'enveloppe tel quel.
+      while(art.firstChild) inner.appendChild(art.firstChild);
+      art.appendChild(inner);
+      return;
+    }
     var cs = art.style;
     if(!cs.backgroundImage) return;
-    var inner = document.createElement('div'); inner.className = 'nart-in';
     inner.style.backgroundImage = cs.backgroundImage;
     inner.style.backgroundPosition = cs.backgroundPosition || '50% 50%';
     inner.style.backgroundSize = cs.backgroundSize || 'cover';
