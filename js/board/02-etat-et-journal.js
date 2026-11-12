@@ -572,7 +572,10 @@ function renderGameLog(){
       // Créature posée (déjà sur le plateau) : pose animée petite, sans grande carte au milieu
       // Sort avec cibles visibles : la carte devient un orbe qui part vers elles (voir
       // playSpellOrb). Les flèches de capacité vers ces mêmes cibles ne sont alors pas rejouées.
-      const spellOrbTargets = (entry.kind==='play' && full && full.type==='Sortilège' && window.BFX && !entry.faille)
+      // Don spécial (voir spellcraft-board-fx-dons.js) : animation dédiée à la place de l'orbe et des flèches
+      const donKey = (entry.kind==='play' && full && full.type==='Sortilège' && window.BFXDONS && !entry.faille) ? BFXDONS.keyOf(full.name) : null;
+      const donTargetIds = donKey ? Array.from(new Set((entry.effects||[]).flatMap(eff=>eff.targetInstIds||[]).filter(id=>id && id!==entry.sourceInstId))) : [];
+      const spellOrbTargets = (!donKey && entry.kind==='play' && full && full.type==='Sortilège' && window.BFX && !entry.faille)
         ? planSpellOrbTargets(entry) : [];
       const spellOrbIds = new Set(spellOrbTargets.map(t=>t.id));
       let landed = false;
@@ -597,6 +600,14 @@ function renderGameLog(){
           return playCardFlipReveal(fullAtAnimTime, {isTrap: entry.kind==='trap', isSpell: fullAtAnimTime.type==='Sortilège', backUrl: ownerBackUrl, fxMine: entry.ownerKey===MY_KEY, orbTargets: spellOrbTargets}).then(()=>{
             // (le tremblement des créatures de 10 de force ou plus est joué par BFX à leur arrivée sur le plateau)
           });
+        });
+      }
+
+      if(donKey && !combatInstant()){
+        queueCombatAnim(()=>{
+          const els = donTargetIds.map(resolveLogTargetEl).filter(Boolean);
+          if(donKey==='savoir') return BFXDONS.play('savoir', [], entry.castCards || []);
+          return BFXDONS.play(donKey, els);
         });
       }
 
@@ -641,6 +652,7 @@ function renderGameLog(){
         const isDeath = /meurt au combat|est détruite|^détruit "|^sacrifie "/i.test(eff.text||'');
         (eff.targetInstIds||[]).forEach(targetInstId=>{
           if(!isDeath && spellOrbIds.has(targetInstId)) return; // déjà atteinte par l'orbe du sort
+          if(donKey && !isDeath) return; // Don spécial : animation dédiée déjà en file
           queueCombatAnim(()=>{
             if(isDeath) return playCardDeathAnim(targetInstId);
             const sourceEl = resolveLogSourceEl(entry);
