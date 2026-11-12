@@ -734,3 +734,17 @@ Toute évolution du plateau est donc automatiquement dans le tutoriel.
 - **File d'attente** : `matchmaking_queue.mode = 'portail'` ; état de partie `mode: 'portail'` ; `ranked_apply_match` l'ignore ; pas de récompense de booster. Ligne `weekend_modes` `portail` (désactivée : pas tirée au sort).
 - **Client** : lobby `?mode=portail` (choix héros puis région → `openPortailPicker`), entrée « Portail planaire » du menu seulement quand le mode est ouvert. Plateau : `showMulliganOverlay` passe automatiquement en mode portail.
 - Sauvegarde du moteur : table `_backup_game_action_chunks_20261112_portail` (état avant). Moteur v205.
+
+## Éditeur — briques des dieux d'Un'Gara (2026-11-12) — ÉDITEUR SEULEMENT, moteur à faire
+Champs enregistrés dans les cartes (le moteur ne les applique pas encore) :
+- Effets : `scry` (Présage X), `imprison` (+ `imprisonReturn` owner/you), `manaSpendPenalty` (+ `penaltyOwner`, `penaltyDuration` thisTurn/nextTurn), `addCounters` (+ `counterName`), `preventRevive` (+ `preventReviveOwner`).
+- `stun.stunDuration` : nextTurn (défaut) / whileSourceInPlay (entrave).
+- Durées `untilYourNextTurn` pour buff/weaken (`durationMode`) et grantKeyword (`grantKeywordDuration`).
+- Choix d'effet : `ab.choiceChooser` player (défaut) / random / opponent.
+- Déclencheurs « De qui ? » : `watchPlayCard` (filtre `watchCardType`), `watchHeroDamage`, `watchStunned` (filtrable).
+- Coût additionnel `removeCounters` (+ `extraCostAmount`, `extraCostCounterName`).
+- Valeurs dynamiques : `targetSharedSubtypeAllies`, `thisCounters`, `enemyStunnedThisGame`.
+- Condition `dynamicCompare` (`dynLeft`, `compareMode`, valeur).
+- Filtres de cible : `arrivedBeforeTurnFilter`, `atkAboveCostFilter`, `atkBelowCostFilter`.
+- Récupération : critère `top` (carte du dessus). Réduction de coût : `reduceCostSelectionMode: 'self'`.
+- Mots-clés (shared.js) : `mustAttack` (Belliqueux), `endormi` (Endormi).

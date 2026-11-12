@@ -48,7 +48,10 @@ const KEYWORDS = [
   {key:'cycle', label:'Cycle', desc:"Au lieu d'aller au cimetière, est remélangée dans votre deck (après résolution pour un sort, à la mort pour une créature). Une seule fois : elle revient sans Cycle."},
   {key:'assault', label:'Assault', desc:"Étiquette de suivi sans effet de jeu — sert à filtrer/traquer la carte (ex: à la conjuration)."},
   {key:'debut', label:'Arrivée', desc:"Étiquette de suivi sans effet de jeu — sert à filtrer/traquer la carte (ex: à la conjuration)."},
-  {key:'final', label:'Final', desc:"Étiquette de suivi sans effet de jeu — sert à filtrer/traquer la carte (ex: à la conjuration)."}
+  {key:'final', label:'Final', desc:"Étiquette de suivi sans effet de jeu — sert à filtrer/traquer la carte (ex: à la conjuration)."},
+  // Dieux d'Un'Gara
+  {key:'mustAttack', label:'Belliqueux', desc:"Doit attaquer à chaque tour si elle le peut."},
+  {key:'endormi', label:'Endormi', desc:"Ne peut ni attaquer, ni bloquer, ni être ciblée. Se retire avec un effet « retire un mot-clé »."}
 ];
 
 /* ============================================================

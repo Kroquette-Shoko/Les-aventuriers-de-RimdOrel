@@ -908,7 +908,7 @@ header .spacer{flex:1;}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="spellcraft-shared.js?v=20261112g"></script>
+<script src="spellcraft-shared.js?v=20261112h"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js?v=20261112g"></script>
 <script src="spellcraft-atelier-nav.js"></script>
@@ -921,7 +921,9 @@ header .spacer{flex:1;}
 
 const WATCH_TRIGGERS = ['watchPlay','watchArrival','watchDeath','watchAttack','watchDamaged','watchHealed','watchHeroHealed','watchSpell','watchTrap','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchAfterReveal','watchReveal','watchExplore','watchRetrieveDiscard','watchRetrieveDeck','watchTargeted','watchDiscovered','watchDrawFromOpponentDeck','watchHeroPowerActivated','watchArtifactActivated','onTargeted',
   // Set « La guerre élémentaire »
-  'watchFaille','watchFaillePlayed','watchCycle','watchSacrifice','watchOffering','watchDevotion','watchRitualMana','watchRitualComplete','watchEdificeAttacked'];
+  'watchFaille','watchFaillePlayed','watchCycle','watchSacrifice','watchOffering','watchDevotion','watchRitualMana','watchRitualComplete','watchEdificeAttacked',
+  // Dieux d'Un'Gara
+  'watchPlayCard','watchHeroDamage','watchStunned'];
 // Textes « de qui ? » des déclencheurs du set (vous / votre adversaire / les deux)
 const SET_WATCH_TEXT = {
   watchFaille: {ally:'Quand une de vos Failles se déclenche', enemy:'Quand votre adversaire déclenche une Faille', both:'Quand une Faille se déclenche'},
@@ -932,7 +934,10 @@ const SET_WATCH_TEXT = {
   watchDevotion: {ally:'Quand votre Dévotion augmente', enemy:'Quand la Dévotion adverse augmente', both:'Quand une Dévotion augmente'},
   watchRitualMana: {ally:'Quand vous versez du mana dans votre Rituel', enemy:'Quand votre adversaire verse du mana dans son Rituel', both:'Quand du mana est versé dans un Rituel'},
   watchRitualComplete: {ally:'Quand votre Rituel est accompli', enemy:'Quand le Rituel adverse est accompli', both:'Quand un Rituel est accompli'},
-  watchEdificeAttacked: {ally:'Quand un de vos Édifices est attaqué', enemy:'Quand un Édifice adverse est attaqué', both:'Quand un Édifice est attaqué'}
+  watchEdificeAttacked: {ally:'Quand un de vos Édifices est attaqué', enemy:'Quand un Édifice adverse est attaqué', both:'Quand un Édifice est attaqué'},
+  watchPlayCard: {ally:'Quand vous jouez une carte', enemy:'Quand votre adversaire joue une carte', both:'Quand un joueur joue une carte'},
+  watchHeroDamage: {ally:'Quand une de vos créatures inflige des blessures au héros adverse', enemy:'Quand une créature adverse inflige des blessures à votre héros', both:'Quand une créature inflige des blessures à un héros'},
+  watchStunned: {ally:'Quand une de vos créatures est étourdie', enemy:'Quand une créature ennemie est étourdie', both:'Quand une créature est étourdie'}
 };
 
 const TRIGGERS_BY_TYPE = {
@@ -1041,7 +1046,10 @@ const TRIGGER_TEXT = {
   watchDevotion: 'Quand la Dévotion augmente',
   watchRitualMana: 'Quand du mana est versé dans un Rituel',
   watchRitualComplete: 'Quand un Rituel est accompli',
-  watchEdificeAttacked: 'Quand un Édifice est attaqué'
+  watchEdificeAttacked: 'Quand un Édifice est attaqué',
+  watchPlayCard: 'Quand une carte est jouée',
+  watchHeroDamage: 'Quand une créature inflige des blessures à un héros',
+  watchStunned: 'Quand une créature est étourdie'
 };
 // Déclencheurs écrits comme une étiquette (« Faille : … », « Offrande : … ») sur le texte de la carte
 const LABEL_TRIGGERS = ['inDeckStartOfTurn','offering'];
@@ -1092,11 +1100,12 @@ const CONDITION_TYPES = [
   {key:'failleAllyTurn', label:'Au moins X de vos Failles se sont déclenchées ce tour-ci', hasValue:true, valueType:'number'},
   {key:'enemyFailleLastTurn', label:'Votre adversaire a déclenché au moins X Failles à son dernier tour', hasValue:true, valueType:'number'},
   {key:'edificeInPlay', label:'Vous contrôlez au moins X Édifices', hasValue:true, valueType:'number'},
+  {key:'dynamicCompare', label:'Une valeur (compteur) est [comparaison] X', hasValue:true, isDynamicCompare:true},
   {key:'custom', label:'⚠ Condition personnalisée (texte libre)', hasValue:true, valueType:'text'}
 ];
 /* Groupes d'affichage du menu « Condition » (l'ordre des clés = ordre dans le groupe) */
 const COND_GROUPS = [
-  ['Ressources et comparaisons', ['resourceCompare','playerCompare','subtypeCount','cardNameInPlay','deckComposition']],
+  ['Ressources et comparaisons', ['resourceCompare','playerCompare','subtypeCount','cardNameInPlay','deckComposition','dynamicCompare']],
   ['Ce tour-ci', ['healthChange','drawnThisTurn','countThisTurn','selfDrawnThisTurn','hpLostLastTurn','manaNotFromRegion']],
   ['Cartes et créatures', ['statCompare','targetHasKeyword','creatureState','deadCreatureCause','deadCreatureSubtype','playedCardCost','playedCardType']],
   ['Timing et hasard', ['turnAtLeast','turnParity','chance','whileInHand','whileYourTurn']],
@@ -1113,6 +1122,7 @@ const EFFECT_GROUPS = [
   ['Créatures et plateau', ['destroy','stun','bounce','sacrificeEffect','removeFromCombat','summonCopy','transformCard','stealCreature','fight','destroyDealAtk','reviveDestroyedLastTurn','redirectTarget']],
   ['Artefacts et pièges', ['removeArtifactCharges','destroySelf','addCharges','exhaustArtifact','disarmTraps','counterCard']],
   ['Spécial', ['extraCombat','coinFlip','doubleTrigger','doubleEffectsTrigger','custom']],
+  ['Dieux d\'Un\'Gara', ['scry','imprison','manaSpendPenalty','addCounters','preventRevive']],
   ['La guerre élémentaire', ['doubleVorace','discoverCycle','failleExtraZone','doubleFaille','triggerFailles','addDevotion','blessGods','shuffleIntoDeck','addRitualMana','removeRitualMana','destroyRitual','repairEdifice','reanimateUnderControl']]
 ];
 
@@ -1187,7 +1197,13 @@ const EFFECT_TYPES = [
   {key:'removeRitualMana', label:'Rituel : retire X mana du Rituel adverse', needsTarget:false, needsValue:true},
   {key:'destroyRitual', label:'Rituel : détruit le Rituel adverse', needsTarget:false, needsValue:false},
   {key:'repairEdifice', label:'Édifice : restaure X Endurance à un Édifice', needsTarget:true, needsValue:true},
-  {key:'reanimateUnderControl', label:'Met en jeu de votre côté la cible (créature en défausse ou dans un deck, ex. « la créature sacrifiée »)', needsTarget:true}
+  {key:'reanimateUnderControl', label:'Met en jeu de votre côté la cible (créature en défausse ou dans un deck, ex. « la créature sacrifiée »)', needsTarget:true},
+  // Dieux d'Un'Gara
+  {key:'scry', label:'Présage : regardez les X premières cartes de votre deck et remettez-les dans l\'ordre de votre choix', needsTarget:false, needsValue:true},
+  {key:'imprison', label:'Emprisonne la cible (exilée tant que cette carte est en jeu, puis elle revient)', needsTarget:true, needsValue:false, isImprison:true},
+  {key:'manaSpendPenalty', label:'Pénalité de mana : chaque mana dépensé par un joueur lui inflige X dégâts (pendant une durée)', needsTarget:false, needsValue:true, isManaPenalty:true},
+  {key:'addCounters', label:'Place X marqueurs (ex : âmes) sur cette carte', needsTarget:false, needsValue:true, isCounters:true},
+  {key:'preventRevive', label:'Empêche les créatures d\'un camp de revenir en jeu depuis la défausse (capacité continue)', needsTarget:false, needsValue:false, isPreventRevive:true}
 ];
 
 const EXPLORE_OWNERS = [
@@ -1210,6 +1226,7 @@ const RETRIEVE_REPEAT = [
 ];
 const RETRIEVE_CRITERIA = [
   {key:'random', label:'Au hasard', hasValue:false},
+  {key:'top', label:'La carte du dessus', hasValue:false},
   {key:'costExact', label:'Coût de mana exact', hasValue:true, valueType:'number'},
   {key:'costLess', label:'Coût de mana inférieur ou égal à', hasValue:true, valueType:'number'},
   {key:'costMore', label:'Coût de mana supérieur ou égal à', hasValue:true, valueType:'number'},
@@ -1330,7 +1347,11 @@ const DYNAMIC_VALUES = [
   {key:'sacrificedHp', label:'= Endurance de la créature sacrifiée (Offrande)'},
   {key:'sacrificedCost', label:'= coût de mana de la créature sacrifiée (Offrande)'},
   {key:'ritualMana', label:'= mana versé dans votre Rituel'},
-  {key:'edificesInPlay', label:"= nombre d'Édifices que vous contrôlez"}
+  {key:'edificesInPlay', label:"= nombre d'Édifices que vous contrôlez"},
+  // Dieux d'Un'Gara
+  {key:'targetSharedSubtypeAllies', label:"= nombre d'autres créatures alliées qui partagent un sous-type avec la cible"},
+  {key:'thisCounters', label:'= nombre de marqueurs sur cette carte'},
+  {key:'enemyStunnedThisGame', label:'= nombre de créatures ennemies étourdies cette partie'}
 ];
 
 const DYNAMIC_VALUE_ZONES = [['playedThisTurn','Jouée(s) ce tour-ci'],['board','En jeu'],['hand','En main'],['discard','En défausse']];
@@ -2299,7 +2320,10 @@ function buildTargetsSectionUI(ab, targetsArray, choiceKey, heading){
     if(tgt.targetCategory==='creature' || tgt.targetCategory==='hero_creature'){
       [['woundedFilter','Uniquement les créatures blessées (PV sous leur maximum)'],
        ['notAttackedFilter',"Uniquement les créatures qui n'ont pas encore attaqué ce tour-ci"],
-       ['devotionGodFilter','Uniquement les dieux de la Dévotion']].forEach(([k,l])=>{
+       ['devotionGodFilter','Uniquement les dieux de la Dévotion'],
+       ['arrivedBeforeTurnFilter','Uniquement les créatures en jeu depuis avant ce tour (pas arrivées ce tour-ci)'],
+       ['atkAboveCostFilter','Uniquement les créatures dont la Force est supérieure à leur coût'],
+       ['atkBelowCostFilter','Uniquement les créatures dont la Force est inférieure à leur coût']].forEach(([k,l])=>{
         const tg = document.createElement('label');
         tg.className='evolve-toggle';
         tg.innerHTML = `<input type="checkbox" ${tgt[k]?'checked':''}> ${l}`;
@@ -2534,7 +2558,7 @@ const TB_BUFF_KINDS = [
   {key:'keywordLoss', label:'Perd ses mots-clés (réduite au silence)', text:'perd ses mots-clés'},
   {key:'any',         label:"N'importe lequel de ces changements", text:'reçoit un bonus ou un malus'}
 ];
-const TB_FILTERABLE = ['watchPlay','watchArrival','watchDeath','watchAttack','watchDamaged','watchHealed','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchTargeted','watchFaille','watchFaillePlayed','watchCycle','watchSacrifice'];
+const TB_FILTERABLE = ['watchPlay','watchArrival','watchDeath','watchAttack','watchDamaged','watchHealed','watchBuffed','watchFromDiscard','watchFromDeck','watchConjured','watchTargeted','watchFaille','watchFaillePlayed','watchCycle','watchSacrifice','watchPlayCard','watchStunned'];
 const TB_MOMENTS = [
   {k:'arrival', label:'Arrivée', leaves:[{key:'onPlay'}]},
   {k:'final', label:'Final', leaves:[{key:'onDeath'}]},
@@ -2592,7 +2616,10 @@ const TB_MOMENTS = [
       {key:'watchHeroPowerActivated', label:'un héros déclenche son pouvoir'}, {key:'watchExplore', label:'un joueur explore'},
       {key:'watchReveal', label:'un joueur révèle'}, {key:'watchAfterReveal', label:'une carte arrive après avoir été révélée'},
       {key:'watchDiscovered', label:'vous découvrez une carte'}, {key:'watchRetrieveDiscard', label:'une carte est récupérée depuis la défausse'},
-      {key:'watchRetrieveDeck', label:'une carte est récupérée depuis le deck'}, {key:'watchDrawFromOpponentDeck', label:'vous piochez dans le deck adverse'}
+      {key:'watchRetrieveDeck', label:'une carte est récupérée depuis le deck'}, {key:'watchDrawFromOpponentDeck', label:'vous piochez dans le deck adverse'},
+      {key:'watchPlayCard', label:'une carte est jouée, de n\'importe quel type (voir « De qui ? »)'},
+      {key:'watchHeroDamage', label:'une créature inflige des blessures à un héros (voir « De qui ? »)'},
+      {key:'watchStunned', label:'une créature est étourdie (voir « De qui ? »)'}
     ]},
     {k:'g_vorace', label:'Voracité', leaves:[
       {key:'voracity', label:"Voracité : au début de votre tour (si votre adversaire a dépensé du mana à son tour)"},
@@ -2924,7 +2951,7 @@ function buildTriggerEntryBox(te, tIdx, totalCount, availableTriggers, onRemove)
       ecTypeField.className='field';
       ecTypeField.innerHTML = `<label class="mini-field">Type de coût</label>`;
       const ecSel = document.createElement('select');
-      sortTuples([['sacrificeCreature','Sacrifier une créature alliée'],['discardCard','Défausser une carte'],['loseLife','Perdre des PV'],['custom','⚠ Personnalisé (texte libre)']]).forEach(([k,l])=>{
+      sortTuples([['sacrificeCreature','Sacrifier une créature alliée'],['discardCard','Défausser une carte'],['loseLife','Perdre des PV'],['removeCounters','Retirer des marqueurs de cette carte'],['custom','⚠ Personnalisé (texte libre)']]).forEach(([k,l])=>{
         const opt=document.createElement('option'); opt.value=k; opt.textContent=l;
         if(k===te.extraCostType) opt.selected=true;
         ecSel.appendChild(opt);
@@ -2940,6 +2967,20 @@ function buildTriggerEntryBox(te, tIdx, totalCount, availableTriggers, onRemove)
         inp.type='number'; inp.min=1; inp.max=20; inp.value=te.extraCostAmount||1;
         inp.oninput=()=>{ te.extraCostAmount=parseInt(inp.value)||1; onFormChange(); };
         f.appendChild(inp); ecRow.appendChild(f);
+      }
+      if(te.extraCostType==='removeCounters'){
+        const f = document.createElement('div');
+        f.className='field'; f.innerHTML=`<label class="mini-field">Nombre de marqueurs</label>`;
+        const inp = document.createElement('input');
+        inp.type='number'; inp.min=1; inp.max=20; inp.value=te.extraCostAmount||1;
+        inp.oninput=()=>{ te.extraCostAmount=parseInt(inp.value)||1; onFormChange(); };
+        f.appendChild(inp); ecRow.appendChild(f);
+        const f2 = document.createElement('div');
+        f2.className='field'; f2.innerHTML=`<label class="mini-field">Nom du marqueur</label>`;
+        const inp2 = document.createElement('input');
+        inp2.type='text'; inp2.value=te.extraCostCounterName||'âme'; inp2.placeholder='Ex : âme';
+        inp2.oninput=()=>{ te.extraCostCounterName=inp2.value; onFormChange(); };
+        f2.appendChild(inp2); ecRow.appendChild(f2);
       }
       if(te.extraCostType==='custom'){
         const f = document.createElement('div');
@@ -3428,6 +3469,10 @@ function rebuildAbilitiesUI(){
         row.appendChild(makeCondSelectField(cond, 'targetKeywordScope', [['target','La cible de cette capacité'],['trigger','La carte qui déclenche']], 'target', 'De quelle carte'));
         row.appendChild(makeCondSelectField(cond, 'targetKeyword', KEYWORDS.map(k=>[k.key,k.label]), KEYWORDS[0].key, 'Mot-clé'));
       }
+      if(ctDef && ctDef.isDynamicCompare){
+        row.appendChild(makeCondSelectField(cond, 'dynLeft', DYNAMIC_VALUES.filter(d=>!d.parametric).map(d=>[d.key, d.label.replace(/^=\s*/,'')]), 'enemyStunnedThisGame', 'Valeur'));
+        row.appendChild(makeCondSelectField(cond, 'compareMode', [['atLeast','Au moins'],['atMost','Au plus'],['exactly','Exactement']], 'atLeast', 'Comparaison'));
+      }
       if(ctDef && ctDef.hasValue && ctDef.valueType==='text'){
         const valField = document.createElement('div');
         valField.className='field';
@@ -3488,6 +3533,7 @@ function rebuildAbilitiesUI(){
       numSel.onchange=()=>{ ab.numChoices=parseInt(numSel.value); rebuildAbilitiesUI(); onFormChange(); };
       numField.appendChild(numSel);
       effBox.appendChild(numField);
+      effBox.appendChild(makeSelectField('Qui choisit ?', [{key:'player',label:'Vous'},{key:'random',label:'Le hasard (un des choix tiré au sort)'},{key:'opponent',label:'Votre adversaire'}], ab.choiceChooser||'player', v=>{ ab.choiceChooser=v; onFormChange(); }));
     }
 
     if(!ab.useChoice){
@@ -3783,10 +3829,14 @@ function buildEffectRow(ab, eff, choiceKey){
     row.appendChild(makeSelectField('Durée', [
       {key:'permanent', label:'Permanent'},
       {key:'endOfTurn', label:'Jusqu\'à la fin de ce tour'},
-      {key:'endOfNextTurn', label:'Jusqu\'à la fin du prochain tour'}
+      {key:'endOfNextTurn', label:'Jusqu\'à la fin du prochain tour'},
+      {key:'untilYourNextTurn', label:'Jusqu\'au début de votre prochain tour'}
     ], eff.durationMode||'permanent', v=>{ eff.durationMode=v; onFormChange(); }));
   }
 
+  if(eff.effectType==='stun'){
+    row.appendChild(makeSelectField('Durée', [{key:'nextTurn',label:'Pendant son prochain tour'},{key:'whileSourceInPlay',label:'Tant que cette carte est en jeu (entrave)'}], eff.stunDuration||'nextTurn', v=>{ eff.stunDuration=v; onFormChange(); }));
+  }
   if(['draw','grantMana','refillMana','burnMana'].includes(eff.effectType)){
     row.appendChild(makeSelectField('Bénéficiaire', [{key:'self',label:'Vous'},{key:'enemy',label:"L'adversaire"},{key:'both',label:'Les deux'}], eff.manaTargetOwner, v=>{ eff.manaTargetOwner=v; onFormChange(); }));
   }
@@ -4009,7 +4059,7 @@ function buildEffectRow(ab, eff, choiceKey){
     // Réduction : fixe (reduceCostAmount) ou dynamique (valueMode/valueDynamic, comme les autres effets)
     if(eff.reduceCostAmount===undefined) eff.reduceCostAmount = 1;
     row.appendChild(buildValueField(eff, 'valueMode', 'reduceCostAmount', 'valueDynamic', 'Réduction', false));
-    row.appendChild(makeSelectField('S\'applique à', [{key:'all',label:'Toutes les cartes correspondantes'},{key:'chosen',label:'Une carte désignée par le joueur'}], eff.reduceCostSelectionMode||'all', v=>{ eff.reduceCostSelectionMode=v; rebuildAbilitiesUI(); onFormChange(); }));
+    row.appendChild(makeSelectField('S\'applique à', [{key:'all',label:'Toutes les cartes correspondantes'},{key:'chosen',label:'Une carte désignée par le joueur'},{key:'self',label:"Cette carte uniquement (« je coûte X de moins »)"}], eff.reduceCostSelectionMode||'all', v=>{ eff.reduceCostSelectionMode=v; rebuildAbilitiesUI(); onFormChange(); }));
     if(eff.reduceCostSelectionMode==='chosen'){
       const otherTargets = (ab.targets||[]).filter(t=>t.id!==eff.usesTarget);
       if(otherTargets.length>0){
@@ -4051,7 +4101,7 @@ function buildEffectRow(ab, eff, choiceKey){
       gv.querySelector('input').onchange=(e)=>{ eff.grantVoraceAtk = e.target.checked; onFormChange(); };
       row.appendChild(gv);
     }
-    row.appendChild(makeSelectField('Durée', [{key:'permanent',label:'Permanent'},{key:'thisTurn',label:'Ce tour-ci seulement'},{key:'game',label:'Pour le reste de la partie (ne se consomme jamais : Cycle, Tenace, Parade, Armure…)'}], eff.grantKeywordDuration, v=>{ eff.grantKeywordDuration=v; onFormChange(); }));
+    row.appendChild(makeSelectField('Durée', [{key:'permanent',label:'Permanent'},{key:'thisTurn',label:'Ce tour-ci seulement'},{key:'untilYourNextTurn',label:"Jusqu'au début de votre prochain tour"},{key:'game',label:'Pour le reste de la partie (ne se consomme jamais : Cycle, Tenace, Parade, Armure…)'}], eff.grantKeywordDuration, v=>{ eff.grantKeywordDuration=v; onFormChange(); }));
   }
 
   if(def.isCopyKeyword){
@@ -4343,6 +4393,22 @@ function buildEffectRow(ab, eff, choiceKey){
   }
   if(def.isFailleZone){
     row.appendChild(makeSelectField('Zone en plus du deck', [{key:'hand',label:'Votre main'},{key:'board',label:'En jeu'},{key:'discard',label:'Votre défausse'},{key:'exile',label:'Votre exil'}], eff.failleZone||'hand', v=>{ eff.failleZone=v; onFormChange(); }));
+  }
+  if(def.isImprison){
+    row.appendChild(makeSelectField('Quand cette carte quitte le jeu, la cible revient', [{key:'owner',label:'Sous le contrôle de son propriétaire'},{key:'you',label:'De votre côté (sous votre contrôle)'}], eff.imprisonReturn||'owner', v=>{ eff.imprisonReturn=v; onFormChange(); }));
+  }
+  if(def.isManaPenalty){
+    row.appendChild(makeSelectField('Joueur pénalisé', [{key:'enemy',label:'Votre adversaire'},{key:'self',label:'Vous'},{key:'both',label:'Les deux'}], eff.penaltyOwner||'enemy', v=>{ eff.penaltyOwner=v; onFormChange(); }));
+    row.appendChild(makeSelectField('Durée', [{key:'thisTurn',label:'Ce tour-ci'},{key:'nextTurn',label:'Pendant le prochain tour de ce joueur'}], eff.penaltyDuration||'nextTurn', v=>{ eff.penaltyDuration=v; onFormChange(); }));
+  }
+  if(def.isCounters){
+    const cf = document.createElement('div'); cf.className='field';
+    cf.innerHTML = `<label class="mini-field">Nom du marqueur</label>`;
+    const ci = document.createElement('input'); ci.type='text'; ci.value=eff.counterName||'âme'; ci.placeholder='Ex : âme';
+    ci.oninput=()=>{ eff.counterName=ci.value; onFormChange(); }; cf.appendChild(ci); row.appendChild(cf);
+  }
+  if(def.isPreventRevive){
+    row.appendChild(makeSelectField('Créatures concernées', [{key:'enemy',label:'Ennemies'},{key:'ally',label:'Alliées'},{key:'both',label:'Toutes'}], eff.preventReviveOwner||'enemy', v=>{ eff.preventReviveOwner=v; onFormChange(); }));
   }
   if(def.isDiscoverCycle){
     row.appendChild(makeSelectField('Parmi', [{key:'deck',label:'Votre deck'},{key:'discard',label:'Votre défausse'},{key:'all',label:'Toutes les cartes du jeu (copie)'}], eff.discoverCycleSource||'deck', v=>{ eff.discoverCycleSource=v; onFormChange(); }));
@@ -4757,6 +4823,7 @@ function targetPhrase(t){
   if(t.targetOwner==='sacrificed') return 'la créature sacrifiée';
   if(t.targetCategory==='hero'){
     if(t.targetOwner==='random') return 'un héros tiré au hasard (allié ou ennemi)';
+    if(t.targetOwner==='any' && t.selectionMode==='all') return 'chaque héros';
     return t.targetOwner==='enemy' ? 'le héros ennemi' : 'votre héros';
   }
   if(t.targetCategory==='player'){
@@ -4789,14 +4856,18 @@ function targetPhrase(t){
     + (t.devotionGodFilter ? ' (dieu de la Dévotion)' : '')
     + (t.failleFilter ? ' avec Faille' : '')
     + (t.notAttackedFilter ? " n'ayant pas encore attaqué ce tour-ci" : '')
+    + (t.arrivedBeforeTurnFilter ? ' en jeu depuis avant ce tour' : '')
+    + (t.atkAboveCostFilter ? ' dont la Force est supérieure à son coût' : '')
+    + (t.atkBelowCostFilter ? ' dont la Force est inférieure à son coût' : '')
     + (t.sourceCompareFilter ? ({stronger:' plus forte que cette carte', weaker:' moins forte que cette carte', costlier:' plus chère que cette carte', cheaper:' moins chère que cette carte'}[t.sourceCompareFilter]||'') : '')
     + (t.rarityFilter ? ` de rareté ${t.rarityFilter}` : '')
-    + (t.classFilter ? ` de la région ${t.classFilter}` : '');
+    + (t.classFilter ? ` de la région ${t.classFilter}` : '')
+    + (t.statFilterEnabled ? ` de ${({atk:'Force',hp:'Endurance',cost:'coût',charges:'Utilisation'})[t.statFilterStat]||'Force'} ${({atLeast:'au moins ',atMost:'au plus ',exactly:'exactement ',greater:'supérieure à ',less:'inférieure à '})[t.statFilterMode]||''}${t.statFilterValueMode==='dynamic' ? 'X' : (t.statFilterValue??1)}` : '');
 
   if(t.selectionMode==='strongest' || t.selectionMode==='mostEnduring'){
     const statLabel = t.selectionMode==='strongest' ? 'la plus forte' : 'la plus endurante';
     if(t.targetOwner==='ally') return `votre ${nounSing} ${statLabel}`;
-    if(t.targetOwner==='enemy') return `la ${nounSing} ${adjSing} ${statLabel}`.replace(/\s+/g,' ').trim();
+    if(t.targetOwner==='enemy') return `la ${nounSing} ${adjSing}${attackedLastTurnSuffix} ${statLabel}`.replace(/\s+/g,' ').trim();
     return `${randomOwnerPrefix}la ${nounSing} ${statLabel}`.trim();
   }
 
@@ -4852,26 +4923,26 @@ function buildEffectClause(eff, ab){
     case 'buff': {
       if(eff.randomSplit){
         const v1 = eff.valueMode==='dynamic' ? valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic') : eff.valueFixed;
-        const durSuffix = eff.durationMode==='endOfTurn' ? " jusqu'à la fin de ce tour" : eff.durationMode==='endOfNextTurn' ? " jusqu'à la fin du prochain tour" : '';
+        const durSuffix = eff.durationMode==='endOfTurn' ? " jusqu'à la fin de ce tour" : eff.durationMode==='endOfNextTurn' ? " jusqu'à la fin du prochain tour" : eff.durationMode==='untilYourNextTurn' ? " jusqu'au début de votre prochain tour" : '';
         return `${targetPhrase(resolvedTarget)} gagne +${v1}/+0 ou +0/+${v1} au hasard${durSuffix}`;
       }
       const v1 = eff.valueMode==='dynamic' ? '+'+valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic') : (eff.valueFixed>=0?'+':'')+eff.valueFixed;
       const v2m = eff.valueMode2||eff.valueMode;
       const v2 = v2m==='dynamic' ? '+'+valuePhrase(eff, v2m, eff.valueFixed2, 'valueDynamic2') : (eff.valueFixed2>=0?'+':'')+eff.valueFixed2;
       const verb = (eff.valueMode==='fixed' && eff.valueFixed<0) || (v2m==='fixed' && eff.valueFixed2<0) ? 'subit' : 'gagne';
-      const durSuffix = eff.durationMode==='endOfTurn' ? " jusqu'à la fin de ce tour" : eff.durationMode==='endOfNextTurn' ? " jusqu'à la fin du prochain tour" : '';
+      const durSuffix = eff.durationMode==='endOfTurn' ? " jusqu'à la fin de ce tour" : eff.durationMode==='endOfNextTurn' ? " jusqu'à la fin du prochain tour" : eff.durationMode==='untilYourNextTurn' ? " jusqu'au début de votre prochain tour" : '';
       return `${targetPhrase(resolvedTarget)} ${verb} ${v1}/${v2}${durSuffix}`;
     }
     case 'weaken': {
       if(eff.randomSplit){
         const v1 = eff.valueMode==='dynamic' ? valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic') : Math.abs(eff.valueFixed);
-        const durSuffix = eff.durationMode==='endOfTurn' ? " jusqu'à la fin de ce tour" : eff.durationMode==='endOfNextTurn' ? " jusqu'à la fin du prochain tour" : '';
+        const durSuffix = eff.durationMode==='endOfTurn' ? " jusqu'à la fin de ce tour" : eff.durationMode==='endOfNextTurn' ? " jusqu'à la fin du prochain tour" : eff.durationMode==='untilYourNextTurn' ? " jusqu'au début de votre prochain tour" : '';
         return `${targetPhrase(resolvedTarget)} subit -${v1}/-0 ou -0/-${v1} au hasard${durSuffix}`;
       }
       const v1 = eff.valueMode==='dynamic' ? valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic') : Math.abs(eff.valueFixed);
       const v2m = eff.valueMode2||eff.valueMode;
       const v2 = v2m==='dynamic' ? valuePhrase(eff, v2m, eff.valueFixed2, 'valueDynamic2') : Math.abs(eff.valueFixed2);
-      const durSuffix = eff.durationMode==='endOfTurn' ? " jusqu'à la fin de ce tour" : eff.durationMode==='endOfNextTurn' ? " jusqu'à la fin du prochain tour" : '';
+      const durSuffix = eff.durationMode==='endOfTurn' ? " jusqu'à la fin de ce tour" : eff.durationMode==='endOfNextTurn' ? " jusqu'à la fin du prochain tour" : eff.durationMode==='untilYourNextTurn' ? " jusqu'au début de votre prochain tour" : '';
       return `${targetPhrase(resolvedTarget)} subit -${v1}/-${v2}${durSuffix}`;
     }
     case 'setStat': {
@@ -4884,6 +4955,9 @@ function buildEffectClause(eff, ab){
       return `fixez ${parts.join(', ')} de ${targetPhrase(resolvedTarget)}`;
     }
     case 'reduceCost': {
+      if(eff.reduceCostSelectionMode==='self'){
+        return `je coûte ${reduceCostAmountPhrase(eff)} de moins (minimum 0)`;
+      }
       if(eff.reduceCostSelectionMode==='chosen'){
         return `réduisez de ${reduceCostAmountPhrase(eff)} le coût de la carte visée par la cible désignée (minimum 0)`;
       }
@@ -4912,7 +4986,7 @@ function buildEffectClause(eff, ab){
     }
     case 'grantKeyword': {
       const kw = KEYWORDS.find(k=>k.key===eff.grantKeywordKey);
-      const durLabel = eff.grantKeywordDuration==='thisTurn' ? ' ce tour-ci' : eff.grantKeywordDuration==='game' ? ' pour le reste de la partie' : '';
+      const durLabel = eff.grantKeywordDuration==='thisTurn' ? ' ce tour-ci' : eff.grantKeywordDuration==='untilYourNextTurn' ? " jusqu'au début de votre prochain tour" : eff.grantKeywordDuration==='game' ? ' pour le reste de la partie' : '';
       const vAtk = eff.grantKeywordKey==='vorace' && eff.grantVoraceAtk!==false ? ' (+1 Force par mana dépensé par votre adversaire)' : '';
       return `${targetPhrase(resolvedTarget)} obtient ${kw?kw.label:'?'}${vAtk}${durLabel}`;
     }
@@ -5028,6 +5102,30 @@ function buildEffectClause(eff, ab){
     case 'reanimateUnderControl': return `mettez ${targetPhrase(resolvedTarget)} en jeu de votre côté`;
     case 'repairEdifice': return `restaurez ${valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic')} Endurance à ${targetPhrase(resolvedTarget)}`;
     case 'blessGods': return `vos dieux de la Dévotion gagnent les capacités de Bénédiction de cette carte`;
+    case 'scry': {
+      const n = valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic');
+      return `regardez les ${n} premières cartes de votre deck et remettez-les dans l'ordre de votre choix`;
+    }
+    case 'imprison': {
+      const back = eff.imprisonReturn==='you' ? 'revient en jeu de votre côté' : 'revient en jeu sous le contrôle de son propriétaire';
+      return `emprisonnez ${targetPhrase(resolvedTarget)} (elle est exilée) tant que cette carte est en jeu ; quand cette carte quitte le jeu, elle ${back}`;
+    }
+    case 'manaSpendPenalty': {
+      const n = valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic');
+      const who = {enemy:'votre adversaire', self:'vous', both:'un joueur'}[eff.penaltyOwner||'enemy'];
+      const whom = {enemy:'lui', self:'vous', both:'lui'}[eff.penaltyOwner||'enemy'];
+      const when = (eff.penaltyDuration||'nextTurn')==='thisTurn' ? "jusqu'à la fin de ce tour" : (eff.penaltyOwner==='self' ? 'pendant votre prochain tour' : 'pendant son prochain tour');
+      return `${when}, chaque mana dépensé par ${who} ${whom} inflige ${n} dégât${String(n)==='1'?'':'s'}`;
+    }
+    case 'addCounters': {
+      const n = valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic');
+      const nm = eff.counterName||'âme';
+      return `placez ${n} marqueur${String(n)==='1'?'':'s'} « ${nm} » sur cette carte`;
+    }
+    case 'preventRevive': {
+      const w = {enemy:'les créatures ennemies', ally:'vos créatures', both:'les créatures'}[eff.preventReviveOwner||'enemy'];
+      return `${w} ne peuvent pas revenir en jeu depuis la défausse`;
+    }
     case 'addDevotion': {
       const n = eff.valueMode==='dynamic' ? valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic') : (parseInt(eff.valueFixed)||1);
       return `ajoutez ${n} à votre Dévotion`;
@@ -5075,7 +5173,9 @@ function buildEffectClause(eff, ab){
       return `fait évoluer ${targetPhrase(resolvedTarget)}${detail}, de façon permanente`;
     }
     case 'stun':
-      return `étourdissez ${targetPhrase(resolvedTarget)} (elle ne peut ni attaquer ni bloquer lors de son prochain tour)`;
+      return eff.stunDuration==='whileSourceInPlay'
+        ? `entravez ${targetPhrase(resolvedTarget)} : elle ne peut ni attaquer ni bloquer tant que cette carte est en jeu`
+        : `étourdissez ${targetPhrase(resolvedTarget)} (elle ne peut ni attaquer ni bloquer lors de son prochain tour)`;
     case 'grantMana': {
       const val = valuePhrase(eff, eff.valueMode, eff.valueFixed, 'valueDynamic');
       const isNum = eff.valueMode==='fixed';
@@ -5179,6 +5279,7 @@ function retrieveClause(eff){
   let critPhrase;
   switch(eff.retrieveCriteria){
     case 'random': critPhrase = 'une carte au hasard'; break;
+    case 'top': critPhrase = 'la carte du dessus'; break;
     case 'costExact': critPhrase = `une carte coûtant exactement ${eff.retrieveValue||0} mana`; break;
     case 'costLess': critPhrase = `une carte coûtant ${eff.retrieveValue||0} mana ou moins`; break;
     case 'costMore': critPhrase = `une carte coûtant ${eff.retrieveValue||0} mana ou plus`; break;
@@ -5353,6 +5454,12 @@ function conditionClauseBase(cond, ab){
     case 'allyOfferingThisTurn': return 'vous avez fait une Offrande ce tour-ci';
     case 'enemyOfferingLastTurn': return 'votre adversaire a fait une Offrande pendant son dernier tour';
     case 'failleAllyTurn': return `au moins ${condValueText(cond)} de vos Failles se sont déclenchées ce tour-ci`;
+    case 'dynamicCompare': {
+      const dv = DYNAMIC_VALUES.find(d=>d.key===(cond.dynLeft||'enemyStunnedThisGame'));
+      const what = dv ? dv.label.replace(/^=\s*/,'') : 'la valeur';
+      const cmp = {atLeast:'au moins', atMost:'au plus', exactly:'exactement'}[cond.compareMode||'atLeast'];
+      return `${/^nombre/.test(what) ? 'le '+what : what} est ${cmp} ${condValueText(cond)}`;
+    }
     case 'enemyFailleLastTurn': return `votre adversaire a déclenché au moins ${condValueText(cond)} Faille(s) à son dernier tour`;
     case 'edificeInPlay': return `vous contrôlez au moins ${condValueText(cond)} Édifice(s)`;
     case 'chance': return `vous avez ${condValueText(cond)}% de chance`;
@@ -5402,7 +5509,8 @@ function buildAbilitySentence(cardType, ab){
       return (choice.effects||[]).map(eff=>buildEffectClause(eff, ab)).filter(Boolean).join(', puis ') || '?';
     });
     if(clauses.every(c=>c==='?')) return '';
-    clause = capitalize(`choisissez : ${clauses.join(' ou ')}`);
+    const __chooseLbl = {random:'au hasard, un seul de ces effets', opponent:'votre adversaire choisit'}[ab.choiceChooser] || 'choisissez';
+    clause = capitalize(`${__chooseLbl} : ${clauses.join(' ou ')}`);
   } else {
     const effectClauses = (ab.effects||[]).map(eff=>buildEffectClause(eff, ab)).filter(Boolean);
     if(effectClauses.length===0) return '';
@@ -5510,6 +5618,7 @@ function buildAbilitySentence(cardType, ab){
             sacrificeCreature: 'sacrifiez une créature alliée',
             discardCard: 'défaussez une carte',
             loseLife: `perdez ${te.extraCostAmount||1} PV`,
+            removeCounters: `retirez ${te.extraCostAmount||1} marqueur${(te.extraCostAmount||1)>1?'s':''} « ${te.extraCostCounterName||'âme'} » de cette carte`,
             custom: te.extraCostCustom || 'coût additionnel'
           }[te.extraCostType];
           prefix += ` et ${ecLabel}`;
