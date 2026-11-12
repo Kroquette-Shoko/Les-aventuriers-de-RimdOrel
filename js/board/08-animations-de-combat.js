@@ -188,6 +188,35 @@ function resolveCombatEl(instId){
 // déjà retiré du plateau à ce stade. Un clone fantôme est placé à sa
 // position exacte, éclate en une lueur blanche puis se dissout en tombant
 // légèrement, avant d'être retiré.
+// Artefacts / Édifices détruits : repérés en comparant l'ancien et le nouvel état (le moteur n'écrit
+// une ligne de journal que si la carte avait un effet « quand détruit »). Un artefact renvoyé en main
+// ou mélangé au deck (Cycle) n'est pas une destruction.
+function detectDestroyedRelics(prev, cur, entries){
+  const out = [];
+  if(!prev || !cur || prev.gameOver) return out;
+  if(typeof prev.turn==='number' && typeof cur.turn==='number' && (cur.turn<prev.turn || cur.turn-prev.turn>1)) return out;
+  const cyc = new Set((entries||[]).filter(e=>e && e.kind==='cycle' && e.sourceInstId).map(e=>e.sourceInstId));
+  ['p1','p2'].forEach(k=>{
+    const a = (prev[k] && prev[k].relics) || [], b = (cur[k] && cur[k].relics) || [], h = (cur[k] && cur[k].hand) || [];
+    a.forEach(r=>{
+      if(!r || !r.instId || cyc.has(r.instId)) return;
+      if(b.some(x=>x && x.instId===r.instId) || h.some(x=>x && x.instId===r.instId)) return;
+      out.push({ instId:r.instId, edifice:isEdificeClient(r) });
+    });
+  });
+  return out;
+}
+// Artefact : « Poussière » (comme les créatures). Édifice : effondrement.
+function playRelicDestroyAnim(instId, edifice){
+  if(!edifice || !window.BFXDESTROY) return playCardDeathAnim(instId);
+  playSfx('card-death');
+  if(combatInstant()) return Promise.resolve();
+  const snap = __lastBoardSnapshot[instId];
+  if(!snap) return Promise.resolve();
+  const liveEl = document.querySelector(`[data-instid="${instId}"]`);
+  if(liveEl) liveEl.style.visibility = 'hidden';
+  return BFXDESTROY.collapse(snap.rect, snap.clone);
+}
 function playCardDeathAnim(instId){
   playSfx('card-death');
   if(combatInstant()) return Promise.resolve(); // mode instantané : le son seul

@@ -504,6 +504,13 @@ function finishStateUpdateTail(state){
   }
   render(); // sans effet si le plateau est gelé (voir render)
   renderGameLog();
+  // Artefact / Édifice détruit : animation à partir de l'instantané pris avant le rendu
+  if(!combatInstant()){
+    detectDestroyedRelics(PREV_S, state, newEntries).forEach(d=>{
+      const snap = __lastBoardSnapshot[d.instId]; // l'instantané est remplacé à la mise à jour suivante : on le garde
+      queueCombatAnim(()=>{ if(snap && !__lastBoardSnapshot[d.instId]) __lastBoardSnapshot[d.instId] = snap; return playRelicDestroyAnim(d.instId, d.edifice); });
+    });
+  }
   if(heroDeath) queueHeroDeathAnim(heroDeath);
   if(holdAttackers && __boardRenderFrozen && (__combatAnimPlaying || __combatAnimQueue.length)){
     queueCombatAnim(()=>{

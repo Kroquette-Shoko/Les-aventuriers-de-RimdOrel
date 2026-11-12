@@ -190,6 +190,44 @@
     await wait(ms(1100) + 2 * ms(260) + 100); clean();
   }
   window.BFXREGION = { use: regionUse };
+
+  // ---------- Édifice détruit : effondrement ----------
+  // rect : position de la carte avant sa disparition ; clone : copie de la carte (instantané).
+  async function collapse(rect, clone) {
+    if (off() || !rect || !clone) return;
+    const cx = rect.left + rect.width / 2, W = rect.width, H = rect.height;
+    const place = (n, clip) => {
+      n.style.cssText += `;position:fixed;left:${rect.left}px;top:${rect.top}px;width:${W}px;height:${H}px;margin:0;z-index:9992;pointer-events:none;` + (clip ? `clip-path:${clip};` : '');
+      document.body.appendChild(n); live.push(n); return n;
+    };
+    const base = place(clone, '');
+    // fissures qui se dessinent + tremblement
+    const NS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(NS, 'svg');
+    svg.setAttribute('width', W); svg.setAttribute('height', H);
+    svg.style.cssText = `position:fixed;left:${rect.left}px;top:${rect.top}px;pointer-events:none;z-index:9993`;
+    svg.innerHTML = `<g stroke="#1a1208" stroke-width="2.5" fill="none" stroke-linecap="round"><path class="cr" pathLength="1" d="M${W * .2} 0 L${W * .36} ${H * .26} L${W * .23} ${H * .52} L${W * .45} ${H * .78} L${W * .32} ${H}"/><path class="cr" pathLength="1" d="M${W * .78} 0 L${W * .64} ${H * .32} L${W * .86} ${H * .58} L${W * .68} ${H}"/></g>`;
+    document.body.appendChild(svg); live.push(svg);
+    svg.querySelectorAll('.cr').forEach((pth, i) => { pth.style.strokeDasharray = '1'; anim(pth, [{ strokeDashoffset: 1 }, { strokeDashoffset: 0 }], { duration: ms(400), delay: i * ms(100), fill: 'both' }); });
+    anim(base, [{ transform: 'translate(0,0)' }, { transform: 'translate(-3px,0)' }, { transform: 'translate(3px,0)' }, { transform: 'translate(-2px,0)' }, { transform: 'translate(2px,0)' }, { transform: 'translate(0,0)' }], { duration: ms(600) });
+    await wait(ms(650));
+    svg.remove(); base.style.visibility = 'hidden';
+    const rows = 6, cols = 3;
+    for (let r = rows - 1; r >= 0; r--) for (let k = 0; k < cols; k++) {
+      const x0 = k / cols * 100, y0 = r / rows * 100, x1 = (k + 1) / cols * 100, y1 = (r + 1) / rows * 100;
+      const n = clone.cloneNode(true); n.style.visibility = 'visible';
+      place(n, `polygon(${x0}% ${y0}%,${x1}% ${y0}%,${x1}% ${y1}%,${x0}% ${y1}%)`);
+      const fall = H * .22 + (rows - 1 - r) * 0, rx = () => (Math.random() * 40 - 20);
+      anim(n, [{ transform: 'translate(0,0) rotate(0)', opacity: 1 }, { transform: `translate(${rx()}px,${fall}px) rotate(${rx() * .8}deg)`, opacity: 1, offset: .7 }, { transform: `translate(${rx() * 1.3}px,${fall}px) rotate(${rx() * .8}deg)`, opacity: 0 }], { duration: ms(900), delay: (rows - 1 - r) * ms(80) + k * ms(30), fill: 'both', easing: 'cubic-bezier(.5,0,1,.7)' });
+    }
+    for (let i = 0; i < 9; i++) {
+      const sz = 34 + Math.random() * 26;
+      const d = fx(`left:${cx + (Math.random() * 120 - 60)}px;top:${rect.bottom - sz / 2 - 6}px;width:${sz}px;height:${sz}px;border-radius:50%;background:rgba(190,170,140,.55);filter:blur(6px);z-index:9993`);
+      anim(d, [{ transform: 'translate(0,0) scale(.3)', opacity: 0 }, { opacity: .8, offset: .3 }, { transform: `translate(${Math.random() * 100 - 50}px,${-30 - Math.random() * 40}px) scale(1.6)`, opacity: 0 }], { duration: ms(1100), delay: ms(350) + i * ms(60), fill: 'both' });
+    }
+    await wait(ms(1900)); clean();
+  }
+  window.BFXDESTROY = { collapse };
   window.BFXDONS = {
     keyOf,
     off,
