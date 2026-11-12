@@ -602,7 +602,7 @@ async function uiActivateHeroPower(targetInfo, chosenTargets){
     }
   }
   LAST_SACRIFICEABLE_ACTION = { action:'useHeroPower', targetInfo, chosenTargets };
-  await runAction('Pouvoir de héros', ()=>gsUseHeroPower(targetInfo, chosenTargets));
+  await runAction('Pouvoir de héros', ()=>gsUseHeroPower(targetInfo, chosenTargets), { queue:true });
 }
 async function uiActivatePermanent(permanentType, permanentInstId, targetInfo, chosenTargets, choiceKey){
   if(!targetInfo && !chosenTargets){
@@ -632,7 +632,7 @@ async function uiActivatePermanent(permanentType, permanentInstId, targetInfo, c
     }
   }
   LAST_SACRIFICEABLE_ACTION = { action:'activatePermanent', permanentType, permanentInstId, targetInfo, chosenTargets, choiceKey };
-  const res = await runAction('Capacité activée', ()=>gsActivatePermanent(permanentType, permanentInstId, targetInfo, chosenTargets, undefined, choiceKey));
+  const res = await runAction('Capacité activée', ()=>gsActivatePermanent(permanentType, permanentInstId, targetInfo, chosenTargets, undefined, choiceKey), { queue:true });
   if(permanentType==='artifact' && res && !res.error){
     // Le nouveau rendu (qui grise l'artefact désormais utilisé) vient de
     // reconstruire l'élément — on attend une frame pour cibler le NOUVEL

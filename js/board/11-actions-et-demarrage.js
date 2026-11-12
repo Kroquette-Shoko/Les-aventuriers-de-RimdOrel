@@ -68,8 +68,19 @@ async function waitForAnimationsIdle(){
     await new Promise(r=>setTimeout(r, 60));
   }
 }
+// Actions demandées par le joueur pendant qu'une autre est encore en cours : avec { queue:true } elles sont mises
+// EN FILE et s'exécutent l'une après l'autre (avant, la 2ᵉ était simplement perdue). Les actions automatiques
+// (choix de cible auto, tour de l'IA, fin de blocage auto...) gardent l'ancien comportement : ignorées si occupé.
+const __actionQueue = [];
 async function runAction(label, fn, opts){
-  if(ACTION_IN_FLIGHT){ debugLog(`${label} → une action est déjà en cours, patiente un instant.`, 'log-error'); return; }
+  if(ACTION_IN_FLIGHT){
+    if(opts && opts.queue && __actionQueue.length < 8){
+      debugLog(`${label} → une action est déjà en cours : mise en file.`, 'log-ok');
+      return new Promise(resolve=>{ __actionQueue.push({ label, fn, opts, resolve }); });
+    }
+    debugLog(`${label} → une action est déjà en cours, patiente un instant.`, 'log-error');
+    return;
+  }
   ACTION_IN_FLIGHT = true;
   document.body.classList.add('action-busy');
   try{ if(window.BFX) BFX.actionStart(label); }catch(e){}
@@ -83,7 +94,7 @@ async function runAction(label, fn, opts){
       debugLog(`${label} → ${res.error}`, 'log-error');
       // Erreurs attendues et sans gravité pour cette action (ex. « wrong-phase »
       // quand le serveur avait déjà terminé la phase) : pas de bandeau d'erreur.
-      if(!(opts && opts.ignoreErrors && opts.ignoreErrors.includes(res.error))){
+      if(!(opts && opts.ignoreErrors && opts.ignoreErrors.includes(res.error)) && !(opts && opts.__queued)){
         showActionError(`${label} : ${describeActionError(res.error, label)}`);
       }
     } else if(res && res.state){
@@ -103,6 +114,11 @@ async function runAction(label, fn, opts){
     ACTION_IN_FLIGHT = false;
     document.body.classList.remove('action-busy');
     try{ if(window.BFX) BFX.actionEnd(); }catch(e){}
+    const __next = __actionQueue.shift();
+    if(__next){
+      // l'action suivante part après la fin de celle-ci ; son éventuelle erreur « périmée » n'affiche pas de bandeau
+      setTimeout(()=>{ runAction(__next.label, __next.fn, Object.assign({}, __next.opts, { __queued:true })).then(__next.resolve, ()=>__next.resolve()); }, 0);
+    }
   }
 }
 
@@ -268,7 +284,7 @@ async function uiAssignBlock(attackerId){
   if(!UI.pendingBlocker) return;
   const blockerId = UI.pendingBlocker;
   UI.pendingBlocker = null;
-  await runAction('Bloquer', ()=>gsAssignBlock(blockerId, attackerId));
+  await runAction('Bloquer', ()=>gsAssignBlock(blockerId, attackerId), { queue:true });
   render();
 }
 async function uiFinishBlocking(){
