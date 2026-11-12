@@ -908,7 +908,7 @@ header .spacer{flex:1;}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="spellcraft-shared.js?v=20261112h"></script>
+<script src="spellcraft-shared.js?v=20261112k"></script>
 <script src="spellcraft-auth.js"></script>
 <script src="spellcraft-catalog.js?v=20261112g"></script>
 <script src="spellcraft-atelier-nav.js"></script>
@@ -1101,13 +1101,16 @@ const CONDITION_TYPES = [
   {key:'enemyFailleLastTurn', label:'Votre adversaire a déclenché au moins X Failles à son dernier tour', hasValue:true, valueType:'number'},
   {key:'edificeInPlay', label:'Vous contrôlez au moins X Édifices', hasValue:true, valueType:'number'},
   {key:'dynamicCompare', label:'Une valeur (compteur) est [comparaison] X', hasValue:true, isDynamicCompare:true},
+  {key:'eventHasCounter', label:'La carte qui déclenche porte un marqueur [nom]', hasValue:false, isEventCounter:true},
+  {key:'controlsStolen', label:'Vous contrôlez une créature volée à l\'adversaire', hasValue:false},
+  {key:'alliteration', label:'La carte jouée commence par la même lettre qu\'une autre carte de votre main', hasValue:false},
   {key:'custom', label:'⚠ Condition personnalisée (texte libre)', hasValue:true, valueType:'text'}
 ];
 /* Groupes d'affichage du menu « Condition » (l'ordre des clés = ordre dans le groupe) */
 const COND_GROUPS = [
-  ['Ressources et comparaisons', ['resourceCompare','playerCompare','subtypeCount','cardNameInPlay','deckComposition','dynamicCompare']],
+  ['Ressources et comparaisons', ['resourceCompare','playerCompare','subtypeCount','cardNameInPlay','deckComposition','dynamicCompare','controlsStolen']],
   ['Ce tour-ci', ['healthChange','drawnThisTurn','countThisTurn','selfDrawnThisTurn','hpLostLastTurn','manaNotFromRegion']],
-  ['Cartes et créatures', ['statCompare','targetHasKeyword','creatureState','deadCreatureCause','deadCreatureSubtype','playedCardCost','playedCardType']],
+  ['Cartes et créatures', ['statCompare','targetHasKeyword','creatureState','deadCreatureCause','deadCreatureSubtype','playedCardCost','playedCardType','eventHasCounter','alliteration']],
   ['Timing et hasard', ['turnAtLeast','turnParity','chance','whileInHand','whileYourTurn']],
   ['La guerre élémentaire', ['devotionAtLeast','failleInDeck','failleAllyTurn','enemyManaSpent','ritualManaAtLeast','cycledThisTurn','sacrificedThisTurn','allyOfferingThisTurn','enemyOfferingLastTurn','enemyFailleLastTurn','edificeInPlay']],
   ['Avancé', ['custom']]
@@ -1122,7 +1125,7 @@ const EFFECT_GROUPS = [
   ['Créatures et plateau', ['destroy','stun','bounce','sacrificeEffect','removeFromCombat','summonCopy','transformCard','stealCreature','fight','destroyDealAtk','reviveDestroyedLastTurn','redirectTarget']],
   ['Artefacts et pièges', ['removeArtifactCharges','destroySelf','addCharges','exhaustArtifact','disarmTraps','counterCard']],
   ['Spécial', ['extraCombat','coinFlip','doubleTrigger','doubleEffectsTrigger','custom']],
-  ['Dieux d\'Un\'Gara', ['scry','imprison','manaSpendPenalty','addCounters','preventRevive']],
+  ['Dieux d\'Un\'Gara', ['scry','imprison','manaSpendPenalty','addCounters','preventRevive','cleanse','exileByName','conjurePrototype']],
   ['La guerre élémentaire', ['doubleVorace','discoverCycle','failleExtraZone','doubleFaille','triggerFailles','addDevotion','blessGods','shuffleIntoDeck','addRitualMana','removeRitualMana','destroyRitual','repairEdifice','reanimateUnderControl']]
 ];
 
@@ -1202,7 +1205,10 @@ const EFFECT_TYPES = [
   {key:'scry', label:'Présage : regardez les X premières cartes de votre deck et remettez-les dans l\'ordre de votre choix', needsTarget:false, needsValue:true},
   {key:'imprison', label:'Emprisonne la cible (exilée tant que cette carte est en jeu, puis elle revient)', needsTarget:true, needsValue:false, isImprison:true},
   {key:'manaSpendPenalty', label:'Pénalité de mana : chaque mana dépensé par un joueur lui inflige X dégâts (pendant une durée)', needsTarget:false, needsValue:true, isManaPenalty:true},
-  {key:'addCounters', label:'Place X marqueurs (ex : âmes) sur cette carte', needsTarget:false, needsValue:true, isCounters:true},
+  {key:'addCounters', label:'Place X marqueurs (ex : âmes, malédiction) sur la cible, ou sur cette carte sans cible', needsTarget:true, needsValue:true, isCounters:true},
+  {key:'cleanse', label:'Purifie la cible : plus étourdie, gelée ni entravée, et récupère toute son Endurance', needsTarget:true, needsValue:false},
+  {key:'exileByName', label:'Vrai nom : révèle une carte au hasard de la main adverse et exile toutes les cartes de ce nom chez l\'adversaire (main, deck, jeu)', needsTarget:false, needsValue:false},
+  {key:'conjurePrototype', label:'Prototype : conjure dans votre main un artefact inédit (coût 1 à 4, effet tiré au hasard)', needsTarget:false, needsValue:false},
   {key:'preventRevive', label:'Empêche les créatures d\'un camp de revenir en jeu depuis la défausse (capacité continue)', needsTarget:false, needsValue:false, isPreventRevive:true}
 ];
 
@@ -1227,6 +1233,7 @@ const RETRIEVE_REPEAT = [
 const RETRIEVE_CRITERIA = [
   {key:'random', label:'Au hasard', hasValue:false},
   {key:'top', label:'La carte du dessus', hasValue:false},
+  {key:'topIfCreature', label:'La carte du dessus, seulement si c\'est une créature', hasValue:false},
   {key:'costExact', label:'Coût de mana exact', hasValue:true, valueType:'number'},
   {key:'costLess', label:'Coût de mana inférieur ou égal à', hasValue:true, valueType:'number'},
   {key:'costMore', label:'Coût de mana supérieur ou égal à', hasValue:true, valueType:'number'},
@@ -1290,7 +1297,8 @@ const SELECTION_MODES = [
   {key:'random', label:'Aléatoire'},
   {key:'all', label:'Toutes / tous'},
   {key:'strongest', label:'La plus forte (Force la plus élevée)'},
-  {key:'mostEnduring', label:'La plus endurante (Endurance la plus élevée)'}
+  {key:'mostEnduring', label:'La plus endurante (Endurance la plus élevée)'},
+  {key:'mostExpensive', label:'La plus chère (coût le plus élevé)'}
 ];
 
 const DYNAMIC_VALUES = [
@@ -1351,7 +1359,8 @@ const DYNAMIC_VALUES = [
   // Dieux d'Un'Gara
   {key:'targetSharedSubtypeAllies', label:"= nombre d'autres créatures alliées qui partagent un sous-type avec la cible"},
   {key:'thisCounters', label:'= nombre de marqueurs sur cette carte'},
-  {key:'enemyStunnedThisGame', label:'= nombre de créatures ennemies étourdies cette partie'}
+  {key:'enemyStunnedThisGame', label:'= nombre de créatures ennemies étourdies cette partie'},
+  {key:'eventAtk', label:'= Force de la carte qui déclenche (déclencheurs « Quand… », ex : la créature qui a blessé votre héros)'}
 ];
 
 const DYNAMIC_VALUE_ZONES = [['playedThisTurn','Jouée(s) ce tour-ci'],['board','En jeu'],['hand','En main'],['discard','En défausse']];
@@ -2337,6 +2346,17 @@ function buildTargetsSectionUI(ab, targetsArray, choiceKey, heading){
       ff.innerHTML = `<input type="checkbox" ${tgt.failleFilter?'checked':''}> Uniquement les cartes avec Faille`;
       ff.querySelector('input').onchange=(e)=>{ tgt.failleFilter=e.target.checked; onFormChange(); };
       trow.appendChild(ff);
+      const cfT = document.createElement('label');
+      cfT.className='evolve-toggle';
+      cfT.innerHTML = `<input type="checkbox" ${tgt.counterFilterEnabled?'checked':''}> Uniquement les cartes qui portent un marqueur`;
+      cfT.querySelector('input').onchange=(e)=>{ tgt.counterFilterEnabled=e.target.checked; rebuildAbilitiesUI(); onFormChange(); };
+      trow.appendChild(cfT);
+      if(tgt.counterFilterEnabled){
+        const cfF = document.createElement('div'); cfF.className='field';
+        cfF.innerHTML = `<label class="mini-field">Nom du marqueur (vide = n'importe lequel)</label>`;
+        const cfI = document.createElement('input'); cfI.type='text'; cfI.value=tgt.counterFilter||''; cfI.placeholder='Ex : malédiction';
+        cfI.oninput=()=>{ tgt.counterFilter=cfI.value; onFormChange(); }; cfF.appendChild(cfI); trow.appendChild(cfF);
+      }
     }
     if(tgt.targetCategory==='creature' || tgt.targetCategory==='hero_creature' || tgt.targetCategory==='artifact' || (tgt.targetCategory && tgt.targetCategory.startsWith('card_in_'))){
       trow.appendChild(tbSelect('Comparée à cette carte', [
@@ -3469,6 +3489,12 @@ function rebuildAbilitiesUI(){
         row.appendChild(makeCondSelectField(cond, 'targetKeywordScope', [['target','La cible de cette capacité'],['trigger','La carte qui déclenche']], 'target', 'De quelle carte'));
         row.appendChild(makeCondSelectField(cond, 'targetKeyword', KEYWORDS.map(k=>[k.key,k.label]), KEYWORDS[0].key, 'Mot-clé'));
       }
+      if(ctDef && ctDef.isEventCounter){
+        const cnF = document.createElement('div'); cnF.className='field';
+        cnF.innerHTML = `<label class="mini-field">Nom du marqueur (vide = n'importe lequel)</label>`;
+        const cnI = document.createElement('input'); cnI.type='text'; cnI.value=cond.counterName||''; cnI.placeholder='Ex : malédiction';
+        cnI.oninput=()=>{ cond.counterName=cnI.value; onFormChange(); }; cnF.appendChild(cnI); row.appendChild(cnF);
+      }
       if(ctDef && ctDef.isDynamicCompare){
         row.appendChild(makeCondSelectField(cond, 'dynLeft', DYNAMIC_VALUES.filter(d=>!d.parametric).map(d=>[d.key, d.label.replace(/^=\s*/,'')]), 'enemyStunnedThisGame', 'Valeur'));
         row.appendChild(makeCondSelectField(cond, 'compareMode', [['atLeast','Au moins'],['atMost','Au plus'],['exactly','Exactement']], 'atLeast', 'Comparaison'));
@@ -4395,6 +4421,12 @@ function buildEffectRow(ab, eff, choiceKey){
     row.appendChild(makeSelectField('Zone en plus du deck', [{key:'hand',label:'Votre main'},{key:'board',label:'En jeu'},{key:'discard',label:'Votre défausse'},{key:'exile',label:'Votre exil'}], eff.failleZone||'hand', v=>{ eff.failleZone=v; onFormChange(); }));
   }
   if(eff.effectType==='reanimateUnderControl'){
+    [['reanimateBonusAtk','Bonus de Force'],['reanimateBonusHp',"Bonus d'Endurance"]].forEach(([k,l])=>{
+      const bf = document.createElement('div'); bf.className='field';
+      bf.innerHTML = `<label class="mini-field">${l}</label>`;
+      const bi = document.createElement('input'); bi.type='number'; bi.min=0; bi.max=20; bi.value=eff[k]||0;
+      bi.oninput=()=>{ eff[k]=parseInt(bi.value)||0; onFormChange(); }; bf.appendChild(bi); row.appendChild(bf);
+    });
     row.appendChild(makeSelectField('Mot-clé donné à la créature ramenée (optionnel)', [{key:'',label:'Aucun'}, ...KEYWORDS.map(k=>({key:k.key,label:k.label}))], eff.reanimateGrantKeyword||'', v=>{ eff.reanimateGrantKeyword=v; onFormChange(); }));
   }
   if(def.isImprison){
@@ -4862,13 +4894,14 @@ function targetPhrase(t){
     + (t.arrivedBeforeTurnFilter ? ' en jeu depuis avant ce tour' : '')
     + (t.atkAboveCostFilter ? ' dont la Force est supérieure à son coût' : '')
     + (t.atkBelowCostFilter ? ' dont la Force est inférieure à son coût' : '')
+    + (t.counterFilterEnabled ? ` portant un marqueur${(t.counterFilter||'').trim() ? ` « ${t.counterFilter.trim()} »` : ''}` : '')
     + (t.sourceCompareFilter ? ({stronger:' plus forte que cette carte', weaker:' moins forte que cette carte', costlier:' plus chère que cette carte', cheaper:' moins chère que cette carte'}[t.sourceCompareFilter]||'') : '')
     + (t.rarityFilter ? ` de rareté ${t.rarityFilter}` : '')
     + (t.classFilter ? ` de la région ${t.classFilter}` : '')
     + (t.statFilterEnabled ? ` de ${({atk:'Force',hp:'Endurance',cost:'coût',charges:'Utilisation'})[t.statFilterStat]||'Force'} ${({atLeast:'au moins ',atMost:'au plus ',exactly:'exactement ',greater:'supérieure à ',less:'inférieure à '})[t.statFilterMode]||''}${t.statFilterValueMode==='dynamic' ? 'X' : (t.statFilterValue??1)}` : '');
 
-  if(t.selectionMode==='strongest' || t.selectionMode==='mostEnduring'){
-    const statLabel = t.selectionMode==='strongest' ? 'la plus forte' : 'la plus endurante';
+  if(t.selectionMode==='strongest' || t.selectionMode==='mostEnduring' || t.selectionMode==='mostExpensive'){
+    const statLabel = t.selectionMode==='strongest' ? 'la plus forte' : t.selectionMode==='mostExpensive' ? 'la plus chère' : 'la plus endurante';
     if(t.targetOwner==='ally') return `votre ${nounSing} ${statLabel}`;
     if(t.targetOwner==='enemy') return `la ${nounSing} ${adjSing}${attackedLastTurnSuffix} ${statLabel}`.replace(/\s+/g,' ').trim();
     return `${randomOwnerPrefix}la ${nounSing} ${statLabel}`.trim();
@@ -5104,10 +5137,14 @@ function buildEffectClause(eff, ab){
     case 'destroyRitual': return 'détruisez le Rituel adverse';
     case 'reanimateUnderControl': {
       const __rk = eff.reanimateGrantKeyword ? (KEYWORDS.find(k=>k.key===eff.reanimateGrantKeyword)||{}).label : '';
-      return `mettez ${targetPhrase(resolvedTarget)} en jeu de votre côté${__rk ? ` ; elle gagne ${__rk}` : ''}`;
+      const __rb = (eff.reanimateBonusAtk||eff.reanimateBonusHp) ? ` avec +${eff.reanimateBonusAtk||0}/+${eff.reanimateBonusHp||0}` : '';
+      return `mettez ${targetPhrase(resolvedTarget)} en jeu de votre côté${__rb}${__rk ? ` ; elle gagne ${__rk}` : ''}`;
     }
     case 'repairEdifice': return `restaurez ${valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic')} Endurance à ${targetPhrase(resolvedTarget)}`;
     case 'blessGods': return `vos dieux de la Dévotion gagnent les capacités de Bénédiction de cette carte`;
+    case 'cleanse': return `purifiez ${targetPhrase(resolvedTarget)} (elle n'est plus étourdie, gelée ni entravée et récupère toute son Endurance)`;
+    case 'exileByName': return "révélez une carte au hasard de la main adverse : toutes les cartes de ce nom chez l'adversaire (main, deck et jeu) sont exilées";
+    case 'conjurePrototype': return 'conjurez dans votre main un Prototype : un artefact inédit (coût 1 à 4, effet tiré au hasard : dégâts, pioche, mana, soin ou renfort)';
     case 'scry': {
       const n = valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic');
       return `regardez les ${n} premières cartes de votre deck et remettez-les dans l'ordre de votre choix`;
@@ -5126,7 +5163,7 @@ function buildEffectClause(eff, ab){
     case 'addCounters': {
       const n = valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic');
       const nm = eff.counterName||'âme';
-      return `placez ${n} marqueur${String(n)==='1'?'':'s'} « ${nm} » sur cette carte`;
+      return `placez ${n} marqueur${String(n)==='1'?'':'s'} « ${nm} » sur ${eff.usesTarget && resolvedTarget ? targetPhrase(resolvedTarget) : 'cette carte'}`;
     }
     case 'preventRevive': {
       const w = {enemy:'les créatures ennemies', ally:'vos créatures', both:'les créatures'}[eff.preventReviveOwner||'enemy'];
@@ -5286,6 +5323,7 @@ function retrieveClause(eff){
   switch(eff.retrieveCriteria){
     case 'random': critPhrase = 'une carte au hasard'; break;
     case 'top': critPhrase = 'la carte du dessus'; break;
+    case 'topIfCreature': critPhrase = 'la carte du dessus (si c\'est une créature)'; break;
     case 'costExact': critPhrase = `une carte coûtant exactement ${eff.retrieveValue||0} mana`; break;
     case 'costLess': critPhrase = `une carte coûtant ${eff.retrieveValue||0} mana ou moins`; break;
     case 'costMore': critPhrase = `une carte coûtant ${eff.retrieveValue||0} mana ou plus`; break;
@@ -5460,6 +5498,9 @@ function conditionClauseBase(cond, ab){
     case 'allyOfferingThisTurn': return 'vous avez fait une Offrande ce tour-ci';
     case 'enemyOfferingLastTurn': return 'votre adversaire a fait une Offrande pendant son dernier tour';
     case 'failleAllyTurn': return `au moins ${condValueText(cond)} de vos Failles se sont déclenchées ce tour-ci`;
+    case 'eventHasCounter': return `la carte qui déclenche porte un marqueur${(cond.counterName||'').trim() ? ` « ${cond.counterName.trim()} »` : ''}`;
+    case 'controlsStolen': return 'vous contrôlez une créature volée à l\'adversaire';
+    case 'alliteration': return 'son nom commence par la même lettre qu\'une autre carte de votre main';
     case 'dynamicCompare': {
       const dv = DYNAMIC_VALUES.find(d=>d.key===(cond.dynLeft||'enemyStunnedThisGame'));
       const what = dv ? dv.label.replace(/^=\s*/,'') : 'la valeur';
