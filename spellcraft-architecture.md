@@ -748,3 +748,14 @@ Champs enregistrés dans les cartes (le moteur ne les applique pas encore) :
 - Filtres de cible : `arrivedBeforeTurnFilter`, `atkAboveCostFilter`, `atkBelowCostFilter`.
 - Récupération : critère `top` (carte du dessus). Réduction de coût : `reduceCostSelectionMode: 'self'`.
 - Mots-clés (shared.js) : `mustAttack` (Belliqueux), `endormi` (Endormi).
+
+## Moteur — 5 dieux monocolores (2026-11-12, game-action v209)
+Patchs appliqués directement sur `_edge_fn_bootstrap` (la table `_edge_fn_modules` était déjà en retard sur la version en ligne avant ce patch : NE PAS reconstruire depuis les modules sans les resynchroniser).
+- Choix d'effet `choiceChooser` random/opponent : lettre tirée par le moteur (`__pickChoiceKey`) ; le plateau n'ouvre pas la fenêtre de choix. (« opponent » = hasard pour l'instant.)
+- `scry` (Présage) : réutilise `pendingDiscover` (`scry: true`, `title`), une carte choisie à la fois ; cartes cachées à l'adversaire dans `redactStateForViewer`.
+- `addCounters` → `c.__counters` / `c.__counterName` ; valeur dynamique `thisCounters` ; coût additionnel `removeCounters` (capacité activée).
+- Entrave : `stun` + `stunDuration: whileSourceInPlay` → `c.__chainedBy` ; libérée dans `__scanGuerreFlags` quand la source quitte le jeu.
+- Belliqueux (`mustAttack`) : ajouté d'office aux attaquants ; fin de tour sans attaque → `doDeclareAttackers`.
+- `reanimateUnderControl.reanimateGrantKeyword`.
+- Correctif Cycle : `__flushCycleQueue` attend la fin des déclencheurs « Quand… » en cours (sinon la carte qui réagit à watchCycle était ignorée).
+- Sauvegarde : `_backup_game_action_chunks_20261112_dieux`.

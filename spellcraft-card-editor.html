@@ -4394,6 +4394,9 @@ function buildEffectRow(ab, eff, choiceKey){
   if(def.isFailleZone){
     row.appendChild(makeSelectField('Zone en plus du deck', [{key:'hand',label:'Votre main'},{key:'board',label:'En jeu'},{key:'discard',label:'Votre défausse'},{key:'exile',label:'Votre exil'}], eff.failleZone||'hand', v=>{ eff.failleZone=v; onFormChange(); }));
   }
+  if(eff.effectType==='reanimateUnderControl'){
+    row.appendChild(makeSelectField('Mot-clé donné à la créature ramenée (optionnel)', [{key:'',label:'Aucun'}, ...KEYWORDS.map(k=>({key:k.key,label:k.label}))], eff.reanimateGrantKeyword||'', v=>{ eff.reanimateGrantKeyword=v; onFormChange(); }));
+  }
   if(def.isImprison){
     row.appendChild(makeSelectField('Quand cette carte quitte le jeu, la cible revient', [{key:'owner',label:'Sous le contrôle de son propriétaire'},{key:'you',label:'De votre côté (sous votre contrôle)'}], eff.imprisonReturn||'owner', v=>{ eff.imprisonReturn=v; onFormChange(); }));
   }
@@ -5099,7 +5102,10 @@ function buildEffectClause(eff, ab){
     case 'addRitualMana': return `ajoutez ${valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic')} mana à votre Rituel`;
     case 'removeRitualMana': return `retirez ${valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic')} mana du Rituel adverse`;
     case 'destroyRitual': return 'détruisez le Rituel adverse';
-    case 'reanimateUnderControl': return `mettez ${targetPhrase(resolvedTarget)} en jeu de votre côté`;
+    case 'reanimateUnderControl': {
+      const __rk = eff.reanimateGrantKeyword ? (KEYWORDS.find(k=>k.key===eff.reanimateGrantKeyword)||{}).label : '';
+      return `mettez ${targetPhrase(resolvedTarget)} en jeu de votre côté${__rk ? ` ; elle gagne ${__rk}` : ''}`;
+    }
     case 'repairEdifice': return `restaurez ${valuePhrase(eff,eff.valueMode,eff.valueFixed,'valueDynamic')} Endurance à ${targetPhrase(resolvedTarget)}`;
     case 'blessGods': return `vos dieux de la Dévotion gagnent les capacités de Bénédiction de cette carte`;
     case 'scry': {

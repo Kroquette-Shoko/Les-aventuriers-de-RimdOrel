@@ -190,7 +190,7 @@ function renderDiscoverChoiceModal(){
   modal.className = 'modal-overlay show';
   modal.innerHTML = `
     <div class="modal-box">
-      <h2>Choisis une carte</h2>
+      <h2>${S.pendingDiscover.title ? escapeHtml(S.pendingDiscover.title) : 'Choisis une carte'}</h2>
       <div id="discover-choice-list" style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap;"></div>
     </div>
   `;

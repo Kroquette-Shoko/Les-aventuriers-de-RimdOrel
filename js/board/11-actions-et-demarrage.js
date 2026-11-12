@@ -168,7 +168,8 @@ async function confirmMulligan(){
 }
 function getUseChoiceAbility(card){
   if(!card || !card.abilities) return null;
-  return card.abilities.find(ab=>ab.kind==='triggered' && ab.useChoice && ab.choiceA && ab.choiceB) || null;
+  // « Qui choisit ? » = le hasard ou l'adversaire : c'est le serveur qui tire, pas de fenêtre de choix
+  return card.abilities.find(ab=>ab.kind==='triggered' && ab.useChoice && ab.choiceA && ab.choiceB && !['random','opponent'].includes(ab.choiceChooser)) || null;
 }
 async function uiPlayCard(i, targetInfo, chosenTargets, choiceKey, offeringInstId){
   const card = S[MY_KEY].hand[i];

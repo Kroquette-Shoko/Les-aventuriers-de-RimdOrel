@@ -260,7 +260,8 @@ function cardEl(card, opts={}){
     el.classList.add('is-stunned');
     const badge = nEl('div','card-status-badge');
     badge.textContent = '💫';
-    badge.title = ('Étourdie : ' + STATUS_DURATION_TEXT + '. ' + statusDurationNote(card, opts.ownerKey, S)).trim();
+    badge.title = card.__chainedBy ? 'Entravée : ne peut ni attaquer ni bloquer tant que la carte qui l\'enchaîne est en jeu.' : ('Étourdie : ' + STATUS_DURATION_TEXT + '. ' + statusDurationNote(card, opts.ownerKey, S)).trim();
+    if(card.__chainedBy) badge.textContent = '⛓️';
     el.appendChild(badge);
   } else if(inPlay && card.frozen){
     el.classList.add('is-frozen');
@@ -268,6 +269,15 @@ function cardEl(card, opts={}){
     badge.textContent = '❄️';
     badge.title = ('Gelée : ' + STATUS_DURATION_TEXT + '. ' + statusDurationNote(card, opts.ownerKey, S)).trim();
     el.appendChild(badge);
+  }
+
+  // Marqueurs (ex : âmes de Sarelcronix) : pastille avec le nombre
+  if(inPlay && (card.__counters||0) > 0){
+    const cb = nEl('div','card-counter-badge');
+    cb.textContent = '✦ ' + card.__counters;
+    cb.title = `${card.__counters} marqueur(s) « ${card.__counterName || 'âme'} »`;
+    cb.style.cssText = 'position:absolute;left:4px;bottom:4px;z-index:6;background:rgba(40,10,60,.9);color:#e8d4ff;border:1px solid #b48cff;border-radius:10px;padding:1px 6px;font:700 12px Cinzel,serif;pointer-events:auto;';
+    el.appendChild(cb);
   }
 
   // Indisponible pour l'action en cours (ne peut pas attaquer / bloquer, ou
