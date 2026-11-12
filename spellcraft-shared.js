@@ -51,7 +51,7 @@ const KEYWORDS = [
   {key:'final', label:'Final', desc:"Étiquette de suivi sans effet de jeu — sert à filtrer/traquer la carte (ex: à la conjuration)."},
   // Dieux d'Un'Gara
   {key:'mustAttack', label:'Belliqueux', desc:"Doit attaquer à chaque tour si elle le peut."},
-  {key:'intuable', label:'Intuable', desc:"Quand elle devrait mourir, elle reste en jeu avec 1 PV et perd 2 Force à la place (tant qu'il lui reste de la Force)."},
+  {key:'intuable', label:'Immortel', desc:"Quand elle devrait mourir, elle reste en jeu avec 1 PV et perd 2 Force à la place (tant qu'il lui reste de la Force)."},
   {key:'endormi', label:'Endormi', desc:"Ne peut ni attaquer, ni bloquer, ni être ciblée. Se retire avec un effet « retire un mot-clé »."}
 ];
 
