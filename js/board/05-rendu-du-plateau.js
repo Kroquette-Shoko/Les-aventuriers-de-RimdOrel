@@ -113,6 +113,21 @@ function addPeekBoardButton(modal){
   modal.appendChild(b);
 }
 
+// Résolution d'un choix (révéler / mot-clé) : la fenêtre reste affichée mais verrouillée tant que l'action
+// n'est pas terminée (sinon un rendu intermédiaire la recréait avec l'ANCIEN choix, par-dessus le suivant :
+// on cliquait alors à l'aveugle sur le 2ᵉ choix). Une fois l'action finie, on la retire et on la reconstruit
+// depuis l'état à jour du serveur.
+async function __runChoice(modal, label, fn){
+  if(modal.dataset.busy) return;
+  modal.dataset.busy = '1';
+  modal.classList.add('choice-busy');
+  try{ await runAction(label, fn); }
+  finally{
+    if(modal.parentNode) modal.remove();
+    try{ render(); }catch(e){}
+  }
+}
+
 function renderKeywordChoiceModal(){
   const existing = document.getElementById('keyword-choice-modal');
   if(!S.pendingKeywordChoice || S.pendingKeywordChoice.playerKey!==MY_KEY){
@@ -123,6 +138,7 @@ function renderKeywordChoiceModal(){
   // la fenêtre déjà affichée est reconstruite au lieu de garder l'ancienne liste.
   const __sig = (S.pendingKeywordChoice.creatureInstId||'') + '|' + (S.pendingKeywordChoice.options||[]).join(',');
   if(existing){
+    if(existing.dataset.busy) return; // résolution en cours : ne pas toucher
     if(existing.dataset.sig === __sig) return;
     existing.remove();
   }
@@ -145,10 +161,7 @@ function renderKeywordChoiceModal(){
     btn.style.cssText = 'min-width:140px;padding:16px;font-size:15px;';
     const iconFile = KEYWORD_ICON_FILES[kw];
     btn.innerHTML = `${iconFile ? `<img src="images/${iconFile}" style="width:32px;height:32px;display:block;margin:0 auto 8px;">` : ''}${escapeHtmlGS(KEYWORD_LABELS[kw]||kw)}`;
-    btn.onclick = async ()=>{
-      modal.remove();
-      await runAction('Choix (mot-clé)', ()=>gsResolveKeywordChoice(i));
-    };
+    btn.onclick = ()=>__runChoice(modal, 'Choix (mot-clé)', ()=>gsResolveKeywordChoice(i));
     list.appendChild(btn);
   });
 }
@@ -159,8 +172,14 @@ function renderDiscoverChoiceModal(){
     if(existing) existing.remove();
     return;
   }
-  if(existing) return; // déjà affichée, ne pas la reconstruire à chaque rendu
+  const __dsig = (S.pendingDiscover.options||[]).map(c=>c && (c.instId||c.id||c.name)).join('|');
+  if(existing){
+    if(existing.dataset.busy) return; // résolution en cours : ne pas toucher
+    if(existing.dataset.sig === __dsig) return; // déjà affichée, ne pas la reconstruire à chaque rendu
+    existing.remove(); // nouveau choix (2ᵉ « Révéler ») : on reconstruit avec les bonnes cartes
+  }
   const modal = document.createElement('div');
+  modal.dataset.sig = __dsig;
   modal.id = 'discover-choice-modal';
   modal.className = 'modal-overlay show';
   modal.innerHTML = `
@@ -176,10 +195,7 @@ function renderDiscoverChoiceModal(){
     const wrap = document.createElement('div');
     wrap.style.cursor = 'pointer';
     wrap.appendChild(cardEl(card, {}));
-    wrap.onclick = async ()=>{
-      modal.remove();
-      await runAction('Choix (révéler)', ()=>gsResolveDiscoverChoice(i));
-    };
+    wrap.onclick = ()=>__runChoice(modal, 'Choix (révéler)', ()=>gsResolveDiscoverChoice(i));
     list.appendChild(wrap);
   });
 }

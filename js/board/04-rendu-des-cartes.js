@@ -294,13 +294,33 @@ function cardEl(card, opts={}){
 // artefact spécifiquement : léger délai de 1,5s avant l'affichage, plutôt
 // qu'immédiat comme pour les autres cartes — annulé proprement si la
 // souris quitte avant que ce délai ne soit écoulé.
+// Élément survolé qui a déclenché l'aperçu. Quand le plateau est redessiné, la carte survolée est remplacée ou
+// déplacée SANS événement « mouseleave » : l'aperçu restait alors affiché pour toujours. Un contrôle régulier
+// le masque dès que cet élément n'est plus dans la page ou n'est plus sous la souris.
+let __previewSrcEl = null;
+setInterval(()=>{
+  if(!__previewSrcEl) return;
+  const box = document.getElementById('card-preview');
+  if(!box || !box.classList.contains('show')){ __previewSrcEl = null; return; }
+  if(__previewPinned) return;
+  let hov = false;
+  try{ hov = __previewSrcEl.isConnected && __previewSrcEl.matches(':hover'); }catch(e){}
+  if(!hov){ __previewSrcEl = null; hidePreview(); }
+}, 120);
 function attachHoverPreview(el, card, inPlay){
   let pendingTimer = null;
   el.addEventListener('mouseenter', (ev)=>{
     if(card.type==='Artefact'){
       const evCopy = { clientX: ev.clientX, clientY: ev.clientY };
-      pendingTimer = setTimeout(()=>{ pendingTimer = null; showCardPreviewHover(card, evCopy, inPlay); }, 1500);
+      pendingTimer = setTimeout(()=>{
+        pendingTimer = null;
+        let hov = false; try{ hov = el.isConnected && el.matches(':hover'); }catch(e){}
+        if(!hov) return; // la carte a disparu / bougé pendant l'attente
+        __previewSrcEl = el;
+        showCardPreviewHover(card, evCopy, inPlay);
+      }, 1500);
     } else {
+      __previewSrcEl = el;
       showCardPreviewHover(card, ev, inPlay);
     }
   });

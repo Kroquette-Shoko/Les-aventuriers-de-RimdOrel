@@ -123,6 +123,7 @@ html,body{margin:0;height:100%;background:var(--bg-void);color:var(--parchment);
 .peek-board-btn{position:fixed;left:0;top:50%;transform:translateY(-50%);z-index:10000;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;max-width:84px;background:var(--bg-panel);color:var(--gold);border:1px solid var(--gold);border-left:none;border-radius:0 10px 10px 0;font-family:'Cinzel',serif;font-size:11px;line-height:1.2;text-align:center;cursor:pointer;box-shadow:2px 0 12px rgba(0,0,0,.5);}
 .peek-board-btn:hover{filter:brightness(1.2);}
 .peek-board-btn .peek-ico{font-size:20px;}
+.modal-overlay.choice-busy .modal-box{pointer-events:none;opacity:.55;}
 .modal-overlay.peek{background:transparent;pointer-events:none;}
 .modal-overlay.peek .modal-box{display:none;}
 .modal-overlay.peek .peek-board-btn{pointer-events:auto;}

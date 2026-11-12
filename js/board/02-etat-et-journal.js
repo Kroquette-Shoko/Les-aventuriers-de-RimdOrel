@@ -850,7 +850,7 @@ function buildJournalEntryEl(entry){
       }
       const ref = line.querySelector('.card-name-ref');
       if(ref && entry.cardId){
-        ref.onmouseenter = (ev)=>{ const c = JOURNAL_CARD_LOOKUP[entry.cardId]; if(c) showCardPreviewHover(c, ev); };
+        ref.onmouseenter = (ev)=>{ const c = JOURNAL_CARD_LOOKUP[entry.cardId]; if(c){ __previewSrcEl = ref; showCardPreviewHover(c, ev); } };
         ref.onmousemove = moveHeroPreview;
         ref.onmouseleave = hidePreview;
       }
