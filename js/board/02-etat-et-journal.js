@@ -639,7 +639,7 @@ function renderGameLog(){
       }
 
       // Pouvoir de région activé : la pastille de région pulse, onde et rayons
-      if(window.BFXREGION && entry.kind==='region_activate' && !combatInstant()){
+      if(window.BFXREGION && (entry.kind==='region_activate' || entry.kind==='region_trigger') && !combatInstant()){
         const __rMine = entry.ownerKey===MY_KEY;
         queueCombatAnim(()=>BFXREGION.use(document.querySelector(`#mana-box-${__rMine?'p1':'p2'} .mana-box-region-thumb`), __rMine));
       }

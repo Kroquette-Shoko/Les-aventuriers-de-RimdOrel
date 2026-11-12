@@ -1117,7 +1117,7 @@ function resolveLogSourceEl(entry){
   // pouvoir de héros, ou simplement une créature qui n'est plus sur le
   // plateau au moment où l'animation se joue).
   const slot = entry.ownerKey===MY_KEY ? 'p1' : 'p2';
-  if(entry.kind==='region_activate'){
+  if(entry.kind==='region_activate' || entry.kind==='region_trigger'){
     const th = document.querySelector(`#mana-box-${slot} .mana-box-region-thumb`);
     if(th) return th;
   }
