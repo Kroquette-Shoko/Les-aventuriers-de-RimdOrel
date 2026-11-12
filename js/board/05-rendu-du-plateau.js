@@ -97,6 +97,22 @@ function syncTargetingArrow(){
 // qu'un choix n'a pas été fait, comme convenu côté serveur.
 // Affiche les options à choisir quand une capacité "choix de mot-clé"
 // (keywordChoice) est en attente — même principe que discover.
+// Bouton latéral « Voir le plateau » : masque temporairement la fenêtre de choix
+// (révéler / mot-clé) pour regarder le plateau, puis la réaffiche. Le choix en attente n'est pas modifié.
+function addPeekBoardButton(modal){
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'peek-board-btn';
+  b.innerHTML = '<span class="peek-ico">👁</span><span class="peek-txt">Voir le plateau</span>';
+  b.onclick = (e)=>{
+    e.stopPropagation();
+    const on = modal.classList.toggle('peek');
+    b.querySelector('.peek-ico').textContent = on ? '↩' : '👁';
+    b.querySelector('.peek-txt').textContent = on ? 'Revenir au choix' : 'Voir le plateau';
+  };
+  modal.appendChild(b);
+}
+
 function renderKeywordChoiceModal(){
   const existing = document.getElementById('keyword-choice-modal');
   if(!S.pendingKeywordChoice || S.pendingKeywordChoice.playerKey!==MY_KEY){
@@ -121,6 +137,7 @@ function renderKeywordChoiceModal(){
     </div>
   `;
   document.body.appendChild(modal);
+  addPeekBoardButton(modal);
   const list = document.getElementById('keyword-choice-list');
   S.pendingKeywordChoice.options.forEach((kw, i)=>{
     const btn = document.createElement('button');
@@ -153,6 +170,7 @@ function renderDiscoverChoiceModal(){
     </div>
   `;
   document.body.appendChild(modal);
+  addPeekBoardButton(modal);
   const list = document.getElementById('discover-choice-list');
   S.pendingDiscover.options.forEach((card, i)=>{
     const wrap = document.createElement('div');
