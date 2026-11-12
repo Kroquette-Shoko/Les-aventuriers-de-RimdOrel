@@ -638,6 +638,12 @@ function renderGameLog(){
         queueCombatAnim(()=>BFX2.heroPower(document.getElementById(`hero-portrait-${__hMine?'p1':'p2'}`), __hMine));
       }
 
+      // Pouvoir de région activé : la pastille de région pulse, onde et rayons
+      if(window.BFXREGION && entry.kind==='region_activate' && !combatInstant()){
+        const __rMine = entry.ownerKey===MY_KEY;
+        queueCombatAnim(()=>BFXREGION.use(document.querySelector(`#mana-box-${__rMine?'p1':'p2'} .mana-box-region-thumb`), __rMine));
+      }
+
       // Artefact utilisé : rouage qui s'emballe, éclats et reflet sur l'artefact
       if(entry.kind==='artifact_activate' && window.BFX){
         queueCombatAnim(()=>BFX.artifactUse(resolveLogSourceEl(entry), entry.ownerKey===MY_KEY));

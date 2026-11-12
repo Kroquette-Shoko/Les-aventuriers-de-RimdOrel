@@ -176,6 +176,26 @@
     return NAMES[n] || null;
   }
   const RUN = { guerre, zenithas, ange, savoir, jaane };
+  // ---------- Pouvoir de région (le terrain) ----------
+  // Pastille de région qui pulse, onde d'énergie et rayons autour d'elle.
+  async function regionUse(el, mine) {
+    if (off() || !el || !el.animate) return;
+    const r = el.getBoundingClientRect(); if (!r.width) return;
+    const col = mine === false ? '#ff6a5a' : '#5fe3b0';
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2, d = Math.max(r.width, r.height);
+    anim(el, [{ transform: 'scale(1)', filter: 'brightness(1)' }, { transform: 'scale(1.18)', filter: 'brightness(1.7)', offset: .35 }, { transform: 'scale(1)', filter: 'brightness(1)' }], { duration: ms(800), easing: 'ease-in-out' });
+    for (let k = 0; k < 2; k++) {
+      const ring = fx(`left:${cx - d / 2}px;top:${cy - d / 2}px;width:${d}px;height:${d}px;border-radius:50%;border:3px solid ${col};box-shadow:0 0 14px ${col}`);
+      anim(ring, [{ opacity: 0, transform: 'scale(.4)' }, { opacity: 1, offset: .2 }, { opacity: 0, transform: 'scale(2.6)' }], { duration: ms(800), delay: k * ms(220), fill: 'both', easing: 'ease-out' });
+    }
+    for (let i = 0; i < 12; i++) {
+      const a = i / 12 * 6.283;
+      const sp = fx(`left:${cx - 2}px;top:${cy - 2}px;width:5px;height:5px;border-radius:50%;background:${col};box-shadow:0 0 8px ${col}`);
+      anim(sp, [{ opacity: 0, transform: 'none' }, { opacity: 1, offset: .15 }, { opacity: 0, transform: `translate(${Math.cos(a) * d * 1.1}px,${Math.sin(a) * d * 1.1}px) scale(.3)` }], { duration: ms(700), delay: ms(150), fill: 'both', easing: 'ease-out' });
+    }
+    await wait(ms(1000)); clean();
+  }
+  window.BFXREGION = { use: regionUse };
   window.BFXDONS = {
     keyOf,
     off,
