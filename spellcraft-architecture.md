@@ -759,3 +759,13 @@ Patchs appliqués directement sur `_edge_fn_bootstrap` (la table `_edge_fn_modul
 - `reanimateUnderControl.reanimateGrantKeyword`.
 - Correctif Cycle : `__flushCycleQueue` attend la fin des déclencheurs « Quand… » en cours (sinon la carte qui réagit à watchCycle était ignorée).
 - Sauvegarde : `_backup_game_action_chunks_20261112_dieux`.
+
+## Moteur — 10 dieux multicolores + Nova (2026-11-12, game-action v210)
+- Déclencheurs `watchPlayCard` (dans `triggerOpponentPlayTraps`), `watchHeroDamage` (après `onDealtHeroDamage`), `watchStunned` (effet stun) ; compteur `p.__stunnedCount`, valeur dynamique `enemyStunnedThisGame` ; condition `dynamicCompare`.
+- Choix par l'adversaire : `__requestOpponentChoice` ouvre une fenêtre « Révéler » chez l'adversaire (`pendingDiscover.oppChoice`) ; contre l'IA, tirage au hasard.
+- `imprison` : `S.__prison` (libération dans `__scanGuerreFlags` quand la source quitte le jeu). `manaSpendPenalty` : `p.__manaPenalty` lu dans `__onManaSpent`.
+- Endormi : `c.__asleep` + `stunned` tant que le mot-clé est présent ; jamais ciblé hors sélection « toutes ».
+- Filtres `atkAboveCostFilter` / `atkBelowCostFilter` / `arrivedBeforeTurnFilter` (`c.__arrivedTurn`).
+- Récupération `top` ; réduction de coût « cette carte » → `card._selfCostReduction` (calculée en main, lue par `getEffectiveCost` et le plateau).
+- Combat forcé : jamais une créature contre elle-même.
+- Jeton « Vision de folie » (set Conjuration). Sauvegarde : `_backup_game_action_chunks_20261112_dieux2`.

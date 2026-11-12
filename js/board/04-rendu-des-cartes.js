@@ -207,6 +207,9 @@ function getEffectiveCostClient(p, card){
     if(r.subtype && !(card.subtypes||[]).includes(r.subtype)) return;
     cost -= r.amount || 0;
   });
+  // Réductions propres à la carte, calculées par le serveur (ex : Nova, « je coûte X de moins »)
+  cost -= card._instanceCostReduction || 0;
+  cost -= card._selfCostReduction || 0;
   return Math.max(0, cost);
 }
 
@@ -262,6 +265,7 @@ function cardEl(card, opts={}){
     badge.textContent = '💫';
     badge.title = card.__chainedBy ? 'Entravée : ne peut ni attaquer ni bloquer tant que la carte qui l\'enchaîne est en jeu.' : ('Étourdie : ' + STATUS_DURATION_TEXT + '. ' + statusDurationNote(card, opts.ownerKey, S)).trim();
     if(card.__chainedBy) badge.textContent = '⛓️';
+    if(card.__asleep){ badge.textContent = '💤'; badge.title = 'Endormi : ne peut ni attaquer, ni bloquer, ni être ciblé.'; }
     el.appendChild(badge);
   } else if(inPlay && card.frozen){
     el.classList.add('is-frozen');
