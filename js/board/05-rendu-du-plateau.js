@@ -36,7 +36,13 @@ function render(){
   if(__matchAnnounceActive) return;
   // Plateau gelé pendant une animation de combat : on note qu'il faudra
   // re-rendre (fait par unfreezeBoardRender à la fin de la file).
-  if(__boardRenderFrozen){ __boardRenderDirty = true; return; }
+  if(__boardRenderFrozen){
+    __boardRenderDirty = true;
+    // Ma main et mon mana restent à jour : la carte que je joue doit quitter ma main tout de suite
+    // (comme le coût en mana) ; seuls les EFFETS (plateau, héros, défausse...) attendent la fin des animations.
+    try{ renderManaBox(MY_KEY, 'p1'); renderHand(); }catch(e){}
+    return;
+  }
   syncServerPendingTarget(); // choix de cible demandé par le serveur (capacité déclenchée)
   const keywordBadgePlan = planKeywordBadgeAnim(); // avant la reconstruction du DOM
   renderManaBox(MY_KEY, 'p1');

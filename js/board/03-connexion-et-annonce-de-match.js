@@ -495,7 +495,11 @@ function finishStateUpdateTail(state){
   if(heroDeath && !__boardRenderFrozen) freezeBoardRender();
   const holdAttackers = !combatInstant() &&
     shouldHoldCombatReveal(state, MY_KEY, OPP_KEY, newEntries.some(entryQueuesCardAnimation));
-  if(!__boardRenderFrozen && (newEntries.some(entryAnimatesBoardCombat) || holdAttackers)){
+  // Cartes jouées, sorts, capacités déclenchées : leurs animations (révélation, orbe, flèches) doivent
+  // se jouer AVANT que leurs effets (PV, stats, créatures posées ou détruites, défausse...) n'apparaissent.
+  // Avant, seuls les combats et les morts gelaient le plateau : tout le reste s'affichait déjà à l'état final.
+  const holdForCardAnims = !combatInstant() && newEntries.some(entryQueuesCardAnimation);
+  if(!__boardRenderFrozen && (newEntries.some(entryAnimatesBoardCombat) || holdForCardAnims || holdAttackers)){
     freezeBoardRender();
   }
   render(); // sans effet si le plateau est gelé (voir render)
