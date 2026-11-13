@@ -1130,13 +1130,14 @@ async function scTavernAvailable(){
 }
 
 /* Mode temporaire « Portail planaire » : ouvert tant que la ligne app_flags « portail_until » est vraie ET que sa date
-   (updated_at) n'est pas dépassée, ou si c'est le mode du week-end. Le serveur applique la même règle (portailAllowed). */
+   (updated_at) n'est pas dépassée, ou pendant toute la fenêtre du week-end (taverne ouverte). Le serveur applique la même règle (portailAllowed). */
 async function scPortailAvailable(){
   try{
     const { data } = await sb.from('app_flags').select('value, updated_at').eq('key', 'portail_until').maybeSingle();
     if(data && data.value === true && Date.now() < new Date(data.updated_at).getTime()) return true;
   }catch(e){}
-  try{ if(scWeekendWindowOpenNow() && (await scWeekendModeId()) === 'portail') return true; }catch(e){}
+  // Pendant la fenêtre du week-end (taverne ouverte), tous les modes jouables sont ouverts ensemble (le roulement viendra plus tard).
+  if(scWeekendWindowOpenNow()) return true;
   return false;
 }
 async function scPortailUntil(){

@@ -305,7 +305,7 @@
   window.APP_TOPBAR_DISABLED = true;
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="spellcraft-shared.js?v=20261112l"></script>
+<script src="spellcraft-shared.js?v=20261114a"></script>
 <script src="spellcraft-notifs.js"></script>
 <script src="spellcraft-chrono.js"></script>
 <script src="spellcraft-server-client.js"></script>
@@ -465,10 +465,8 @@ async function loadHubWeekend(){
     if(typeof scWeekendWindowOpenNow === 'function' && !scWeekendWindowOpenNow()){
       hbSet('hb-mode-name', 'Pas de mode spécial'); hbSet('hb-mode-desc', 'Le prochain mode démarre vendredi à 18h (heure de Paris).'); return;
     }
-    const id = await scWeekendModeId();
-    const info = id ? await scWeekendModeInfo(id) : null;
-    if(info){ hbSet('hb-mode-name', (info.icon ? info.icon + ' ' : '') + info.name); hbSet('hb-mode-desc', info.description || ''); }
-    else { hbSet('hb-mode-name', 'Pas de mode spécial'); hbSet('hb-mode-desc', ''); }
+    // Taverne ouverte : tous les modes jouables sont ouverts ensemble (le roulement viendra plus tard).
+    hbSet('hb-mode-name', '🍺 La taverne'); hbSet('hb-mode-desc', 'Tous les modes sont ouverts : Tri-color et Portail planaire.');
   }catch(e){ hbSet('hb-mode-name', '—'); }
 }
 let __hubQuestUser = null, __hubQuestAt = 0;
