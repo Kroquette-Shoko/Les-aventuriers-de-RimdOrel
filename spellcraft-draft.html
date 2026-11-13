@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rimd'Orël — Draft</title>
+<script>
+(function(){ try{ var t = localStorage.getItem('sc-theme') || 'actuel'; document.documentElement.setAttribute('data-theme', t); }catch(e){} })();
+</script>
+<link rel="stylesheet" href="spellcraft-ui-kit.css">
+<style>
+#app{min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:0 20px 60px;}
+#app > .sc-topbar{margin:0 -20px 20px;width:calc(100% + 40px);}
+#draft-layout{width:100%;max-width:1260px;display:flex;gap:22px;align-items:flex-start;}
+#draft-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:16px;}
+#draft-side{width:260px;flex-shrink:0;position:sticky;top:16px;background:var(--bg-panel);border:1px solid var(--line,rgba(212,175,55,.25));border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 32px);overflow:auto;}
+#draft-side h3{font-family:'Cinzel',serif;color:var(--gold);margin:0;font-size:18px;}
+.d-title{font-family:'Cinzel',serif;color:var(--gold);font-size:28px;margin:0;}
+.d-sub{color:var(--parchment-dim,#b8a98a);font-size:14px;line-height:1.5;margin:0;}
+.d-bar{height:10px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden;}
+.d-bar > i{display:block;height:100%;background:var(--gold);width:0;transition:width .3s;}
+.d-offer{display:flex;flex-wrap:wrap;gap:22px;justify-content:center;padding:6px 0;}
+.d-slot{width:calc(300px * var(--cs));height:calc(423.2px * var(--cs));position:relative;cursor:pointer;border-radius:14px;transition:transform .15s, filter .15s;}
+.d-slot:hover{transform:translateY(-6px);filter:drop-shadow(0 0 14px rgba(212,175,55,.65));}
+.d-slot .ncard{position:absolute;top:0;left:0;transform:scale(var(--cs));transform-origin:top left;}
+.d-slot.chosen{outline:3px solid var(--gold);}
+.d-slot.off{pointer-events:none;opacity:.5;}
+:root{--cs:.78;}
+.d-deckrow{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--parchment);padding:3px 6px;border-radius:6px;background:rgba(255,255,255,.04);}
+.d-deckrow .c{min-width:22px;text-align:center;font-weight:700;color:var(--gold);}
+.d-deckrow .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.d-deckrow .x{color:var(--parchment-dim,#b8a98a);}
+.d-deckrow.leg .n{color:#ff9d3b;}
+.d-note{font-size:12px;color:var(--parchment-dim,#b8a98a);}
+.d-msg{padding:24px;text-align:center;color:var(--parchment);background:var(--bg-panel);border:1px solid var(--line,rgba(212,175,55,.25));border-radius:16px;}
+.d-actions{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;}
+.d-legend-tag{display:inline-block;padding:3px 10px;border-radius:999px;background:rgba(255,157,59,.18);color:#ff9d3b;font-size:12px;font-weight:700;letter-spacing:.5px;}
+@media (max-width:860px){
+  :root{--cs:.6;}
+  #draft-layout{flex-direction:column;}
+  #draft-side{width:100%;position:static;max-height:none;}
+  .d-offer{gap:12px;}
+}
+@media (max-width:420px){ :root{--cs:.5;} }
+/* ---------- Rendu de carte (identique à la boutique) ---------- */
+.ncard{position:relative;flex-shrink:0;user-select:none;}
+.ncard .nart-layer{position:absolute;background-size:cover;background-repeat:no-repeat;background-color:hsl(calc(var(--th, 252) + 0.9) calc(var(--ts-n, 1) * 21.2%) 25.9%);z-index:1;overflow:hidden;}
+.ncard .nstat-wrap{position:absolute;aspect-ratio:1/1;z-index:8;}
+.ncard .nstat-wrap img{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+.ncard .nstat-wrap .nstat-txt{position:absolute;inset:0;z-index:7;display:flex;align-items:center;justify-content:center;font-family:'Cinzel',serif;font-weight:700;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.85);pointer-events:none;}
+.ncard .nname-wrap{position:absolute;z-index:7;display:flex;align-items:center;justify-content:center;}
+.ncard .nname-wrap img{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;}
+.ncard .nname-wrap .nname-text{position:relative;z-index:1;left:auto;right:auto;top:auto;transform:none;width:84%;max-width:84%;}
+.ncard .nname-text{position:absolute;z-index:8;text-align:center;font-family:'Cinzel',serif;font-weight:700;color:#2a1f10;text-shadow:0 1px 0 rgba(255,255,255,.25);pointer-events:none;overflow:hidden;white-space:nowrap;}
+.ncard .nname-curved{position:absolute;z-index:8;left:50%;top:4%;width:80%;transform:translateX(-50%);
+  display:flex;justify-content:center;align-items:flex-end;font-family:'Cinzel',serif;font-weight:700;
+  color:#f2ead2;text-shadow:0 1px 3px rgba(0,0,0,.8), 0 0 2px rgba(0,0,0,.6);pointer-events:none;}
+.ncard .nname-curved span{display:inline-block;transform-origin:center 180px;line-height:1;}
+.ncard.n-big .nname-curved{font-size:19px;}
+.ncard .ncard-text{position:absolute;z-index:8;color:hsl(calc(var(--th, 252) + 8) calc(var(--ts-n, 1) * 23.1%) 17.8%);text-align:center;overflow:hidden;pointer-events:none;white-space:pre-wrap;}
+.ncard .nrarity-gem{position:absolute;z-index:8;aspect-ratio:231/297;object-fit:contain;}
+.ncard.n-big .nrarity-gem.gem-custom{width:13.5%;aspect-ratio:679/834;}
+.ncard.n-small .nrarity-gem.gem-custom{width:12.2%;aspect-ratio:679/834;}
+.ncard .ntypeline{position:absolute;left:50%;transform:translateX(-50%);z-index:9;text-align:center;color:#3a2f1f;font-style:italic;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ncard .nlegendary-gem{position:absolute;z-index:8;aspect-ratio:231/297;object-fit:contain;}
+
+.ncard.n-big{width:300px;height:423.2px;}
+.ncard.n-big .nart-layer{left:11.1%;top:7.87%;width:79.31%;height:52.36%;}
+.ncard.n-big.n-hero-card .nart-layer{height:83%;}
+.ncard.n-big .nstat-wrap.n-mana{left:-6.5%;top:-6.5%;width:25.5%;}
+.ncard.n-big .nstat-wrap.n-mana .nstat-txt{font-size:26px;}
+.ncard.n-big .nname-wrap{left:50%;top:45.3%;width:92%;aspect-ratio:663/202;transform:translateX(-50%);}
+.ncard.n-big .nname-wrap .nname-text{font-size:17px;transform:translateY(-13px);}
+.ncard.n-big .ncard-text{left:16%;top:65.79%;width:68%;height:27.5%;font-size:13.5px;line-height:1.32;padding-top:4px;}
+.ncard.n-big .nrarity-gem{left:50%;bottom:0.89%;width:12%;transform:translateX(-50%);}
+.ncard.n-big .ntypeline{bottom:11.63%;width:72%;font-size:10.5px;}
+.ncard.n-big .nlegendary-gem{left:50%;top:-3%;width:12%;transform:translateX(-50%);}
+.ncard.n-big .nstat-wrap.n-atk{left:3%;bottom:1%;width:26%;}
+.ncard.n-big .nstat-wrap.n-atk .nstat-txt{font-size:27px;}
+.ncard.n-big .nstat-wrap.n-end{right:3%;bottom:1%;width:26%;}
+.ncard.n-big .nstat-wrap.n-end .nstat-txt{font-size:27px;}
+.ncard.n-big .nstat-wrap.n-art{right:6%;bottom:5%;width:15%;}
+.ncard.n-big .nstat-wrap.n-art .nstat-txt{font-size:15px;}
+
+.ncard.n-small{width:240px;height:240px;}
+.ncard.n-small .nart-layer{left:20.47%;top:16.28%;width:58.05%;height:44.63%;}
+.ncard.n-small .nstat-wrap.n-mana{left:-1%;top:-3.5%;width:22%;}
+.ncard.n-small .nstat-wrap.n-mana .nstat-txt{font-size:16px;}
+.ncard.n-small .nname-wrap{left:50%;top:57%;width:92%;aspect-ratio:663/202;transform:translateX(-50%);}
+.ncard.n-small .nname-wrap .nname-text{font-size:14px;text-align:center;transform:translateY(-10px);}
+.ncard.n-small .ncard-text{display:none;}
+.ncard.n-small .nrarity-gem{left:50%;bottom:-0.5%;width:11%;transform:translateX(-50%);}
+.ncard.n-small .ntypeline{bottom:15%;width:64%;font-size:8.5px;}
+.ncard.n-small .nlegendary-gem{left:50%;top:-1%;width:11%;transform:translateX(-50%);}
+.ncard.n-small .nstat-wrap.n-atk{left:6%;bottom:5%;width:22%;}
+.ncard.n-small .nstat-wrap.n-atk .nstat-txt{font-size:19.5px;}
+.ncard.n-small .nstat-wrap.n-end{right:6%;bottom:5%;width:22%;}
+
+.reward-card-mini{width:44px;height:61.6px;overflow:visible;position:relative;cursor:pointer;flex-shrink:0;border-radius:6px;}
+.reward-card-mini .ncard{position:absolute;top:0;left:0;transform:scale(0.1467);transform-origin:top left;}
+#reward-card-preview .ncard{transform:scale(1.1);transform-origin:top left;box-shadow:0 16px 34px rgba(0,0,0,.65);}
+</style>
+<script src="spellcraft-premium.js?v=20261020a"></script>
+<script src="spellcraft-card-render.js?v=20261101b"></script>
+<script src="spellcraft-dialogs.js?v=20261020a"></script>
+</head>
+<body>
+<div id="app">
+  <div class="sc-topbar">
+    <a href="spellcraft-hub.html" class="sc-topbar-back" title="Retour à l'accueil">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Menu principal
+    </a>
+    <div class="sc-topbar-right"><div id="sc-auth-slot"></div><div id="sc-options-slot"></div></div>
+  </div>
+  <div id="draft-layout">
+    <main id="draft-main"><div class="d-msg">Chargement…</div></main>
+    <aside id="draft-side" hidden>
+      <h3>Ton deck</h3>
+      <div class="d-note" id="side-info"></div>
+      <div id="side-list"></div>
+    </aside>
+  </div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>window.APP_TOPBAR_DISABLED = true;</script>
+<script src="spellcraft-shared.js?v=20261114a"></script>
+<script src="spellcraft-notifs.js"></script>
+<script src="spellcraft-auth.js"></script>
+<script src="spellcraft-catalog.js?v=20261114b"></script>
+<script>
+const NCLASS_TO_SLUG = {
+  'Aube':'aube', 'Crépuscule':'crepuscule', 'Volonté':'volonté',
+  'Prima':'prima', 'Arcane':'arcane', 'Neutre':'neutre'
+};
+const NRARITY_TO_SLUG = {
+  'Basique':'basique', 'Commune':'commun', 'Rare':'rare',
+  'Épique':'epique', 'Mythique':'mythique'
+};
+
+function nEl(tag, cls){ const e = document.createElement(tag); if(cls) e.className = cls; return e; }
+function nImg(src, cls){ const i = document.createElement('img'); i.src = src; if(cls) i.className = cls; return i; }
+
+function buildCurvedNameText(name, card, size){
+  const wrap = nEl('div', 'nname-curved');
+  wrap.style.top = (card.heroNameCurveTop ?? 4) + '%';
+  const chars = (name || '').split('');
+  const n = chars.length;
+  const strength = (card.heroNameCurveStrength ?? 34) / 100;
+  const maxAngle = Math.min(60, n * 4.2) * strength;
+  const start = -maxAngle / 2;
+  const step = n > 1 ? maxAngle / (n - 1) : 0;
+  chars.forEach((ch, i) => {
+    const span = document.createElement('span');
+    span.textContent = ch === ' ' ? '\u00A0' : ch;
+    const angle = start + step * i;
+    span.style.transform = `rotate(${angle.toFixed(2)}deg)`;
+    wrap.appendChild(span);
+  });
+  applyNameSizing(wrap, card, size);
+  return wrap;
+}
+
+function buildNewCardEl(card, size, opts={}){
+  const root = nEl('div', `ncard n-${size}`);
+  const slug = NCLASS_TO_SLUG[card.class] || 'neutre';
+  const isHero = card.type==='Héros';
+  const isRegion = card.type==='Région';
+  const hasMana = !isHero && !isRegion;
+  const isCreature = card.type==='Créature';
+  const isArtifact = card.type==='Artefact';
+  if(isHero) root.classList.add('n-hero-card');
+
+  const posX = isHero ? (card.imagePosXHeroCard ?? 50) : size==='big' ? (card.imagePosX ?? 50) : (card.imagePosXSmall ?? 50);
+  const posY = isHero ? (card.imagePosYHeroCard ?? 50) : size==='big' ? (card.imagePosY ?? 50) : (card.imagePosYSmall ?? 50);
+  const zoom = isHero ? (card.imageZoomHeroCard ?? 100) : size==='big' ? (card.imageZoom ?? 100) : (card.imageZoomSmall ?? 100);
+  const art = nEl('div', 'nart-layer');
+  if(card.image && !(typeof applyNCardArtFree==='function' && applyNCardArtFree(art, card, isHero ? 'HeroCard' : size==='big' ? '' : 'Small'))){
+    art.style.backgroundImage = `url('${card.image.replace(/'/g,'')}')`;
+    art.style.backgroundPosition = `${posX}% ${posY}%`;
+    art.style.backgroundSize = zoom>100 ? zoom+'%' : 'cover';
+  }
+  root.appendChild(art);
+
+
+  if(hasMana){
+    const w = nEl('div','nstat-wrap n-mana');
+    w.appendChild(nImg('images/card/icon/bubble/mana.png'));
+    const t = nEl('div','nstat-txt'); t.textContent = card.cost ?? 0;
+    w.appendChild(t);
+    root.appendChild(w);
+  }
+  if(isCreature){
+    const wa = nEl('div','nstat-wrap n-atk');
+    wa.appendChild(nImg('images/card/icon/bubble/attack.png'));
+    const ta = nEl('div','nstat-txt'); ta.textContent = card.atk ?? 0;
+    wa.appendChild(ta);
+    root.appendChild(wa);
+
+    const we = nEl('div','nstat-wrap n-end');
+    we.appendChild(nImg('images/card/icon/bubble/endurance.png'));
+    const te = nEl('div','nstat-txt'); te.textContent = card.hp ?? 0;
+    we.appendChild(te);
+    root.appendChild(we);
+  }
+  const isEdiCard = isArtifact && (card.subtypes||[]).some(s=>String(s).trim().toLowerCase()==='\u00e9difice');
+  if(isEdiCard){ // Édifice : Endurance à la place des charges
+    const we = nEl('div','nstat-wrap n-end');
+    we.appendChild(nImg('images/card/icon/bubble/endurance.png'));
+    const te = nEl('div','nstat-txt'); te.textContent = (card.hp ?? 0);
+    we.appendChild(te);
+    we.title = "Endurance de l'Édifice";
+    root.appendChild(we);
+  }
+  if(isArtifact && !isEdiCard){
+    const wf = nEl('div','nstat-wrap n-art');
+    wf.appendChild(nImg('images/card/icon/bubble/artefact.png'));
+    const t = nEl('div','nstat-txt'); t.textContent = (card.charges ?? 0)+'x';
+    wf.appendChild(t);
+    root.appendChild(wf);
+  }
+
+  if(isHero){
+    root.appendChild(buildCurvedNameText(card.name || '', card, size));
+  } else {
+    const nw = nEl('div','nname-wrap');
+    nw.appendChild(nImg('images/card/icon/bubble/nom.png'));
+    const nameEl = nEl('div','nname-text'); nameEl.textContent = card.name || '';
+    applyNameSizing(nameEl, card, size);
+    nw.appendChild(nameEl);
+    root.appendChild(nw);
+  }
+
+  if(size==='big' && !isHero){
+    const textEl = nEl('div','ncard-text'); textEl.textContent = card.text || '';
+    root.appendChild(textEl);
+  }
+
+  if(card.subtypes && card.subtypes.length && !isHero){
+    const tl = nEl('div','ntypeline'); tl.textContent = card.subtypes.join(' - ');
+    root.appendChild(tl);
+  }
+
+  if(!isHero && (card.isLegendary || (card.rarity && NRARITY_TO_SLUG[card.rarity]))){ const __gs = card.isLegendary ? 'legendaire' : NRARITY_TO_SLUG[card.rarity];
+    root.appendChild(typeof rarityGemImg==='function' ? rarityGemImg(card, __gs, 'nrarity-gem', nImg) : nImg(`images/card/icon/rare/${__gs}.png`, 'nrarity-gem'));
+  }
+
+  if(window.SCCardRender) SCCardRender.decorate(root, card, size, opts);
+  return root;
+}
+
+function applyNameSizing(nameEl, card, size){
+  if(card.nameWrap){
+    nameEl.style.whiteSpace = 'normal';
+    nameEl.style.height = 'auto';
+    nameEl.style.overflow = 'visible';
+  }
+  if(card.nameFontAuto === false){
+    nameEl.dataset.auto = '0';
+    const scale = size==='small' ? (240/300) : 1;
+    nameEl.style.fontSize = ((card.nameFontSize || 14) * scale) + 'px';
+  } else {
+    nameEl.dataset.auto = '1';
+  }
+}
+function fitBoxFont(el, minSize){
+  if(!el) return;
+  el.style.fontSize = '';
+  let size = parseFloat(getComputedStyle(el).fontSize);
+  const floor = minSize || 7;
+  let attempts = 0;
+  while(attempts < 26 && size > floor){
+    const overflowH = el.scrollHeight > el.clientHeight + 1;
+    const overflowW = el.scrollWidth > el.clientWidth + 1;
+    if(!overflowH && !overflowW) break;
+    size -= 0.5;
+    el.style.fontSize = size + 'px';
+    attempts++;
+  }
+}
+function fitNewCard(rootEl){
+  if(!rootEl) return;
+  const nameEl = rootEl.querySelector('.nname-text') || rootEl.querySelector('.nname-curved');
+  if(nameEl && nameEl.dataset.auto !== '0'){
+    fitBoxFont(nameEl, 6);
+  }
+  fitBoxFont(rootEl.querySelector('.ncard-text'), 7);
+}
+function buildCardEl(card){
+  const el = buildNewCardEl(card, 'big', {heroCardFrame:true});
+  requestAnimationFrame(()=>fitNewCard(el));
+  return el;
+}
+
+</script>
+<script>
+/* ============================================================
+   MODE DRAFT — on construit un deck de 30 cartes en choisissant 1 carte parmi 3, 24 fois.
+   Les cartes proposées viennent de tous les sets visibles (hors set caché et Conjuration),
+   qu'on les possède ou non. Le deck est enregistré comme deck temporaire (drapeau draft).
+   ============================================================ */
+const DECK_SIZE = 30;
+const LS_KEY = 'spellcraft-draft-state-v1';
+const OFFER_TYPES = ['Créature','Sortilège','Artefact','Piège','Rituel'];
+let BYID = {}, POOL = [], HEROES = [], REGIONS = [];
+let S = null; // état de la draft
+const mainEl = document.getElementById('draft-main');
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+function shuffle(a){ a = a.slice(); for(let i=a.length-1;i>0;i--){ const j = Math.floor(Math.random()*(i+1)); [a[i],a[j]] = [a[j],a[i]]; } return a; }
+function pick3(a){ return shuffle(a).slice(0,3); }
+function saveState(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(S)); }catch(e){} }
+function loadState(){ try{ const v = JSON.parse(localStorage.getItem(LS_KEY)||'null'); return v && v.step ? v : null; }catch(e){ return null; } }
+function clearState(){ try{ localStorage.removeItem(LS_KEY); }catch(e){} }
+function cardById(id){ return BYID[id]; }
+
+/* ---------- Règles de couleur (même logique que le classeur) ---------- */
+function cardSources(c){ return [c.class, c.classSecondary, c.classTertiary].filter(Boolean); }
+function isTriSource(c){ return !!(c && c.classSecondary && c.classTertiary); }
+function deckAllSources(deck, hero, extra){
+  const set = new Set();
+  if(hero) [hero.class, hero.classSecondary].filter(k=>k && k!=='Neutre').forEach(k=>set.add(k));
+  deck.cards.forEach(e=>{ const c = cardById(e.cardId); if(c) cardSources(c).filter(k=>k!=='Neutre').forEach(k=>set.add(k)); });
+  if(extra) cardSources(extra).filter(k=>k!=='Neutre').forEach(k=>set.add(k));
+  return set;
+}
+function triSourceConflict(deck, hero, card){
+  const all = deckAllSources(deck, hero, card);
+  const tris = deck.cards.map(e=>cardById(e.cardId)).filter(isTriSource);
+  if(isTriSource(card) && !tris.some(t=>t.id===card.id)) tris.push(card);
+  for(const t of tris){ const own = cardSources(t); for(const s of all){ if(!own.includes(s)) return true; } }
+  return false;
+}
+function heroCovers(card, hero){
+  const hc = [hero.class, hero.classSecondary].filter(Boolean);
+  const cc = [card.class, card.classSecondary].filter(Boolean);
+  return cc.includes('Neutre') || cc.every(c=>hc.includes(c));
+}
+function multiClassCount(deck, hero){
+  let n = 0;
+  deck.cards.forEach(e=>{ const c = cardById(e.cardId); if(!c || isTriSource(c)) return; if(!heroCovers(c, hero)) n += e.count; });
+  return n;
+}
+function deckForeignSources(deck, hero){
+  const own = [hero.class, hero.classSecondary].filter(Boolean);
+  const set = new Set();
+  deck.cards.forEach(e=>{ const c = cardById(e.cardId); if(!c || isTriSource(c)) return; [c.class, c.classSecondary].filter(Boolean).forEach(k=>{ if(k!=='Neutre' && !own.includes(k)) set.add(k); }); });
+  return set;
+}
+function classAllowed(card, deck, hero){
+  if(isTriSource(card)) return !triSourceConflict(deck, hero, card);
+  if(triSourceConflict(deck, hero, card)) return false;
+  const hc = [hero.class, hero.classSecondary].filter(Boolean);
+  const cc = [card.class, card.classSecondary].filter(Boolean);
+  if(heroCovers(card, hero)) return true;
+  const mc = hero.heroMultiClass;
+  if(!mc || !mc.enabled) return false;
+  if(mc.scope && mc.scope!=='Toutes' && card.type!==mc.scope) return false;
+  const mode = mc.mode || 'allowed';
+  if(mode==='multiAny'){ const src = mc.anySource || hero.class; return !!card.classSecondary && cc.includes(src); }
+  if(mode==='freeSecond'){
+    const foreign = cc.filter(k=>!hc.includes(k));
+    if(foreign.length!==1) return false;
+    const chosen = deckForeignSources(deck, hero);
+    return chosen.size===0 || chosen.has(foreign[0]);
+  }
+  if(mc.allowedClasses && cc.every(c=>hc.includes(c) || mc.allowedClasses.includes(c))) return multiClassCount(deck, hero) < (mc.maxCount||0);
+  return false;
+}
+
+/* ---------- Deck en cours ---------- */
+function heroObj(){ return S && S.heroId ? cardById(S.heroId) : null; }
+function heroOwnCards(hero){
+  const n = (hero.name||'').trim().toLowerCase();
+  return Object.values(BYID).filter(c=>c.hero && String(c.hero).trim().toLowerCase()===n && c.type!=='Héros');
+}
+function buildDeck(){
+  const hero = heroObj();
+  const map = new Map();
+  const add = (id,n)=>map.set(id,(map.get(id)||0)+n);
+  if(hero) heroOwnCards(hero).forEach(c=>add(c.id, c.isLegendary ? 1 : 2));
+  (S.picks||[]).forEach(id=>add(id,1));
+  return { cards: [...map.entries()].map(([cardId,count])=>({cardId,count})) };
+}
+function deckTotal(deck){ return deck.cards.reduce((s,e)=>s+e.count,0); }
+function maxCopies(c){ return (c.isLegendary || c.type==='Rituel') ? 1 : 2; }
+function picksNeeded(){ const hero = heroObj(); const d = { cards: [] }; const base = hero ? heroOwnCards(hero).reduce((s,c)=>s+(c.isLegendary?1:2),0) : 0; return DECK_SIZE - base; }
+
+function candidates(deck, hero, legendaryOnly){
+  const counts = {}; deck.cards.forEach(e=>counts[e.cardId]=e.count);
+  const hasRitual = deck.cards.some(e=>{ const c = cardById(e.cardId); return c && c.type==='Rituel'; });
+  return POOL.filter(c=>{
+    if(legendaryOnly && !c.isLegendary) return false;
+    if((counts[c.id]||0) >= maxCopies(c)) return false;
+    if(c.type==='Rituel' && hasRitual) return false;
+    return classAllowed(c, deck, hero);
+  });
+}
+function makeOffer(){
+  const deck = buildDeck(), hero = heroObj();
+  const last = (S.picks.length === picksNeeded()-1);
+  let c = candidates(deck, hero, last);
+  // Avant la dernière carte, on ne propose une légendaire que s'il en reste assez pour la dernière pioche (qui doit être légendaire).
+  if(!last && candidates(deck, hero, true).length < 6) c = c.filter(x=>!x.isLegendary);
+  if(last && c.length===0) c = candidates(deck, hero, false); // sécurité : aucune légendaire possible
+  S.offerLegendary = last && c.length>0 && c.every(x=>x.isLegendary);
+  return pick3(c).map(x=>x.id);
+}
+
+/* ---------- Écrans ---------- */
+function cardSlot(card, onClick){
+  const slot = document.createElement('div'); slot.className = 'd-slot';
+  const el = buildCardEl(card); slot.appendChild(el);
+  slot.onclick = ()=>{ slot.parentElement.querySelectorAll('.d-slot').forEach(s=>s.classList.add('off')); slot.classList.add('chosen'); setTimeout(()=>onClick(card), 180); };
+  return slot;
+}
+function renderSide(){
+  const side = document.getElementById('draft-side');
+  if(!S || !S.heroId){ side.hidden = true; return; }
+  side.hidden = false;
+  const deck = buildDeck();
+  document.getElementById('side-info').textContent = heroObj().name + ' — ' + deckTotal(deck) + ' / ' + DECK_SIZE + ' cartes';
+  const rows = deck.cards.map(e=>({c:cardById(e.cardId), n:e.count})).filter(r=>r.c)
+    .sort((a,b)=>(a.c.cost||0)-(b.c.cost||0) || a.c.name.localeCompare(b.c.name,'fr'));
+  document.getElementById('side-list').innerHTML = rows.map(r=>`<div class="d-deckrow${r.c.isLegendary?' leg':''}"><span class="c">${r.c.type==='Héros'?'':(r.c.cost??0)}</span><span class="n">${esc(r.c.name)}</span><span class="x">×${r.n}</span></div>`).join('');
+}
+function render(){
+  mainEl.innerHTML = '';
+  renderSide();
+  if(S.step==='hero') return renderChoice('Choisis ton héros', 'Trois héros tirés au hasard. Les 3 cartes liées à ton héros seront automatiquement dans ton deck (2 exemplaires chacune).', S.heroOffer.map(cardById), c=>{ S.heroId = c.id; S.step = 'region'; S.regionOffer = pick3(REGIONS.filter(r=>isRegionValidForHero(r, c)).map(r=>r.id)); if(!S.regionOffer.length) S.regionOffer = [DEFAULT_REGION_ID]; saveState(); render(); });
+  if(S.step==='region') return renderChoice('Choisis ta région', 'Trois régions compatibles avec ' + heroObj().name + '.', S.regionOffer.map(cardById).filter(Boolean), c=>{ S.regionId = c.id; S.step = 'pick'; S.picks = []; S.offer = makeOffer(); saveState(); render(); });
+  if(S.step==='pick') return renderPick();
+  if(S.step==='done') return renderDone();
+}
+function header(title, sub, progress){
+  const h = document.createElement('div');
+  h.innerHTML = `<h1 class="d-title">${title}</h1><p class="d-sub">${sub}</p>` + (progress!=null ? `<div class="d-bar" style="margin-top:10px"><i style="width:${progress}%"></i></div>` : '');
+  mainEl.appendChild(h);
+}
+function renderChoice(title, sub, cards, onPick){
+  header(title, sub, null);
+  const row = document.createElement('div'); row.className = 'd-offer'; mainEl.appendChild(row);
+  cards.forEach(c=>row.appendChild(cardSlot(c, onPick)));
+}
+function renderPick(){
+  const need = picksNeeded(), n = S.picks.length;
+  const last = n === need-1;
+  const legLast = last && S.offerLegendary;
+  header(legLast ? 'Dernière carte : une légendaire !' : (last ? 'Dernière carte' : 'Choisis une carte'), `Carte ${n+1} sur ${need}.` + (legLast ? ' <span class="d-legend-tag">LÉGENDAIRE</span>' : (last ? " Aucune légendaire n'est compatible avec ton deck : choisis une carte normale." : ' Une carte parmi trois, jouable avec ton héros.')), n/need*100);
+  const cards = (S.offer||[]).map(cardById).filter(Boolean);
+  if(!cards.length){ mainEl.insertAdjacentHTML('beforeend','<div class="d-msg">Aucune carte compatible à proposer. Termine ou recommence ta draft.</div>'); }
+  const row = document.createElement('div'); row.className = 'd-offer'; mainEl.appendChild(row);
+  cards.forEach(c=>row.appendChild(cardSlot(c, picked=>{
+    S.picks.push(picked.id);
+    if(S.picks.length >= need){ S.step = 'done'; S.offer = []; } else { S.offer = makeOffer(); }
+    saveState(); render();
+  })));
+  const act = document.createElement('div'); act.className = 'd-actions'; mainEl.appendChild(act);
+  const b = document.createElement('button'); b.className = 'sc-btn'; b.textContent = 'Abandonner cette draft';
+  b.onclick = async ()=>{ if(await scConfirm('Abandonner cette draft et recommencer ?', {danger:true})) restart(); };
+  act.appendChild(b);
+}
+async function renderDone(){
+  header('Draft terminée !', 'Ton deck est prêt. Enregistrement en cours…', 100);
+  const msg = document.createElement('div'); msg.className = 'd-msg'; msg.textContent = 'Enregistrement du deck…'; mainEl.appendChild(msg);
+  const hero = heroObj(), deck = buildDeck();
+  const decks = await loadUserDecks();
+  const ex = decks.find(d=>d.draft);
+  const res = await saveUserDeck({ id: ex ? ex.id : null, name: 'Draft — ' + hero.name, heroId: S.heroId, regionId: S.regionId, cards: deck.cards, cardBackId: ex ? ex.cardBackId : null, draft: true });
+  if(res.error){ msg.textContent = "Erreur d'enregistrement : " + res.error; return; }
+  clearState();
+  msg.innerHTML = 'Ton deck de draft est enregistré (il remplace ta draft précédente).<div class="d-actions" style="margin-top:14px"><a class="sc-btn sc-btn-gold" href="spellcraft-lobby.html?mode=draft">⚔️ Aller jouer</a><button class="sc-btn" id="again">Nouvelle draft</button></div>';
+  document.getElementById('again').onclick = restart;
+}
+function startNew(){
+  S = { step:'hero', heroOffer: pick3(HEROES.map(h=>h.id)), picks: [] };
+  saveState(); render();
+}
+function restart(){ clearState(); startNew(); }
+
+/* ---------- Chargement ---------- */
+async function initDraft(){
+  const user = await scGetCurrentUser();
+  if(!user){ mainEl.innerHTML = '<div class="d-msg">Connecte-toi pour faire une draft.</div>'; return; }
+  let tester = false;
+  try{ const { data } = await sb.from('profiles').select('username').eq('id', user.id).single(); tester = !!data && data.username==='Kroquette'; }catch(e){}
+  if(!scWeekendWindowOpenNow() && !tester){ mainEl.innerHTML = '<div class="d-msg">🔒 Le mode Draft est fermé. ' + esc(SC_TAVERN_HOURS_LABEL) + '.</div>'; return; }
+  const sets = await loadSetsIndex();
+  const okSet = new Set(sets.filter(s=>s.in_collection !== false && s.id !== 'conjuration').map(s=>s.id));
+  const { data, error } = await sb.from('cards').select('id, set_id, data');
+  if(error){ mainEl.innerHTML = '<div class="d-msg">Erreur de chargement des cartes.</div>'; return; }
+  const all = (data||[]).map(r=>({ ...r.data, id:r.id, __set:r.set_id }));
+  if(typeof migrateCard==='function') all.forEach(migrateCard);
+  all.forEach(c=>{ BYID[c.id] = c; });
+  const visible = all.filter(c=>okSet.has(c.__set) && !(c.subtypes||[]).some(s=>String(s).toLowerCase()==='conjuration'));
+  HEROES = visible.filter(c=>c.type==='Héros');
+  REGIONS = visible.filter(c=>c.type==='Région');
+  POOL = visible.filter(c=>OFFER_TYPES.includes(c.type) && !c.isSecret && !(c.hero && String(c.hero).trim()));
+  // les cartes liées aux héros (hors set caché) doivent exister dans BYID : c'est le cas (toutes les cartes y sont)
+  const saved = loadState();
+  if(saved && saved.step && saved.step!=='done' && saved.heroOffer && saved.heroOffer.every(id=>BYID[id])){
+    S = saved; render();
+    const note = document.createElement('div'); note.className = 'd-actions';
+    note.innerHTML = '<span class="d-note">Draft en cours reprise.</span>';
+    const b = document.createElement('button'); b.className = 'sc-btn'; b.textContent = 'Recommencer à zéro'; b.onclick = restart; note.appendChild(b);
+    mainEl.appendChild(note);
+  } else startNew();
+}
+initSpellcraftAuth().then(initDraft);
+</script>
+</body>
+</html>

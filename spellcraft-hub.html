@@ -466,7 +466,7 @@ async function loadHubWeekend(){
       hbSet('hb-mode-name', 'Pas de mode spécial'); hbSet('hb-mode-desc', 'Le prochain mode démarre vendredi à 18h (heure de Paris).'); return;
     }
     // Taverne ouverte : tous les modes jouables sont ouverts ensemble (le roulement viendra plus tard).
-    hbSet('hb-mode-name', '🍺 La taverne'); hbSet('hb-mode-desc', 'Tous les modes sont ouverts : Tri-color, Portail planaire et Swap.');
+    hbSet('hb-mode-name', '🍺 La taverne'); hbSet('hb-mode-desc', 'Tous les modes sont ouverts : Tri-color, Portail planaire, Swap et Draft.');
   }catch(e){ hbSet('hb-mode-name', '—'); }
 }
 let __hubQuestUser = null, __hubQuestAt = 0;

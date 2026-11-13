@@ -935,7 +935,7 @@ select.select-mini{background:var(--bg-panel-2);border:1px solid var(--line, hsl
 <script>window.APP_TOPBAR_DISABLED = true;</script>
 <script src="spellcraft-shared.js?v=20261114a"></script>
 <script src="spellcraft-auth.js"></script>
-<script src="spellcraft-catalog.js?v=20261112g"></script>
+<script src="spellcraft-catalog.js?v=20261114b"></script>
 <script>
 /* ============================================================
    RÉFÉRENTIELS
@@ -952,7 +952,7 @@ const MAX_COPIES = 2;
 const TAVERN = new URLSearchParams(location.search).get('mode')==='taverne';
 async function loadScopedDecks(){
   const all = await loadUserDecks();
-  return all.filter(d => TAVERN ? d.taverne : (!d.taverne && !d.portail));
+  return all.filter(d => TAVERN ? d.taverne : (!d.taverne && !d.portail && !d.draft));
 }
 function tavernDeckColors(deck){
   const set = new Set();
