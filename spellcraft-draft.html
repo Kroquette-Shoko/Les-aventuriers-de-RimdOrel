@@ -404,7 +404,15 @@ function makeOffer(){
   if(!last && candidates(deck, hero, true).length < 6) c = c.filter(x=>!x.isLegendary);
   if(last && c.length===0) c = candidates(deck, hero, false); // sécurité : aucune légendaire possible
   S.offerLegendary = last && c.length>0 && c.every(x=>x.isLegendary);
-  return pick3(c).map(x=>x.id);
+  if(last) return pick3(c).map(x=>x.id);
+  // Les légendaires apparaissent rarement : une légendaire pèse 4 fois moins qu'une autre carte dans le tirage.
+  const pool = c.map(x=>({x, w: x.isLegendary ? 0.25 : 1})), out = [];
+  while(out.length < 3 && pool.length){
+    let r = Math.random() * pool.reduce((t,p)=>t+p.w, 0), i = 0;
+    while(i < pool.length-1 && r >= pool[i].w){ r -= pool[i].w; i++; }
+    out.push(pool.splice(i,1)[0].x.id);
+  }
+  return out;
 }
 
 /* ---------- Écrans ---------- */
